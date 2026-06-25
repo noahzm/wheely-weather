@@ -1,9 +1,33 @@
 :root {
   --font-display:
-    Spline Sans, Inter, ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji,
-    Segoe UI Symbol, Noto Color Emoji;
+    "Archivo_800ExtraBold", "Archivo Variable", "IBM Plex Sans", system-ui,
+    sans-serif;
+  --font-sans:
+    "IBMPlexSans_500Medium", "IBM Plex Sans", ui-sans-serif, system-ui,
+    sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
+    "Noto Color Emoji";
   --font-mono:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
-  --font-rounded: 'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif;
-  --font-serif: Georgia, 'Times New Roman', serif;
+    "IBMPlexMono_600SemiBold", "IBM Plex Mono", ui-monospace, SFMono-Regular,
+    Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --font-rounded:
+    "IBMPlexSans_600SemiBold", "SF Pro Rounded", "Hiragino Maru Gothic ProN",
+    Meiryo, "MS PGothic", sans-serif;
+  --font-serif: Georgia, "Times New Roman", serif;
+}
+
+html,
+body,
+#root {
+  font-family: var(--font-sans);
+}
+
+/* Poster selection + focus styling carried over from the original site. */
+::selection {
+  background-color: #c6a2ed;
+  color: #161310;
+}
+
+:focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 2px;
 }

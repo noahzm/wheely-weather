@@ -8,9 +8,11 @@
     "scheme": "wheelyweather",
     "userInterfaceStyle": "automatic",
     "ios": {
+      "bundleIdentifier": "app.wheelyweather",
       "icon": "./assets/expo.icon"
     },
     "android": {
+      "package": "app.wheelyweather",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -33,6 +35,13 @@
             "image": "./assets/images/splash-icon.png",
             "imageWidth": 76
           }
+        }
+      ],
+      "@react-native-community/datetimepicker",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow Wheely Weather to use your location for local cycling forecasts."
         }
       ]
     ],

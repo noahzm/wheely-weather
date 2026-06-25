@@ -1,15 +1,47 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
-import { useColorScheme } from 'react-native';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { useFonts } from 'expo-font';
+import { Archivo_800ExtraBold } from '@expo-google-fonts/archivo';
+import {
+  IBMPlexSans_400Regular,
+  IBMPlexSans_500Medium,
+  IBMPlexSans_600SemiBold,
+  IBMPlexSans_700Bold,
+} from '@expo-google-fonts/ibm-plex-sans';
+import { IBMPlexMono_500Medium, IBMPlexMono_600SemiBold } from '@expo-google-fonts/ibm-plex-mono';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { ForecastProvider } from '@/hooks/forecast-context';
 
-export default function TabLayout() {
+export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+
+  const [fontsLoaded, fontError] = useFonts({
+    Archivo_800ExtraBold,
+    IBMPlexSans_400Regular,
+    IBMPlexSans_500Medium,
+    IBMPlexSans_600SemiBold,
+    IBMPlexSans_700Bold,
+    IBMPlexMono_500Medium,
+    IBMPlexMono_600SemiBold,
+  });
+
+  if (!fontsLoaded && !fontError) {
+    return null;
+  }
+
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <AnimatedSplashOverlay />
-      <AppTabs />
+      <ForecastProvider>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="location" options={{ presentation: 'modal' }} />
+        </Stack>
+      </ForecastProvider>
     </ThemeProvider>
   );
 }
