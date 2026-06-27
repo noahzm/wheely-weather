@@ -1,10 +1,10 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Fonts, Spacing, type WheelyPalette } from '@/constants/theme';
-import { brutalShadow } from './primitives';
+import { Fonts, FontWeightBold, Spacing, type WheelyPalette } from '@/constants/theme';
+import { verdictFeedback } from '@/utils/haptics';
 
 function makeStyles(c: WheelyPalette) {
   return StyleSheet.create({
@@ -16,13 +16,10 @@ function makeStyles(c: WheelyPalette) {
     verdict: {
       borderWidth: 2,
       borderColor: c.ink,
-      paddingHorizontal: Spacing.four,
+      paddingHorizontal: Spacing.three,
       paddingTop: Spacing.five,
-      paddingBottom: Spacing.four,
-      minHeight: 190,
-      justifyContent: 'flex-end',
+      paddingBottom: Spacing.three,
       overflow: 'hidden',
-      ...brutalShadow(c.ink, 9),
     },
     verdictBadge: {
       position: 'absolute',
@@ -39,7 +36,7 @@ function makeStyles(c: WheelyPalette) {
       color: c.paper,
       fontFamily: Fonts.monoBold,
       fontSize: 16,
-      fontWeight: '700',
+      fontWeight: FontWeightBold,
       textTransform: 'uppercase',
     },
     verdictText: {
@@ -68,6 +65,10 @@ export function RideVerdict({
   label?: string;
 }>) {
   const { c, styles } = useStyles();
+  // Fire a tone-matched haptic when the verdict first appears or changes.
+  useEffect(() => {
+    verdictFeedback(status);
+  }, [status]);
   const meta = {
     yes: { defaultLabel: 'Ride day', color: c.success },
     maybe: { defaultLabel: 'Mixed conditions', color: c.warning },

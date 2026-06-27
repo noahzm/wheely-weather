@@ -1,11 +1,11 @@
 import { useMemo } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { MapPin } from 'lucide-react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { Spacing, type WheelyPalette } from '@/constants/theme';
-import { makeButtonStyles } from './primitives';
+import { HapticPressable, makeButtonStyles } from './primitives';
 
 function makeStyles(c: WheelyPalette) {
   return StyleSheet.create({
@@ -41,7 +41,7 @@ export function WeatherHeader({
   const { c, styles, buttonStyles } = useStyles();
   return (
     <View style={styles.header} accessibilityRole="header">
-      <Pressable
+      <HapticPressable
         onPress={onOpenLocation}
         accessibilityRole="button"
         accessibilityLabel={location ? `Change location, currently ${location}` : 'Set location'}
@@ -53,7 +53,7 @@ export function WeatherHeader({
       >
         <MapPin size={14} color={c.ink} strokeWidth={2.5} />
         <ThemedText style={buttonStyles.label}>{location || 'Set location'}</ThemedText>
-      </Pressable>
+      </HapticPressable>
       {!!statusMessage && (
         <ThemedText style={styles.statusMessage} accessibilityLiveRegion="polite" role="status">
           {statusMessage}

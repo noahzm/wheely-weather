@@ -1,14 +1,16 @@
 import { useMemo, useId, useState } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View, type ViewStyle } from 'react-native';
 import Svg, { Defs, Pattern, Polygon, Rect } from 'react-native-svg';
 import { AlertTriangle, ChevronDown, Thermometer, type LucideIcon } from 'lucide-react-native';
 import { SymbolView, type SFSymbol } from 'expo-symbols';
+import Animated, { type SharedValue, useAnimatedStyle } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Spacing, type WheelyPalette } from '@/constants/theme';
+import { Fonts, FontWeightBold, Spacing, type WheelyPalette } from '@/constants/theme';
 import type { WeatherAlert } from '@/types/weather';
-import { BrutalCard, ButtonRadius, formatTime } from './primitives';
+import { AnimatedExpand, useExpandAnimation } from './animated-expand';
+import { BrutalCard, ButtonRadius, formatTime, HapticPressable } from './primitives';
 
 const EXTREME_ALERT_BG = 'rgba(255,100,44,0.16)';
 
@@ -28,12 +30,36 @@ function makeStyles(c: WheelyPalette) {
       gap: Spacing.one,
     },
     alertTextWrap: { flex: 1, gap: Spacing.one },
-    alertTitle: { color: c.ink, fontWeight: '400', fontSize: 16, lineHeight: 20 },
+    alertTitle: {
+      color: c.ink,
+      fontFamily: Fonts.display,
+      fontWeight: FontWeightBold,
+      fontSize: 16,
+      lineHeight: 20,
+    },
     muted: {
       color: c.mutedInk,
       fontSize: 13,
       lineHeight: 18,
     },
+    chevronWrap: Platform.select({
+      ios: {
+        alignSelf: 'flex-start',
+        marginTop: 3,
+        width: 14,
+        height: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+      },
+      default: {
+        alignSelf: 'flex-start',
+        marginTop: 1,
+        width: 18,
+        height: 18,
+        alignItems: 'center',
+        justifyContent: 'center',
+      },
+    }),
   });
 }
 
@@ -84,21 +110,30 @@ function AlertLeadingIcon({
   );
 }
 
-function AlertChevron({ open, color }: Readonly<{ open: boolean; color: string }>) {
-  const transform = [{ rotate: open ? '180deg' : '0deg' }];
-  return Platform.OS === 'ios' ? (
-    <SymbolView name="chevron.down" size={14} tintColor={color} style={{ transform }} />
-  ) : (
-    <ChevronDown size={18} color={color} style={{ transform }} />
+function AlertChevron({
+  openProgress,
+  color,
+  style,
+}: Readonly<{ openProgress: SharedValue<number>; color: string; style: ViewStyle }>) {
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${openProgress.value * 180}deg` }],
+  }));
+
+  return (
+    <Animated.View style={[style, animatedStyle]}>
+      {Platform.OS === 'ios' ? (
+        <SymbolView name="chevron.down" size={14} tintColor={color} />
+      ) : (
+        <ChevronDown size={18} color={color} />
+      )}
+    </Animated.View>
   );
 }
 
-function AlertCard({
-  alert,
-  defaultOpen,
-}: Readonly<{ alert: WeatherAlert; defaultOpen: boolean }>) {
+function AlertCard({ alert }: Readonly<{ alert: WeatherAlert }>) {
   const { c, styles } = useStyles();
-  const [open, setOpen] = useState(defaultOpen);
+  const [open, setOpen] = useState(false);
+  const openProgress = useExpandAnimation(open);
   const extreme = alert.severity === 'extreme';
   const isNws = alert.type === 'nws';
   const Icon = alert.icon === 'thermometer' ? Thermometer : AlertTriangle;
@@ -109,7 +144,7 @@ function AlertCard({
   return (
     <BrutalCard small style={styles.alertCard}>
       <HazardStripe extreme={extreme} />
-      <Pressable
+      <HapticPressable
         disabled={!hasDetails}
         onPress={() => {
           setOpen((prev) => !prev);
@@ -127,15 +162,20 @@ function AlertCard({
             </ThemedText>
           )}
         </View>
-        {hasDetails && <AlertChevron open={open} color={c.mutedInk} />}
-      </Pressable>
-      {hasDetails && open && (
-        <View style={styles.alertContent}>
+        {hasDetails && (
+          <AlertChevron openProgress={openProgress} color={c.mutedInk} style={styles.chevronWrap} />
+        )}
+      </HapticPressable>
+      {hasDetails && (
+        <AnimatedExpand
+          openProgress={openProgress}
+          style={[styles.alertContent, extreme && styles.alertExtremeBody]}
+        >
           {!!alert.instruction && <ThemedText style={styles.muted}>{alert.instruction}</ThemedText>}
           {!!alert.expires && (
             <ThemedText style={styles.muted}>Expires: {formatTime(alert.expires)}</ThemedText>
           )}
-        </View>
+        </AnimatedExpand>
       )}
     </BrutalCard>
   );
@@ -147,11 +187,7 @@ export function WeatherAlerts({ alerts }: Readonly<{ alerts: WeatherAlert[] }>) 
   return (
     <View style={styles.alertStack} accessibilityLabel="Weather alerts">
       {alerts.map((alert, index) => (
-        <AlertCard
-          key={`${alert.type}-${alert.event ?? alert.message}-${index}`}
-          alert={alert}
-          defaultOpen={index === 0 && alert.severity === 'extreme'}
-        />
+        <AlertCard key={`${alert.type}-${alert.event ?? alert.message}-${index}`} alert={alert} />
       ))}
     </View>
   );

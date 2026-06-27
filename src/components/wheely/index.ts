@@ -3,6 +3,7 @@ export {
   Chip,
   BurstChip,
   BrutalCard,
+  HapticPressable,
   brutalShadow,
   ButtonRadius,
   makeButtonStyles,
@@ -11,6 +12,9 @@ export {
   asCondition,
   formatTime,
 } from './primitives';
+export { GlassChrome } from './glass-chrome';
+export { useHomeHeaderOptions } from './home-nav-chrome';
+export { SettingsForm } from './settings-form';
 export { WeatherHeader } from './weather-header';
 export { RideVerdict } from './ride-verdict';
 export { WeatherAlerts } from './weather-alerts';

@@ -3,6 +3,7 @@ import {
   dayLabel,
   getBestDayInfo,
   getDayConditionReason,
+  getHourConditionReason,
   getBestDaysBlurb,
 } from './forecastHelpers';
 
@@ -22,6 +23,18 @@ const day = (overrides = {}) => ({
   weatherCode: 1,
   dewpoint: 50,
   feelsLike: 72,
+  ...overrides,
+});
+
+const hour = (overrides = {}) => ({
+  hour: 10,
+  condition: 'fair',
+  feelsLike: 72,
+  windSpeed: 6,
+  windGust: null,
+  rainChance: 5,
+  weatherCode: 1,
+  dewpoint: 50,
   ...overrides,
 });
 
@@ -114,6 +127,46 @@ describe('getDayConditionReason', () => {
     ['Prime riding weather', { condition: 'good', windSpeed: 12, rainChance: 25 }],
   ])('returns %s', (expected, fields) => {
     expect(getDayConditionReason(day(fields))).toBe(expected);
+  });
+});
+
+describe('getHourConditionReason', () => {
+  it('returns null for good and fair hours without hazardous weather codes', () => {
+    expect(getHourConditionReason(hour({ condition: 'good' }))).toBeNull();
+    expect(getHourConditionReason(hour({ condition: 'fair', windSpeed: 12 }))).toBeNull();
+  });
+
+  it('prioritizes hazardous weather codes regardless of condition tier', () => {
+    expect(getHourConditionReason(hour({ condition: 'good', weatherCode: 95 }))).toBe('Storm risk');
+    expect(getHourConditionReason(hour({ condition: 'fair', weatherCode: 73 }))).toBe(
+      'Wintry roads',
+    );
+    expect(getHourConditionReason(hour({ condition: 'marginal', weatherCode: 65 }))).toBe(
+      'Heavy rain risk',
+    );
+  });
+
+  it.each([
+    ['Very windy (24 mph)', { condition: 'bad', windSpeed: 24 }],
+    ['Rain likely (65%)', { condition: 'bad', rainChance: 65 }],
+    ['Dangerous heat (feels like 97°)', { condition: 'bad', feelsLike: 97 }],
+    ['Oppressive humidity (dew 72°)', { condition: 'bad', dewpoint: 72 }],
+    ['Freezing temps', { condition: 'bad', feelsLike: 30 }],
+    ['Rough day to ride', { condition: 'bad' }],
+    ['Windy (19 mph)', { condition: 'poor', windSpeed: 19 }],
+    ['Wet roads likely', { condition: 'poor', rainChance: 50 }],
+    ['Very hot (feels like 94°)', { condition: 'poor', feelsLike: 94 }],
+    ['Very humid (dew 69°)', { condition: 'poor', dewpoint: 69 }],
+    ['Cold start', { condition: 'poor', feelsLike: 35 }],
+    ['Tough riding', { condition: 'poor' }],
+    ['Breezy (16 mph)', { condition: 'marginal', windSpeed: 16 }],
+    ['Some rain risk', { condition: 'marginal', rainChance: 35 }],
+    ['Hot feel (91°)', { condition: 'marginal', feelsLike: 91 }],
+    ['Muggy (dew 66°)', { condition: 'marginal', dewpoint: 66 }],
+    ['Cool start', { condition: 'marginal', feelsLike: 40 }],
+    ['Mixed conditions', { condition: 'marginal' }],
+  ])('returns %s', (expected, fields) => {
+    expect(getHourConditionReason(hour(fields))).toBe(expected);
   });
 });
 

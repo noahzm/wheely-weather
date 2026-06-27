@@ -1,12 +1,12 @@
 import { useMemo } from 'react';
-import { ActivityIndicator, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
 import { AlertTriangle, CloudOff, RefreshCw } from 'lucide-react-native';
 import { SymbolView, type SFSymbol } from 'expo-symbols';
 
 import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { MaxContentWidth, Spacing, TRANSPARENT, type WheelyPalette } from '@/constants/theme';
-import { BrutalCard, makeButtonStyles, StrokedSectionHeading } from './primitives';
+import { BrutalCard, HapticPressable, makeButtonStyles, StrokedSectionHeading } from './primitives';
 
 function makeStyles(c: WheelyPalette) {
   return StyleSheet.create({
@@ -77,7 +77,7 @@ export function ErrorState({
             ? 'Check your connection and try again.'
             : 'The forecast could not be loaded right now.'}
         </ThemedText>
-        <Pressable
+        <HapticPressable
           onPress={onRetry}
           accessibilityRole="button"
           accessibilityLabel="Refresh forecast"
@@ -93,7 +93,7 @@ export function ErrorState({
             <RefreshCw size={14} color={c.ink} strokeWidth={2.5} />
           )}
           <ThemedText style={buttonStyles.label}>Refresh</ThemedText>
-        </Pressable>
+        </HapticPressable>
       </BrutalCard>
     </View>
   );

@@ -12,7 +12,10 @@ export interface SavedLocation {
 const LOCATION_KEY = 'ww_location';
 const RECENTS_KEY = 'ww_recent_locations';
 const GEAR_MODE_KEY = 'gearMode';
+const APPEARANCE_KEY = 'ww_appearance';
 const RECENTS_MAX = 4;
+
+export type Appearance = 'system' | 'light' | 'dark';
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);
@@ -118,4 +121,17 @@ export async function loadGearMode() {
 
 export async function saveGearMode(mode: 'casual' | 'pro') {
   await AsyncStorage.setItem(GEAR_MODE_KEY, mode);
+}
+
+export async function loadAppearance(): Promise<Appearance> {
+  try {
+    const raw = await AsyncStorage.getItem(APPEARANCE_KEY);
+    return raw === 'light' || raw === 'dark' ? raw : 'system';
+  } catch {
+    return 'system';
+  }
+}
+
+export async function saveAppearance(value: Appearance) {
+  await AsyncStorage.setItem(APPEARANCE_KEY, value);
 }

@@ -3,6 +3,7 @@ import { THRESHOLDS } from '../domain/constants';
 
 /** @typedef {import('@/types/weather').Condition} Condition */
 /** @typedef {import('@/types/weather').DailyWeather} DailyWeather */
+/** @typedef {import('@/types/weather').HourlyWeather} HourlyWeather */
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const DAY_NAMES_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -104,12 +105,12 @@ function dayMetrics(day) {
   };
 }
 
-/** @param {DailyWeather} day @returns {string | null} */
-function weatherCodeReason(day) {
-  if (day.weatherCode == null) return null;
-  if (STORM_CODES.has(day.weatherCode)) return 'Storm risk';
-  if (SNOW_CODES.has(day.weatherCode)) return 'Wintry roads';
-  if (HEAVY_RAIN_CODES.has(day.weatherCode)) return 'Heavy rain risk';
+/** @param {{ weatherCode: number | null }} entry @returns {string | null} */
+function weatherCodeReason(entry) {
+  if (entry.weatherCode == null) return null;
+  if (STORM_CODES.has(entry.weatherCode)) return 'Storm risk';
+  if (SNOW_CODES.has(entry.weatherCode)) return 'Wintry roads';
+  if (HEAVY_RAIN_CODES.has(entry.weatherCode)) return 'Heavy rain risk';
   return null;
 }
 
@@ -175,6 +176,44 @@ function idealDayReason({ wind, rain, high }) {
   if (wind <= 10) return 'Calm and steady';
   if (rain <= 20) return 'Comfortable and dry';
   return 'Prime riding weather';
+}
+
+/** @param {HourlyWeather} hour @returns {DayMetrics} */
+function hourMetrics(hour) {
+  const feelsLike = hour.feelsLike ?? null;
+  return {
+    wind: Math.round(hour.windSpeed ?? 0),
+    rain: hour.rainChance ?? 0,
+    high: null,
+    low: feelsLike,
+    feelsLike,
+    dewpoint: hour.dewpoint ?? null,
+  };
+}
+
+/** Builds a short explanation for why an hourly point is limiting to ride. */
+/** @param {HourlyWeather} hour @returns {string | null} */
+export function getHourConditionReason(hour) {
+  const codeReason = weatherCodeReason(hour);
+  if (codeReason) return codeReason;
+
+  if (hour.condition === 'good' || hour.condition === 'fair') return null;
+
+  const m = hourMetrics(hour);
+  switch (hour.condition) {
+    case 'bad': {
+      return badDayReason(m);
+    }
+    case 'poor': {
+      return poorDayReason(m);
+    }
+    case 'marginal': {
+      return marginalDayReason(m);
+    }
+    default: {
+      return null;
+    }
+  }
 }
 
 /** Builds a short explanation for why a daily card rates the way it does. */
