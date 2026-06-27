@@ -26,7 +26,7 @@ import {
   SectionTitle,
   WeatherAlerts,
   WeatherHeader,
-} from '@/components/wheely-ui';
+} from '@/components/wheely';
 import { ThemedText } from '@/components/themed-text';
 import {
   getDaylightWarning,

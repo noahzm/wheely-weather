@@ -1,4 +1,3 @@
 /* Vite handles @fontsource file URLs correctly; Expo web uses expo-font instead. */
-@import '@fontsource-variable/archivo/wdth.css';
 @import '@fontsource/national-park/400.css';
 @import '@fontsource/national-park/700.css';
