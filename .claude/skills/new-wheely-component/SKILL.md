@@ -7,6 +7,7 @@ disable-model-invocation: true
 # new-wheely-component
 
 Scaffold a new component in `src/components/wheely/` that matches the existing system. Take the component name from the user (e.g. "wind gauge"). Derive:
+
 - **file**: kebab-case → `src/components/wheely/<kebab-name>.tsx`
 - **export**: PascalCase → `WindGauge`
 
@@ -62,6 +63,7 @@ export function <PascalName>({
 ```
 
 ### Rules to honor (these are enforced — see the `wheely-ui-reviewer` agent)
+
 - **No hardcoded colors** — every color comes from `c` (the `WheelyPalette`). Get it via `useWheelyColors()`; build styles in `makeStyles(c)`.
 - **Props typed with `Readonly<{ ... }>`.**
 - **Icons** (if any) use `lucide-react-native`, rendered as **siblings of** `<ThemedText>` in a row `View`, never nested inside it.
@@ -81,6 +83,7 @@ export { <PascalName> } from './<kebab-name>';
 ## 3. Add Storybook coverage
 
 Storybook is the primary UI review surface. Add a story for the new component. Either add a section to `src/stories/WheelyUi.stories.tsx` or create `src/stories/<PascalName>.stories.tsx`, following the existing pattern:
+
 - import from `@/components/wheely`
 - `import type { Meta, StoryObj } from '@storybook/react-native-web-vite'`
 - wrap in `StorySurface` (from `./story-layout`) via `decorators`

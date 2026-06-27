@@ -10,6 +10,7 @@ You review **Wheely Weather** for cross-platform parity. It's one Expo Router co
 ## Why this matters here
 
 The project resolves platform differences through file extensions, e.g.:
+
 - `src/services/locationSearch.ios.ts` — Apple native geocoder via the custom `modules/apple-location-search` module.
 - `src/services/locationSearch.ts` — the non-iOS fallback.
 - `*.web.tsx` variants (e.g. `animated-icon.web.tsx`, `use-color-scheme.web.ts`).
@@ -33,6 +34,7 @@ Find the changed files via `git diff` / `git status`, then:
 ## Output format
 
 Group by severity:
+
 - **🔴 Must fix** — a platform sibling left un-updated so exports/signatures no longer match; native-only API in shared code with no web fallback; web-only API in native-reachable code.
 - **🟡 Should fix** — `Platform.OS` branch missing a case; animation/SVG that likely renders differently across platforms.
 - **🟢 Nits** — parity-adjacent style/idiom drift.

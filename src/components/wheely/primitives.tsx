@@ -1,5 +1,12 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { Platform, StyleSheet, View, type TextStyle } from 'react-native';
+import {
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
+  type PressableProps,
+  type TextStyle,
+} from 'react-native';
 import Svg, { Path, Text as SvgText } from 'react-native-svg';
 import {
   Bike,
@@ -25,8 +32,22 @@ import {
 
 import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Fonts, Spacing, type WheelyPalette } from '@/constants/theme';
+import { Fonts, FontWeightBold, Spacing, type WheelyPalette } from '@/constants/theme';
 import type { Condition } from '@/types/weather';
+import { selectionFeedback } from '@/utils/haptics';
+
+/** A `Pressable` that fires a selection haptic before delegating to `onPress`. */
+export function HapticPressable({ onPress, ...props }: Readonly<PressableProps>) {
+  return (
+    <Pressable
+      onPress={(event) => {
+        selectionFeedback();
+        onPress?.(event);
+      }}
+      {...props}
+    />
+  );
+}
 
 // ─── Elliptical burst badge path ─────────────────────────────────────────────
 // Radial starburst on an ellipse — spikes alternate between an outer ellipse
@@ -63,7 +84,7 @@ const BURST_OFFSETS = [
   0.04, -0.07, 0.09, -0.04, 0.06, -0.08, 0.03, -0.06, 0.08, -0.03, 0.07, -0.05, 0.04,
 ] as const;
 // 13 spikes on a 200×80 viewBox. Outer ellipse nearly fills box; inner at ~50%
-const BURST_PATH = makeEllipticalBurst({
+export const BURST_PATH = makeEllipticalBurst({
   cx: 100,
   cy: 40,
   xOut: 96,
@@ -86,7 +107,7 @@ const LABEL_BURST_PATH = makeEllipticalBurst({
   n: 13,
   offsets: BURST_OFFSETS,
 });
-const BURST_VIEWBOX = '-4 -4 208 88';
+export const BURST_VIEWBOX = '-4 -4 208 88';
 const LABEL_BURST_VIEWBOX = '-4 -4 208 64';
 
 // ─── Shared helpers ─────────────────────────────────────────────────────────
@@ -246,7 +267,7 @@ const strokedSectionHeadingStyles = StyleSheet.create({
     fontFamily: Fonts.display,
     fontSize: SECTION_HEADING_FONT_SIZE,
     lineHeight: SECTION_HEADING_LINE_HEIGHT,
-    fontWeight: '700',
+    fontWeight: FontWeightBold,
     textTransform: 'uppercase',
   },
   measureText: {
@@ -313,7 +334,7 @@ function NativeStrokedSectionHeading({ children }: Readonly<{ children: string }
             y={layout.baselineY}
             fontSize={SECTION_HEADING_FONT_SIZE}
             fontFamily={Fonts.display}
-            fontWeight="700"
+            fontWeight={FontWeightBold}
             stroke="#000000"
             strokeWidth={SECTION_HEADING_STROKE_WIDTH}
             strokeLinejoin="round"
@@ -327,7 +348,7 @@ function NativeStrokedSectionHeading({ children }: Readonly<{ children: string }
             y={layout.baselineY}
             fontSize={SECTION_HEADING_FONT_SIZE}
             fontFamily={Fonts.display}
-            fontWeight="700"
+            fontWeight={FontWeightBold}
             fill="#ffffff"
           >
             {label}
@@ -404,7 +425,7 @@ const chipSizes = {
   },
 } as const;
 
-const burstChipSizes = {
+export const BURST_CHIP_SIZES = {
   default: {
     container: {
       paddingHorizontal: 14,
@@ -442,7 +463,7 @@ const burstChipSizes = {
   },
 } as const;
 
-const burstChipStyles = StyleSheet.create({
+export const burstChipStyles = StyleSheet.create({
   container: {
     alignSelf: 'flex-start',
     alignItems: 'center',
@@ -485,7 +506,7 @@ function BurstConditionChip({
 }>) {
   const [layout, setLayout] = useState({ width: 0, height: 0 });
   const sizeKey = large ? 'large' : 'default';
-  const size = variant === 'label' ? burstChipSizes.label : burstChipSizes[sizeKey];
+  const size = variant === 'label' ? BURST_CHIP_SIZES.label : BURST_CHIP_SIZES[sizeKey];
   const burstPath = variant === 'label' ? LABEL_BURST_PATH : BURST_PATH;
   const viewBox = variant === 'label' ? LABEL_BURST_VIEWBOX : BURST_VIEWBOX;
 

@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Platform,
   PlatformColor,
-  Pressable,
   ScrollView,
   StyleSheet,
   View,
@@ -12,6 +11,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 
+import { ScreenShell } from '@/components/tartan-background';
+import { HapticPressable } from '@/components/wheely';
 import { ThemedText } from '@/components/themed-text';
 import { useForecast } from '@/hooks/forecast-context';
 import { useWheelyColors } from '@/hooks/use-theme';
@@ -36,6 +37,27 @@ const CELL_BG = ios ? PlatformColor('secondarySystemGroupedBackground') : undefi
 const SEPARATOR = ios ? PlatformColor('separator') : undefined;
 const LABEL = ios ? PlatformColor('label') : undefined;
 const SECONDARY_LABEL = ios ? PlatformColor('secondaryLabel') : undefined;
+
+function buildSections(
+  isSearching: boolean,
+  results: RecentLocation[],
+  recentLocations: RecentLocation[],
+): Section[] {
+  const sections: Section[] = [];
+  if (isSearching) {
+    if (results.length > 0) sections.push({ title: 'Results', data: results });
+  } else if (recentLocations.length > 0) {
+    sections.push({ title: 'Recent', data: recentLocations });
+  }
+  sections.push({
+    title: 'Options',
+    data: [
+      { lat: 0, lon: 0, label: 'Use Current Location', _kind: 'device' },
+      { lat: 0, lon: 0, label: DEFAULT_LOCATION, _kind: 'default' },
+    ],
+  });
+  return sections;
+}
 
 function LocationRow({
   item,
@@ -68,7 +90,7 @@ function LocationRow({
           ]}
         />
       )}
-      <Pressable
+      <HapticPressable
         style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
         onPress={onPress}
         disabled={busy}
@@ -97,7 +119,7 @@ function LocationRow({
             style={styles.chevron}
           />
         )}
-      </Pressable>
+      </HapticPressable>
     </View>
   );
 }
@@ -208,19 +230,7 @@ export default function LocationScreen() {
   }, [forecast, router]);
 
   const isSearching = query.trim().length >= 2;
-  const sections: Section[] = [];
-  if (isSearching) {
-    if (results.length > 0) sections.push({ title: 'Results', data: results });
-  } else if (forecast.recentLocations.length > 0) {
-    sections.push({ title: 'Recent', data: forecast.recentLocations });
-  }
-  sections.push({
-    title: 'Options',
-    data: [
-      { lat: 0, lon: 0, label: 'Use Current Location', _kind: 'device' },
-      { lat: 0, lon: 0, label: DEFAULT_LOCATION, _kind: 'default' },
-    ],
-  });
+  const sections = buildSections(isSearching, results, forecast.recentLocations);
 
   const labelColor = (LABEL ?? c.ink) as string;
   const mutedColor = (SECONDARY_LABEL ?? c.mutedInk) as string;
@@ -240,36 +250,38 @@ export default function LocationScreen() {
           },
         }}
       />
-      <SafeAreaView style={styles.container} edges={['bottom']}>
-        {busy && (
-          <View style={styles.busyOverlay}>
-            <ActivityIndicator color={c.primary} size="large" />
-          </View>
-        )}
-        <ScrollView
-          style={styles.scroll}
-          contentInsetAdjustmentBehavior="automatic"
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
-          contentContainerStyle={styles.scrollContent}
-        >
-          {isSearching && results.length === 0 && !!message && (
-            <ThemedText style={[styles.messageText, { color: mutedColor }]}>{message}</ThemedText>
+      <ScreenShell>
+        <SafeAreaView style={styles.container} edges={['bottom']}>
+          {busy && (
+            <View style={styles.busyOverlay}>
+              <ActivityIndicator color={c.primary} size="large" />
+            </View>
           )}
+          <ScrollView
+            style={styles.scroll}
+            contentInsetAdjustmentBehavior="automatic"
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            contentContainerStyle={styles.scrollContent}
+          >
+            {isSearching && results.length === 0 && !!message && (
+              <ThemedText style={[styles.messageText, { color: mutedColor }]}>{message}</ThemedText>
+            )}
 
-          <LocationList
-            sections={sections}
-            busy={busy}
-            labelColor={labelColor}
-            mutedColor={mutedColor}
-            onSelect={(item) => {
-              if (item._kind === 'device') void handleUseDevice();
-              else if (item._kind === 'default') void handleUseDefault();
-              else void choosePlace(item);
-            }}
-          />
-        </ScrollView>
-      </SafeAreaView>
+            <LocationList
+              sections={sections}
+              busy={busy}
+              labelColor={labelColor}
+              mutedColor={mutedColor}
+              onSelect={(item) => {
+                if (item._kind === 'device') void handleUseDevice();
+                else if (item._kind === 'default') void handleUseDefault();
+                else void choosePlace(item);
+              }}
+            />
+          </ScrollView>
+        </SafeAreaView>
+      </ScreenShell>
     </>
   );
 }

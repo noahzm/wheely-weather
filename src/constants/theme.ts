@@ -120,6 +120,15 @@ export const Fonts = Platform.select({
   },
 });
 
+/**
+ * Weight to pair with Fonts.display / Fonts.monoBold. On web those roles resolve to
+ * dedicated @font-face family names (expo-font); fontWeight 700 synthesizes extra bold.
+ */
+export const FontWeightBold = Platform.select({
+  web: '400' as const,
+  default: '700' as const,
+});
+
 export const Spacing = {
   half: 2,
   one: 4,

@@ -24,7 +24,7 @@ import {
   getWindDirectionLabel,
 } from '@/utils';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Fonts, Spacing, type WheelyPalette } from '@/constants/theme';
+import { Fonts, FontWeightBold, Spacing, type WheelyPalette } from '@/constants/theme';
 import type { Weather } from '@/types/weather';
 import { BrutalCard, Chip, asCondition } from './primitives';
 
@@ -78,7 +78,7 @@ function makeStyles(c: WheelyPalette, isCompact: boolean) {
       fontFamily: Fonts.display,
       fontSize: 30,
       lineHeight: 34,
-      fontWeight: '700',
+      fontWeight: FontWeightBold,
     },
     metricFooter: {
       gap: Spacing.two,

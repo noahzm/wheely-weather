@@ -7,7 +7,7 @@ import { ThemedText } from '@/components/themed-text';
 import { CONDITION_DISPLAY } from '@/domain';
 import { dayLabel, getBestDayInfo, getBestDaysBlurb, getDayConditionReason } from '@/utils';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Fonts, Spacing, type WheelyPalette } from '@/constants/theme';
+import { Fonts, FontWeightBold, Spacing, type WheelyPalette } from '@/constants/theme';
 import type { DailyWeather } from '@/types/weather';
 import { BrutalCard, Chip, asCondition, weatherIconFor, weatherSfSymbol } from './primitives';
 
@@ -16,7 +16,9 @@ function makeStyles(c: WheelyPalette, isCompact: boolean) {
     weekSection: { gap: Spacing.three },
     weekBlurb: {
       color: c.mutedInk,
+      fontFamily: Fonts.monoBold,
       fontSize: 16,
+      fontWeight: FontWeightBold,
       lineHeight: 26,
     },
     dailyList: { padding: 0, gap: 0, overflow: 'visible' },
@@ -32,6 +34,7 @@ function makeStyles(c: WheelyPalette, isCompact: boolean) {
         ? { flexDirection: 'column', gap: Spacing.one }
         : { flexDirection: 'row', alignItems: 'center', gap: Spacing.two }),
     },
+    dayRowLast: { borderBottomWidth: 0 },
     dayRowMain: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -66,7 +69,7 @@ function makeStyles(c: WheelyPalette, isCompact: boolean) {
       flexShrink: 0,
       fontFamily: Fonts.display,
       fontSize: 24,
-      fontWeight: '700',
+      fontWeight: FontWeightBold,
       ...(Platform.OS === 'web' ? ({ whiteSpace: 'nowrap' } as object) : null),
     },
     dayLow: { color: c.mutedInk, fontSize: 15 },
@@ -155,7 +158,10 @@ export function DailyForecast({ daily }: Readonly<{ daily: DailyWeather[] }>) {
             </>
           );
           return (
-            <View key={`${String(day.date)}-${index}`} style={styles.dayRow}>
+            <View
+              key={`${String(day.date)}-${index}`}
+              style={[styles.dayRow, index === daily.length - 1 && styles.dayRowLast]}
+            >
               {isCompact ? <View style={styles.dayRowMain}>{summary}</View> : summary}
               <ThemedText style={styles.dayReason} numberOfLines={isCompact ? undefined : 2}>
                 {reason}

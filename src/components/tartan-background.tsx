@@ -2,7 +2,7 @@ import { useId, useState, type ReactNode } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import Svg, { Defs, Image as SvgImage, Pattern, Rect } from 'react-native-svg';
 
-import { useColorSchemeName } from '@/hooks/use-theme';
+import { useColorSchemeName, useWheelyColors } from '@/hooks/use-theme';
 
 // Metro resolves image requires to a numeric asset id; the web path re-resolves
 // it to a URL via AssetRegistry in getWebTartanTileUrl.
@@ -113,18 +113,53 @@ function NativeTartanTile({ scrimColor }: Readonly<{ scrimColor: string }>) {
   );
 }
 
+function TartanBackdropLayer({ scrimColor }: Readonly<{ scrimColor: string }>) {
+  return (
+    <View pointerEvents="none" style={styles.backdrop}>
+      <TartanTile scrimColor={scrimColor} />
+    </View>
+  );
+}
+
+/**
+ * Root-level tartan wrapper for web layout and Storybook. Does not set an opaque
+ * theme base — use {@link ScreenBackdrop} on native screens instead.
+ */
 export function TartanBackground({ children }: Readonly<TartanBackgroundProps>) {
   const scheme = useColorSchemeName();
   const scrimColor = SCRIM[scheme];
 
   return (
     <View style={styles.root}>
-      <View pointerEvents="none" style={styles.backdrop}>
-        <TartanTile scrimColor={scrimColor} />
-      </View>
+      <TartanBackdropLayer scrimColor={scrimColor} />
       <View style={styles.content}>{children}</View>
     </View>
   );
+}
+
+/**
+ * Per-screen backdrop: opaque theme base for native stack compositing, with a
+ * full-bleed fixed tartan tile behind transparent scroll content.
+ */
+export function ScreenBackdrop({ children }: Readonly<TartanBackgroundProps>) {
+  const c = useWheelyColors();
+  const scheme = useColorSchemeName();
+  const scrimColor = SCRIM[scheme];
+
+  return (
+    <View style={[styles.root, { backgroundColor: c.background }]}>
+      <TartanBackdropLayer scrimColor={scrimColor} />
+      <View style={styles.content}>{children}</View>
+    </View>
+  );
+}
+
+/** Applies {@link ScreenBackdrop} on native; web relies on root {@link TartanBackground}. */
+export function ScreenShell({ children }: Readonly<TartanBackgroundProps>) {
+  if (Platform.OS === 'web') {
+    return <>{children}</>;
+  }
+  return <ScreenBackdrop>{children}</ScreenBackdrop>;
 }
 
 const styles = StyleSheet.create({
