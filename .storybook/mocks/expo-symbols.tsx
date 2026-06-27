@@ -1,18 +1,18 @@
 import { Text, type TextStyle } from 'react-native';
 
-type SymbolViewProps = {
+interface SymbolViewProps {
   name?: string | Record<string, string>;
   size?: number;
   tintColor?: string;
   style?: TextStyle;
-};
+}
 
 function symbolName(name: SymbolViewProps['name']) {
   if (typeof name === 'string') return name;
   return name?.web ?? name?.ios ?? name?.android ?? 'symbol';
 }
 
-export function SymbolView({ name, size = 16, tintColor, style }: SymbolViewProps) {
+export function SymbolView({ name, size = 16, tintColor, style }: Readonly<SymbolViewProps>) {
   return (
     <Text
       accessibilityLabel={symbolName(name)}
@@ -24,9 +24,9 @@ export function SymbolView({ name, size = 16, tintColor, style }: SymbolViewProp
           fontWeight: '700',
         },
         style,
-      ]}>
+      ]}
+    >
       ›
     </Text>
   );
 }
-

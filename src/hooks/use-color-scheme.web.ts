@@ -1,7 +1,11 @@
 import { useSyncExternalStore } from 'react';
 import { useColorScheme as useRNColorScheme } from 'react-native';
 
-const subscribe = () => () => {};
+// No external store to subscribe to; the value is static after hydration.
+const noopUnsubscribe = () => {
+  /* nothing to clean up */
+};
+const subscribe = () => noopUnsubscribe;
 const getClientSnapshot = () => true;
 const getServerSnapshot = () => false;
 

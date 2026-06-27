@@ -18,7 +18,9 @@ export async function searchLocations(
   const results = await Promise.race([
     AppleLocationSearchModule.search(trimmed),
     new Promise<never>((_, reject) => {
-      signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
+      signal?.addEventListener('abort', () => {
+        reject(new DOMException('Aborted', 'AbortError'));
+      });
     }),
   ]);
 

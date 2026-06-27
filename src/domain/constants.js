@@ -51,9 +51,9 @@ export const THRESHOLDS = {
 // (it demotes the overall verdict to "Maybe"), so the scale stays honest rather
 // than inflating every rating by one notch.
 export const CONDITION_DISPLAY = {
-  good: "Good",
-  fair: "Fair",
-  marginal: "Iffy",
-  poor: "Poor",
-  bad: "Bad",
+  good: 'Good',
+  fair: 'Fair',
+  marginal: 'Iffy',
+  poor: 'Poor',
+  bad: 'Bad',
 };

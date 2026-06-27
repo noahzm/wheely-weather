@@ -1,4 +1,4 @@
-import { THRESHOLDS } from "./constants";
+import { THRESHOLDS } from './constants';
 import {
   WEATHER_DESCRIPTIONS,
   STATUS_MESSAGES as MSG,
@@ -6,7 +6,7 @@ import {
   RAIN_MESSAGES,
   DAYLIGHT_MESSAGES,
   ALERT_MESSAGES,
-} from "./copy";
+} from './copy';
 
 /** @typedef {import('@/types/weather').Condition} Condition */
 /** @typedef {import('@/types/weather').DaylightWindow} DaylightWindow */
@@ -58,7 +58,36 @@ export {
   getWindArrowRotation,
   getWindDirectionLabel,
   getUvLabel,
-} from "../utils/weatherLabels";
+} from '../utils/weatherLabels';
+
+/**
+ * Rates a "higher is worse" metric against ascending bad→fair thresholds.
+ * @param {number} value
+ * @param {{ BAD: number, POOR: number, MARGINAL: number, FAIR: number }} t
+ * @returns {Condition}
+ */
+const rateUpperBound = (value, t) => {
+  if (value > t.BAD) return 'bad';
+  if (value > t.POOR) return 'poor';
+  if (value > t.MARGINAL) return 'marginal';
+  if (value > t.FAIR) return 'fair';
+  return 'good';
+};
+
+/**
+ * Rates a two-sided "comfortable band" metric (e.g. feels-like temperature)
+ * where both too-low and too-high degrade the rating.
+ * @param {number} value
+ * @param {{ BAD_MIN: number, BAD_MAX: number, POOR_MIN: number, POOR_MAX: number, MARGINAL_MIN: number, MARGINAL_MAX: number, FAIR_MIN: number, FAIR_MAX: number }} t
+ * @returns {Condition}
+ */
+const rateComfortBand = (value, t) => {
+  if (value < t.BAD_MIN || value > t.BAD_MAX) return 'bad';
+  if (value < t.POOR_MIN || value > t.POOR_MAX) return 'poor';
+  if (value < t.MARGINAL_MIN || value > t.MARGINAL_MAX) return 'marginal';
+  if (value < t.FAIR_MIN || value > t.FAIR_MAX) return 'fair';
+  return 'good';
+};
 
 /**
  * Evaluates a single weather metric against cycling-friendly thresholds.
@@ -68,54 +97,30 @@ export {
  * @returns {Condition}
  */
 export const evaluateCondition = (value, type) => {
-  if (value == null) return "good";
+  if (value == null) return 'good';
   const T = THRESHOLDS;
   switch (type) {
-    case "feelsLike":
-      if (value < T.FEELS_LIKE.BAD_MIN || value > T.FEELS_LIKE.BAD_MAX)
-        return "bad";
-      if (value < T.FEELS_LIKE.POOR_MIN || value > T.FEELS_LIKE.POOR_MAX)
-        return "poor";
-      if (
-        value < T.FEELS_LIKE.MARGINAL_MIN ||
-        value > T.FEELS_LIKE.MARGINAL_MAX
-      )
-        return "marginal";
-      if (value < T.FEELS_LIKE.FAIR_MIN || value > T.FEELS_LIKE.FAIR_MAX)
-        return "fair";
-      return "good";
-    case "windSpeed":
-      if (value > T.WIND_SPEED.BAD) return "bad";
-      if (value > T.WIND_SPEED.POOR) return "poor";
-      if (value > T.WIND_SPEED.MARGINAL) return "marginal";
-      if (value > T.WIND_SPEED.FAIR) return "fair";
-      return "good";
-    case "windGust":
-      if (value > T.WIND_GUST.BAD) return "bad";
-      if (value > T.WIND_GUST.POOR) return "poor";
-      if (value > T.WIND_GUST.MARGINAL) return "marginal";
-      if (value > T.WIND_GUST.FAIR) return "fair";
-      return "good";
-    case "rainChance":
-      if (value > T.RAIN_CHANCE.BAD) return "bad";
-      if (value > T.RAIN_CHANCE.POOR) return "poor";
-      if (value > T.RAIN_CHANCE.MARGINAL) return "marginal";
-      if (value > T.RAIN_CHANCE.FAIR) return "fair";
-      return "good";
-    case "aqi":
-      if (value > T.AQI.BAD) return "bad";
-      if (value > T.AQI.POOR) return "poor";
-      if (value > T.AQI.MARGINAL) return "marginal";
-      if (value > T.AQI.FAIR) return "fair";
-      return "good";
-    case "dewpoint":
-      if (value > T.DEWPOINT.BAD) return "bad";
-      if (value > T.DEWPOINT.POOR) return "poor";
-      if (value > T.DEWPOINT.MARGINAL) return "marginal";
-      if (value > T.DEWPOINT.FAIR) return "fair";
-      return "good";
-    default:
-      return "good";
+    case 'feelsLike': {
+      return rateComfortBand(value, T.FEELS_LIKE);
+    }
+    case 'windSpeed': {
+      return rateUpperBound(value, T.WIND_SPEED);
+    }
+    case 'windGust': {
+      return rateUpperBound(value, T.WIND_GUST);
+    }
+    case 'rainChance': {
+      return rateUpperBound(value, T.RAIN_CHANCE);
+    }
+    case 'aqi': {
+      return rateUpperBound(value, T.AQI);
+    }
+    case 'dewpoint': {
+      return rateUpperBound(value, T.DEWPOINT);
+    }
+    default: {
+      return 'good';
+    }
   }
 };
 
@@ -132,51 +137,50 @@ const worseCondition = (a, b) => (RANK[a] <= RANK[b] ? a : b);
  * @returns {Condition}
  */
 export const evaluateWind = (windSpeed, windGust) => {
-  const sustained = evaluateCondition(windSpeed, "windSpeed");
+  const sustained = evaluateCondition(windSpeed, 'windSpeed');
   if (windGust == null) return sustained;
-  return worseCondition(sustained, evaluateCondition(windGust, "windGust"));
+  return worseCondition(sustained, evaluateCondition(windGust, 'windGust'));
 };
 
 /** True when gusts are a strictly worse limiter than sustained wind. */
 /** @param {number} windSpeed @param {number | null | undefined} windGust */
 const isGustDriven = (windSpeed, windGust) =>
   windGust != null &&
-  RANK[evaluateCondition(windGust, "windGust")] <
-    RANK[evaluateCondition(windSpeed, "windSpeed")];
+  RANK[evaluateCondition(windGust, 'windGust')] < RANK[evaluateCondition(windSpeed, 'windSpeed')];
 
 /** Determines the overall cycling verdict. */
 /** @param {Weather} weather @returns {RideStatus} */
 export const getOverallStatus = (weather) => {
-  if (weather.hasThunderstorms) return "no";
+  if (weather.hasThunderstorms) return 'no';
   const conditions = [
-    evaluateCondition(weather.feelsLike, "feelsLike"),
+    evaluateCondition(weather.feelsLike, 'feelsLike'),
     evaluateWind(weather.windSpeed, weather.windGust),
-    evaluateCondition(weather.rainChance, "rainChance"),
-    evaluateCondition(weather.dewpoint, "dewpoint"),
+    evaluateCondition(weather.rainChance, 'rainChance'),
+    evaluateCondition(weather.dewpoint, 'dewpoint'),
     getWeatherCodeCondition(weather.weatherCode),
-    ...(weather.aqi != null ? [evaluateCondition(weather.aqi, "aqi")] : []),
+    ...(weather.aqi == null ? [] : [evaluateCondition(weather.aqi, 'aqi')]),
   ];
-  if (conditions.some((c) => c === "bad" || c === "poor")) return "no";
-  if (conditions.some((c) => c === "marginal" || c === "fair")) return "maybe";
-  return "yes";
+  if (conditions.some((c) => c === 'bad' || c === 'poor')) return 'no';
+  if (conditions.some((c) => c === 'marginal' || c === 'fair')) return 'maybe';
+  return 'yes';
 };
 
 /** @param {number | null | undefined} code */
 export const getWeatherDescription = (code) =>
-  code == null ? "Unknown" : WEATHER_DESCRIPTIONS[code] || "Unknown";
+  code == null ? 'Unknown' : WEATHER_DESCRIPTIONS[code] || 'Unknown';
 /** @param {number | null | undefined} code */
 export const isThunderstorm = (code) => code != null && [95, 96, 99].includes(code);
 
 // Weather codes add context that raw rain percentages can miss, especially for storms and snow.
 /** @param {number | null | undefined} code @returns {Condition} */
 export const getWeatherCodeCondition = (code) => {
-  if (code == null) return "good";
-  if (isThunderstorm(code)) return "bad";
+  if (code == null) return 'good';
+  if (isThunderstorm(code)) return 'bad';
   // 48 = freezing fog: implies ice on the road, so it rates worse than plain fog.
-  if ([48, 65, 75, 77, 82, 86].includes(code)) return "poor";
-  if ([55, 63, 71, 73, 81, 85].includes(code)) return "marginal";
-  if ([45, 51, 53, 61, 80].includes(code)) return "fair";
-  return "good";
+  if ([48, 65, 75, 77, 82, 86].includes(code)) return 'poor';
+  if ([55, 63, 71, 73, 81, 85].includes(code)) return 'marginal';
+  if ([45, 51, 53, 61, 80].includes(code)) return 'fair';
+  return 'good';
 };
 
 /** @type {Record<Condition, number>} */
@@ -190,62 +194,55 @@ const RANK = {
 
 /** @type {Record<number, string>} */
 const WEATHER_CODE_ISSUES = {
-  45: "fog",
-  48: "freezing fog",
-  51: "light drizzle",
-  53: "drizzle",
-  55: "heavy drizzle",
-  61: "light rain",
-  63: "rain",
-  65: "heavy rain",
-  71: "light snow",
-  73: "snow",
-  75: "heavy snow",
-  77: "snow grains",
-  80: "light showers",
-  81: "showers",
-  82: "heavy showers",
-  85: "light snow showers",
-  86: "snow showers",
+  45: 'fog',
+  48: 'freezing fog',
+  51: 'light drizzle',
+  53: 'drizzle',
+  55: 'heavy drizzle',
+  61: 'light rain',
+  63: 'rain',
+  65: 'heavy rain',
+  71: 'light snow',
+  73: 'snow',
+  75: 'heavy snow',
+  77: 'snow grains',
+  80: 'light showers',
+  81: 'showers',
+  82: 'heavy showers',
+  85: 'light snow showers',
+  86: 'snow showers',
 };
 
 /** @param {number | null | undefined} code @param {RideStatus} status */
 const getWeatherCodeIssue = (code, status) => {
   const rating = getWeatherCodeCondition(code);
   const shouldMention =
-    status === "maybe"
-      ? rating === "marginal" || rating === "fair"
-      : rating === "bad" || rating === "poor";
+    status === 'maybe'
+      ? rating === 'marginal' || rating === 'fair'
+      : rating === 'bad' || rating === 'poor';
   if (!shouldMention) return null;
-  return code == null ? null : WEATHER_CODE_ISSUES[code] ?? null;
+  return code == null ? null : (WEATHER_CODE_ISSUES[code] ?? null);
 };
 
 /** @param {Condition[]} conditions @returns {Condition} */
 const getCyclingCondition = (conditions) => {
-  if (conditions.some((c) => c === "bad")) return "bad";
-  if (conditions.some((c) => c === "poor")) return "poor";
-  if (conditions.some((c) => c === "marginal")) return "marginal";
-  if (conditions.some((c) => c === "fair")) return "fair";
-  return "good";
+  if (conditions.includes('bad')) return 'bad';
+  if (conditions.includes('poor')) return 'poor';
+  if (conditions.includes('marginal')) return 'marginal';
+  if (conditions.includes('fair')) return 'fair';
+  return 'good';
 };
 
 /**
  * @param {{ feelsLike: number; wind: number; gust?: number | null; rain: number; code?: number | null; dewpoint: number | null }} values
  * @returns {Condition}
  */
-export const getHourlyCondition = ({
-  feelsLike,
-  wind,
-  gust,
-  rain,
-  code,
-  dewpoint,
-}) => {
+export const getHourlyCondition = ({ feelsLike, wind, gust, rain, code, dewpoint }) => {
   return getCyclingCondition([
-    evaluateCondition(feelsLike, "feelsLike"),
+    evaluateCondition(feelsLike, 'feelsLike'),
     evaluateWind(wind, gust),
-    evaluateCondition(rain, "rainChance"),
-    evaluateCondition(dewpoint, "dewpoint"),
+    evaluateCondition(rain, 'rainChance'),
+    evaluateCondition(dewpoint, 'dewpoint'),
     getWeatherCodeCondition(code),
   ]);
 };
@@ -268,20 +265,20 @@ export const getDailyCondition = ({
   dewpoint = null,
 }) => {
   return getCyclingCondition([
-    ...(feelsLow != null ? [evaluateCondition(feelsLow, "feelsLike")] : []),
-    ...(feelsHigh != null ? [evaluateCondition(feelsHigh, "feelsLike")] : []),
+    ...(feelsLow == null ? [] : [evaluateCondition(feelsLow, 'feelsLike')]),
+    ...(feelsHigh == null ? [] : [evaluateCondition(feelsHigh, 'feelsLike')]),
     evaluateWind(wind, gust),
-    evaluateCondition(rain, "rainChance"),
+    evaluateCondition(rain, 'rainChance'),
     getWeatherCodeCondition(code),
-    ...(dewpoint != null ? [evaluateCondition(dewpoint, "dewpoint")] : []),
+    ...(dewpoint == null ? [] : [evaluateCondition(dewpoint, 'dewpoint')]),
   ]);
 };
 
 /** @param {number} h */
 function formatHour(h) {
   const hour = h % 24;
-  if (hour === 0) return "12am";
-  if (hour === 12) return "12pm";
+  if (hour === 0) return '12am';
+  if (hour === 12) return '12pm';
   if (hour < 12) return `${hour}am`;
   return `${hour - 12}pm`;
 }
@@ -291,22 +288,43 @@ function formatHour(h) {
 function getLaterGoodHour(hourly) {
   if (!hourly || hourly.length < 2) return null;
 
-  const currentRank = RANK[hourly[0]?.condition] ?? 0;
+  const first = hourly[0];
+  if (!first) return null;
+  const currentRank = RANK[first.condition] ?? 0;
 
   for (let i = 1; i < hourly.length; i++) {
-    const nextRank = RANK[hourly[i]?.condition] ?? 0;
+    const next = hourly[i];
+    if (!next) continue;
+    const nextRank = RANK[next.condition] ?? 0;
     if (nextRank >= RANK.fair && nextRank > currentRank) {
-      return formatHour(hourly[i].hour);
+      return formatHour(next.hour);
     }
   }
 
   return null;
 }
 
+/** @param {Weather} weather @param {RideStatus} status @param {boolean} gustDriven */
+const buildWindLabel = (weather, status, gustDriven) => {
+  if (gustDriven) {
+    const gusts = Math.round(weather.windGust ?? weather.windSpeed);
+    return `${status === 'no' ? 'strong gusts' : 'gusty'} (${gusts} mph gusts)`;
+  }
+  return `${status === 'no' ? 'heavy wind' : 'gusty'} (${Math.round(weather.windSpeed)} mph)`;
+};
+
+/** @param {RideStatus} status @param {string[]} issues */
+const selectBaseMessage = (status, issues) => {
+  if (status === 'maybe') {
+    return issues.length > 0 ? MSG.MAYBE_ISSUES(issues) : MSG.MAYBE_IDEAL;
+  }
+  return issues.length > 0 ? MSG.NO_ISSUES(issues) : MSG.NO_IDEAL;
+};
+
 /** @param {Weather} weather @param {RideStatus} status */
 export const getMessage = (weather, status) => {
   if (weather.hasThunderstorms) return MSG.THUNDERSTORM;
-  if (status === "yes") {
+  if (status === 'yes') {
     return MSG.GOOD(Math.round(weather.feelsLike), weather.condition);
   }
 
@@ -321,38 +339,34 @@ export const getMessage = (weather, status) => {
    */
   const addIssue = (val, type, label, ratingOverride) => {
     const rating = ratingOverride ?? evaluateCondition(val, type);
-    if (status === "maybe" && (rating === "marginal" || rating === "fair"))
-      issues.push(label);
-    if (status === "no" && (rating === "bad" || rating === "poor"))
-      issues.push(label);
+    if (status === 'maybe' && (rating === 'marginal' || rating === 'fair')) issues.push(label);
+    if (status === 'no' && (rating === 'bad' || rating === 'poor')) issues.push(label);
   };
 
   const temp = Math.round(weather.feelsLike);
   addIssue(
     weather.feelsLike,
-    "feelsLike",
+    'feelsLike',
     weather.feelsLike < 50 ? `cold (${temp}°F)` : `hot (${temp}°F)`,
   );
-  if (status === "no" && issues.length > 0) {
+  if (status === 'no' && issues.length > 0) {
     issues[0] =
       weather.feelsLike < 36
         ? `too cold (${Math.round(weather.feelsLike)}\u00B0F)`
         : `too hot (${Math.round(weather.feelsLike)}\u00B0F)`;
   }
   const gustDriven = isGustDriven(weather.windSpeed, weather.windGust);
-  const windLabel = gustDriven
-    ? `${status === "no" ? "strong gusts" : "gusty"} (${Math.round(weather.windGust ?? weather.windSpeed)} mph gusts)`
-    : `${status === "no" ? "heavy wind" : "gusty"} (${Math.round(weather.windSpeed)} mph)`;
+  const windLabel = buildWindLabel(weather, status, gustDriven);
   addIssue(
     weather.windSpeed,
-    "windSpeed",
+    'windSpeed',
     windLabel,
     evaluateWind(weather.windSpeed, weather.windGust),
   );
   addIssue(
     weather.rainChance,
-    "rainChance",
-    `${status === "no" ? "rain" : "rainy"} (${weather.rainChance}% chance)`,
+    'rainChance',
+    `${status === 'no' ? 'rain' : 'rainy'} (${weather.rainChance}% chance)`,
   );
   const weatherCodeIssue = getWeatherCodeIssue(weather.weatherCode, status);
   const precipitationAlreadyExplainsWeather =
@@ -364,30 +378,21 @@ export const getMessage = (weather, status) => {
   }
   addIssue(
     weather.dewpoint,
-    "dewpoint",
-    `${status === "no" ? "heavy humidity" : "sticky"} (dew ${Math.round(weather.dewpoint)}°F)`,
+    'dewpoint',
+    `${status === 'no' ? 'heavy humidity' : 'sticky'} (dew ${Math.round(weather.dewpoint)}°F)`,
   );
   if (weather.aqi != null) {
     addIssue(
       weather.aqi,
-      "aqi",
-      `${status === "no" ? "poor air quality" : "hazy"} (AQI ${weather.aqi})`,
+      'aqi',
+      `${status === 'no' ? 'poor air quality' : 'hazy'} (AQI ${weather.aqi})`,
     );
   }
 
-  let msg =
-    status === "maybe"
-      ? issues.length > 0
-        ? MSG.MAYBE_ISSUES(issues)
-        : MSG.MAYBE_IDEAL
-      : issues.length > 0
-        ? MSG.NO_ISSUES(issues)
-        : MSG.NO_IDEAL;
+  let msg = selectBaseMessage(status, issues);
 
-  if (laterGood)
-    msg +=
-      status === "maybe" ? MSG.LATER_GOOD(laterGood) : MSG.CLEAR_UP(laterGood);
-  else if (status === "no") msg += MSG.REST_DAY();
+  if (laterGood) msg += status === 'maybe' ? MSG.LATER_GOOD(laterGood) : MSG.CLEAR_UP(laterGood);
+  else if (status === 'no') msg += MSG.REST_DAY();
 
   return msg;
 };
@@ -395,23 +400,23 @@ export const getMessage = (weather, status) => {
 /** Returns up to 3 limiting ride factors with label, value, and condition rating. */
 /** @param {Weather | null | undefined} weather @param {RideStatus | null | undefined} status @returns {RideFactor[]} */
 export const getRideFactors = (weather, status) => {
-  if (!weather || !status || status === "yes") return [];
+  if (!weather || !status || status === 'yes') return [];
 
   /** @param {Condition} rating */
   const isLimiting = (rating) => {
-    if (status === "no") return rating === "bad" || rating === "poor";
-    if (status === "maybe") return rating === "marginal" || rating === "fair";
+    if (status === 'no') return rating === 'bad' || rating === 'poor';
+    if (status === 'maybe') return rating === 'marginal' || rating === 'fair';
     return false;
   };
 
   /** @type {RideFactor[]} */
   const factors = [];
 
-  const tempRating = evaluateCondition(weather.feelsLike, "feelsLike");
+  const tempRating = evaluateCondition(weather.feelsLike, 'feelsLike');
   if (isLimiting(tempRating)) {
     factors.push({
-      type: "feelsLike",
-      label: "Temperature",
+      type: 'feelsLike',
+      label: 'Temperature',
       value: `${Math.round(weather.feelsLike)}°F`,
       condition: tempRating,
     });
@@ -420,8 +425,8 @@ export const getRideFactors = (weather, status) => {
   const windRating = evaluateWind(weather.windSpeed, weather.windGust);
   if (isLimiting(windRating)) {
     factors.push({
-      type: "windSpeed",
-      label: "Wind",
+      type: 'windSpeed',
+      label: 'Wind',
       value: isGustDriven(weather.windSpeed, weather.windGust)
         ? `${Math.round(weather.windGust ?? weather.windSpeed)} mph gusts`
         : `${Math.round(weather.windSpeed)} mph`,
@@ -429,32 +434,32 @@ export const getRideFactors = (weather, status) => {
     });
   }
 
-  const rainRating = evaluateCondition(weather.rainChance, "rainChance");
+  const rainRating = evaluateCondition(weather.rainChance, 'rainChance');
   if (isLimiting(rainRating)) {
     factors.push({
-      type: "rainChance",
-      label: "Rain",
+      type: 'rainChance',
+      label: 'Rain',
       value: `${weather.rainChance}% chance`,
       condition: rainRating,
     });
   }
 
-  const dewRating = evaluateCondition(weather.dewpoint, "dewpoint");
+  const dewRating = evaluateCondition(weather.dewpoint, 'dewpoint');
   if (isLimiting(dewRating)) {
     factors.push({
-      type: "dewpoint",
-      label: "Humidity",
+      type: 'dewpoint',
+      label: 'Humidity',
       value: `Dew ${Math.round(weather.dewpoint)}°F`,
       condition: dewRating,
     });
   }
 
   if (weather.aqi != null) {
-    const aqiRating = evaluateCondition(weather.aqi, "aqi");
+    const aqiRating = evaluateCondition(weather.aqi, 'aqi');
     if (isLimiting(aqiRating)) {
       factors.push({
-        type: "aqi",
-        label: "Air quality",
+        type: 'aqi',
+        label: 'Air quality',
         value: `AQI ${weather.aqi}`,
         condition: aqiRating,
       });
@@ -464,8 +469,8 @@ export const getRideFactors = (weather, status) => {
   const codeRating = getWeatherCodeCondition(weather.weatherCode);
   if (isLimiting(codeRating)) {
     factors.push({
-      type: "weatherCode",
-      label: "Conditions",
+      type: 'weatherCode',
+      label: 'Conditions',
       value: getWeatherDescription(weather.weatherCode),
       condition: codeRating,
     });
@@ -479,10 +484,10 @@ export const getRideFactors = (weather, status) => {
 /** @param {HourlyWeather[] | undefined} hourly */
 export const getBestRideWindow = (hourly) => {
   if (!hourly || hourly.length === 0) return null;
-  if (hourly[0]?.condition === "good") return "Best now";
+  if (hourly[0]?.condition === 'good') return 'Best now';
   const later = getLaterGoodHour(hourly);
   if (later) return `Improves around ${later}`;
-  return "No clear window in the next 24 hours";
+  return 'No clear window in the next 24 hours';
 };
 
 /** @param {HourlyWeather[] | undefined} hourly */
@@ -495,25 +500,22 @@ export const getRainTiming = (hourly) => {
   let lastRainIdx = firstRainIdx;
   while (
     lastRainIdx + 1 < hourly.length &&
-    hourly[lastRainIdx + 1].rainChance > rainThreshold
+    (hourly[lastRainIdx + 1]?.rainChance ?? 0) > rainThreshold
   ) {
     lastRainIdx += 1;
   }
 
   const firstRain = hourly[firstRainIdx];
   const lastRain = hourly[lastRainIdx];
+  if (!firstRain || !lastRain) return null;
   const isRainingNow = firstRainIdx === 0;
   const clearsUp = lastRainIdx < hourly.length - 1;
 
-  if (isRainingNow && clearsUp)
-    return RAIN_MESSAGES.CLEARING(formatHour(lastRain.hour + 1));
+  if (isRainingNow && clearsUp) return RAIN_MESSAGES.CLEARING(formatHour(lastRain.hour + 1));
   // THROUGHOUT means rain persists through the entire visible window, not necessarily the whole day.
   if (isRainingNow) return RAIN_MESSAGES.THROUGHOUT;
   if (clearsUp)
-    return RAIN_MESSAGES.WINDOW(
-      formatHour(firstRain.hour),
-      formatHour(lastRain.hour + 1),
-    );
+    return RAIN_MESSAGES.WINDOW(formatHour(firstRain.hour), formatHour(lastRain.hour + 1));
   return RAIN_MESSAGES.LATER(formatHour(firstRain.hour));
 };
 
@@ -521,9 +523,7 @@ export const getRainTiming = (hourly) => {
 export const getDaylightWarning = (hourly, daylight) => {
   if (!hourly || !daylight) return null;
   const { sunriseHour, sunsetHour } = daylight;
-  const goodHours = hourly.filter(
-    (h) => h.condition === "good" || h.condition === "fair",
-  );
+  const goodHours = hourly.filter((h) => h.condition === 'good' || h.condition === 'fair');
   if (goodHours.length === 0) return null;
   if (goodHours.every((h) => h.hour < sunriseHour || h.hour >= sunsetHour))
     return DAYLIGHT_MESSAGES.DARK_WARNING;
@@ -556,14 +556,12 @@ function getRideWindow(weather) {
         ? Math.max(...upcoming.map((h) => h.dewpoint ?? 0))
         : (startConditions.dewpoint ?? 0),
     maxUv:
-      upcoming.length > 0
-        ? Math.max(...upcoming.map((h) => h.uv ?? 0))
-        : (weather.uvIndex ?? 0),
+      upcoming.length > 0 ? Math.max(...upcoming.map((h) => h.uv ?? 0)) : (weather.uvIndex ?? 0),
   };
 }
 
 /** @param {GearTip | (() => GearTip)} tip @returns {GearTip} */
-const resolveTip = (tip) => (typeof tip === "function" ? tip() : tip);
+const resolveTip = (tip) => (typeof tip === 'function' ? tip() : tip);
 
 /** @param {RideWindow} w @param {GearTipSet} tipsSet @returns {GearTip[]} */
 function getTemperatureTips(w, tipsSet) {
@@ -582,52 +580,73 @@ function getTemperatureTips(w, tipsSet) {
 }
 
 /** @param {Weather} weather @param {RideWindow} w @param {GearTipSet} tipsSet @returns {GearSuggestion} */
-function getGearTips(weather, w, tipsSet) {
-  const temperatureTips = getTemperatureTips(w, tipsSet);
+/**
+ * Builds the weather-driven add-on tips (rain, wind, UV, temp swing, mugginess).
+ * `hasAdverse` flags conditions that contradict the ideal-day PERFECT copy.
+ * @param {Weather} weather @param {RideWindow} w @param {GearTipSet} tipsSet
+ * @returns {{ tips: GearTip[], hasAdverse: boolean }}
+ */
+function buildSupportingTips(weather, w, tipsSet) {
   /** @type {GearTip[]} */
-  const supportingTips = [];
-  // Adverse conditions (rain, wind, muggy) make the ideal-day PERFECT copy a
-  // lie; benign add-ons (UV, temp swing) can ride alongside it.
+  const tips = [];
   let hasAdverse = false;
 
   if (w.maxTemp - w.minTemp >= 15) {
-    supportingTips.push(
-      tipsSet.TEMP_SWING(Math.round(w.minTemp), Math.round(w.maxTemp)),
-    );
+    tips.push(tipsSet.TEMP_SWING(Math.round(w.minTemp), Math.round(w.maxTemp)));
   }
 
   if (w.maxRain > 50) {
-    supportingTips.push(
-      resolveTip(
-        weather.rainChance > 50 ? tipsSet.RAIN_HIGH : tipsSet.RAIN_COMING,
-      ),
-    );
+    tips.push(resolveTip(weather.rainChance > 50 ? tipsSet.RAIN_HIGH : tipsSet.RAIN_COMING));
     hasAdverse = true;
   } else if (w.maxRain > 30) {
-    supportingTips.push(
-      resolveTip(
-        weather.rainChance > 30 ? tipsSet.RAIN_POSSIBLE : tipsSet.RAIN_LATER,
-      ),
-    );
+    tips.push(resolveTip(weather.rainChance > 30 ? tipsSet.RAIN_POSSIBLE : tipsSet.RAIN_LATER));
     hasAdverse = true;
   }
 
   if (w.maxWind > 15) {
-    supportingTips.push(
+    tips.push(
       resolveTip(
-        weather.windSpeed > 15
-          ? tipsSet.WINDY
-          : tipsSet.WIND_PICKUP(Math.round(w.maxWind)),
+        weather.windSpeed > 15 ? tipsSet.WINDY : tipsSet.WIND_PICKUP(Math.round(w.maxWind)),
       ),
     );
     hasAdverse = true;
   }
-  if (w.maxUv >= 8) supportingTips.push(tipsSet.UV_EXTREME());
-  else if (w.maxUv >= 6) supportingTips.push(resolveTip(tipsSet.UV_HIGH));
+  if (w.maxUv >= 8) tips.push(tipsSet.UV_EXTREME());
+  else if (w.maxUv >= 6) tips.push(resolveTip(tipsSet.UV_HIGH));
   if ((w.maxDewpoint ?? 0) > 65) {
-    supportingTips.push(resolveTip(tipsSet.MUGGY));
+    tips.push(resolveTip(tipsSet.MUGGY));
     hasAdverse = true;
   }
+
+  return { tips, hasAdverse };
+}
+
+/**
+ * Flattens tips into a deduplicated item list — later items win their slot.
+ * @param {GearTip[]} tips
+ * @returns {GearTipItem[]}
+ */
+function mergeTipItems(tips) {
+  /** @type {GearTipItem[]} */
+  const items = [];
+  for (const tip of tips) {
+    for (const item of tip?.items ?? []) {
+      if (!item.slot) {
+        items.push(item);
+        continue;
+      }
+      const idx = items.findIndex((existing) => existing.slot === item.slot);
+      if (idx === -1) items.push(item);
+      else items[idx] = item;
+    }
+  }
+  return items;
+}
+
+/** @param {Weather} weather @param {RideWindow} w @param {GearTipSet} tipsSet */
+function getGearTips(weather, w, tipsSet) {
+  const temperatureTips = getTemperatureTips(w, tipsSet);
+  const { tips: supportingTips, hasAdverse } = buildSupportingTips(weather, w, tipsSet);
 
   // An empty temperature tip means the ride window sits in the ideal band, so
   // lead with PERFECT unless an adverse add-on contradicts it. NEUTRAL is the
@@ -643,28 +662,14 @@ function getGearTips(weather, w, tipsSet) {
   }
 
   const tips = [...baseTips, ...supportingTips];
-
-  const headline = tips.find((t) => t?.headline)?.headline ?? "";
-  /** @type {GearTipItem[]} */
-  const items = [];
-  for (const tip of tips) {
-    for (const item of tip?.items ?? []) {
-      if (item.slot) {
-        const idx = items.findIndex((existing) => existing.slot === item.slot);
-        if (idx >= 0) items[idx] = item;
-        else items.push(item);
-      } else {
-        items.push(item);
-      }
-    }
-  }
-  return { headline, items };
+  const headline = tips.find((t) => t?.headline)?.headline ?? '';
+  return { headline, items: mergeTipItems(tips) };
 }
 
 /** @param {Weather} weather @param {'casual' | 'pro'} [mode] */
-export const getGearSuggestion = (weather, mode = "casual") => {
+export const getGearSuggestion = (weather, mode = 'casual') => {
   const w = getRideWindow(weather);
-  const tipsSet = /** @type {GearTipSet} */ (mode === "pro" ? GEAR_TIPS.PRO : GEAR_TIPS.CASUAL);
+  const tipsSet = /** @type {GearTipSet} */ (mode === 'pro' ? GEAR_TIPS.PRO : GEAR_TIPS.CASUAL);
   return getGearTips(weather, w, tipsSet);
 };
 
@@ -677,27 +682,25 @@ export const getWeatherAlerts = (weather) => {
       alerts.push({
         ...nws,
         message: nws.headline || nws.event,
-        icon: "default",
+        icon: 'default',
       });
     }
   }
-  const hasNwsHeat = alerts.some(
-    (a) => a.type === "nws" && /\bheat\b/i.test(a.event || ""),
-  );
+  const hasNwsHeat = alerts.some((a) => a.type === 'nws' && /\bheat\b/i.test(a.event || ''));
   if (!hasNwsHeat) {
     if (weather.feelsLike > 104)
       alerts.push({
-        type: "heat",
-        severity: "extreme",
+        type: 'heat',
+        severity: 'extreme',
         message: ALERT_MESSAGES.HEAT_EXTREME(Math.round(weather.feelsLike)),
-        icon: "thermometer",
+        icon: 'thermometer',
       });
     else if (weather.feelsLike > 95)
       alerts.push({
-        type: "heat",
-        severity: "warning",
+        type: 'heat',
+        severity: 'warning',
         message: ALERT_MESSAGES.HEAT_WARNING(Math.round(weather.feelsLike)),
-        icon: "thermometer",
+        icon: 'thermometer',
       });
   }
   return alerts;

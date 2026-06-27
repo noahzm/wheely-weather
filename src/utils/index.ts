@@ -1,9 +1,4 @@
 export {
-  getConditionBadgeVariant,
-  getConditionChartColor,
-  isAttentionCondition,
-} from './conditionUi';
-export {
   dayLabel,
   getBestDayInfo,
   getBestDaysBlurb,
@@ -17,3 +12,4 @@ export {
   getWindArrowRotation,
   getWindDirectionLabel,
 } from './weatherLabels';
+export { hourLabel, fullHourLabel } from './timeFormat';

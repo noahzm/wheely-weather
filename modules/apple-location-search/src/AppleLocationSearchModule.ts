@@ -7,5 +7,5 @@ declare class AppleLocationSearchModule extends NativeModule<Record<string, neve
 }
 
 // Returns null before the native module is built/linked; the iOS search
-// service checks for null and falls back to the Nominatim geocoder.
+// service checks for null and throws — search is unavailable in that state.
 export default requireOptionalNativeModule<AppleLocationSearchModule>('AppleLocationSearch');

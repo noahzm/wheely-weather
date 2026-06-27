@@ -5,7 +5,7 @@
 
 import { createContext, useContext } from 'react';
 
-import { Colors, WheelyTheme, type WheelyPalette } from '@/constants/theme';
+import { WheelyTheme, type WheelyPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export type ColorSchemeName = 'light' | 'dark';
@@ -22,10 +22,6 @@ export function useColorSchemeName(): ColorSchemeName {
   // `useColorScheme()` can return 'light' | 'dark' | 'unspecified' | null | undefined
   // depending on platform, so treat anything that isn't an explicit 'dark' as light.
   return override ?? (scheme === 'dark' ? 'dark' : 'light');
-}
-
-export function useTheme() {
-  return Colors[useColorSchemeName()];
 }
 
 /** Resolves the neobrutalist Wheely palette for the active color scheme. */

@@ -1,4 +1,4 @@
-export const REQUEST_TIMEOUT_ERROR = "Request timed out";
+export const REQUEST_TIMEOUT_ERROR = 'Request timed out';
 
 /** Wraps fetch with an abort timeout so slow secondary APIs fail predictably. */
 /**

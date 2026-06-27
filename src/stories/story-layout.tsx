@@ -1,20 +1,19 @@
 import type { ReactNode } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
-import { useTheme } from '@/hooks/use-theme';
-
-type StorySurfaceProps = {
+interface StorySurfaceProps {
   children: ReactNode;
   centered?: boolean;
   maxWidth?: number;
-};
+}
 
-export function StorySurface({ children, centered = false, maxWidth = 760 }: StorySurfaceProps) {
-  const theme = useTheme();
-
+export function StorySurface({
+  children,
+  centered = false,
+  maxWidth = 760,
+}: Readonly<StorySurfaceProps>) {
   return (
-    <ScrollView
-      contentContainerStyle={[styles.content, { backgroundColor: theme.background }, centered && styles.centered]}>
+    <ScrollView contentContainerStyle={[styles.content, centered && styles.centered]}>
       <View style={[styles.inner, { maxWidth }]}>{children}</View>
     </ScrollView>
   );

@@ -1,16 +1,16 @@
-import type { Preview } from '@storybook/react-native-web-vite'
+import type { Preview } from '@storybook/react-native-web-vite';
 
-import './preview.css'
+import './preview.css';
 
-import { Colors } from '../src/constants/theme'
-import { ColorSchemeOverrideContext } from '../src/hooks/use-theme'
+import { TartanBackground } from '../src/components/tartan-background';
+import { ColorSchemeOverrideContext } from '../src/hooks/use-theme';
 
 const preview: Preview = {
   parameters: {
     controls: {
       matchers: {
-       color: /(background|color)$/i,
-       date: /Date$/i,
+        color: /(background|color)$/i,
+        date: /Date$/i,
       },
     },
 
@@ -19,11 +19,11 @@ const preview: Preview = {
     backgrounds: { disable: true },
 
     a11y: {
-      // 'todo' - show a11y violations in the test UI only
-      // 'error' - fail CI on a11y violations
-      // 'off' - skip a11y checks entirely
-      test: 'todo'
-    }
+      // Storybook a11y test mode — report-only in the test UI (not a task marker).
+      // Alternatives: 'error' (fail CI on violations) or 'off' (skip checks).
+
+      test: 'todo',
+    },
   },
 
   initialGlobals: {
@@ -47,14 +47,14 @@ const preview: Preview = {
 
   decorators: [
     (Story, context) => {
-      const scheme = context.globals.theme === 'dark' ? 'dark' : 'light'
+      const scheme = context.globals.theme === 'dark' ? 'dark' : 'light';
       return (
         <ColorSchemeOverrideContext.Provider value={scheme}>
-          <div style={{ minHeight: '100vh', backgroundColor: Colors[scheme].background }}>
+          <TartanBackground>
             <Story />
-          </div>
+          </TartanBackground>
         </ColorSchemeOverrideContext.Provider>
-      )
+      );
     },
   ],
 };

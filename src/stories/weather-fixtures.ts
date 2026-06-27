@@ -33,7 +33,9 @@ export const recentLocations: RecentLocation[] = [
   },
 ];
 
-export async function mockSearchLocations(query: string) {
+export function mockSearchLocations(query: string) {
   const normalized = query.toLowerCase();
-  return recentLocations.filter((place) => place.label.toLowerCase().includes(normalized));
+  return Promise.resolve(
+    recentLocations.filter((place) => place.label.toLowerCase().includes(normalized)),
+  );
 }
