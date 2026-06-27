@@ -1,0 +1,13 @@
+# Build / generated output
+dist/
+storybook-static/
+.expo/
+.rnstorybook/
+node_modules/
+coverage/
+web-build/
+playwright-report/
+test-results/
+
+# Lockfiles and generated data
+package-lock.json

@@ -7,9 +7,7 @@ test.describe('Storybook web', () => {
   });
 
   test('renders a story in the preview iframe', async ({ page }) => {
-    await page.goto(
-      '/iframe.html?id=components-primitives--collapsible-panel&viewMode=story',
-    );
+    await page.goto('/iframe.html?id=components-primitives--collapsible-panel&viewMode=story');
 
     const root = page.locator('#storybook-root');
     await expect(root).toBeVisible();

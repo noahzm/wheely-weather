@@ -10,7 +10,6 @@ import {
   HourlyForecast,
   KitGuide,
   LoadingState,
-
   RideSpecs,
   RideVerdict,
   SectionTitle,
@@ -20,12 +19,7 @@ import {
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 
-import {
-  alertWeather,
-  maybeWeather,
-  restWeather,
-  rideWeather,
-} from './weather-fixtures';
+import { alertWeather, maybeWeather, restWeather, rideWeather } from './weather-fixtures';
 import { StorySurface } from './story-layout';
 
 const meta = {
@@ -53,7 +47,7 @@ const weatherScenarios = {
 export const Foundations: Story = {
   render: () => (
     <>
-      <SectionTitle index="01" title="Foundation pieces" />
+      <SectionTitle title="Foundation pieces" />
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two }}>
         <Chip>Default</Chip>
         <Chip primary>Primary</Chip>
@@ -119,20 +113,12 @@ export const Card: StoryObj<{ small: boolean; title: string; body: string }> = {
 export const Header: StoryObj<typeof WeatherHeader> = {
   args: {
     location: 'Raleigh, NC',
-    lastUpdated: new Date('2026-06-25T14:30:00'),
-    isFallbackLocation: false,
-    isManualLocation: true,
-    isDeviceLocation: false,
     statusMessage: 'Using saved location.',
     onOpenLocation: fn(),
   },
   argTypes: {
     location: { control: 'text' },
     statusMessage: { control: 'text' },
-    lastUpdated: { control: 'date' },
-    isFallbackLocation: { control: 'boolean' },
-    isManualLocation: { control: 'boolean' },
-    isDeviceLocation: { control: 'boolean' },
     onOpenLocation: { action: 'onOpenLocation' },
   },
   render: (args) => <WeatherHeader {...args} />,
@@ -274,4 +260,3 @@ export const Loading: Story = {
   ],
   render: () => <LoadingState />,
 };
-

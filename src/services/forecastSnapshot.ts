@@ -7,14 +7,11 @@ import {
   fetchWeatherExtras,
 } from '@/services/weatherService';
 import { fetchLocationName } from '@/services/locationGeocoding';
-import {
-  buildMockWeather,
-  getMockLocationLabel,
-} from '@/services/mockWeather';
+import { buildMockWeather, getMockLocationLabel } from '@/services/mockWeather';
 import type { SavedLocation } from '@/services/locationStorage';
 import type { ForecastExtras, Weather } from '@/types/weather';
 
-export type ForecastSnapshot = {
+export interface ForecastSnapshot {
   weather: Weather;
   location: string;
   lastUpdated: Date;
@@ -23,17 +20,24 @@ export type ForecastSnapshot = {
   isDeviceLocation: boolean;
   mockScenario: string | null;
   source: 'fallback' | 'manual' | 'device' | 'mock';
-};
+}
 
-async function fetchSafeLocationName(location: SavedLocation | FallbackLocation, isFallback: boolean) {
+async function fetchSafeLocationName(
+  location: SavedLocation | FallbackLocation,
+  isFallback: boolean,
+) {
   if (location.name) return location.name;
   if (isFallback) return DEFAULT_LOCATION;
   return fetchLocationName(location.lat, location.lon)
-    .then((name) => name || 'Your Location')
+    .then((name) => name ?? 'Your Location')
     .catch(() => 'Your Location');
 }
 
-async function fetchSafeExtras(lat: number, lon: number, mockScenario: string | null): Promise<ForecastExtras> {
+async function fetchSafeExtras(
+  lat: number,
+  lon: number,
+  mockScenario: string | null,
+): Promise<ForecastExtras> {
   try {
     return await fetchWeatherExtras(lat, lon, { mockScenario });
   } catch {
@@ -41,12 +45,12 @@ async function fetchSafeExtras(lat: number, lon: number, mockScenario: string | 
   }
 }
 
-type FallbackLocation = {
+interface FallbackLocation {
   lat: number;
   lon: number;
   name: string;
   source: 'fallback';
-};
+}
 
 export async function getForecastSnapshot({
   savedLocation,
@@ -62,7 +66,7 @@ export async function getForecastSnapshot({
     if (!weather) throw new Error(`Unknown mock scenario: ${mockScenario}`);
     return {
       weather,
-      location: getMockLocationLabel(mockScenario) || DEFAULT_LOCATION,
+      location: getMockLocationLabel(mockScenario) ?? DEFAULT_LOCATION,
       lastUpdated,
       isFallbackLocation: false,
       isManualLocation: false,

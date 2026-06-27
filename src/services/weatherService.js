@@ -3,12 +3,9 @@ import {
   isThunderstorm,
   getHourlyCondition,
   getDailyCondition,
-} from "../domain/weather";
-import {
-  getMockScenario,
-  buildMockWeather,
-} from "./mockWeather";
-import { fetchWithTimeout, REQUEST_TIMEOUT_ERROR } from "./http";
+} from '../domain/weather';
+import { getMockScenario, buildMockWeather } from './mockWeather';
+import { fetchWithTimeout } from './http';
 
 /** @typedef {import('@/types/weather').ForecastExtras} ForecastExtras */
 /** @typedef {import('@/types/weather').HourlyWeather} HourlyWeather */
@@ -67,12 +64,11 @@ import { fetchWithTimeout, REQUEST_TIMEOUT_ERROR } from "./http";
 // Fallback coordinates used when geolocation is unavailable or denied.
 export const DEFAULT_LAT = 35.7796;
 export const DEFAULT_LON = -78.6382;
-export const DEFAULT_LOCATION = "Raleigh, NC";
+export const DEFAULT_LOCATION = 'Raleigh, NC';
 
 // Keep secondary lookups snappy so slower third-party APIs do not hold up first paint.
 const SECONDARY_FETCH_TIMEOUT_MS = 2500;
 const FORECAST_FETCH_TIMEOUT_MS = 8000;
-export { REQUEST_TIMEOUT_ERROR };
 
 /** Normalizes a forecast timestamp down to the hourly format used by hourly.time. */
 /** @param {string | null | undefined} timeStr */
@@ -81,15 +77,16 @@ function toHourlyTimeKey(timeStr) {
   return `${timeStr.slice(0, 13)}:00`;
 }
 
+/** @param {number} n */
+const pad2 = (n) => String(n).padStart(2, '0');
+
 /** Computes the current hour as a naive ISO string in the forecast location's timezone. */
 /** @param {OpenMeteoData} data */
 function currentHourStrForLocation(data) {
   const offsetSeconds = data.utc_offset_seconds ?? 0;
   const localMs = Date.now() + offsetSeconds * 1000;
   const d = new Date(localMs);
-  /** @param {number} n */
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}T${pad(d.getUTCHours())}:00`;
+  return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}T${pad2(d.getUTCHours())}:00`;
 }
 
 /** Builds a normalized hour record from one row of Open-Meteo hourly arrays. */
@@ -98,14 +95,14 @@ function buildHourRecord(data, idx) {
   const t = data.hourly.time[idx];
   const feelsLike = data.hourly.apparent_temperature[idx];
   const wind = data.hourly.wind_speed_10m[idx];
-  if (feelsLike == null || wind == null) return null;
+  if (t == null || feelsLike == null || wind == null) return null;
   const gust = data.hourly.wind_gusts_10m?.[idx] ?? null;
   const rain = data.hourly.precipitation_probability[idx] ?? 0;
-  const code = data.hourly.weather_code[idx];
-  const dewpoint = data.hourly.dewpoint_2m[idx];
+  const code = data.hourly.weather_code[idx] ?? null;
+  const dewpoint = data.hourly.dewpoint_2m[idx] ?? null;
   const uv = data.hourly.uv_index?.[idx] ?? 0;
   return {
-    hour: parseInt(t.slice(11, 13), 10),
+    hour: Number.parseInt(t.slice(11, 13), 10),
     feelsLike,
     windSpeed: wind,
     windGust: gust,
@@ -120,17 +117,17 @@ function buildHourRecord(data, idx) {
 /** Extracts the next 24 hours of forecast data starting from the current hour. */
 /** @param {OpenMeteoData} data @param {string} currentHourStr @returns {HourlyWeather[]} */
 function parseHourly(data, currentHourStr) {
-  const startIdx = data.hourly.time.findIndex((t) => t === currentHourStr);
-  const offset = startIdx >= 0 ? startIdx : 0;
-  return Array.from({ length: 24 }, (_, i) =>
-    buildHourRecord(data, offset + i),
-  ).filter((hour) => hour !== null);
+  const startIdx = data.hourly.time.indexOf(currentHourStr);
+  const offset = Math.max(startIdx, 0);
+  return Array.from({ length: 24 }, (_, i) => buildHourRecord(data, offset + i)).filter(
+    (hour) => hour !== null,
+  );
 }
 
 /** Extracts up to `count` hours preceding the current hour. */
 /** @param {OpenMeteoData} data @param {string} currentHourStr @param {number} count @returns {HourlyWeather[]} */
 function parsePastHourly(data, currentHourStr, count) {
-  const currentIdx = data.hourly.time.findIndex((t) => t === currentHourStr);
+  const currentIdx = data.hourly.time.indexOf(currentHourStr);
   if (currentIdx <= 0) return [];
   const startIdx = Math.max(0, currentIdx - count);
   return Array.from({ length: currentIdx - startIdx }, (_, i) =>
@@ -140,77 +137,109 @@ function parsePastHourly(data, currentHourStr, count) {
 
 /** Parses the 8-day daily forecast into a simplified array with cycling conditions. */
 /** @param {OpenMeteoData} data @returns {DailyWeather[]} */
-function parseDaily(data) {
-  // Per-date daylight window (sunrise/sunset hours) so temperature can be rated on
-  // ridable hours only, ignoring overnight lows nobody would ride in.
+/**
+ * Per-date daylight window (sunrise/sunset hours) so temperature can be rated on
+ * ridable hours only, ignoring overnight lows nobody would ride in.
+ * @param {OpenMeteoData} data
+ * @returns {Record<string, DaylightHours>}
+ */
+function buildDaylightByDate(data) {
   /** @type {Record<string, DaylightHours>} */
   const daylightByDate = {};
-  data.daily.time.forEach((dateStr, i) => {
+  for (const [i, dateStr] of data.daily.time.entries()) {
     const sr = data.daily.sunrise?.[i];
     const ss = data.daily.sunset?.[i];
     if (sr && ss) {
       daylightByDate[dateStr] = {
-        sunriseHour: parseInt(sr.slice(11, 13), 10),
-        sunsetHour: parseInt(ss.slice(11, 13), 10),
+        sunriseHour: Number.parseInt(sr.slice(11, 13), 10),
+        sunsetHour: Number.parseInt(ss.slice(11, 13), 10),
       };
     }
-  });
+  }
+  return daylightByDate;
+}
 
+/**
+ * Aggregates hourly data into per-date peak dewpoint and the daytime feels-like
+ * range (limited to daylight hours).
+ * @param {OpenMeteoData} data
+ * @param {Record<string, DaylightHours>} daylightByDate
+ * @returns {{ dewpointByDate: Record<string, number>, daytimeFeelsByDate: Record<string, TempRange> }}
+ */
+function buildDaytimeAggregates(data, daylightByDate) {
   /** @type {Record<string, number>} */
   const dewpointByDate = {};
   /** @type {Record<string, TempRange>} */
   const daytimeFeelsByDate = {};
-  data.hourly.time.forEach((t, i) => {
+  for (const [i, t] of data.hourly.time.entries()) {
     const date = t.slice(0, 10);
     const dp = data.hourly.dewpoint_2m?.[i];
-    if (
-      dp != null &&
-      (dewpointByDate[date] == null || dp > dewpointByDate[date])
-    ) {
+    if (dp != null && (dewpointByDate[date] == null || dp > dewpointByDate[date])) {
       dewpointByDate[date] = dp;
     }
 
     const feels = data.hourly.apparent_temperature?.[i];
     const dl = daylightByDate[date];
-    const hour = parseInt(t.slice(11, 13), 10);
+    const hour = Number.parseInt(t.slice(11, 13), 10);
     if (feels != null && dl && hour >= dl.sunriseHour && hour < dl.sunsetHour) {
       const cur = daytimeFeelsByDate[date];
-      if (!cur) daytimeFeelsByDate[date] = { min: feels, max: feels };
-      else {
+      if (cur) {
         if (feels < cur.min) cur.min = feels;
         if (feels > cur.max) cur.max = feels;
+      } else {
+        daytimeFeelsByDate[date] = { min: feels, max: feels };
       }
     }
-  });
+  }
+  return { dewpointByDate, daytimeFeelsByDate };
+}
 
-  return data.daily.time.map((dateStr, i) => {
-    const apparentMax = data.daily.apparent_temperature_max[i];
+/** Parses the 8-day daily forecast into a simplified array with cycling conditions. */
+/** @param {OpenMeteoData} data @returns {DailyWeather[]} */
+function parseDaily(data) {
+  const daylightByDate = buildDaylightByDate(data);
+  const { dewpointByDate, daytimeFeelsByDate } = buildDaytimeAggregates(data, daylightByDate);
+
+  return data.daily.time.flatMap((dateStr, i) => {
+    const high = data.daily.temperature_2m_max[i];
+    const low = data.daily.temperature_2m_min[i];
+    const windSpeed = data.daily.wind_speed_10m_max[i];
+    const rainChance = data.daily.precipitation_probability_max[i];
+    // Skip any day missing a required field (parallel arrays should never be
+    // short, but bail rather than fabricate 0° / 0% values if they are).
+    if (high == null || low == null || windSpeed == null || rainChance == null) return [];
+
+    const apparentMax = data.daily.apparent_temperature_max[i] ?? null;
     const daytime = daytimeFeelsByDate[dateStr];
     // Rate temperature on the worst feels-like across daylight hours; fall back to
-    // the day's apparent max when hourly daylight coverage is missing.
-    const feelsLow = daytime ? daytime.min : apparentMax;
-    const feelsHigh = daytime ? daytime.max : apparentMax;
+    // the day's apparent max (then the actual high) when daylight coverage is missing.
+    const feelsLow = daytime ? daytime.min : (apparentMax ?? high);
+    const feelsHigh = daytime ? daytime.max : (apparentMax ?? high);
     const gust = data.daily.wind_gusts_10m_max?.[i] ?? null;
-    return {
-      date: new Date(dateStr + "T12:00:00"),
-      high: Math.round(data.daily.temperature_2m_max[i]),
-      low: Math.round(data.daily.temperature_2m_min[i]),
-      feelsLike: apparentMax,
-      dewpoint: dewpointByDate[dateStr] ?? null,
-      windSpeed: data.daily.wind_speed_10m_max[i],
-      windGust: gust,
-      rainChance: data.daily.precipitation_probability_max[i],
-      weatherCode: data.daily.weather_code[i],
-      condition: getDailyCondition({
-        feelsLow,
-        feelsHigh,
-        wind: data.daily.wind_speed_10m_max[i],
-        gust,
-        rain: data.daily.precipitation_probability_max[i],
-        code: data.daily.weather_code[i],
-        dewpoint: dewpointByDate[dateStr] ?? null,
-      }),
-    };
+    const code = data.daily.weather_code[i] ?? null;
+    const dewpoint = dewpointByDate[dateStr] ?? null;
+    return [
+      {
+        date: new Date(dateStr + 'T12:00:00'),
+        high: Math.round(high),
+        low: Math.round(low),
+        feelsLike: apparentMax,
+        dewpoint,
+        windSpeed,
+        windGust: gust,
+        rainChance,
+        weatherCode: code,
+        condition: getDailyCondition({
+          feelsLow,
+          feelsHigh,
+          wind: windSpeed,
+          gust,
+          rain: rainChance,
+          code,
+          dewpoint,
+        }),
+      },
+    ];
   });
 }
 
@@ -218,10 +247,11 @@ function parseDaily(data) {
 /** @param {string | null | undefined} raw */
 function formatLocationTime(raw) {
   if (!raw) return null;
-  const [h, m] = raw.slice(11, 16).split(":").map(Number);
-  const suffix = h < 12 ? "AM" : "PM";
+  const [h, m] = raw.slice(11, 16).split(':').map(Number);
+  if (h == null || m == null) return null;
+  const suffix = h < 12 ? 'AM' : 'PM';
   const hour = h % 12 || 12;
-  return `${hour}:${String(m).padStart(2, "0")} ${suffix}`;
+  return `${hour}:${String(m).padStart(2, '0')} ${suffix}`;
 }
 
 /** Extracts today's sunset time and formats it for display (e.g. "6:15 PM"). */
@@ -246,19 +276,19 @@ function parseDaylightHours(data) {
   // location's timezone. Parse the hour from the string directly so the value
   // matches hourly.time hours rather than shifting by the browser's TZ offset.
   return {
-    sunriseHour: parseInt(sunrise.slice(11, 13), 10),
-    sunsetHour: parseInt(sunset.slice(11, 13), 10),
+    sunriseHour: Number.parseInt(sunrise.slice(11, 13), 10),
+    sunsetHour: Number.parseInt(sunset.slice(11, 13), 10),
   };
 }
 
 /** Maps NWS severity strings to our severity levels. */
 /** @type {Record<string, WeatherAlert['severity']>} */
 const NWS_SEVERITY = {
-  Extreme: "extreme",
-  Severe: "extreme",
-  Moderate: "warning",
-  Minor: "warning",
-  Unknown: "warning",
+  Extreme: 'extreme',
+  Severe: 'extreme',
+  Moderate: 'warning',
+  Minor: 'warning',
+  Unknown: 'warning',
 };
 
 /**
@@ -274,8 +304,8 @@ export async function fetchNwsAlerts(lat, lon) {
       `https://api.weather.gov/alerts/active?point=${lat},${lon}`,
       {
         headers: {
-          "User-Agent": "WheelyWeather/1.0",
-          Accept: "application/geo+json",
+          'User-Agent': 'WheelyWeather/1.0',
+          Accept: 'application/geo+json',
         },
       },
       SECONDARY_FETCH_TIMEOUT_MS,
@@ -286,8 +316,8 @@ export async function fetchNwsAlerts(lat, lon) {
     return features.map((f) => {
       const p = f.properties;
       return {
-        type: "nws",
-        severity: p.severity ? NWS_SEVERITY[p.severity] || "warning" : "warning",
+        type: 'nws',
+        severity: p.severity ? NWS_SEVERITY[p.severity] || 'warning' : 'warning',
         event: p.event,
         headline: p.headline,
         description: p.description,
@@ -329,10 +359,7 @@ export async function fetchWeatherExtras(lat, lon, options = {}) {
     return { aqi: mock?.aqi ?? null, nwsAlerts: mock?.nwsAlerts ?? [] };
   }
 
-  const [aqi, nwsAlerts] = await Promise.all([
-    fetchAqi(lat, lon),
-    fetchNwsAlerts(lat, lon),
-  ]);
+  const [aqi, nwsAlerts] = await Promise.all([fetchAqi(lat, lon), fetchNwsAlerts(lat, lon)]);
   return { aqi, nwsAlerts };
 }
 
@@ -350,7 +377,7 @@ export async function fetchWeatherData(lat, lon, options = {}) {
     // Short async tick so callers see the same loading flow as a real fetch.
     await new Promise((resolve) => setTimeout(resolve, 150));
     const mock = buildMockWeather(mockScenario);
-    if (!mock) throw new Error("Unknown mock weather scenario");
+    if (!mock) throw new Error('Unknown mock weather scenario');
     return mock;
   }
 
@@ -363,16 +390,15 @@ export async function fetchWeatherData(lat, lon, options = {}) {
     {},
     FORECAST_FETCH_TIMEOUT_MS,
   );
-  if (!res.ok) throw new Error("Weather API error");
+  if (!res.ok) throw new Error('Weather API error');
   const data = /** @type {OpenMeteoData} */ (await res.json());
-  if (!data.current) throw new Error("Weather API missing current data");
+  if (!data.current) throw new Error('Weather API missing current data');
 
   // Align with the forecast location's timezone rather than the browser's local timezone.
-  const currentHourStr =
-    toHourlyTimeKey(data.current?.time) || currentHourStrForLocation(data);
-  const hourIdx = data.hourly.time.findIndex((t) => t === currentHourStr);
+  const currentHourStr = toHourlyTimeKey(data.current?.time) || currentHourStrForLocation(data);
+  const hourIdx = data.hourly.time.indexOf(currentHourStr);
   const currentRainChance =
-    hourIdx >= 0 ? data.hourly.precipitation_probability[hourIdx] : 0;
+    hourIdx === -1 ? 0 : (data.hourly.precipitation_probability[hourIdx] ?? 0);
 
   const hourlyParsed = parseHourly(data, currentHourStr);
 
@@ -387,7 +413,7 @@ export async function fetchWeatherData(lat, lon, options = {}) {
     condition: getWeatherDescription(data.current.weather_code),
     dewpoint: data.current.dewpoint_2m,
     aqi: null,
-    uvIndex: hourIdx >= 0 ? (data.hourly.uv_index?.[hourIdx] ?? null) : null,
+    uvIndex: hourIdx === -1 ? null : (data.hourly.uv_index?.[hourIdx] ?? null),
     uvIndexDailyMax: data.daily.uv_index_max?.[0] ?? null,
     hourly: hourlyParsed,
     pastHourly: parsePastHourly(data, currentHourStr, 12),
@@ -398,3 +424,5 @@ export async function fetchWeatherData(lat, lon, options = {}) {
     nwsAlerts: [],
   };
 }
+
+export { REQUEST_TIMEOUT_ERROR } from './http';

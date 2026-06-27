@@ -2,12 +2,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type LocationSource = 'manual' | 'device';
 
-export type SavedLocation = {
+export interface SavedLocation {
   lat: number;
   lon: number;
   name: string | null;
   source: LocationSource;
-};
+}
 
 const LOCATION_KEY = 'ww_location';
 const RECENTS_KEY = 'ww_recent_locations';
@@ -52,10 +52,7 @@ export async function loadSavedLocation() {
 export async function saveLocation(location: SavedLocation) {
   const normalized = normalizeLocationRecord(location);
   if (!normalized) throw new Error('Invalid location');
-  await AsyncStorage.setItem(
-    LOCATION_KEY,
-    JSON.stringify({ version: 1, ...normalized }),
-  );
+  await AsyncStorage.setItem(LOCATION_KEY, JSON.stringify({ version: 1, ...normalized }));
   return normalized;
 }
 
@@ -63,12 +60,12 @@ export async function clearLocation() {
   await AsyncStorage.removeItem(LOCATION_KEY);
 }
 
-export type RecentLocation = {
+export interface RecentLocation {
   lat: number;
   lon: number;
   label: string;
   displayName?: string;
-};
+}
 
 export function normalizeRecentLocation(value: unknown): RecentLocation | null {
   if (!value || typeof value !== 'object') return null;
@@ -81,18 +78,17 @@ export function normalizeRecentLocation(value: unknown): RecentLocation | null {
     lat,
     lon,
     label: record.label.trim().slice(0, 96),
-    displayName:
-      typeof record.displayName === 'string' ? record.displayName.slice(0, 180) : '',
+    displayName: typeof record.displayName === 'string' ? record.displayName.slice(0, 180) : '',
   };
 }
 
 export async function loadRecentLocations() {
   try {
     const raw = await AsyncStorage.getItem(RECENTS_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
+    const parsed: unknown = raw ? JSON.parse(raw) : [];
     if (!Array.isArray(parsed)) return [];
     return parsed
-      .map(normalizeRecentLocation)
+      .map((item) => normalizeRecentLocation(item))
       .filter((place): place is RecentLocation => !!place)
       .slice(0, RECENTS_MAX);
   } catch {

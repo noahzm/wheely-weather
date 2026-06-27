@@ -13,7 +13,7 @@ const ForecastContext = createContext<ForecastContextValue | null>(null);
 // ---------- provider ----------
 const MOCK_SCENARIOS = new Set(['ride', 'maybe', 'rest', 'alert']);
 
-export function ForecastProvider({ children }: { children: ReactNode }) {
+export function ForecastProvider({ children }: Readonly<{ children: ReactNode }>) {
   const params = useGlobalSearchParams<{ mock?: string }>();
   const mockScenario = MOCK_SCENARIOS.has(String(params.mock)) ? String(params.mock) : null;
   const forecast = useWeatherForecast(mockScenario);

@@ -1,4 +1,5 @@
 export { CONDITION_DISPLAY, THRESHOLDS } from './constants';
+export { getVerdictLabel } from './copy';
 export {
   evaluateCondition,
   evaluateWind,

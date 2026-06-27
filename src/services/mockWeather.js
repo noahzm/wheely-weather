@@ -6,7 +6,7 @@ import {
   getDailyCondition,
   getWeatherDescription,
   isThunderstorm,
-} from "../domain/weather";
+} from '../domain/weather';
 
 /** @typedef {import('@/types/weather').MockScenario} MockScenario */
 /** @typedef {import('@/types/weather').Weather} Weather */
@@ -39,7 +39,7 @@ import {
 /** @type {Record<MockScenario, MockScenarioSpec>} */
 const SCENARIOS = {
   ride: {
-    label: "Ride Day",
+    label: 'Ride Day',
     current: {
       feelsLike: 68,
       windSpeed: 6,
@@ -69,14 +69,14 @@ const SCENARIOS = {
       rainChance: 5,
       weatherCode: 1,
     }),
-    sunrise: "6:30 AM",
-    sunset: "7:45 PM",
+    sunrise: '6:30 AM',
+    sunset: '7:45 PM',
     sunriseHour: 6,
     sunsetHour: 19,
     nwsAlerts: [],
   },
   maybe: {
-    label: "Mixed Conditions",
+    label: 'Mixed Conditions',
     current: {
       feelsLike: 88,
       windSpeed: 14,
@@ -106,14 +106,14 @@ const SCENARIOS = {
       rainChance: 40,
       weatherCode: i % 2 === 0 ? 61 : 3,
     }),
-    sunrise: "6:15 AM",
-    sunset: "8:05 PM",
+    sunrise: '6:15 AM',
+    sunset: '8:05 PM',
     sunriseHour: 6,
     sunsetHour: 20,
     nwsAlerts: [],
   },
   rest: {
-    label: "Rest Day",
+    label: 'Rest Day',
     current: {
       feelsLike: 34,
       windSpeed: 24,
@@ -143,14 +143,14 @@ const SCENARIOS = {
       rainChance: 75,
       weatherCode: 65,
     }),
-    sunrise: "7:10 AM",
-    sunset: "5:25 PM",
+    sunrise: '7:10 AM',
+    sunset: '5:25 PM',
     sunriseHour: 7,
     sunsetHour: 17,
     nwsAlerts: [],
   },
   alert: {
-    label: "Severe Weather",
+    label: 'Severe Weather',
     current: {
       feelsLike: 82,
       windSpeed: 18,
@@ -180,20 +180,19 @@ const SCENARIOS = {
       rainChance: 70,
       weatherCode: i === 0 ? 95 : 61,
     }),
-    sunrise: "6:20 AM",
-    sunset: "7:55 PM",
+    sunrise: '6:20 AM',
+    sunset: '7:55 PM',
     sunriseHour: 6,
     sunsetHour: 19,
     nwsAlerts: [
       {
-        type: "nws",
-        icon: "default",
-        severity: "extreme",
-        event: "Severe Thunderstorm Warning",
-        headline:
-          "Severe thunderstorms with damaging winds and large hail expected.",
+        type: 'nws',
+        icon: 'default',
+        severity: 'extreme',
+        event: 'Severe Thunderstorm Warning',
+        headline: 'Severe thunderstorms with damaging winds and large hail expected.',
         instruction:
-          "Move to a sturdy shelter on the lowest floor of a building. Stay away from windows.",
+          'Move to a sturdy shelter on the lowest floor of a building. Stay away from windows.',
         expires: new Date(Date.now() + 90 * 60 * 1000).toISOString(),
       },
     ],
@@ -203,14 +202,14 @@ const SCENARIOS = {
 /** Reads `?mock=<scenario>` from URL params. Returns null when not in mock mode. */
 /** @param {URLSearchParams} params @returns {MockScenario | null} */
 export function getMockScenarioFromParams(params) {
-  const value = params.get("mock");
+  const value = params.get('mock');
   return value && value in SCENARIOS ? /** @type {MockScenario} */ (value) : null;
 }
 
 /** Reads `?mock=<scenario>` from the browser URL. Returns null when not in mock mode. */
 export function getMockScenario() {
-  if (typeof window === "undefined") return null;
-  return getMockScenarioFromParams(new URLSearchParams(window.location.search));
+  if (globalThis.window === undefined) return null;
+  return getMockScenarioFromParams(new URLSearchParams(globalThis.location.search));
 }
 
 /** Returns true when mock mode is active. */
@@ -221,14 +220,16 @@ export function isMockMode() {
 /** Display label for the active scenario (used to override the location name). */
 /** @param {MockScenario | string | null | undefined} scenario */
 export function getMockLocationLabel(scenario) {
-  const s = scenario && scenario in SCENARIOS ? SCENARIOS[/** @type {MockScenario} */ (scenario)] : null;
+  const s =
+    scenario && scenario in SCENARIOS ? SCENARIOS[/** @type {MockScenario} */ (scenario)] : null;
   return s ? `Mock: ${s.label}` : null;
 }
 
 /** Builds the full normalized weather payload for the given scenario. */
 /** @param {MockScenario | string | null | undefined} scenario @returns {Weather | null} */
 export function buildMockWeather(scenario) {
-  const spec = scenario && scenario in SCENARIOS ? SCENARIOS[/** @type {MockScenario} */ (scenario)] : null;
+  const spec =
+    scenario && scenario in SCENARIOS ? SCENARIOS[/** @type {MockScenario} */ (scenario)] : null;
   if (!spec) return null;
 
   const nowHour = new Date().getHours();
@@ -258,9 +259,7 @@ export function buildMockWeather(scenario) {
   };
 
   const hourly = Array.from({ length: 24 }, (_, i) => buildHour(nowHour + i));
-  const pastHourly = Array.from({ length: 12 }, (_, i) =>
-    buildHour(nowHour - 12 + i),
-  );
+  const pastHourly = Array.from({ length: 12 }, (_, i) => buildHour(nowHour - 12 + i));
 
   const today = new Date();
   const daily = Array.from({ length: 8 }, (_, i) => {

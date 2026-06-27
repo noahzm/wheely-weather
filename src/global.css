@@ -1,24 +1,25 @@
 :root {
-  --font-display:
-    "Archivo_800ExtraBold", "Archivo Variable", "IBM Plex Sans", system-ui,
-    sans-serif;
+  --font-display: 'NationalPark_700Bold', 'National Park', system-ui, sans-serif;
   --font-sans:
-    "IBMPlexSans_500Medium", "IBM Plex Sans", ui-sans-serif, system-ui,
-    sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
-    "Noto Color Emoji";
+    'NationalPark_400Regular', 'National Park', ui-sans-serif, system-ui, sans-serif,
+    'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
   --font-mono:
-    "IBMPlexMono_600SemiBold", "IBM Plex Mono", ui-monospace, SFMono-Regular,
-    Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    'NationalPark_400Regular', 'National Park', ui-monospace, SFMono-Regular, Menlo, Monaco,
+    Consolas, 'Liberation Mono', 'Courier New', monospace;
+  --font-mono-bold:
+    'NationalPark_700Bold', 'National Park', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    'Liberation Mono', 'Courier New', monospace;
   --font-rounded:
-    "IBMPlexSans_600SemiBold", "SF Pro Rounded", "Hiragino Maru Gothic ProN",
-    Meiryo, "MS PGothic", sans-serif;
-  --font-serif: Georgia, "Times New Roman", serif;
+    'NationalPark_400Regular', 'National Park', 'SF Pro Rounded', 'Hiragino Maru Gothic ProN',
+    Meiryo, 'MS PGothic', sans-serif;
+  --font-serif: Georgia, 'Times New Roman', serif;
 }
 
 html,
 body,
 #root {
   font-family: var(--font-sans);
+  background-color: #1a2a32;
 }
 
 /* Poster selection + focus styling carried over from the original site. */

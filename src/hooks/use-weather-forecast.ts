@@ -20,7 +20,7 @@ import { DEFAULT_LOCATION } from '@/services/weatherService';
 
 const STALE_REFRESH_MS = 15 * 60 * 1000;
 
-type ForecastState = {
+interface ForecastState {
   snapshot: ForecastSnapshot | null;
   savedLocation: SavedLocation | null;
   recentLocations: RecentLocation[];
@@ -28,7 +28,7 @@ type ForecastState = {
   refreshing: boolean;
   errorKind: 'network' | 'default' | null;
   statusMessage: string;
-};
+}
 
 export function useWeatherForecast(mockScenario: string | null) {
   const [state, setState] = useState<ForecastState>({
@@ -68,12 +68,12 @@ export function useWeatherForecast(mockScenario: string | null) {
           errorKind: null,
           statusMessage: '',
         }));
-      } catch (err) {
+      } catch (error) {
         setState((current) => ({
           ...current,
           loading: false,
           refreshing: false,
-          errorKind: getForecastErrorKind(err),
+          errorKind: getForecastErrorKind(error),
         }));
       }
     },
@@ -81,20 +81,24 @@ export function useWeatherForecast(mockScenario: string | null) {
   );
 
   useEffect(() => {
-    loadForecast();
+    void loadForecast();
   }, [loadForecast]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextState: AppStateStatus) => {
       if (nextState !== 'active') return;
       if (!lastLoadedAt.current || Date.now() - lastLoadedAt.current > STALE_REFRESH_MS) {
-        loadForecast(undefined, true);
+        void loadForecast(undefined, true);
       }
     });
-    return () => subscription.remove();
+    return () => {
+      subscription.remove();
+    };
   }, [loadForecast]);
 
-  const refresh = useCallback(() => loadForecast(undefined, true), [loadForecast]);
+  const refresh = useCallback(() => {
+    void loadForecast(undefined, true);
+  }, [loadForecast]);
 
   const setManualLocation = useCallback(
     async (place: RecentLocation) => {

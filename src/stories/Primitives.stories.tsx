@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
-import type { Href } from 'expo-router';
 import { Pressable, View } from 'react-native';
 
 import { ExternalLink } from '@/components/external-link';
@@ -71,8 +70,12 @@ export const TextVariants: Story = {
 export const ThemedViewVariants: Story = {
   render: () => (
     <View style={{ gap: Spacing.three }}>
-      {(['background', 'backgroundElement', 'backgroundSelected'] as const).map((type) => (
-        <ThemedView key={type} type={type} style={{ padding: Spacing.four, borderRadius: Spacing.two }}>
+      {(['background', 'paper', 'border'] as const).map((type) => (
+        <ThemedView
+          key={type}
+          type={type}
+          style={{ padding: Spacing.four, borderRadius: Spacing.two }}
+        >
           <ThemedText type="smallBold">{type}</ThemedText>
         </ThemedView>
       ))}
@@ -102,7 +105,7 @@ export const Link: StoryObj<{ href: string; label: string }> = {
     label: { control: 'text' },
   },
   render: ({ href, label }) => (
-    <ExternalLink href={href as Href & string} asChild>
+    <ExternalLink href={href} asChild>
       <Pressable>
         <ThemedText type="linkPrimary">{label}</ThemedText>
       </Pressable>

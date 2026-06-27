@@ -2,8 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Platform,
+  PlatformColor,
   Pressable,
-  SectionList,
+  ScrollView,
   StyleSheet,
   View,
 } from 'react-native';
@@ -17,18 +18,137 @@ import { useWheelyColors } from '@/hooks/use-theme';
 import { searchLocations } from '@/services/locationSearch';
 import { DEFAULT_LOCATION } from '@/services/weatherService';
 import type { RecentLocation } from '@/services/locationStorage';
-import { Spacing, type WheelyPalette } from '@/constants/theme';
+import { Fonts, Spacing, TRANSPARENT } from '@/constants/theme';
 
-type Section = {
+const IOS_TINT = '#007AFF';
+const BUSY_OVERLAY_COLOR = 'rgba(0,0,0,0.15)';
+
+const ios = Platform.OS === 'ios';
+
+type RowItem = RecentLocation & { _kind?: 'device' | 'default' };
+interface Section {
   title: string;
-  data: RecentLocation[];
-};
+  data: RowItem[];
+}
+
+// iOS 26 native system colors — let the sheet's Liquid Glass surface show through
+const CELL_BG = ios ? PlatformColor('secondarySystemGroupedBackground') : undefined;
+const SEPARATOR = ios ? PlatformColor('separator') : undefined;
+const LABEL = ios ? PlatformColor('label') : undefined;
+const SECONDARY_LABEL = ios ? PlatformColor('secondaryLabel') : undefined;
+
+function LocationRow({
+  item,
+  showSeparator,
+  busy,
+  labelColor,
+  mutedColor,
+  onPress,
+}: Readonly<{
+  item: RowItem;
+  showSeparator: boolean;
+  busy: boolean;
+  labelColor: string;
+  mutedColor: string;
+  onPress: () => void;
+}>) {
+  const c = useWheelyColors();
+  const isDevice = item._kind === 'device';
+  const isAction = isDevice || item._kind === 'default';
+  const showSub = !isAction && !!item.displayName && !item.displayName.startsWith(item.label);
+  return (
+    <View>
+      {showSeparator && (
+        <View
+          style={[
+            styles.separator,
+            ios
+              ? { backgroundColor: SEPARATOR as unknown as string, marginLeft: Spacing.four }
+              : { backgroundColor: c.border, marginLeft: Spacing.four },
+          ]}
+        />
+      )}
+      <Pressable
+        style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+        onPress={onPress}
+        disabled={busy}
+      >
+        {isDevice && (
+          <SymbolView name="location.fill" size={18} tintColor={IOS_TINT} style={styles.rowIcon} />
+        )}
+        <View style={styles.rowContent}>
+          <ThemedText
+            style={[styles.rowLabel, { color: isAction ? IOS_TINT : labelColor }]}
+            numberOfLines={1}
+          >
+            {item.label}
+          </ThemedText>
+          {showSub && (
+            <ThemedText style={[styles.rowSub, { color: mutedColor }]} numberOfLines={1}>
+              {item.displayName}
+            </ThemedText>
+          )}
+        </View>
+        {!isAction && (
+          <SymbolView
+            name="chevron.right"
+            size={13}
+            tintColor={mutedColor}
+            style={styles.chevron}
+          />
+        )}
+      </Pressable>
+    </View>
+  );
+}
+
+function LocationList({
+  sections,
+  busy,
+  labelColor,
+  mutedColor,
+  onSelect,
+}: Readonly<{
+  sections: Section[];
+  busy: boolean;
+  labelColor: string;
+  mutedColor: string;
+  onSelect: (item: RowItem) => void;
+}>) {
+  return (
+    <>
+      {sections.map((section) => (
+        <View key={section.title} style={styles.sectionGroup}>
+          <ThemedText style={[styles.sectionHeader, { color: mutedColor }]}>
+            {section.title}
+          </ThemedText>
+          <View
+            style={[styles.sectionCard, ios && { backgroundColor: CELL_BG as unknown as string }]}
+          >
+            {section.data.map((item, idx) => (
+              <LocationRow
+                key={item._kind ?? `${item.lat}-${item.lon}-${idx}`}
+                item={item}
+                showSeparator={idx > 0}
+                busy={busy}
+                labelColor={labelColor}
+                mutedColor={mutedColor}
+                onPress={() => {
+                  onSelect(item);
+                }}
+              />
+            ))}
+          </View>
+        </View>
+      ))}
+    </>
+  );
+}
 
 export default function LocationScreen() {
   const router = useRouter();
   const forecast = useForecast();
   const c = useWheelyColors();
-  const styles = makeStyles(c);
 
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<RecentLocation[]>([]);
@@ -36,31 +156,27 @@ export default function LocationScreen() {
   const [busy, setBusy] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
-  // Debounced search effect
   useEffect(() => {
     const trimmed = query.trim();
-    if (trimmed.length < 2) {
-      // Short query: render derives display from recentLocations/isSearching guard.
-      return;
-    }
-
+    if (trimmed.length < 2) return;
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
-
-    const timer = setTimeout(async () => {
+    const runSearch = async () => {
       setMessage('Searching…');
       try {
         const places = await searchLocations(trimmed, { signal: controller.signal });
-        setResults((places as (RecentLocation | null)[]).filter((p): p is RecentLocation => p != null));
-        setMessage(places.length ? '' : 'No matches.');
-      } catch (err: unknown) {
-        const name = err instanceof Error ? err.name : '';
+        setResults(
+          (places as (RecentLocation | null)[]).filter((p): p is RecentLocation => p != null),
+        );
+        setMessage(places.length > 0 ? '' : 'No matches.');
+      } catch (error: unknown) {
+        const name = error instanceof Error ? error.name : '';
         if (name === 'AbortError') return;
         setMessage('Search unavailable. Try again.');
       }
-    }, 300);
-
+    };
+    const timer = setTimeout(() => void runSearch(), 300);
     return () => {
       clearTimeout(timer);
       controller.abort();
@@ -91,23 +207,23 @@ export default function LocationScreen() {
     router.back();
   }, [forecast, router]);
 
-  // Build section list data
   const isSearching = query.trim().length >= 2;
   const sections: Section[] = [];
-
   if (isSearching) {
-    // Always include Results when actively searching — the footer shows status messages.
-    sections.push({ title: 'Results', data: results });
+    if (results.length > 0) sections.push({ title: 'Results', data: results });
   } else if (forecast.recentLocations.length > 0) {
     sections.push({ title: 'Recent', data: forecast.recentLocations });
   }
+  sections.push({
+    title: 'Options',
+    data: [
+      { lat: 0, lon: 0, label: 'Use Current Location', _kind: 'device' },
+      { lat: 0, lon: 0, label: DEFAULT_LOCATION, _kind: 'default' },
+    ],
+  });
 
-  // The actions section is always shown
-  const actionRows: RecentLocation[] = [
-    { lat: 0, lon: 0, label: 'Use Current Location', displayName: '__device__' },
-    { lat: 0, lon: 0, label: DEFAULT_LOCATION, displayName: '__default__' },
-  ];
-  sections.push({ title: 'Options', data: actionRows });
+  const labelColor = (LABEL ?? c.ink) as string;
+  const mutedColor = (SECONDARY_LABEL ?? c.mutedInk) as string;
 
   return (
     <>
@@ -118,7 +234,9 @@ export default function LocationScreen() {
             placeholder: 'Search a city or place',
             autoCapitalize: 'words',
             hideWhenScrolling: false,
-            onChangeText: (e) => setQuery(e.nativeEvent.text),
+            onChangeText: (e) => {
+              setQuery(e.nativeEvent.text);
+            },
           },
         }}
       />
@@ -128,158 +246,106 @@ export default function LocationScreen() {
             <ActivityIndicator color={c.primary} size="large" />
           </View>
         )}
-        <SectionList
-          sections={sections}
-          keyExtractor={(item, index) =>
-            item.displayName === '__device__' || item.displayName === '__default__'
-              ? item.displayName
-              : `${item.lat}-${item.lon}-${index}`
-          }
+        <ScrollView
+          style={styles.scroll}
           contentInsetAdjustmentBehavior="automatic"
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
-          renderSectionHeader={({ section }) => (
-            <View style={styles.sectionHeader}>
-              <ThemedText style={styles.sectionHeaderText}>{section.title}</ThemedText>
-            </View>
+          contentContainerStyle={styles.scrollContent}
+        >
+          {isSearching && results.length === 0 && !!message && (
+            <ThemedText style={[styles.messageText, { color: mutedColor }]}>{message}</ThemedText>
           )}
-          renderItem={({ item }) => {
-            const isDevice = item.displayName === '__device__';
-            const isDefault = item.displayName === '__default__';
-            const isAction = isDevice || isDefault;
 
-            return (
-              <Pressable
-                onPress={() => {
-                  if (isDevice) handleUseDevice();
-                  else if (isDefault) handleUseDefault();
-                  else choosePlace(item);
-                }}
-                disabled={busy}
-                style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}>
-                {isDevice && (
-                  <SymbolView
-                    name="location.fill"
-                    size={18}
-                    tintColor={c.primary}
-                    style={styles.rowIcon}
-                  />
-                )}
-                <View style={styles.rowContent}>
-                  <ThemedText
-                    style={[styles.rowLabel, isAction && styles.rowLabelAction]}
-                    numberOfLines={1}>
-                    {item.label}
-                  </ThemedText>
-                  {!isAction && !!item.displayName && !item.displayName.startsWith(item.label) && (
-                    <ThemedText style={styles.rowSub} numberOfLines={1}>
-                      {item.displayName}
-                    </ThemedText>
-                  )}
-                </View>
-                {!isAction && (
-                  <SymbolView
-                    name="chevron.right"
-                    size={13}
-                    tintColor={c.mutedInk}
-                    style={styles.chevron}
-                  />
-                )}
-              </Pressable>
-            );
-          }}
-          renderSectionFooter={({ section }) => {
-            if (section.title === 'Options' || section.data.length > 0 || !message) return null;
-            return (
-              <View style={styles.messageRow}>
-                <ThemedText style={styles.messageText}>{message}</ThemedText>
-              </View>
-            );
-          }}
-          SectionSeparatorComponent={() => <View style={styles.sectionSeparator} />}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
-        />
+          <LocationList
+            sections={sections}
+            busy={busy}
+            labelColor={labelColor}
+            mutedColor={mutedColor}
+            onSelect={(item) => {
+              if (item._kind === 'device') void handleUseDevice();
+              else if (item._kind === 'default') void handleUseDefault();
+              else void choosePlace(item);
+            }}
+          />
+        </ScrollView>
       </SafeAreaView>
     </>
   );
 }
 
-function makeStyles(c: WheelyPalette) {
-  return StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: Platform.OS === 'ios' ? c.background : c.background,
-    },
-    busyOverlay: {
-      ...StyleSheet.absoluteFill,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: 'rgba(0,0,0,0.15)',
-      zIndex: 10,
-    },
-    sectionHeader: {
-      paddingHorizontal: Spacing.four,
-      paddingTop: Spacing.four,
-      paddingBottom: Spacing.one,
-      backgroundColor: c.background,
-    },
-    sectionHeaderText: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: c.mutedInk,
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
-    },
-    sectionSeparator: {
-      height: Spacing.three,
-    },
-    separator: {
-      height: StyleSheet.hairlineWidth,
-      backgroundColor: c.border,
-      marginLeft: Spacing.four,
-    },
-    row: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: Spacing.four,
-      paddingVertical: Spacing.three,
-      backgroundColor: c.paper,
-      minHeight: 52,
-    },
-    rowPressed: {
-      opacity: 0.6,
-    },
-    rowIcon: {
-      marginRight: Spacing.three,
-    },
-    rowContent: {
-      flex: 1,
-      gap: 2,
-    },
-    rowLabel: {
-      fontSize: 16,
-      fontWeight: '400',
-      color: c.ink,
-    },
-    rowLabelAction: {
-      color: c.ink,
-      fontWeight: '500',
-    },
-    rowSub: {
-      fontSize: 13,
-      color: c.mutedInk,
-    },
-    chevron: {
-      marginLeft: Spacing.two,
-    },
-    messageRow: {
-      paddingHorizontal: Spacing.four,
-      paddingVertical: Spacing.three,
-      backgroundColor: c.paper,
-    },
-    messageText: {
-      fontSize: 15,
-      color: c.mutedInk,
-    },
-  });
-}
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: TRANSPARENT,
+  },
+  scroll: {
+    backgroundColor: TRANSPARENT,
+  },
+  busyOverlay: {
+    ...StyleSheet.absoluteFill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: BUSY_OVERLAY_COLOR,
+    zIndex: 10,
+  },
+  scrollContent: {
+    paddingHorizontal: Spacing.four,
+    paddingBottom: Spacing.six,
+    gap: Spacing.four,
+  },
+  messageText: {
+    fontSize: 15,
+    opacity: 0.5,
+    paddingTop: Spacing.three,
+    textAlign: 'center',
+    fontFamily: Fonts.sans,
+  },
+  sectionGroup: {
+    gap: Spacing.two,
+  },
+  sectionHeader: {
+    fontSize: 13,
+    fontWeight: '400',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    paddingHorizontal: Spacing.two,
+    fontFamily: Fonts.sans,
+  },
+  sectionCard: {
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  separator: {
+    height: StyleSheet.hairlineWidth,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.four,
+    paddingVertical: 14,
+    minHeight: 52,
+  },
+  rowPressed: {
+    opacity: 0.5,
+  },
+  rowIcon: {
+    marginRight: Spacing.three,
+  },
+  rowContent: {
+    flex: 1,
+    gap: 2,
+  },
+  rowLabel: {
+    fontSize: 16,
+    fontWeight: '400',
+    fontFamily: Fonts.sans,
+  },
+  rowSub: {
+    fontSize: 13,
+    fontFamily: Fonts.sans,
+  },
+  chevron: {
+    marginLeft: Spacing.two,
+  },
+});

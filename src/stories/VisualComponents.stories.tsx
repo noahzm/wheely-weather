@@ -31,4 +31,3 @@ export const SplashOverlay: Story = {
 export const ExpoBadge: Story = {
   render: () => <WebBadge />,
 };
-
