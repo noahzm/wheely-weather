@@ -92,16 +92,19 @@ const rateComfortBand = (value, t) => {
 /**
  * Evaluates a single weather metric against cycling-friendly thresholds.
  * Returns "good", "fair", "marginal", "poor", or "bad" to indicate ride-ability.
+ * `thresholds` defaults to the base set; pass an acclimatization-adjusted set to
+ * shift the comfort dials for a rider's home climate.
  * @param {number | null | undefined} value
  * @param {MetricType} type
+ * @param {typeof THRESHOLDS} [thresholds]
  * @returns {Condition}
  */
-export const evaluateCondition = (value, type) => {
+export const evaluateCondition = (value, type, thresholds = THRESHOLDS) => {
   if (value == null) return 'good';
-  const T = THRESHOLDS;
+  const T = thresholds;
   switch (type) {
-    case 'feelsLike': {
-      return rateComfortBand(value, T.FEELS_LIKE);
+    case 'temperature': {
+      return rateComfortBand(value, T.TEMPERATURE);
     }
     case 'windSpeed': {
       return rateUpperBound(value, T.WIND_SPEED);
@@ -117,6 +120,12 @@ export const evaluateCondition = (value, type) => {
     }
     case 'dewpoint': {
       return rateUpperBound(value, T.DEWPOINT);
+    }
+    case 'uv': {
+      return rateUpperBound(value, T.UV_INDEX);
+    }
+    case 'humidity': {
+      return rateUpperBound(value, T.HUMIDITY);
     }
     default: {
       return 'good';
@@ -136,10 +145,10 @@ const worseCondition = (a, b) => (RANK[a] <= RANK[b] ? a : b);
  * @param {number | null | undefined} windGust
  * @returns {Condition}
  */
-export const evaluateWind = (windSpeed, windGust) => {
-  const sustained = evaluateCondition(windSpeed, 'windSpeed');
+export const evaluateWind = (windSpeed, windGust, thresholds = THRESHOLDS) => {
+  const sustained = evaluateCondition(windSpeed, 'windSpeed', thresholds);
   if (windGust == null) return sustained;
-  return worseCondition(sustained, evaluateCondition(windGust, 'windGust'));
+  return worseCondition(sustained, evaluateCondition(windGust, 'windGust', thresholds));
 };
 
 /** True when gusts are a strictly worse limiter than sustained wind. */
@@ -149,16 +158,16 @@ const isGustDriven = (windSpeed, windGust) =>
   RANK[evaluateCondition(windGust, 'windGust')] < RANK[evaluateCondition(windSpeed, 'windSpeed')];
 
 /** Determines the overall cycling verdict. */
-/** @param {Weather} weather @returns {RideStatus} */
-export const getOverallStatus = (weather) => {
+/** @param {Weather} weather @param {typeof THRESHOLDS} [thresholds] @returns {RideStatus} */
+export const getOverallStatus = (weather, thresholds = THRESHOLDS) => {
   if (weather.hasThunderstorms) return 'no';
   const conditions = [
-    evaluateCondition(weather.feelsLike, 'feelsLike'),
-    evaluateWind(weather.windSpeed, weather.windGust),
-    evaluateCondition(weather.rainChance, 'rainChance'),
-    evaluateCondition(weather.dewpoint, 'dewpoint'),
+    evaluateCondition(weather.temperature, 'temperature', thresholds),
+    evaluateWind(weather.windSpeed, weather.windGust, thresholds),
+    evaluateCondition(weather.rainChance, 'rainChance', thresholds),
+    evaluateCondition(weather.dewpoint, 'dewpoint', thresholds),
     getWeatherCodeCondition(weather.weatherCode),
-    ...(weather.aqi == null ? [] : [evaluateCondition(weather.aqi, 'aqi')]),
+    ...(weather.aqi == null ? [] : [evaluateCondition(weather.aqi, 'aqi', thresholds)]),
   ];
   if (conditions.some((c) => c === 'bad' || c === 'poor')) return 'no';
   if (conditions.some((c) => c === 'marginal' || c === 'fair')) return 'maybe';
@@ -176,8 +185,11 @@ export const isThunderstorm = (code) => code != null && [95, 96, 99].includes(co
 export const getWeatherCodeCondition = (code) => {
   if (code == null) return 'good';
   if (isThunderstorm(code)) return 'bad';
-  // 48 = freezing fog: implies ice on the road, so it rates worse than plain fog.
-  if ([48, 65, 75, 77, 82, 86].includes(code)) return 'poor';
+  // Freezing precipitation/fog implies ice on the road. The reference rates
+  // ice/freezing as "avoid", and black ice on a fast descent is the real hazard,
+  // so 48 (freezing fog) and 56/57/66/67 (freezing drizzle/rain) rate "bad".
+  if ([48, 56, 57, 66, 67].includes(code)) return 'bad';
+  if ([65, 75, 77, 82, 86].includes(code)) return 'poor';
   if ([55, 63, 71, 73, 81, 85].includes(code)) return 'marginal';
   if ([45, 51, 53, 61, 80].includes(code)) return 'fair';
   return 'good';
@@ -199,9 +211,13 @@ const WEATHER_CODE_ISSUES = {
   51: 'light drizzle',
   53: 'drizzle',
   55: 'heavy drizzle',
+  56: 'freezing drizzle',
+  57: 'freezing drizzle',
   61: 'light rain',
   63: 'rain',
   65: 'heavy rain',
+  66: 'freezing rain',
+  67: 'freezing rain',
   71: 'light snow',
   73: 'snow',
   75: 'heavy snow',
@@ -234,43 +250,46 @@ const getCyclingCondition = (conditions) => {
 };
 
 /**
- * @param {{ feelsLike: number; wind: number; gust?: number | null; rain: number; code?: number | null; dewpoint: number | null }} values
+ * UV is intentionally excluded — it drives sunscreen/kit advice, not ride-ability.
+ * @param {{ temperature: number; wind: number; gust?: number | null; rain: number; code?: number | null; dewpoint: number | null }} values
+ * @param {typeof THRESHOLDS} [thresholds]
  * @returns {Condition}
  */
-export const getHourlyCondition = ({ feelsLike, wind, gust, rain, code, dewpoint }) => {
+export const getHourlyCondition = (
+  { temperature, wind, gust, rain, code, dewpoint },
+  thresholds = THRESHOLDS,
+) => {
   return getCyclingCondition([
-    evaluateCondition(feelsLike, 'feelsLike'),
-    evaluateWind(wind, gust),
-    evaluateCondition(rain, 'rainChance'),
-    evaluateCondition(dewpoint, 'dewpoint'),
+    evaluateCondition(temperature, 'temperature', thresholds),
+    evaluateWind(wind, gust, thresholds),
+    evaluateCondition(rain, 'rainChance', thresholds),
+    evaluateCondition(dewpoint, 'dewpoint', thresholds),
     getWeatherCodeCondition(code),
   ]);
 };
 
-// `feelsLow`/`feelsHigh` are the coldest and warmest feels-like during the day's
-// daylight (ridable) hours; temperature is rated on whichever is worse. This keeps
-// the daily verdict consistent with wind/rain/dew (worst-case during ridable hours)
-// instead of rating temp on the warmest moment alone. Either bound may be omitted.
+// `tempLow`/`tempHigh` are the coldest and warmest air temperature during the
+// day's daylight (ridable) hours; temperature is rated on whichever is worse.
+// This keeps the daily verdict consistent with wind/rain/dew (worst-case during
+// ridable hours) instead of rating temp on the warmest moment alone. Either bound
+// may be omitted.
 /**
- * @param {{ feelsLow?: number | null; feelsHigh?: number | null; wind: number; gust?: number | null; rain: number; code?: number | null; dewpoint?: number | null }} values
+ * UV is intentionally excluded — it drives sunscreen/kit advice, not ride-ability.
+ * @param {{ tempLow?: number | null; tempHigh?: number | null; wind: number; gust?: number | null; rain: number; code?: number | null; dewpoint?: number | null }} values
+ * @param {typeof THRESHOLDS} [thresholds]
  * @returns {Condition}
  */
-export const getDailyCondition = ({
-  feelsLow = null,
-  feelsHigh,
-  wind,
-  gust = null,
-  rain,
-  code,
-  dewpoint = null,
-}) => {
+export const getDailyCondition = (
+  { tempLow = null, tempHigh, wind, gust = null, rain, code, dewpoint = null },
+  thresholds = THRESHOLDS,
+) => {
   return getCyclingCondition([
-    ...(feelsLow == null ? [] : [evaluateCondition(feelsLow, 'feelsLike')]),
-    ...(feelsHigh == null ? [] : [evaluateCondition(feelsHigh, 'feelsLike')]),
-    evaluateWind(wind, gust),
-    evaluateCondition(rain, 'rainChance'),
+    ...(tempLow == null ? [] : [evaluateCondition(tempLow, 'temperature', thresholds)]),
+    ...(tempHigh == null ? [] : [evaluateCondition(tempHigh, 'temperature', thresholds)]),
+    evaluateWind(wind, gust, thresholds),
+    evaluateCondition(rain, 'rainChance', thresholds),
     getWeatherCodeCondition(code),
-    ...(dewpoint == null ? [] : [evaluateCondition(dewpoint, 'dewpoint')]),
+    ...(dewpoint == null ? [] : [evaluateCondition(dewpoint, 'dewpoint', thresholds)]),
   ]);
 };
 
@@ -313,22 +332,29 @@ const buildWindLabel = (weather, status, gustDriven) => {
   return `${status === 'no' ? 'heavy wind' : 'gusty'} (${Math.round(weather.windSpeed)} mph)`;
 };
 
+// Keep the verdict hero punchy: list issues inline up to MAX_INLINE, but once a
+// day stacks up more than that, lead with the two most ride-relevant factors
+// (insertion order is temp → wind → rain → weather → dewpoint → AQI) and roll the
+// rest into a "plus N more" tail. "The numbers" section carries the full detail.
+const MAX_INLINE_ISSUES = 3;
+
 /** @param {RideStatus} status @param {string[]} issues */
 const selectBaseMessage = (status, issues) => {
+  const extra = issues.length > MAX_INLINE_ISSUES ? issues.length - 2 : 0;
+  const shown = extra > 0 ? issues.slice(0, 2) : issues;
   if (status === 'maybe') {
-    return issues.length > 0 ? MSG.MAYBE_ISSUES(issues) : MSG.MAYBE_IDEAL;
+    return issues.length > 0 ? MSG.MAYBE_ISSUES(shown, extra) : MSG.MAYBE_IDEAL;
   }
-  return issues.length > 0 ? MSG.NO_ISSUES(issues) : MSG.NO_IDEAL;
+  return issues.length > 0 ? MSG.NO_ISSUES(shown, extra) : MSG.NO_IDEAL;
 };
 
-/** @param {Weather} weather @param {RideStatus} status */
-export const getMessage = (weather, status) => {
-  if (weather.hasThunderstorms) return MSG.THUNDERSTORM;
-  if (status === 'yes') {
-    return MSG.GOOD(Math.round(weather.feelsLike), weather.condition);
-  }
-
-  const laterGood = getLaterGoodHour(weather.hourly);
+/**
+ * Collects the limiting-factor labels to mention in the verdict, in insertion
+ * order (temp → wind → rain → weather → dewpoint → AQI → UV).
+ * @param {Weather} weather @param {RideStatus} status @param {typeof THRESHOLDS} thresholds
+ * @returns {string[]}
+ */
+const collectMessageIssues = (weather, status, thresholds) => {
   /** @type {string[]} */
   const issues = [];
   /**
@@ -338,22 +364,19 @@ export const getMessage = (weather, status) => {
    * @param {Condition} [ratingOverride]
    */
   const addIssue = (val, type, label, ratingOverride) => {
-    const rating = ratingOverride ?? evaluateCondition(val, type);
+    const rating = ratingOverride ?? evaluateCondition(val, type, thresholds);
     if (status === 'maybe' && (rating === 'marginal' || rating === 'fair')) issues.push(label);
     if (status === 'no' && (rating === 'bad' || rating === 'poor')) issues.push(label);
   };
 
-  const temp = Math.round(weather.feelsLike);
+  const temp = Math.round(weather.temperature);
   addIssue(
-    weather.feelsLike,
-    'feelsLike',
-    weather.feelsLike < 50 ? `cold (${temp}°F)` : `hot (${temp}°F)`,
+    weather.temperature,
+    'temperature',
+    weather.temperature < 50 ? `cold (${temp}°F)` : `hot (${temp}°F)`,
   );
   if (status === 'no' && issues.length > 0) {
-    issues[0] =
-      weather.feelsLike < 36
-        ? `too cold (${Math.round(weather.feelsLike)}\u00B0F)`
-        : `too hot (${Math.round(weather.feelsLike)}\u00B0F)`;
+    issues[0] = weather.temperature < 36 ? `too cold (${temp}\u00B0F)` : `too hot (${temp}\u00B0F)`;
   }
   const gustDriven = isGustDriven(weather.windSpeed, weather.windGust);
   const windLabel = buildWindLabel(weather, status, gustDriven);
@@ -361,7 +384,7 @@ export const getMessage = (weather, status) => {
     weather.windSpeed,
     'windSpeed',
     windLabel,
-    evaluateWind(weather.windSpeed, weather.windGust),
+    evaluateWind(weather.windSpeed, weather.windGust, thresholds),
   );
   addIssue(
     weather.rainChance,
@@ -388,6 +411,18 @@ export const getMessage = (weather, status) => {
       `${status === 'no' ? 'poor air quality' : 'hazy'} (AQI ${weather.aqi})`,
     );
   }
+  return issues;
+};
+
+/** @param {Weather} weather @param {RideStatus} status @param {typeof THRESHOLDS} [thresholds] */
+export const getMessage = (weather, status, thresholds = THRESHOLDS) => {
+  if (weather.hasThunderstorms) return MSG.THUNDERSTORM;
+  if (status === 'yes') {
+    return MSG.GOOD(Math.round(weather.feelsLike), weather.condition);
+  }
+
+  const laterGood = getLaterGoodHour(weather.hourly);
+  const issues = collectMessageIssues(weather, status, thresholds);
 
   let msg = selectBaseMessage(status, issues);
 
@@ -398,8 +433,8 @@ export const getMessage = (weather, status) => {
 };
 
 /** Returns up to 3 limiting ride factors with label, value, and condition rating. */
-/** @param {Weather | null | undefined} weather @param {RideStatus | null | undefined} status @returns {RideFactor[]} */
-export const getRideFactors = (weather, status) => {
+/** @param {Weather | null | undefined} weather @param {RideStatus | null | undefined} status @param {typeof THRESHOLDS} [thresholds] @returns {RideFactor[]} */
+export const getRideFactors = (weather, status, thresholds = THRESHOLDS) => {
   if (!weather || !status || status === 'yes') return [];
 
   /** @param {Condition} rating */
@@ -412,17 +447,17 @@ export const getRideFactors = (weather, status) => {
   /** @type {RideFactor[]} */
   const factors = [];
 
-  const tempRating = evaluateCondition(weather.feelsLike, 'feelsLike');
+  const tempRating = evaluateCondition(weather.temperature, 'temperature', thresholds);
   if (isLimiting(tempRating)) {
     factors.push({
-      type: 'feelsLike',
+      type: 'temperature',
       label: 'Temperature',
-      value: `${Math.round(weather.feelsLike)}°F`,
+      value: `${Math.round(weather.temperature)}°F`,
       condition: tempRating,
     });
   }
 
-  const windRating = evaluateWind(weather.windSpeed, weather.windGust);
+  const windRating = evaluateWind(weather.windSpeed, weather.windGust, thresholds);
   if (isLimiting(windRating)) {
     factors.push({
       type: 'windSpeed',
@@ -434,7 +469,7 @@ export const getRideFactors = (weather, status) => {
     });
   }
 
-  const rainRating = evaluateCondition(weather.rainChance, 'rainChance');
+  const rainRating = evaluateCondition(weather.rainChance, 'rainChance', thresholds);
   if (isLimiting(rainRating)) {
     factors.push({
       type: 'rainChance',
@@ -444,7 +479,7 @@ export const getRideFactors = (weather, status) => {
     });
   }
 
-  const dewRating = evaluateCondition(weather.dewpoint, 'dewpoint');
+  const dewRating = evaluateCondition(weather.dewpoint, 'dewpoint', thresholds);
   if (isLimiting(dewRating)) {
     factors.push({
       type: 'dewpoint',
@@ -455,7 +490,7 @@ export const getRideFactors = (weather, status) => {
   }
 
   if (weather.aqi != null) {
-    const aqiRating = evaluateCondition(weather.aqi, 'aqi');
+    const aqiRating = evaluateCondition(weather.aqi, 'aqi', thresholds);
     if (isLimiting(aqiRating)) {
       factors.push({
         type: 'aqi',
@@ -643,19 +678,21 @@ function mergeTipItems(tips) {
   return items;
 }
 
-/** @param {Weather} weather @param {RideWindow} w @param {GearTipSet} tipsSet */
-function getGearTips(weather, w, tipsSet) {
+/** @param {Weather} weather @param {RideWindow} w @param {GearTipSet} tipsSet @param {RideStatus} [status] */
+function getGearTips(weather, w, tipsSet, status) {
   const temperatureTips = getTemperatureTips(w, tipsSet);
   const { tips: supportingTips, hasAdverse } = buildSupportingTips(weather, w, tipsSet);
 
   // An empty temperature tip means the ride window sits in the ideal band, so
   // lead with PERFECT unless an adverse add-on contradicts it. NEUTRAL is the
-  // quiet fallback for ideal temps paired with a genuine weather caveat.
+  // quiet fallback for ideal temps paired with a genuine weather caveat. The
+  // celebratory PERFECT copy only fits a clear "yes" day — on a maybe/no verdict
+  // it contradicts the hero, so fall back to NEUTRAL.
   /** @type {GearTip[]} */
   let baseTips;
   if (temperatureTips.length > 0) {
     baseTips = temperatureTips;
-  } else if (hasAdverse) {
+  } else if (hasAdverse || (status != null && status !== 'yes')) {
     baseTips = [resolveTip(tipsSet.NEUTRAL)];
   } else {
     baseTips = [tipsSet.PERFECT()];
@@ -666,11 +703,11 @@ function getGearTips(weather, w, tipsSet) {
   return { headline, items: mergeTipItems(tips) };
 }
 
-/** @param {Weather} weather @param {'casual' | 'pro'} [mode] */
-export const getGearSuggestion = (weather, mode = 'casual') => {
+/** @param {Weather} weather @param {'casual' | 'pro'} [mode] @param {RideStatus} [status] */
+export const getGearSuggestion = (weather, mode = 'casual', status) => {
   const w = getRideWindow(weather);
   const tipsSet = /** @type {GearTipSet} */ (mode === 'pro' ? GEAR_TIPS.PRO : GEAR_TIPS.CASUAL);
-  return getGearTips(weather, w, tipsSet);
+  return getGearTips(weather, w, tipsSet, status);
 };
 
 /** @param {Weather} weather */

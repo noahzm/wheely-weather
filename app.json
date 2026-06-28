@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "wheely-weather",
+    "name": "Wheely Weather",
     "slug": "wheely-weather",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "bundleIdentifier": "app.wheelyweather",
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/WheelyWeather.icon"
     },
     "android": {
       "package": "app.wheelyweather",

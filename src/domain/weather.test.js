@@ -3,6 +3,7 @@ import {
   evaluateCondition,
   evaluateWind,
   getOverallStatus,
+  getWeatherCodeCondition,
   isThunderstorm,
   getAqiLabel,
   getDewpointLabel,
@@ -18,29 +19,48 @@ import {
 import { getBestDayInfo, getBestDaysBlurb, getDayConditionReason } from '../utils/forecastHelpers';
 
 describe('Weather Condition Evaluation', () => {
-  it('evaluates temperature (feelsLike) correctly', () => {
-    expect(evaluateCondition(75, 'feelsLike')).toBe('good');
-    expect(evaluateCondition(55, 'feelsLike')).toBe('good'); // 55 is > 50, so it's good
-    expect(evaluateCondition(49, 'feelsLike')).toBe('fair'); // < 50 is fair
-    expect(evaluateCondition(44, 'feelsLike')).toBe('marginal'); // < 45 is marginal
-    expect(evaluateCondition(35, 'feelsLike')).toBe('poor');
-    expect(evaluateCondition(30, 'feelsLike')).toBe('bad');
+  // Reproduces the cycling-weather reference zone tables, mapped zone->condition:
+  // ideal->good, good->fair, caution->marginal, hard->poor, avoid->bad.
+  it('rates air temperature against the reference table', () => {
+    expect(evaluateCondition(60, 'temperature')).toBe('good'); // 50-68 ideal
+    expect(evaluateCondition(45, 'temperature')).toBe('fair'); // 40-50 good
+    expect(evaluateCondition(75, 'temperature')).toBe('fair'); // 68-85 good
+    expect(evaluateCondition(35, 'temperature')).toBe('marginal'); // 32-40 caution
+    expect(evaluateCondition(90, 'temperature')).toBe('poor'); // 85-95 hard
+    expect(evaluateCondition(98, 'temperature')).toBe('bad'); // 95+ avoid
+    expect(evaluateCondition(28, 'temperature')).toBe('bad'); // icy avoid
   });
 
-  it('rates the hot side of feels-like more aggressively than the cold side', () => {
-    expect(evaluateCondition(84, 'feelsLike')).toBe('good'); // top of good
-    expect(evaluateCondition(86, 'feelsLike')).toBe('fair'); // > 84 is fair
-    expect(evaluateCondition(90, 'feelsLike')).toBe('marginal'); // > 88 is marginal
-    expect(evaluateCondition(94, 'feelsLike')).toBe('poor'); // > 92 is poor
-    expect(evaluateCondition(96, 'feelsLike')).toBe('bad'); // > 95 is bad
+  it('rates dew point against the reference table', () => {
+    expect(evaluateCondition(50, 'dewpoint')).toBe('good'); // <55 ideal
+    expect(evaluateCondition(57, 'dewpoint')).toBe('fair'); // 55-60 good
+    expect(evaluateCondition(62, 'dewpoint')).toBe('marginal'); // 60-65 caution
+    expect(evaluateCondition(68, 'dewpoint')).toBe('poor'); // 65-75 hard
+    expect(evaluateCondition(78, 'dewpoint')).toBe('bad'); // 75+ avoid
   });
 
-  it('evaluates windSpeed correctly', () => {
-    expect(evaluateCondition(5, 'windSpeed')).toBe('good');
-    expect(evaluateCondition(13, 'windSpeed')).toBe('fair');
-    expect(evaluateCondition(16, 'windSpeed')).toBe('marginal');
-    expect(evaluateCondition(19, 'windSpeed')).toBe('poor');
-    expect(evaluateCondition(25, 'windSpeed')).toBe('bad');
+  it('rates sustained wind against the reference table', () => {
+    expect(evaluateCondition(5, 'windSpeed')).toBe('good'); // <10 ideal
+    expect(evaluateCondition(12, 'windSpeed')).toBe('fair'); // 10-15 good
+    expect(evaluateCondition(20, 'windSpeed')).toBe('marginal'); // 15-25 caution
+    expect(evaluateCondition(28, 'windSpeed')).toBe('poor'); // 25-30 hard
+    expect(evaluateCondition(32, 'windSpeed')).toBe('bad'); // 30+ avoid
+  });
+
+  it('rates AQI against the reference table', () => {
+    expect(evaluateCondition(20, 'aqi')).toBe('good'); // 0-50 ideal
+    expect(evaluateCondition(80, 'aqi')).toBe('fair'); // 51-100 good
+    expect(evaluateCondition(120, 'aqi')).toBe('marginal'); // 101-150 caution
+    expect(evaluateCondition(180, 'aqi')).toBe('poor'); // 151-200 hard
+    expect(evaluateCondition(220, 'aqi')).toBe('bad'); // 201+ avoid
+  });
+
+  it('rates UV index against the reference table', () => {
+    expect(evaluateCondition(1, 'uv')).toBe('good'); // 0-2 ideal
+    expect(evaluateCondition(4, 'uv')).toBe('fair'); // 3-5 good
+    expect(evaluateCondition(6, 'uv')).toBe('marginal'); // 6-7 caution
+    expect(evaluateCondition(9, 'uv')).toBe('poor'); // 8-10 hard
+    expect(evaluateCondition(11, 'uv')).toBe('bad'); // 11+ avoid
   });
 
   it('evaluates windGust on its own (higher) thresholds', () => {
@@ -55,9 +75,9 @@ describe('Weather Condition Evaluation', () => {
     // Calm sustained wind but strong gusts is still flagged.
     expect(evaluateWind(8, 34)).toBe('poor');
     // Gusts absent -> falls back to sustained-only.
-    expect(evaluateWind(16, null)).toBe('marginal');
+    expect(evaluateWind(20, null)).toBe('marginal');
     // Sustained worse than gusts -> sustained wins.
-    expect(evaluateWind(22, 24)).toBe('bad');
+    expect(evaluateWind(32, 24)).toBe('bad');
   });
 
   it('evaluates rainChance correctly', () => {
@@ -66,14 +86,6 @@ describe('Weather Condition Evaluation', () => {
     expect(evaluateCondition(35, 'rainChance')).toBe('marginal');
     expect(evaluateCondition(50, 'rainChance')).toBe('poor');
     expect(evaluateCondition(70, 'rainChance')).toBe('bad');
-  });
-
-  it('evaluates aqi correctly', () => {
-    expect(evaluateCondition(20, 'aqi')).toBe('good');
-    expect(evaluateCondition(80, 'aqi')).toBe('fair');
-    expect(evaluateCondition(110, 'aqi')).toBe('marginal');
-    expect(evaluateCondition(140, 'aqi')).toBe('poor');
-    expect(evaluateCondition(160, 'aqi')).toBe('bad');
   });
 });
 
@@ -86,7 +98,7 @@ describe('Overall Status Determination', () => {
   it('returns "no" if any condition is "bad" or "poor"', () => {
     const weather = {
       hasThunderstorms: false,
-      feelsLike: 30, // bad
+      temperature: 28, // bad (icy)
       windSpeed: 5,
       rainChance: 0,
       dewpoint: 50,
@@ -98,7 +110,7 @@ describe('Overall Status Determination', () => {
   it('returns "no" when the weather code is severe even if raw metrics look fine', () => {
     const weather = {
       hasThunderstorms: false,
-      feelsLike: 72,
+      temperature: 60,
       windSpeed: 5,
       rainChance: 10, // below marginal threshold
       dewpoint: 50,
@@ -108,11 +120,24 @@ describe('Overall Status Determination', () => {
     expect(getOverallStatus(weather)).toBe('no');
   });
 
+  it('ignores UV for the verdict — it only drives sunscreen/kit advice', () => {
+    const weather = {
+      hasThunderstorms: false,
+      temperature: 60,
+      windSpeed: 5,
+      rainChance: 0,
+      dewpoint: 50,
+      aqi: 20,
+      uvIndex: 11, // extreme, but not a ride gate
+    };
+    expect(getOverallStatus(weather)).toBe('yes');
+  });
+
   it('returns "maybe" if conditions are "marginal" or "fair"', () => {
     const weather = {
       hasThunderstorms: false,
-      feelsLike: 75, // good
-      windSpeed: 13, // fair
+      temperature: 60, // good
+      windSpeed: 12, // fair
       rainChance: 0,
       dewpoint: 50,
       aqi: 20,
@@ -123,13 +148,28 @@ describe('Overall Status Determination', () => {
   it('returns "yes" if all conditions are "good"', () => {
     const weather = {
       hasThunderstorms: false,
-      feelsLike: 75,
+      temperature: 60,
       windSpeed: 5,
       rainChance: 0,
       dewpoint: 50,
       aqi: 20,
+      uvIndex: 1,
     };
     expect(getOverallStatus(weather)).toBe('yes');
+  });
+});
+
+describe('Weather Code Conditions', () => {
+  it('rates ice/freezing codes as bad (avoid)', () => {
+    for (const code of [48, 56, 57, 66, 67]) {
+      expect(getWeatherCodeCondition(code)).toBe('bad');
+    }
+  });
+
+  it('keeps light rain workable and heavy rain hard, per the reference surface table', () => {
+    expect(getWeatherCodeCondition(61)).toBe('fair'); // light rain -> good zone
+    expect(getWeatherCodeCondition(65)).toBe('poor'); // heavy rain -> hard
+    expect(getWeatherCodeCondition(0)).toBe('good'); // dry
   });
 });
 
@@ -182,7 +222,7 @@ describe('Hourly Message Logic', () => {
   it('mentions when conditions become fair later even if they never reach fully good', () => {
     const weather = {
       hasThunderstorms: false,
-      feelsLike: 33,
+      temperature: 33,
       windSpeed: 6,
       rainChance: 10,
       dewpoint: 50,
@@ -200,8 +240,8 @@ describe('Hourly Message Logic', () => {
   it('does not call mild weather too hot when the real issue is wind', () => {
     const weather = {
       hasThunderstorms: false,
-      feelsLike: 70,
-      windSpeed: 22,
+      temperature: 70,
+      windSpeed: 26, // poor sustained
       rainChance: 10,
       dewpoint: 50,
       aqi: 20,
@@ -214,26 +254,43 @@ describe('Hourly Message Logic', () => {
     expect(message).not.toContain('too hot (70°F)');
   });
 
-  it('formats multiple issues as a readable sentence', () => {
+  it('lists up to three issues inline as a readable sentence', () => {
     const weather = {
       hasThunderstorms: false,
-      feelsLike: 48,
+      temperature: 48,
       windSpeed: 13,
       rainChance: 35,
-      dewpoint: 66,
-      aqi: 80,
+      dewpoint: 50,
+      aqi: 20,
       hourly: [{ hour: 10, condition: 'fair' }],
     };
 
     expect(getMessage(weather, 'maybe')).toBe(
-      'Rideable. But it’s cold (48°F), gusty (13 mph), rainy (35% chance), sticky (dew 66°F), and hazy (AQI 80).',
+      'Rideable. But it’s cold (48°F), gusty (13 mph), and rainy (35% chance).',
+    );
+  });
+
+  it('caps a wall of issues to the two most relevant with a "plus N more" tail', () => {
+    const weather = {
+      hasThunderstorms: false,
+      temperature: 48,
+      windSpeed: 13,
+      rainChance: 35,
+      dewpoint: 62,
+      aqi: 80,
+      hourly: [{ hour: 10, condition: 'fair' }],
+    };
+
+    // cold, gusty, rainy, sticky, hazy => 5 issues, collapsed to 2 + "plus 3 more"
+    expect(getMessage(weather, 'maybe')).toBe(
+      'Rideable. But it’s cold (48°F) and gusty (13 mph), plus 3 more.',
     );
   });
 
   it('phrases a single rain issue naturally', () => {
     const weather = {
       hasThunderstorms: false,
-      feelsLike: 70,
+      temperature: 60,
       windSpeed: 5,
       rainChance: 32,
       dewpoint: 50,
@@ -247,7 +304,7 @@ describe('Hourly Message Logic', () => {
   it('names heavy rain codes when rain percentage alone looks low', () => {
     const weather = {
       hasThunderstorms: false,
-      feelsLike: 72,
+      temperature: 60,
       windSpeed: 5,
       rainChance: 10,
       dewpoint: 50,
@@ -262,7 +319,7 @@ describe('Hourly Message Logic', () => {
   it('names snow codes when raw metrics do not explain the downgrade', () => {
     const weather = {
       hasThunderstorms: false,
-      feelsLike: 72,
+      temperature: 60,
       windSpeed: 5,
       rainChance: 10,
       dewpoint: 50,
@@ -277,7 +334,7 @@ describe('Hourly Message Logic', () => {
   it('names fog codes when raw metrics do not explain the downgrade', () => {
     const weather = {
       hasThunderstorms: false,
-      feelsLike: 72,
+      temperature: 60,
       windSpeed: 5,
       rainChance: 10,
       dewpoint: 50,
@@ -292,7 +349,7 @@ describe('Hourly Message Logic', () => {
   it('describes gusts when they are the worse wind factor', () => {
     const weather = {
       hasThunderstorms: false,
-      feelsLike: 72,
+      temperature: 60,
       windSpeed: 8, // good sustained
       windGust: 34, // poor gusts
       rainChance: 0,
@@ -372,50 +429,50 @@ describe('Rain Timing Logic', () => {
 
 describe('Daily Forecast Logic', () => {
   it('marks thunderstorm days as bad even if other daily metrics look okay', () => {
-    expect(getDailyCondition({ feelsHigh: 72, wind: 8, rain: 20, code: 95 })).toBe('bad');
+    expect(getDailyCondition({ tempHigh: 65, wind: 8, rain: 20, code: 95 })).toBe('bad');
   });
 
   it('treats heavy rain codes as poor riding conditions even when rain percentage looks low', () => {
-    expect(getDailyCondition({ feelsHigh: 72, wind: 8, rain: 10, code: 65 })).toBe('poor');
+    expect(getDailyCondition({ tempHigh: 65, wind: 8, rain: 10, code: 65 })).toBe('poor');
   });
 
   it('downgrades snowy days so they are not presented as ideal ride days', () => {
-    expect(getDailyCondition({ feelsHigh: 34, wind: 8, rain: 20, code: 73 })).not.toBe('good');
+    expect(getDailyCondition({ tempHigh: 34, wind: 8, rain: 20, code: 73 })).not.toBe('good');
   });
 
   it('downgrades a daily verdict when max dewpoint is oppressive', () => {
     expect(
       getDailyCondition({
-        feelsHigh: 72,
+        tempHigh: 65,
         wind: 8,
         rain: 10,
         code: 1,
-        dewpoint: 75,
+        dewpoint: 76,
       }),
     ).toBe('bad');
   });
 
   it('does not change daily verdict when dewpoint is omitted', () => {
-    expect(getDailyCondition({ feelsHigh: 72, wind: 8, rain: 10, code: 1 })).toBe('good');
+    expect(getDailyCondition({ tempHigh: 65, wind: 8, rain: 10, code: 1 })).toBe('good');
   });
 
-  it('rates temperature on the worst feels-like across daylight hours', () => {
+  it('rates temperature on the worst air temperature across daylight hours', () => {
     // Mild afternoon high but a genuinely cold daytime low should pull it down.
     expect(
       getDailyCondition({
-        feelsLow: 34,
-        feelsHigh: 72,
+        tempLow: 34,
+        tempHigh: 65,
         wind: 8,
         rain: 10,
         code: 1,
       }),
-    ).toBe('poor');
+    ).toBe('marginal');
   });
 
   it('downgrades a daily verdict when gusts are strong even if sustained wind is calm', () => {
     expect(
       getDailyCondition({
-        feelsHigh: 72,
+        tempHigh: 65,
         wind: 8,
         gust: 34,
         rain: 10,
@@ -424,8 +481,12 @@ describe('Daily Forecast Logic', () => {
     ).toBe('poor');
   });
 
-  it('treats freezing fog as poor because of road ice', () => {
-    expect(getDailyCondition({ feelsHigh: 40, wind: 5, rain: 0, code: 48 })).toBe('poor');
+  it('does not let high UV downgrade a daily verdict (UV is advice-only)', () => {
+    expect(getDailyCondition({ tempHigh: 65, wind: 5, rain: 0, code: 1, uv: 9 })).toBe('good');
+  });
+
+  it('treats freezing fog as bad because of road ice', () => {
+    expect(getDailyCondition({ tempHigh: 40, wind: 5, rain: 0, code: 48 })).toBe('bad');
   });
 });
 
@@ -524,19 +585,18 @@ describe('Weekly Forecast Logic', () => {
     ).toBe('Very windy (22 mph)');
   });
 
-  it('explains bad daily ratings caused by apparent heat', () => {
+  it('explains bad daily ratings caused by dangerous heat', () => {
     expect(
       getDayConditionReason({
         condition: 'bad',
         weatherCode: 1,
-        high: 89,
-        low: 72,
-        feelsLike: 98,
+        high: 97,
+        low: 78,
         windSpeed: 5,
         rainChance: 5,
         dewpoint: 62,
       }),
-    ).toBe('Dangerous heat (feels like 98°)');
+    ).toBe('Dangerous heat (97°)');
   });
 
   it('explains bad daily ratings caused by oppressive humidity', () => {
@@ -546,12 +606,11 @@ describe('Weekly Forecast Logic', () => {
         weatherCode: 1,
         high: 82,
         low: 72,
-        feelsLike: 84,
         windSpeed: 5,
         rainChance: 5,
-        dewpoint: 75,
+        dewpoint: 76,
       }),
-    ).toBe('Oppressive humidity (dew 75°)');
+    ).toBe('Oppressive humidity (dew 76°)');
   });
 
   it('surfaces a positive daily reason for strong ride days', () => {
@@ -643,6 +702,23 @@ describe('Gear Suggestions', () => {
     expect(matchesItem(gear, /^shorts$/i)).toBe(true);
     expect(matchesItem(gear, /sunscreen/i)).toBe(true);
     expect(matchesItem(gear, /sunglasses/i)).toBe(true);
+  });
+
+  it('suppresses celebratory PERFECT copy when the verdict is only maybe', () => {
+    const gear = getGearSuggestion(base, 'casual', 'maybe');
+    expect(isPerfectHeadline(gear.headline)).toBe(false);
+    expect(matchesItem(gear, /short-sleeve top/i)).toBe(true);
+    expect(matchesItem(gear, /^shorts$/i)).toBe(true);
+  });
+
+  it('suppresses celebratory PERFECT copy when the verdict is no', () => {
+    const gear = getGearSuggestion(base, 'pro', 'no');
+    expect(isPerfectHeadline(gear.headline)).toBe(false);
+  });
+
+  it('still shows PERFECT when the verdict is an unambiguous yes', () => {
+    const gear = getGearSuggestion(base, 'casual', 'yes');
+    expect(isPerfectHeadline(gear.headline)).toBe(true);
   });
 
   it('falls back to a quiet NEUTRAL base on an ideal day with a real caveat', () => {
@@ -738,7 +814,7 @@ describe('Weather Alerts', () => {
 describe('Ride Factors', () => {
   it('returns empty array when status is yes', () => {
     const weather = {
-      feelsLike: 72,
+      temperature: 60,
       windSpeed: 5,
       rainChance: 0,
       dewpoint: 50,
@@ -754,10 +830,10 @@ describe('Ride Factors', () => {
 
   it('ranks worst conditions first and limits to 3 factors', () => {
     const weather = {
-      feelsLike: 30, // bad
-      windSpeed: 22, // bad
+      temperature: 30, // bad
+      windSpeed: 31, // bad
       rainChance: 50, // poor
-      dewpoint: 75, // bad
+      dewpoint: 76, // bad
       aqi: 20, // good
       weatherCode: 1,
     };
@@ -770,7 +846,7 @@ describe('Ride Factors', () => {
 
   it('includes a weather code factor when it limits the ride', () => {
     const weather = {
-      feelsLike: 72,
+      temperature: 60,
       windSpeed: 5,
       rainChance: 10,
       dewpoint: 50,
@@ -782,7 +858,7 @@ describe('Ride Factors', () => {
 
   it('does not include missing AQI', () => {
     const weather = {
-      feelsLike: 48, // fair -> maybe
+      temperature: 48, // fair -> maybe
       windSpeed: 5,
       rainChance: 0,
       dewpoint: 50,
@@ -791,12 +867,12 @@ describe('Ride Factors', () => {
     };
     const factors = getRideFactors(weather, 'maybe');
     expect(factors.some((f) => f.type === 'aqi')).toBe(false);
-    expect(factors.some((f) => f.type === 'feelsLike')).toBe(true);
+    expect(factors.some((f) => f.type === 'temperature')).toBe(true);
   });
 
   it('surfaces thunderstorm as the overriding bad factor', () => {
     const weather = {
-      feelsLike: 72,
+      temperature: 60,
       windSpeed: 5,
       rainChance: 0,
       dewpoint: 50,
@@ -810,7 +886,7 @@ describe('Ride Factors', () => {
 
   it('labels the wind factor by gusts when gusts are the limiter', () => {
     const weather = {
-      feelsLike: 72,
+      temperature: 60,
       windSpeed: 8, // good sustained
       windGust: 34, // poor gusts
       rainChance: 0,

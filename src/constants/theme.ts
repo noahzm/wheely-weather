@@ -21,6 +21,7 @@ export interface WheelyPalette {
   ink: string;
   mutedInk: string;
   border: string;
+  shadow: string;
   primary: string;
   primaryInk: string;
   secondary: string;
@@ -43,6 +44,7 @@ export const WheelyTheme: { light: WheelyPalette; dark: WheelyPalette } = {
     ink: '#161310',
     mutedInk: '#161310',
     border: '#CFC4DC',
+    shadow: '#161310',
     primary: '#C6A2ED',
     primaryInk: '#161310',
     secondary: '#FFD20A',
@@ -64,6 +66,7 @@ export const WheelyTheme: { light: WheelyPalette; dark: WheelyPalette } = {
     ink: '#F2E8D8',
     mutedInk: '#F2E8D8',
     border: '#413B4B',
+    shadow: '#161310',
     primary: '#C6A2ED',
     primaryInk: '#161310',
     secondary: '#FFD20A',

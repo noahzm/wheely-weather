@@ -1,8 +1,8 @@
-import { Form, Host, Picker, Section, Text } from '@expo/ui/swift-ui';
-import { pickerStyle, scrollContentBackground, tag } from '@expo/ui/swift-ui/modifiers';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { Host, Picker, Text } from '@expo/ui/swift-ui';
+import { pickerStyle, tag } from '@expo/ui/swift-ui/modifiers';
 
-import { TRANSPARENT } from '@/constants/theme';
+import { Spacing, TRANSPARENT } from '@/constants/theme';
 import {
   APPEARANCE_LABELS,
   APPEARANCE_VALUES,
@@ -10,57 +10,99 @@ import {
   GEAR_MODES,
   type SettingsFormProps,
 } from './settings-form.types';
+import { BrutalCard, SectionTitle } from './primitives';
+import { HomeClimateSection } from './settings-home-section';
 
-// Standard iOS navigation bar height; added to the top safe-area inset so the
-// native Form clears the transparent (floating glass) header.
-const NAV_BAR_HEIGHT = 44;
+// Intrinsic height of a SwiftUI segmented Picker; the Host needs an explicit size.
+const SEGMENTED_HEIGHT = 34;
+
+const styles = StyleSheet.create({
+  scroll: {
+    backgroundColor: TRANSPARENT,
+  },
+  content: {
+    paddingHorizontal: Spacing.four,
+    paddingTop: Spacing.four,
+    paddingBottom: Spacing.six,
+    gap: Spacing.four,
+  },
+  group: {
+    gap: Spacing.two,
+  },
+  host: {
+    height: SEGMENTED_HEIGHT,
+    backgroundColor: TRANSPARENT,
+  },
+});
 
 /**
- * iOS settings body — native SwiftUI grouped Form over the screen tartan backdrop.
+ * iOS settings body — native SwiftUI segmented Pickers inside the app's BrutalCard
+ * surfaces, with SectionTitle headings, to match the location screen's design.
  */
 export function SettingsForm({
   gearMode,
   onGearChange,
   appearance,
   onAppearanceChange,
+  homeLabel,
+  canSetHome,
+  onSetHome,
+  onClearHome,
 }: Readonly<SettingsFormProps>) {
-  const insets = useSafeAreaInsets();
   return (
-    <Host
-      style={{ flex: 1, paddingTop: insets.top + NAV_BAR_HEIGHT, backgroundColor: TRANSPARENT }}
+    <ScrollView
+      style={styles.scroll}
+      contentInsetAdjustmentBehavior="automatic"
+      contentContainerStyle={styles.content}
     >
-      <Form modifiers={[scrollContentBackground('hidden')]}>
-        <Section title="Gear">
-          <Picker
-            selection={gearMode}
-            onSelectionChange={(value) => {
-              onGearChange(value);
-            }}
-            modifiers={[pickerStyle('segmented')]}
-          >
-            {GEAR_MODES.map((mode, index) => (
-              <Text key={mode} modifiers={[tag(mode)]}>
-                {GEAR_LABELS[index]}
-              </Text>
-            ))}
-          </Picker>
-        </Section>
-        <Section title="Appearance">
-          <Picker
-            selection={appearance}
-            onSelectionChange={(value) => {
-              onAppearanceChange(value);
-            }}
-            modifiers={[pickerStyle('segmented')]}
-          >
-            {APPEARANCE_VALUES.map((value, index) => (
-              <Text key={value} modifiers={[tag(value)]}>
-                {APPEARANCE_LABELS[index]}
-              </Text>
-            ))}
-          </Picker>
-        </Section>
-      </Form>
-    </Host>
+      <View style={styles.group}>
+        <SectionTitle title="Gear" />
+        <BrutalCard>
+          <Host style={styles.host}>
+            <Picker
+              selection={gearMode}
+              onSelectionChange={(value) => {
+                onGearChange(value);
+              }}
+              modifiers={[pickerStyle('segmented')]}
+            >
+              {GEAR_MODES.map((mode, index) => (
+                <Text key={mode} modifiers={[tag(mode)]}>
+                  {GEAR_LABELS[index]}
+                </Text>
+              ))}
+            </Picker>
+          </Host>
+        </BrutalCard>
+      </View>
+
+      <View style={styles.group}>
+        <SectionTitle title="Appearance" />
+        <BrutalCard>
+          <Host style={styles.host}>
+            <Picker
+              selection={appearance}
+              onSelectionChange={(value) => {
+                onAppearanceChange(value);
+              }}
+              modifiers={[pickerStyle('segmented')]}
+            >
+              {APPEARANCE_VALUES.map((value, index) => (
+                <Text key={value} modifiers={[tag(value)]}>
+                  {APPEARANCE_LABELS[index]}
+                </Text>
+              ))}
+            </Picker>
+          </Host>
+        </BrutalCard>
+      </View>
+
+      <HomeClimateSection
+        homeLabel={homeLabel}
+        canSetHome={canSetHome}
+        onSetHome={onSetHome}
+        onClearHome={onClearHome}
+      />
+    </ScrollView>
   );
 }

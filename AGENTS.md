@@ -23,11 +23,21 @@ Expo Router + React Native app (iOS, Android, web) that scores how good conditio
 - `npm test` runs only the `unit` Vitest project (Node env): `src/**/*.{test,spec}.*`, excluding stories. Pure domain/utils logic lives here.
 - The `storybook` Vitest project runs stories in a real browser via Playwright. It needs `npx playwright install` first; in restricted/sandboxed environments it will fail to launch Chromium, so prefer `--project unit` there.
 - Domain and utility logic (`src/domain`, `src/utils`) is plain JS/TS with colocated `*.test.{js,ts}` — keep it framework-free and unit-tested.
+- `npm run test:e2e` runs Playwright against Storybook (not the app), so Storybook must build successfully first.
+- CI runs all four gates (format, lint, typecheck, test) regardless of earlier failures.
+
+## Toolchain constraints
+
+- **Path aliases**: `@/*` → `./src/*`, `@/assets/*` → `./assets/*`. Use these in imports.
+- **React Compiler** enabled (`app.json` `experiments.reactCompiler: true`) — don't add manual `useMemo`/`useCallback` for performance.
+- **TypeScript strict**: `noUncheckedIndexedAccess`, `noUnusedLocals`, `noUnusedParameters` — all enforced. Index access returns `T | undefined`.
+- **ESLint caps**: `complexity` 20, `max-depth` 4, `max-params` 5, `max-lines-per-function` 120 (skip blank/comments).
+- **`react-native/no-color-literals: 'error'`** — no hardcoded color strings in RN style objects; use theme palette.
 
 ## Architecture
 
-- `src/app/` — Expo Router routes (flat, no tab group). `_layout.tsx` loads the National Park font, sets the status bar, and wraps the app in `ForecastProvider` + `TartanBackground` around a transparent `Stack`. `index.tsx` is the home screen; `settings.tsx` is the settings screen; `location.tsx` is a modal-style location picker pushed via `router.push('/location')`.
-- `src/components/wheely/` — the presentational components, split one-per-file: `primitives` (`SectionTitle`, `Chip`, `BurstChip`, `BrutalCard`, `brutalShadow`, icon maps, helpers), `weather-header`, `ride-verdict`, `weather-alerts`, `hourly-forecast`, `kit-guide`, `ride-specs`, `daily-forecast`, `status` (`ErrorState`/`LoadingState`). Import from `@/components/wheely`. `src/components/wheely-ui.tsx` is a backward-compat barrel re-exporting `./wheely` — prefer the direct path in new code.
+- `src/app/` — Expo Router routes (flat, no tab group). `_layout.tsx` is wrapped in `SettingsProvider` (outermost), loads the National Park font, sets the status bar, and nests `ForecastProvider` + `TartanBackground` around a transparent `Stack`. `index.tsx` is the home screen; `settings.tsx` is the settings screen; `location.tsx` is a modal-style location picker pushed via `router.push('/location')`.
+- `src/components/wheely/` — the presentational components, split one-per-file (representative, not exhaustive): `primitives` (`SectionTitle`, `Chip`, `BurstChip`, `BrutalCard`, `brutalShadow`, icon maps, helpers), `weather-header`, `ride-verdict`, `weather-alerts`, `hourly-forecast`, `kit-guide`, `ride-specs`, `daily-forecast`, `status` (`ErrorState`/`LoadingState`/`LocationPromptState`); chrome (`glass-chrome`, `home-nav-chrome`, `bottom-nav-chrome`, `web-screen-header`, `content-column`); `settings-form` (+ `.ios`/`.types`), `settings-home-section`; animation helpers (`animated-condition-chip`, `animated-expand`); and colocated chart hooks (`use-hourly-forecast-chart`, `use-hourly-scroll-picker`). Import from `@/components/wheely` (barrel at `src/components/wheely/index.ts`).
 - `src/components/tartan-background.tsx` — full-screen repeating tartan tile rendered via a `react-native-svg` `Pattern` (web re-resolves the asset URL), with a light/dark scrim.
 - `src/domain/` — weather scoring + copy (framework-agnostic).
 - `src/utils/` — formatting/label helpers (`forecastHelpers`, `weatherLabels`, `hourlyChart`, `timeFormat`).
@@ -41,6 +51,8 @@ Expo Router + React Native app (iOS, Android, web) that scores how good conditio
 
 `useWeatherForecast(mockScenario)` (in `src/hooks/use-weather-forecast.ts`) manages all fetch + location state and is exposed app-wide via `ForecastProvider` / `useForecast()` (in `src/hooks/forecast-context.tsx`). The root `app/_layout.tsx` wraps the `Stack` in `ForecastProvider`; screens call `useForecast()`.
 
+App-wide **settings** (gear mode + appearance preference + home location) flow through a separate `SettingsProvider` / `settings-context.tsx`, the outermost provider in `_layout`. Consume `useGearMode` / `useAppearance` / `useHomeLocation` from `@/hooks/settings-context` — **not** the standalone store hooks (`use-gear-mode`, `use-appearance`, `use-home-location`), which hold isolated state, so a toggle in Settings never reaches the theme or kit guide.
+
 ### Mock dev scenarios
 
 Pass `?mock=ride|maybe|rest|alert` as a URL query param (web) or deep-link param (native) to load fixture data instead of hitting the live API. The `ForecastProvider` reads `useGlobalSearchParams().mock` and passes it to `useWeatherForecast`.
@@ -52,6 +64,7 @@ Pass `?mock=ride|maybe|rest|alert` as a URL query param (web) or deep-link param
 - Colors live in `WheelyTheme.{light,dark}` (`src/constants/theme.ts`), typed as `WheelyPalette`.
 - Components are theme-aware: get colors via `useWheelyColors()` and build styles with a `makeStyles(c: WheelyPalette)` function memoized per palette. Do not hardcode hex values.
 - Active scheme resolves through `useColorSchemeName()`, which honors `ColorSchemeOverrideContext`. Storybook drives that context from its "Theme" toolbar (`.storybook/preview.tsx`), so new components automatically respond to the toggle.
+- An in-app **appearance preference** (`useAppearance()`: `light`/`dark`/`system`) overrides the OS scheme app-wide. On native, `_layout` also calls `Appearance.setColorScheme(...)` so native views (glass, nav-bar blur, SwiftUI pickers) follow — repainting JS colors alone leaves them stale.
 - Chrome (headers, nav buttons, settings/location title pills) uses `GlassView` from `expo-glass-effect` over the tartan backdrop; screens and the `Stack` run with transparent backgrounds so the tartan shows through.
 
 ### Typography

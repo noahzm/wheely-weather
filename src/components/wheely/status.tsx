@@ -1,12 +1,12 @@
 import { useMemo } from 'react';
 import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
-import { AlertTriangle, CloudOff, RefreshCw } from 'lucide-react-native';
+import { AlertTriangle, CloudOff, MapPin, RefreshCw } from 'lucide-react-native';
 import { SymbolView, type SFSymbol } from 'expo-symbols';
 
 import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { MaxContentWidth, Spacing, TRANSPARENT, type WheelyPalette } from '@/constants/theme';
-import { BrutalCard, HapticPressable, makeButtonStyles, StrokedSectionHeading } from './primitives';
+import { BrutalCard, HapticPressable, makeButtonStyles, SectionHeading } from './primitives';
 
 function makeStyles(c: WheelyPalette) {
   return StyleSheet.create({
@@ -69,9 +69,9 @@ export function ErrorState({
         ) : (
           <Icon size={42} color={c.ink} strokeWidth={2} style={styles.centerIcon} />
         )}
-        <StrokedSectionHeading>
+        <SectionHeading>
           {network ? 'Forecast unavailable' : 'Something went sideways'}
-        </StrokedSectionHeading>
+        </SectionHeading>
         <ThemedText style={styles.muted}>
           {network
             ? 'Check your connection and try again.'
@@ -105,6 +105,46 @@ export function LoadingState() {
     <View style={styles.centerState}>
       <ActivityIndicator size="large" color={c.ink} />
       <ThemedText style={styles.statusMessage}>Loading forecast...</ThemedText>
+    </View>
+  );
+}
+
+export function LocationPromptState({
+  onChooseLocation,
+}: Readonly<{
+  onChooseLocation: () => void;
+}>) {
+  const { c, styles, buttonStyles } = useStyles();
+  return (
+    <View style={styles.centerState}>
+      <BrutalCard style={styles.centerCard}>
+        {Platform.OS === 'ios' ? (
+          <SymbolView name="location.fill" size={42} tintColor={c.ink} style={styles.centerIcon} />
+        ) : (
+          <MapPin size={42} color={c.ink} strokeWidth={2} style={styles.centerIcon} />
+        )}
+        <SectionHeading>Where are you riding?</SectionHeading>
+        <ThemedText style={styles.muted}>
+          Search for a city or use your current location to see the forecast.
+        </ThemedText>
+        <HapticPressable
+          onPress={onChooseLocation}
+          accessibilityRole="button"
+          accessibilityLabel="Choose location"
+          style={({ pressed }) => [
+            buttonStyles.base,
+            buttonStyles.primary,
+            pressed && buttonStyles.pressed,
+          ]}
+        >
+          {Platform.OS === 'ios' ? (
+            <SymbolView name="magnifyingglass" size={14} tintColor={c.ink} />
+          ) : (
+            <MapPin size={14} color={c.ink} strokeWidth={2.5} />
+          )}
+          <ThemedText style={buttonStyles.label}>Choose location</ThemedText>
+        </HapticPressable>
+      </BrutalCard>
     </View>
   );
 }

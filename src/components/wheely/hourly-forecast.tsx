@@ -242,7 +242,7 @@ function makeStyles(c: WheelyPalette) {
       alignItems: 'center',
       gap: Spacing.one,
       borderWidth: 2,
-      borderColor: c.ink,
+      borderColor: c.shadow,
       backgroundColor: c.paper,
       paddingHorizontal: Spacing.two,
       paddingVertical: Spacing.one,
@@ -340,13 +340,13 @@ function HourlyChartGraphic({
 
   return (
     <Svg width={width} height={height} style={styles.hourChartSvg}>
-      {[0, 1, 2, 3].map((line) => (
+      {(['good', 'fair', 'marginal', 'poor', 'bad'] as const).map((condition) => (
         <Line
-          key={line}
+          key={condition}
           x1={12}
           x2={width - 12}
-          y1={34 + line * 32}
-          y2={34 + line * 32}
+          y1={chartY(condition)}
+          y2={chartY(condition)}
           stroke={c.border}
           strokeDasharray="3 5"
           strokeWidth={1}
@@ -454,7 +454,7 @@ function SelectionRingAnimated({
     return { top: y - SELECTION_RING_RADIUS };
   }, [segments, viewportWidth, initialScrollX, reduceMotion, discreteTop]);
 
-  return <Animated.View style={[styles.selectionRing, animatedStyle]} pointerEvents="none" />;
+  return <Animated.View style={[styles.selectionRing, animatedStyle, { pointerEvents: 'none' }]} />;
 }
 
 function SelectionRing({
@@ -491,8 +491,7 @@ function SelectionRing({
     const y = chartSmoothYAtSegments(segments, centerX);
     return (
       <View
-        style={[styles.selectionRing, { top: y - SELECTION_RING_RADIUS }]}
-        pointerEvents="none"
+        style={[styles.selectionRing, { top: y - SELECTION_RING_RADIUS, pointerEvents: 'none' }]}
       />
     );
   }
@@ -535,7 +534,7 @@ function HourlyNoteStickers({
   if (!rainTiming && !daylightWarning) return null;
 
   return (
-    <View style={styles.noteStickers} pointerEvents="none">
+    <View style={[styles.noteStickers, { pointerEvents: 'none' }]}>
       {!!rainTiming && <HourlyNoteSticker icon="umbrella.fill" text={rainTiming} />}
       {!!daylightWarning && <HourlyNoteSticker icon="sunrise.fill" text={daylightWarning} />}
     </View>
@@ -577,7 +576,7 @@ function HourlyReasonFooter({
       <AnimatedExpand openProgress={reasonOpenProgress} style={styles.hourReasonPanel}>
         {footerText && <ThemedText style={styles.hourReason}>{footerText}</ThemedText>}
       </AnimatedExpand>
-      <View style={styles.conditionSticker} pointerEvents="none">
+      <View style={[styles.conditionSticker, { pointerEvents: 'none' }]}>
         <AnimatedConditionChip condition={asCondition(condition)} chartScroll={chartScroll} large>
           {conditionLabel}
         </AnimatedConditionChip>

@@ -4,6 +4,7 @@ import {
   getHourlyCondition,
   getDailyCondition,
 } from '../domain/weather';
+import { THRESHOLDS } from '../domain/constants';
 import { getMockScenario, buildMockWeather } from './mockWeather';
 import { fetchWithTimeout } from './http';
 
@@ -13,12 +14,13 @@ import { fetchWithTimeout } from './http';
 /** @typedef {import('@/types/weather').MockScenario} MockScenario */
 /** @typedef {import('@/types/weather').Weather} Weather */
 /** @typedef {import('@/types/weather').WeatherAlert} WeatherAlert */
-/** @typedef {{ mockScenario?: MockScenario | string | null }} WeatherRequestOptions */
+/** @typedef {{ mockScenario?: MockScenario | string | null; thresholds?: typeof THRESHOLDS }} WeatherRequestOptions */
 /** @typedef {{ sunriseHour: number; sunsetHour: number }} DaylightHours */
 /** @typedef {{ min: number; max: number }} TempRange */
 /**
  * @typedef {{
  *   time: string[];
+ *   temperature_2m: number[];
  *   apparent_temperature: number[];
  *   wind_speed_10m: number[];
  *   wind_gusts_10m?: (number | null)[];
@@ -48,6 +50,7 @@ import { fetchWithTimeout } from './http';
  *   utc_offset_seconds?: number;
  *   current?: {
  *     time?: string;
+ *     temperature_2m: number;
  *     apparent_temperature: number;
  *     wind_speed_10m: number;
  *     wind_gusts_10m?: number | null;
@@ -60,11 +63,6 @@ import { fetchWithTimeout } from './http';
  * }} OpenMeteoData
  */
 /** @typedef {{ properties: { severity?: string; event?: string; headline?: string; description?: string; instruction?: string; expires?: string } }} NwsFeature */
-
-// Fallback coordinates used when geolocation is unavailable or denied.
-export const DEFAULT_LAT = 35.7796;
-export const DEFAULT_LON = -78.6382;
-export const DEFAULT_LOCATION = 'Raleigh, NC';
 
 // Keep secondary lookups snappy so slower third-party APIs do not hold up first paint.
 const SECONDARY_FETCH_TIMEOUT_MS = 2500;
@@ -90,12 +88,13 @@ function currentHourStrForLocation(data) {
 }
 
 /** Builds a normalized hour record from one row of Open-Meteo hourly arrays. */
-/** @param {OpenMeteoData} data @param {number} idx @returns {HourlyWeather | null} */
-function buildHourRecord(data, idx) {
+/** @param {OpenMeteoData} data @param {number} idx @param {typeof THRESHOLDS} thresholds @returns {HourlyWeather | null} */
+function buildHourRecord(data, idx, thresholds) {
   const t = data.hourly.time[idx];
+  const temperature = data.hourly.temperature_2m?.[idx];
   const feelsLike = data.hourly.apparent_temperature[idx];
   const wind = data.hourly.wind_speed_10m[idx];
-  if (t == null || feelsLike == null || wind == null) return null;
+  if (t == null || temperature == null || feelsLike == null || wind == null) return null;
   const gust = data.hourly.wind_gusts_10m?.[idx] ?? null;
   const rain = data.hourly.precipitation_probability[idx] ?? 0;
   const code = data.hourly.weather_code[idx] ?? null;
@@ -103,6 +102,7 @@ function buildHourRecord(data, idx) {
   const uv = data.hourly.uv_index?.[idx] ?? 0;
   return {
     hour: Number.parseInt(t.slice(11, 13), 10),
+    temperature,
     feelsLike,
     windSpeed: wind,
     windGust: gust,
@@ -110,28 +110,28 @@ function buildHourRecord(data, idx) {
     dewpoint,
     weatherCode: code,
     uv,
-    condition: getHourlyCondition({ feelsLike, wind, gust, rain, code, dewpoint }),
+    condition: getHourlyCondition({ temperature, wind, gust, rain, code, dewpoint }, thresholds),
   };
 }
 
 /** Extracts the next 24 hours of forecast data starting from the current hour. */
-/** @param {OpenMeteoData} data @param {string} currentHourStr @returns {HourlyWeather[]} */
-function parseHourly(data, currentHourStr) {
+/** @param {OpenMeteoData} data @param {string} currentHourStr @param {typeof THRESHOLDS} thresholds @returns {HourlyWeather[]} */
+function parseHourly(data, currentHourStr, thresholds) {
   const startIdx = data.hourly.time.indexOf(currentHourStr);
   const offset = Math.max(startIdx, 0);
-  return Array.from({ length: 24 }, (_, i) => buildHourRecord(data, offset + i)).filter(
+  return Array.from({ length: 24 }, (_, i) => buildHourRecord(data, offset + i, thresholds)).filter(
     (hour) => hour !== null,
   );
 }
 
 /** Extracts up to `count` hours preceding the current hour. */
-/** @param {OpenMeteoData} data @param {string} currentHourStr @param {number} count @returns {HourlyWeather[]} */
-function parsePastHourly(data, currentHourStr, count) {
+/** @param {OpenMeteoData} data @param {string} currentHourStr @param {number} count @param {typeof THRESHOLDS} thresholds @returns {HourlyWeather[]} */
+function parsePastHourly(data, currentHourStr, count, thresholds) {
   const currentIdx = data.hourly.time.indexOf(currentHourStr);
   if (currentIdx <= 0) return [];
   const startIdx = Math.max(0, currentIdx - count);
   return Array.from({ length: currentIdx - startIdx }, (_, i) =>
-    buildHourRecord(data, startIdx + i),
+    buildHourRecord(data, startIdx + i, thresholds),
   ).filter((hour) => hour !== null);
 }
 
@@ -159,46 +159,55 @@ function buildDaylightByDate(data) {
   return daylightByDate;
 }
 
+/** Tracks the running max for a date key, ignoring null values. */
+/** @param {Record<string, number>} map @param {string} key @param {number | null | undefined} value */
+function bumpMax(map, key, value) {
+  if (value != null && (map[key] == null || value > map[key])) map[key] = value;
+}
+
+/** Tracks the running min/max range for a date key, ignoring null values. */
+/** @param {Record<string, TempRange>} map @param {string} key @param {number | null | undefined} value */
+function bumpRange(map, key, value) {
+  if (value == null) return;
+  const cur = map[key];
+  if (!cur) {
+    map[key] = { min: value, max: value };
+    return;
+  }
+  if (value < cur.min) cur.min = value;
+  if (value > cur.max) cur.max = value;
+}
+
 /**
- * Aggregates hourly data into per-date peak dewpoint and the daytime feels-like
- * range (limited to daylight hours).
+ * Aggregates hourly data into per-date peak dewpoint, peak UV, and the daytime
+ * air-temperature range (limited to daylight hours).
  * @param {OpenMeteoData} data
  * @param {Record<string, DaylightHours>} daylightByDate
- * @returns {{ dewpointByDate: Record<string, number>, daytimeFeelsByDate: Record<string, TempRange> }}
+ * @returns {{ dewpointByDate: Record<string, number>, daytimeTempByDate: Record<string, TempRange> }}
  */
 function buildDaytimeAggregates(data, daylightByDate) {
   /** @type {Record<string, number>} */
   const dewpointByDate = {};
   /** @type {Record<string, TempRange>} */
-  const daytimeFeelsByDate = {};
+  const daytimeTempByDate = {};
   for (const [i, t] of data.hourly.time.entries()) {
     const date = t.slice(0, 10);
-    const dp = data.hourly.dewpoint_2m?.[i];
-    if (dp != null && (dewpointByDate[date] == null || dp > dewpointByDate[date])) {
-      dewpointByDate[date] = dp;
-    }
+    bumpMax(dewpointByDate, date, data.hourly.dewpoint_2m?.[i]);
 
-    const feels = data.hourly.apparent_temperature?.[i];
     const dl = daylightByDate[date];
     const hour = Number.parseInt(t.slice(11, 13), 10);
-    if (feels != null && dl && hour >= dl.sunriseHour && hour < dl.sunsetHour) {
-      const cur = daytimeFeelsByDate[date];
-      if (cur) {
-        if (feels < cur.min) cur.min = feels;
-        if (feels > cur.max) cur.max = feels;
-      } else {
-        daytimeFeelsByDate[date] = { min: feels, max: feels };
-      }
-    }
+    if (!dl || hour < dl.sunriseHour || hour >= dl.sunsetHour) continue;
+
+    bumpRange(daytimeTempByDate, date, data.hourly.temperature_2m?.[i]);
   }
-  return { dewpointByDate, daytimeFeelsByDate };
+  return { dewpointByDate, daytimeTempByDate };
 }
 
 /** Parses the 8-day daily forecast into a simplified array with cycling conditions. */
-/** @param {OpenMeteoData} data @returns {DailyWeather[]} */
-function parseDaily(data) {
+/** @param {OpenMeteoData} data @param {typeof THRESHOLDS} thresholds @returns {DailyWeather[]} */
+function parseDaily(data, thresholds) {
   const daylightByDate = buildDaylightByDate(data);
-  const { dewpointByDate, daytimeFeelsByDate } = buildDaytimeAggregates(data, daylightByDate);
+  const { dewpointByDate, daytimeTempByDate } = buildDaytimeAggregates(data, daylightByDate);
 
   return data.daily.time.flatMap((dateStr, i) => {
     const high = data.daily.temperature_2m_max[i];
@@ -210,11 +219,11 @@ function parseDaily(data) {
     if (high == null || low == null || windSpeed == null || rainChance == null) return [];
 
     const apparentMax = data.daily.apparent_temperature_max[i] ?? null;
-    const daytime = daytimeFeelsByDate[dateStr];
-    // Rate temperature on the worst feels-like across daylight hours; fall back to
-    // the day's apparent max (then the actual high) when daylight coverage is missing.
-    const feelsLow = daytime ? daytime.min : (apparentMax ?? high);
-    const feelsHigh = daytime ? daytime.max : (apparentMax ?? high);
+    const daytime = daytimeTempByDate[dateStr];
+    // Rate temperature on the worst air temperature across daylight hours; fall
+    // back to the day's high/low when daylight coverage is missing.
+    const tempLow = daytime ? daytime.min : low;
+    const tempHigh = daytime ? daytime.max : high;
     const gust = data.daily.wind_gusts_10m_max?.[i] ?? null;
     const code = data.daily.weather_code[i] ?? null;
     const dewpoint = dewpointByDate[dateStr] ?? null;
@@ -229,15 +238,10 @@ function parseDaily(data) {
         windGust: gust,
         rainChance,
         weatherCode: code,
-        condition: getDailyCondition({
-          feelsLow,
-          feelsHigh,
-          wind: windSpeed,
-          gust,
-          rain: rainChance,
-          code,
-          dewpoint,
-        }),
+        condition: getDailyCondition(
+          { tempLow, tempHigh, wind: windSpeed, gust, rain: rainChance, code, dewpoint },
+          thresholds,
+        ),
       },
     ];
   });
@@ -372,6 +376,7 @@ export async function fetchWeatherExtras(lat, lon, options = {}) {
  * @returns {Promise<Weather>}
  */
 export async function fetchWeatherData(lat, lon, options = {}) {
+  const thresholds = options.thresholds ?? THRESHOLDS;
   const mockScenario = options.mockScenario ?? getMockScenario();
   if (mockScenario) {
     // Short async tick so callers see the same loading flow as a real fetch.
@@ -383,8 +388,8 @@ export async function fetchWeatherData(lat, lon, options = {}) {
 
   const res = await fetchWithTimeout(
     `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
-      `&current=apparent_temperature,weather_code,wind_speed_10m,wind_gusts_10m,dewpoint_2m,wind_direction_10m` +
-      `&hourly=apparent_temperature,precipitation_probability,wind_speed_10m,wind_gusts_10m,weather_code,dewpoint_2m,uv_index` +
+      `&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,wind_gusts_10m,dewpoint_2m,wind_direction_10m` +
+      `&hourly=temperature_2m,apparent_temperature,precipitation_probability,wind_speed_10m,wind_gusts_10m,weather_code,dewpoint_2m,uv_index` +
       `&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max,wind_gusts_10m_max,apparent_temperature_max,weather_code,sunset,sunrise,uv_index_max` +
       `&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto&forecast_days=8&past_hours=12`,
     {},
@@ -400,9 +405,10 @@ export async function fetchWeatherData(lat, lon, options = {}) {
   const currentRainChance =
     hourIdx === -1 ? 0 : (data.hourly.precipitation_probability[hourIdx] ?? 0);
 
-  const hourlyParsed = parseHourly(data, currentHourStr);
+  const hourlyParsed = parseHourly(data, currentHourStr, thresholds);
 
   return {
+    temperature: data.current.temperature_2m,
     feelsLike: data.current.apparent_temperature,
     windSpeed: data.current.wind_speed_10m,
     windGust: data.current.wind_gusts_10m ?? null,
@@ -416,8 +422,8 @@ export async function fetchWeatherData(lat, lon, options = {}) {
     uvIndex: hourIdx === -1 ? null : (data.hourly.uv_index?.[hourIdx] ?? null),
     uvIndexDailyMax: data.daily.uv_index_max?.[0] ?? null,
     hourly: hourlyParsed,
-    pastHourly: parsePastHourly(data, currentHourStr, 12),
-    daily: parseDaily(data),
+    pastHourly: parsePastHourly(data, currentHourStr, 12, thresholds),
+    daily: parseDaily(data, thresholds),
     sunrise: parseSunrise(data),
     sunset: parseSunset(data),
     daylight: parseDaylightHours(data),

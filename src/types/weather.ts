@@ -1,9 +1,18 @@
 export type Condition = 'good' | 'fair' | 'marginal' | 'poor' | 'bad';
 export type RideStatus = 'yes' | 'maybe' | 'no';
-export type MetricType = 'feelsLike' | 'windSpeed' | 'windGust' | 'rainChance' | 'aqi' | 'dewpoint';
+export type MetricType =
+  | 'temperature'
+  | 'windSpeed'
+  | 'windGust'
+  | 'rainChance'
+  | 'aqi'
+  | 'dewpoint'
+  | 'uv'
+  | 'humidity';
 
 export interface HourlyWeather {
   hour: number;
+  temperature: number;
   feelsLike: number;
   windSpeed: number;
   windGust: number | null;
@@ -45,6 +54,7 @@ export interface WeatherAlert {
 }
 
 export interface Weather {
+  temperature: number;
   feelsLike: number;
   windSpeed: number;
   windGust: number | null;

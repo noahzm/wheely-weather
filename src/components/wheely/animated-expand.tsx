@@ -65,10 +65,9 @@ export function AnimatedExpand({
     <View style={styles.expandRoot}>
       {hasContent ? (
         <View
-          pointerEvents="none"
           accessible={false}
           importantForAccessibility="no-hide-descendants"
-          style={styles.hiddenMeasure}
+          style={[styles.hiddenMeasure, { pointerEvents: 'none' }]}
           onLayout={(event) => {
             onMeasureLayout(event.nativeEvent.layout.height);
           }}

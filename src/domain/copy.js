@@ -66,6 +66,12 @@ function formatList(items) {
   return `${items.slice(0, -1).join(', ')}, and ${items.at(-1)}`;
 }
 
+/** Tail appended to a verdict sentence when issues were trimmed for brevity.
+ * @param {number} extra */
+function moreTail(extra) {
+  return extra > 0 ? `, plus ${extra} more` : '';
+}
+
 export const LOCATION_SOURCE_BADGES = {
   manual: {
     label: 'Custom location',
@@ -74,10 +80,6 @@ export const LOCATION_SOURCE_BADGES = {
   device: {
     label: 'Device location',
     title: "Showing your device's current location",
-  },
-  fallback: {
-    label: 'Default location',
-    title: 'No location set — showing the default city',
   },
 };
 
@@ -114,13 +116,14 @@ export const STATUS_MESSAGES = {
   /** @param {number} temp @param {string} cond */
   GOOD: (temp, cond) => `Ideal ride conditions. ${temp}°F, ${cond.toLowerCase()}, and light winds.`,
   MAYBE_IDEAL: 'On the edge of comfortable.',
-  /** @param {string[]} issues */
-  MAYBE_ISSUES: (issues) => `Rideable. But it’s ${formatList(issues)}.`,
+  /** @param {string[]} issues @param {number} [extra] */
+  MAYBE_ISSUES: (issues, extra = 0) =>
+    `Rideable. But it’s ${formatList(issues)}${moreTail(extra)}.`,
   /** @param {string} time */
   LATER_GOOD: (time) => ` Conditions improve around ${time}.`,
   NO_IDEAL: 'No clear ride window right now.',
-  /** @param {string[]} issues */
-  NO_ISSUES: (issues) => `Sit this one out: ${formatList(issues)}.`,
+  /** @param {string[]} issues @param {number} [extra] */
+  NO_ISSUES: (issues, extra = 0) => `Sit this one out: ${formatList(issues)}${moreTail(extra)}.`,
   /** @param {string} time */
   CLEAR_UP: (time) => ` Clears by ${time}.`,
   REST_DAY: () =>

@@ -10,10 +10,13 @@ export interface SavedLocation {
 }
 
 const LOCATION_KEY = 'ww_location';
+const HOME_LOCATION_KEY = 'ww_home_location';
 const RECENTS_KEY = 'ww_recent_locations';
+const PINS_KEY = 'ww_pinned_locations';
 const GEAR_MODE_KEY = 'gearMode';
 const APPEARANCE_KEY = 'ww_appearance';
 const RECENTS_MAX = 4;
+const PINS_MAX = 8;
 
 export type Appearance = 'system' | 'light' | 'dark';
 
@@ -61,6 +64,26 @@ export async function saveLocation(location: SavedLocation) {
 
 export async function clearLocation() {
   await AsyncStorage.removeItem(LOCATION_KEY);
+}
+
+export async function loadHomeLocation() {
+  try {
+    const raw = await AsyncStorage.getItem(HOME_LOCATION_KEY);
+    return normalizeLocationRecord(raw ? JSON.parse(raw) : null);
+  } catch {
+    return null;
+  }
+}
+
+export async function saveHomeLocation(location: SavedLocation) {
+  const normalized = normalizeLocationRecord(location);
+  if (!normalized) throw new Error('Invalid location');
+  await AsyncStorage.setItem(HOME_LOCATION_KEY, JSON.stringify({ version: 1, ...normalized }));
+  return normalized;
+}
+
+export async function clearHomeLocation() {
+  await AsyncStorage.removeItem(HOME_LOCATION_KEY);
 }
 
 export interface RecentLocation {
@@ -134,4 +157,37 @@ export async function loadAppearance(): Promise<Appearance> {
 
 export async function saveAppearance(value: Appearance) {
   await AsyncStorage.setItem(APPEARANCE_KEY, value);
+}
+
+export async function loadPinnedLocations(): Promise<RecentLocation[]> {
+  try {
+    const raw = await AsyncStorage.getItem(PINS_KEY);
+    const parsed: unknown = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((item) => normalizeRecentLocation(item))
+      .filter((place): place is RecentLocation => !!place)
+      .slice(0, PINS_MAX);
+  } catch {
+    return [];
+  }
+}
+
+export async function addPinnedLocation(place: RecentLocation): Promise<RecentLocation[]> {
+  const normalized = normalizeRecentLocation(place);
+  if (!normalized) return [];
+  const current = await loadPinnedLocations();
+  const next = [
+    normalized,
+    ...current.filter((saved) => saved.lat !== normalized.lat || saved.lon !== normalized.lon),
+  ].slice(0, PINS_MAX);
+  await AsyncStorage.setItem(PINS_KEY, JSON.stringify(next));
+  return next;
+}
+
+export async function removePinnedLocation(lat: number, lon: number): Promise<RecentLocation[]> {
+  const current = await loadPinnedLocations();
+  const next = current.filter((saved) => saved.lat !== lat || saved.lon !== lon);
+  await AsyncStorage.setItem(PINS_KEY, JSON.stringify(next));
+  return next;
 }

@@ -1,7 +1,7 @@
 // Default (Android / web) settings body. iOS is shadowed by settings-form.ios.tsx
 // with a native SwiftUI Form; here we reuse the cross-platform community
 // SegmentedControl inside the app's BrutalCard surfaces.
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 // eslint-disable-next-line import/no-named-as-default
 import SegmentedControl from '@expo/ui/community/segmented-control';
 
@@ -9,6 +9,8 @@ import { useColorSchemeName } from '@/hooks/use-theme';
 import { Spacing, TRANSPARENT } from '@/constants/theme';
 import { selectionFeedback } from '@/utils/haptics';
 import { BrutalCard, SectionTitle } from './primitives';
+import { WebContentColumn } from './content-column';
+import { HomeClimateSection } from './settings-home-section';
 import {
   APPEARANCE_LABELS,
   APPEARANCE_VALUES,
@@ -20,6 +22,15 @@ import {
 const styles = StyleSheet.create({
   content: {
     padding: Spacing.three,
+    gap: Spacing.four,
+  },
+  contentWeb: {
+    width: '100%',
+    alignItems: 'center',
+    paddingTop: Spacing.three,
+    paddingBottom: Spacing.three,
+  },
+  form: {
     gap: Spacing.four,
   },
   group: {
@@ -35,14 +46,14 @@ export function SettingsForm({
   onGearChange,
   appearance,
   onAppearanceChange,
+  homeLabel,
+  canSetHome,
+  onSetHome,
+  onClearHome,
 }: Readonly<SettingsFormProps>) {
   const colorScheme = useColorSchemeName();
-  return (
-    <ScrollView
-      style={{ backgroundColor: TRANSPARENT }}
-      contentInsetAdjustmentBehavior="automatic"
-      contentContainerStyle={styles.content}
-    >
+  const form = (
+    <>
       <View style={styles.group}>
         <SectionTitle title="Gear" />
         <BrutalCard>
@@ -76,6 +87,23 @@ export function SettingsForm({
           />
         </BrutalCard>
       </View>
+
+      <HomeClimateSection
+        homeLabel={homeLabel}
+        canSetHome={canSetHome}
+        onSetHome={onSetHome}
+        onClearHome={onClearHome}
+      />
+    </>
+  );
+
+  return (
+    <ScrollView
+      style={{ backgroundColor: TRANSPARENT }}
+      contentInsetAdjustmentBehavior="automatic"
+      contentContainerStyle={Platform.OS === 'web' ? styles.contentWeb : styles.content}
+    >
+      <WebContentColumn innerStyle={styles.form}>{form}</WebContentColumn>
     </ScrollView>
   );
 }

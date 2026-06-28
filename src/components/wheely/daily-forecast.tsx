@@ -48,9 +48,6 @@ function makeStyles(c: WheelyPalette, isCompact: boolean) {
       justifyContent: 'center',
       zIndex: 1,
     },
-    rotatedSticker: {
-      transform: [{ rotate: '3deg' }],
-    },
     dayLabelCell: { minWidth: 96 },
     bestDayLabel: {
       flexDirection: 'row',
@@ -166,8 +163,8 @@ export function DailyForecast({ daily }: Readonly<{ daily: DailyWeather[] }>) {
               <ThemedText style={styles.dayReason} numberOfLines={isCompact ? undefined : 2}>
                 {reason}
               </ThemedText>
-              <View style={styles.conditionSticker} pointerEvents="none">
-                <Chip condition={asCondition(day.condition)} large style={styles.rotatedSticker}>
+              <View style={[styles.conditionSticker, { pointerEvents: 'none' }]}>
+                <Chip condition={asCondition(day.condition)} burst={false}>
                   {CONDITION_DISPLAY[asCondition(day.condition)]}
                 </Chip>
               </View>
