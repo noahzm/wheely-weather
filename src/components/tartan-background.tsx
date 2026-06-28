@@ -114,8 +114,9 @@ function NativeTartanTile({ scrimColor }: Readonly<{ scrimColor: string }>) {
 }
 
 function TartanBackdropLayer({ scrimColor }: Readonly<{ scrimColor: string }>) {
+  return null; // tartan temporarily disabled for testing
   return (
-    <View pointerEvents="none" style={styles.backdrop}>
+    <View style={[styles.backdrop, { pointerEvents: 'none' }]}>
       <TartanTile scrimColor={scrimColor} />
     </View>
   );
@@ -149,7 +150,9 @@ export function ScreenBackdrop({ children }: Readonly<TartanBackgroundProps>) {
   return (
     <View style={[styles.root, { backgroundColor: c.background }]}>
       <TartanBackdropLayer scrimColor={scrimColor} />
-      <View style={styles.content}>{children}</View>
+      <View style={styles.content} collapsable={false}>
+        {children}
+      </View>
     </View>
   );
 }

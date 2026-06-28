@@ -1,10 +1,8 @@
 import { useMemo, type ReactNode } from 'react';
 import { Platform, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
-import { ScrollViewMarker } from 'react-native-screens/experimental';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { Stack } from 'expo-router';
-import { useHeaderHeight } from 'expo-router/react-navigation';
+import { useRouter } from 'expo-router';
 
 import {
   DailyForecast,
@@ -12,15 +10,16 @@ import {
   HourlyForecast,
   KitGuide,
   LoadingState,
+  LocationPromptState,
   RideSpecs,
   RideVerdict,
   SectionTitle,
   WeatherAlerts,
-  useHomeHeaderOptions,
+  bottomNavBarHeight,
 } from '@/components/wheely';
-import { ScreenShell } from '@/components/tartan-background';
 import { ThemedText } from '@/components/themed-text';
 import {
+  getAcclimatizationNote,
   getDaylightWarning,
   getMessage,
   getOverallStatus,
@@ -28,10 +27,14 @@ import {
   getWeatherAlerts,
   getVerdictLabel,
 } from '@/domain';
+import type { AcclimatizationContext } from '@/services/forecastSnapshot';
 import { useForecast } from '@/hooks/forecast-context';
 import { useWheelyColors } from '@/hooks/use-theme';
 import type { Weather } from '@/types/weather';
-import { MaxContentWidth, Spacing, TRANSPARENT, type WheelyPalette } from '@/constants/theme';
+import { contentColumnStyle, screenGutterStyle } from '@/components/wheely/content-column';
+import { Spacing, TRANSPARENT, type WheelyPalette } from '@/constants/theme';
+
+const isWeb = Platform.OS === 'web';
 
 function Stagger({ order, children }: Readonly<{ order: number; children: ReactNode }>) {
   return (
@@ -39,12 +42,18 @@ function Stagger({ order, children }: Readonly<{ order: number; children: ReactN
   );
 }
 
-function deriveHomeState(weather: Weather, location: string) {
-  const status = getOverallStatus(weather);
+function deriveHomeState(
+  weather: Weather,
+  location: string,
+  acclimatization: AcclimatizationContext,
+) {
+  const { thresholds, homeBaseline } = acclimatization;
+  const status = getOverallStatus(weather, thresholds);
   return {
     status,
-    message: getMessage(weather, status),
+    message: getMessage(weather, status, thresholds),
     label: getVerdictLabel(status, location),
+    acclimatizationNote: getAcclimatizationNote(weather, homeBaseline),
     rainTiming: getRainTiming(weather.hourly),
     daylightWarning: getDaylightWarning(weather.hourly, weather.daylight),
     alerts: getWeatherAlerts(weather),
@@ -53,14 +62,27 @@ function deriveHomeState(weather: Weather, location: string) {
 
 type HomeState = ReturnType<typeof deriveHomeState>;
 
-function HomeSections({ weather, derived }: Readonly<{ weather: Weather; derived: HomeState }>) {
+function HomeSections({
+  weather,
+  derived,
+  thresholds,
+}: Readonly<{
+  weather: Weather;
+  derived: HomeState;
+  thresholds: AcclimatizationContext['thresholds'];
+}>) {
   const c = useWheelyColors();
   const styles = useMemo(() => makeStyles(c), [c]);
 
   return (
     <>
       <Stagger order={1}>
-        <RideVerdict status={derived.status} message={derived.message} label={derived.label} />
+        <RideVerdict
+          status={derived.status}
+          message={derived.message}
+          label={derived.label}
+          acclimatizationNote={derived.acclimatizationNote}
+        />
       </Stagger>
       {derived.alerts.length > 0 && (
         <Stagger order={2}>
@@ -82,15 +104,15 @@ function HomeSections({ weather, derived }: Readonly<{ weather: Weather; derived
 
       <Stagger order={4}>
         <View style={styles.section}>
-          <SectionTitle title="Today's kit" />
-          <KitGuide weather={weather} />
+          <SectionTitle title="Today’s kit" />
+          <KitGuide weather={weather} status={derived.status} />
         </View>
       </Stagger>
 
       <Stagger order={5}>
         <View style={styles.section}>
           <SectionTitle title="The numbers" />
-          <RideSpecs weather={weather} />
+          <RideSpecs weather={weather} thresholds={thresholds} />
         </View>
       </Stagger>
 
@@ -106,31 +128,37 @@ function HomeSections({ weather, derived }: Readonly<{ weather: Weather; derived
 
 export default function HomeScreen() {
   const forecast = useForecast();
+  const router = useRouter();
 
   const weather = forecast.snapshot?.weather ?? null;
   const location = forecast.snapshot?.location ?? '';
+  const acclimatization = forecast.snapshot?.acclimatization ?? null;
   const derived = useMemo(
-    () => (weather ? deriveHomeState(weather, location) : null),
-    [weather, location],
+    () => (weather && acclimatization ? deriveHomeState(weather, location, acclimatization) : null),
+    [weather, location, acclimatization],
   );
 
   const c = useWheelyColors();
   const styles = useMemo(() => makeStyles(c), [c]);
-  const homeHeaderOptions = useHomeHeaderOptions();
-  const headerHeight = useHeaderHeight();
+  const insets = useSafeAreaInsets();
+  const bottomNavInset = isWeb ? bottomNavBarHeight(insets.bottom) : undefined;
 
   if (forecast.loading) {
-    return (
-      <ScreenShell>
-        <LoadingState />
-      </ScreenShell>
-    );
+    return <LoadingState />;
   }
   if (forecast.errorKind) {
+    return <ErrorState kind={forecast.errorKind} onRetry={forecast.refresh} />;
+  }
+
+  if (forecast.needsLocation) {
     return (
-      <ScreenShell>
-        <ErrorState kind={forecast.errorKind} onRetry={forecast.refresh} />
-      </ScreenShell>
+      <View style={styles.screen}>
+        <LocationPromptState
+          onChooseLocation={() => {
+            router.push('/location');
+          }}
+        />
+      </View>
     );
   }
 
@@ -138,39 +166,34 @@ export default function HomeScreen() {
     <ThemedText style={styles.statusMessage}>{forecast.statusMessage}</ThemedText>
   ) : null;
 
-  const scrollHostStyle = Platform.OS === 'web' ? styles.scrollHost : undefined;
-  const scrollContentStyle =
-    Platform.OS === 'web'
-      ? [styles.scrollContent, { paddingTop: headerHeight + Spacing.three }]
-      : styles.scrollContent;
+  const scrollHostStyle = isWeb ? styles.scrollHost : undefined;
 
   return (
-    <ScreenShell>
-      <View style={styles.screen}>
-        <Stack.Screen options={homeHeaderOptions} />
-
-        <ScrollViewMarker
-          style={scrollHostStyle}
-          scrollEdgeEffects={Platform.OS === 'ios' ? { top: 'soft', bottom: 'soft' } : undefined}
+    <View style={styles.screen} collapsable={false}>
+      <ScrollView
+        style={[styles.scroll, scrollHostStyle]}
+        contentInsetAdjustmentBehavior="automatic"
+        refreshControl={
+          <RefreshControl refreshing={forecast.refreshing} onRefresh={forecast.refresh} />
+        }
+        contentContainerStyle={styles.scrollContent}
+      >
+        <View
+          style={[styles.safeArea, bottomNavInset != null && { paddingBottom: bottomNavInset }]}
         >
-          <ScrollView
-            style={[styles.scroll, scrollHostStyle]}
-            contentInsetAdjustmentBehavior="automatic"
-            refreshControl={
-              <RefreshControl refreshing={forecast.refreshing} onRefresh={forecast.refresh} />
-            }
-            contentContainerStyle={scrollContentStyle}
-          >
-            <SafeAreaView style={styles.safeArea} edges={['bottom']}>
-              <View style={styles.content}>
-                <Stagger order={0}>{headerContent}</Stagger>
-                {weather && derived && <HomeSections weather={weather} derived={derived} />}
-              </View>
-            </SafeAreaView>
-          </ScrollView>
-        </ScrollViewMarker>
-      </View>
-    </ScreenShell>
+          <View style={styles.content}>
+            <Stagger order={0}>{headerContent}</Stagger>
+            {weather && derived && acclimatization && (
+              <HomeSections
+                weather={weather}
+                derived={derived}
+                thresholds={acclimatization.thresholds}
+              />
+            )}
+          </View>
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -191,13 +214,12 @@ function makeStyles(c: WheelyPalette) {
       flexGrow: 1,
     },
     safeArea: {
-      alignItems: 'center',
-      paddingHorizontal: Spacing.three,
+      width: '100%',
+      ...screenGutterStyle,
       paddingBottom: Spacing.three,
     },
     content: {
-      width: '100%',
-      maxWidth: MaxContentWidth,
+      ...contentColumnStyle,
       gap: 48,
     },
     section: {

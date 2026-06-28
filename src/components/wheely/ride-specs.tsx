@@ -14,7 +14,7 @@ import {
 import { SymbolView, type SFSymbol } from 'expo-symbols';
 
 import { ThemedText } from '@/components/themed-text';
-import { CONDITION_DISPLAY, evaluateCondition } from '@/domain';
+import { CONDITION_DISPLAY, evaluateCondition, THRESHOLDS } from '@/domain';
 import {
   getAqiLabel,
   getDewpointLabel,
@@ -99,7 +99,10 @@ function useStyles() {
   return { c, styles };
 }
 
-export function RideSpecs({ weather }: Readonly<{ weather: Weather }>) {
+export function RideSpecs({
+  weather,
+  thresholds = THRESHOLDS,
+}: Readonly<{ weather: Weather; thresholds?: typeof THRESHOLDS }>) {
   const { c, styles } = useStyles();
 
   const metrics: {
@@ -116,14 +119,15 @@ export function RideSpecs({ weather }: Readonly<{ weather: Weather }>) {
       sf: 'drop.fill',
       label: 'Rain Chance',
       value: `${weather.rainChance}%`,
-      condition: evaluateCondition(weather.rainChance, 'rainChance'),
+      condition: evaluateCondition(weather.rainChance, 'rainChance', thresholds),
     },
     {
       Icon: Thermometer,
       sf: 'thermometer.medium',
-      label: 'Feels Like',
-      value: `${Math.round(weather.feelsLike)}°`,
-      condition: evaluateCondition(weather.feelsLike, 'feelsLike'),
+      label: 'Temperature',
+      value: `${Math.round(weather.temperature)}°`,
+      qualifier: `feels ${Math.round(weather.feelsLike)}°`,
+      condition: evaluateCondition(weather.temperature, 'temperature', thresholds),
     },
     {
       Icon: Wind,
@@ -134,7 +138,7 @@ export function RideSpecs({ weather }: Readonly<{ weather: Weather }>) {
         weather.windDirection == null
           ? null
           : `from ${getWindDirectionLabel(weather.windDirection)}`,
-      condition: evaluateCondition(weather.windSpeed, 'windSpeed'),
+      condition: evaluateCondition(weather.windSpeed, 'windSpeed', thresholds),
       iconRotation:
         weather.windDirection == null
           ? undefined
@@ -146,7 +150,8 @@ export function RideSpecs({ weather }: Readonly<{ weather: Weather }>) {
       label: 'Air Quality',
       value: weather.aqi == null ? '—' : `${weather.aqi}`,
       qualifier: weather.aqi == null ? null : getAqiLabel(weather.aqi),
-      condition: weather.aqi == null ? undefined : evaluateCondition(weather.aqi, 'aqi'),
+      condition:
+        weather.aqi == null ? undefined : evaluateCondition(weather.aqi, 'aqi', thresholds),
     },
     {
       Icon: Droplet,
@@ -154,7 +159,7 @@ export function RideSpecs({ weather }: Readonly<{ weather: Weather }>) {
       label: 'Dewpoint',
       value: `${Math.round(weather.dewpoint)}°`,
       qualifier: getDewpointLabel(weather.dewpoint),
-      condition: evaluateCondition(weather.dewpoint, 'dewpoint'),
+      condition: evaluateCondition(weather.dewpoint, 'dewpoint', thresholds),
     },
     {
       Icon: Sun,
@@ -192,7 +197,7 @@ export function RideSpecs({ weather }: Readonly<{ weather: Weather }>) {
             {!!qualifier && <ThemedText style={styles.muted}>{qualifier}</ThemedText>}
           </View>
           {condition && ['marginal', 'poor', 'bad'].includes(condition) && (
-            <View style={styles.conditionSticker} pointerEvents="none">
+            <View style={[styles.conditionSticker, { pointerEvents: 'none' }]}>
               <Chip condition={asCondition(condition)} large style={styles.rotatedSticker}>
                 {CONDITION_DISPLAY[asCondition(condition)]}
               </Chip>

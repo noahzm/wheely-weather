@@ -112,7 +112,7 @@ export const Card: StoryObj<{ small: boolean; title: string; body: string }> = {
 
 export const Header: StoryObj<typeof WeatherHeader> = {
   args: {
-    location: 'Raleigh, NC',
+    location: 'Portland, OR',
     statusMessage: 'Using saved location.',
     onOpenLocation: fn(),
   },

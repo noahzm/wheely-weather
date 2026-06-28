@@ -75,25 +75,19 @@ function HazardStripe({ extreme }: Readonly<{ extreme?: boolean }>) {
   const stripe = extreme ? c.error : c.warning;
   return (
     <>
-      <View
-        style={{
-          borderTopLeftRadius: ButtonRadius - 2,
-          borderTopRightRadius: ButtonRadius - 2,
-          overflow: 'hidden',
-        }}
-      >
+      <View>
         <Svg width="100%" height={10}>
           <Defs>
             <Pattern id={patternId} patternUnits="userSpaceOnUse" width={20} height={20}>
               <Rect width={20} height={20} fill={stripe} />
-              <Polygon points="0,0 10,0 20,10 20,20" fill={c.ink} />
-              <Polygon points="0,10 0,20 10,20" fill={c.ink} />
+              <Polygon points="0,0 10,0 20,10 20,20" fill={c.shadow} />
+              <Polygon points="0,10 0,20 10,20" fill={c.shadow} />
             </Pattern>
           </Defs>
           <Rect width="100%" height={10} fill={`url(#${patternId})`} />
         </Svg>
       </View>
-      <View style={{ height: 2, backgroundColor: c.ink }} />
+      <View style={{ height: 2, backgroundColor: c.shadow }} />
     </>
   );
 }
@@ -143,40 +137,48 @@ function AlertCard({ alert }: Readonly<{ alert: WeatherAlert }>) {
 
   return (
     <BrutalCard small style={styles.alertCard}>
-      <HazardStripe extreme={extreme} />
-      <HapticPressable
-        disabled={!hasDetails}
-        onPress={() => {
-          setOpen((prev) => !prev);
-        }}
-        accessibilityRole={hasDetails ? 'button' : undefined}
-        accessibilityState={hasDetails ? { expanded: open } : undefined}
-        style={[styles.alertBody, extreme && styles.alertExtremeBody]}
-      >
-        <AlertLeadingIcon sfIcon={sfIcon} Icon={Icon} color={c.ink} />
-        <View style={styles.alertTextWrap}>
-          <ThemedText style={styles.alertTitle}>{alert.event ?? alert.message}</ThemedText>
-          {!!alert.headline && alert.headline !== alert.event && (
-            <ThemedText style={styles.muted} numberOfLines={open ? undefined : 2}>
-              {alert.headline}
-            </ThemedText>
-          )}
-        </View>
-        {hasDetails && (
-          <AlertChevron openProgress={openProgress} color={c.mutedInk} style={styles.chevronWrap} />
-        )}
-      </HapticPressable>
-      {hasDetails && (
-        <AnimatedExpand
-          openProgress={openProgress}
-          style={[styles.alertContent, extreme && styles.alertExtremeBody]}
+      <View style={{ borderRadius: ButtonRadius - 2, overflow: 'hidden' }}>
+        <HazardStripe extreme={extreme} />
+        <HapticPressable
+          disabled={!hasDetails}
+          onPress={() => {
+            setOpen((prev) => !prev);
+          }}
+          accessibilityRole={hasDetails ? 'button' : undefined}
+          accessibilityState={hasDetails ? { expanded: open } : undefined}
+          style={[styles.alertBody, extreme && styles.alertExtremeBody]}
         >
-          {!!alert.instruction && <ThemedText style={styles.muted}>{alert.instruction}</ThemedText>}
-          {!!alert.expires && (
-            <ThemedText style={styles.muted}>Expires: {formatTime(alert.expires)}</ThemedText>
+          <AlertLeadingIcon sfIcon={sfIcon} Icon={Icon} color={c.ink} />
+          <View style={styles.alertTextWrap}>
+            <ThemedText style={styles.alertTitle}>{alert.event ?? alert.message}</ThemedText>
+            {!!alert.headline && alert.headline !== alert.event && (
+              <ThemedText style={styles.muted} numberOfLines={open ? undefined : 2}>
+                {alert.headline}
+              </ThemedText>
+            )}
+          </View>
+          {hasDetails && (
+            <AlertChevron
+              openProgress={openProgress}
+              color={c.mutedInk}
+              style={styles.chevronWrap}
+            />
           )}
-        </AnimatedExpand>
-      )}
+        </HapticPressable>
+        {hasDetails && (
+          <AnimatedExpand
+            openProgress={openProgress}
+            style={[styles.alertContent, extreme && styles.alertExtremeBody]}
+          >
+            {!!alert.instruction && (
+              <ThemedText style={styles.muted}>{alert.instruction}</ThemedText>
+            )}
+            {!!alert.expires && (
+              <ThemedText style={styles.muted}>Expires: {formatTime(alert.expires)}</ThemedText>
+            )}
+          </AnimatedExpand>
+        )}
+      </View>
     </BrutalCard>
   );
 }

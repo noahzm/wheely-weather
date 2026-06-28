@@ -1,13 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import {
-  Platform,
-  Pressable,
-  StyleSheet,
-  View,
-  type PressableProps,
-  type TextStyle,
-} from 'react-native';
-import Svg, { Path, Text as SvgText } from 'react-native-svg';
+import { Platform, Pressable, StyleSheet, View, type PressableProps } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import {
   Bike,
   Cloud,
@@ -243,139 +236,39 @@ export function formatTime(value: Date | string | null | undefined): string {
 
 // ─── SectionTitle ────────────────────────────────────────────────────────────
 
-// Web: paint-order + -webkit-text-stroke (stroke behind fill, proper glyph corners).
-// Native: SVG text — stroke layer behind fill layer (same visual model as paint-order).
-
-const SECTION_HEADING_STROKE_WIDTH = 6;
 const SECTION_HEADING_FONT_SIZE = 24;
 const SECTION_HEADING_LINE_HEIGHT = 28;
-const SECTION_HEADING_FILL = '#ffffff';
 
-const strokedSectionHeadingStyles = StyleSheet.create({
+const sectionHeadingStyles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  wrapper: {
-    alignSelf: 'flex-start',
-    minHeight: SECTION_HEADING_LINE_HEIGHT,
-    position: 'relative',
-  },
   text: {
     alignSelf: 'flex-start',
-    color: SECTION_HEADING_FILL,
     fontFamily: Fonts.display,
     fontSize: SECTION_HEADING_FONT_SIZE,
     lineHeight: SECTION_HEADING_LINE_HEIGHT,
     fontWeight: FontWeightBold,
-    textTransform: 'uppercase',
   },
-  measureText: {
-    opacity: 0,
-    pointerEvents: 'none',
-    position: 'absolute',
-  },
-  // Web-only CSS properties (not in RN's style types) for the painted text stroke.
-  webStroke:
-    Platform.OS === 'web'
-      ? ({
-          WebkitTextStroke: `${SECTION_HEADING_STROKE_WIDTH}px #000000`,
-          WebkitTextFillColor: '#ffffff',
-          color: '#ffffff',
-          paintOrder: 'stroke fill',
-        } as unknown as TextStyle)
-      : {},
 });
 
-interface NativeHeadingLayout {
-  width: number;
-  height: number;
-  baselineY: number;
-}
-
-function NativeStrokedSectionHeading({ children }: Readonly<{ children: string }>) {
-  const label = children.toUpperCase();
-  const [layout, setLayout] = useState<NativeHeadingLayout | null>(null);
-  const inset = SECTION_HEADING_STROKE_WIDTH;
-
+export function SectionHeading({ children }: Readonly<{ children: string }>) {
   return (
-    <View
-      style={strokedSectionHeadingStyles.wrapper}
-      accessible
+    <ThemedText
+      style={sectionHeadingStyles.text}
       accessibilityRole="header"
       accessibilityLabel={children}
     >
-      <ThemedText
-        style={[strokedSectionHeadingStyles.text, strokedSectionHeadingStyles.measureText]}
-        importantForAccessibility="no-hide-descendants"
-        onTextLayout={(event) => {
-          const lines = event.nativeEvent.lines;
-          if (lines.length === 0) return;
-
-          const width = Math.ceil(Math.max(...lines.map((line) => line.width)));
-          const height = Math.ceil(lines.reduce((sum, line) => sum + line.height, 0));
-          const firstLine = lines[0];
-          if (!firstLine) return;
-          const baselineY = Math.ceil(firstLine.y + firstLine.ascender);
-
-          setLayout({ width, height, baselineY });
-        }}
-      >
-        {children}
-      </ThemedText>
-      {layout ? (
-        <Svg width={layout.width + inset * 2} height={layout.height + inset} accessible={false}>
-          {/* react-native-svg tags x/y as deprecated transform shorthands, but on
-              <Text> they are the standard (and only) way to position text — the
-              suggested translateX/Y are themselves deprecated. */}
-          {/* eslint-disable @typescript-eslint/no-deprecated */}
-          <SvgText
-            x={inset}
-            y={layout.baselineY}
-            fontSize={SECTION_HEADING_FONT_SIZE}
-            fontFamily={Fonts.display}
-            fontWeight={FontWeightBold}
-            stroke="#000000"
-            strokeWidth={SECTION_HEADING_STROKE_WIDTH}
-            strokeLinejoin="round"
-            strokeLinecap="round"
-            fill="none"
-          >
-            {label}
-          </SvgText>
-          <SvgText
-            x={inset}
-            y={layout.baselineY}
-            fontSize={SECTION_HEADING_FONT_SIZE}
-            fontFamily={Fonts.display}
-            fontWeight={FontWeightBold}
-            fill="#ffffff"
-          >
-            {label}
-          </SvgText>
-          {/* eslint-enable @typescript-eslint/no-deprecated */}
-        </Svg>
-      ) : null}
-    </View>
+      {children}
+    </ThemedText>
   );
-}
-
-export function StrokedSectionHeading({ children }: Readonly<{ children: string }>) {
-  if (Platform.OS === 'web') {
-    return (
-      <ThemedText style={[strokedSectionHeadingStyles.text, strokedSectionHeadingStyles.webStroke]}>
-        {children}
-      </ThemedText>
-    );
-  }
-
-  return <NativeStrokedSectionHeading>{children}</NativeStrokedSectionHeading>;
 }
 
 export function SectionTitle({ title }: Readonly<{ title: string }>) {
   return (
-    <View style={strokedSectionHeadingStyles.row}>
-      <StrokedSectionHeading>{title}</StrokedSectionHeading>
+    <View style={sectionHeadingStyles.row}>
+      <SectionHeading>{title}</SectionHeading>
     </View>
   );
 }
@@ -552,6 +445,7 @@ export function Chip({
   primary = false,
   ink = false,
   large = false,
+  burst = true,
   icon: Icon,
   style,
 }: Readonly<{
@@ -560,6 +454,9 @@ export function Chip({
   primary?: boolean;
   ink?: boolean;
   large?: boolean;
+  // Condition chips render as a spiky burst badge by default; pass burst={false}
+  // for a calm flat pill (used where the badge repeats, e.g. the daily list).
+  burst?: boolean;
   icon?: LucideIcon;
   style?: object;
 }>) {
@@ -574,7 +471,7 @@ export function Chip({
   else if (ink) color = c.paper;
   else color = c.ink;
 
-  if (condition) {
+  if (condition && burst) {
     return (
       <BurstConditionChip
         backgroundColor={backgroundColor}
@@ -614,19 +511,19 @@ function makeCardStyles(c: WheelyPalette) {
     card: {
       backgroundColor: c.paper,
       borderWidth: 2,
-      borderColor: c.ink,
+      borderColor: c.shadow,
       borderRadius: ButtonRadius,
       padding: Spacing.three,
-      ...brutalShadow(c.ink, 6),
+      ...brutalShadow(c.shadow, 6),
       gap: Spacing.three,
     },
     cardSmall: {
       backgroundColor: c.paper,
       borderWidth: 2,
-      borderColor: c.ink,
+      borderColor: c.shadow,
       borderRadius: ButtonRadius,
       padding: Spacing.three,
-      ...brutalShadow(c.ink, 3),
+      ...brutalShadow(c.shadow, 3),
     },
   });
 }

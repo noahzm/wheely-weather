@@ -160,7 +160,7 @@ export function ConditionChipWidthProbe({
   if (labels.length === 0) return null;
 
   return (
-    <View style={styles.widthProbe} pointerEvents="none" accessibilityElementsHidden>
+    <View style={[styles.widthProbe, { pointerEvents: 'none' }]} accessibilityElementsHidden>
       {labels.map((probeLabel, index) => (
         <View
           key={`${index}-${probeLabel}`}
@@ -310,7 +310,7 @@ function AnimatedConditionChipNative({
       <Animated.View
         style={[burstChipStyles.container, size.container, hasScrollWidths && containerSizeStyle]}
       >
-        <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <View style={[StyleSheet.absoluteFill, { pointerEvents: 'none' }]}>
           <Svg viewBox={BURST_VIEWBOX} preserveAspectRatio="none" style={StyleSheet.absoluteFill}>
             <AnimatedPath d={BURST_PATH} animatedProps={burstProps} />
           </Svg>

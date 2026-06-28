@@ -1,0 +1,15 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "context7": {
+      "type": "local",
+      "command": ["/opt/homebrew/bin/npx", "-y", "@upstash/context7-mcp"],
+      "enabled": true
+    },
+    "xcodebuild": {
+      "type": "local",
+      "command": ["/opt/homebrew/bin/npx", "-y", "xcodebuildmcp@latest", "mcp"],
+      "enabled": true
+    }
+  }
+}

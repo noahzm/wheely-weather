@@ -6,9 +6,9 @@ import { SymbolView, type SFSymbol } from 'expo-symbols';
 import { ThemedText } from '@/components/themed-text';
 import { getGearSuggestion } from '@/domain';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { useGearMode } from '@/hooks/use-gear-mode';
+import { useGearMode } from '@/hooks/settings-context';
 import { Fonts, FontWeightBold, Spacing, type WheelyPalette } from '@/constants/theme';
-import type { GearTipItem, Weather } from '@/types/weather';
+import type { GearTipItem, RideStatus, Weather } from '@/types/weather';
 import { BrutalCard, GEAR_ICONS, GEAR_SF_SYMBOLS } from './primitives';
 
 function makeStyles(c: WheelyPalette) {
@@ -53,9 +53,9 @@ function useStyles() {
   return { c, styles };
 }
 
-export function KitGuide({ weather }: Readonly<{ weather: Weather }>) {
+export function KitGuide({ weather, status }: Readonly<{ weather: Weather; status?: RideStatus }>) {
   const [mode] = useGearMode();
-  const gear = getGearSuggestion(weather, mode);
+  const gear = getGearSuggestion(weather, mode, status);
   const { c, styles } = useStyles();
 
   return (

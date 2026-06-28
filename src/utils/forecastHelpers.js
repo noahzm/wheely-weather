@@ -88,7 +88,7 @@ export function getBestDayInfo(daily) {
  * @property {number} rain
  * @property {number | null} high
  * @property {number | null} low
- * @property {number | null} feelsLike
+ * @property {number | null} temp
  * @property {number | null} dewpoint
  */
 
@@ -100,7 +100,9 @@ function dayMetrics(day) {
     rain: day.rainChance ?? 0,
     high,
     low: day.low ?? high,
-    feelsLike: day.feelsLike ?? high,
+    // The verdict rates daytime air temperature, so reasons key off the air-temp
+    // high rather than apparent feels-like.
+    temp: high,
     dewpoint: day.dewpoint ?? null,
   };
 }
@@ -115,13 +117,12 @@ function weatherCodeReason(entry) {
 }
 
 /** @param {DayMetrics} m */
-function badDayReason({ wind, rain, high, low, feelsLike, dewpoint }) {
+function badDayReason({ wind, rain, low, temp, dewpoint }) {
   if (wind >= 20) return `Very windy (${wind} mph)`;
   if (rain >= 60) return `Rain likely (${rain}%)`;
-  if (feelsLike != null && feelsLike > THRESHOLDS.FEELS_LIKE.BAD_MAX) {
-    return `Dangerous heat (feels like ${Math.round(feelsLike)}°)`;
+  if (temp != null && temp > THRESHOLDS.TEMPERATURE.BAD_MAX) {
+    return `Dangerous heat (${Math.round(temp)}°)`;
   }
-  if (high != null && high > 95) return `Dangerous heat (${high}°)`;
   if (dewpoint != null && dewpoint > THRESHOLDS.DEWPOINT.BAD) {
     return `Oppressive humidity (dew ${Math.round(dewpoint)}°)`;
   }
@@ -130,13 +131,12 @@ function badDayReason({ wind, rain, high, low, feelsLike, dewpoint }) {
 }
 
 /** @param {DayMetrics} m */
-function poorDayReason({ wind, rain, high, low, feelsLike, dewpoint }) {
+function poorDayReason({ wind, rain, low, temp, dewpoint }) {
   if (wind >= 18) return `Windy (${wind} mph)`;
   if (rain >= 45) return `Wet roads likely`;
-  if (feelsLike != null && feelsLike > THRESHOLDS.FEELS_LIKE.POOR_MAX) {
-    return `Very hot (feels like ${Math.round(feelsLike)}°)`;
+  if (temp != null && temp > THRESHOLDS.TEMPERATURE.POOR_MAX) {
+    return `Very hot (${Math.round(temp)}°)`;
   }
-  if (high != null && high > 90) return `Hot afternoon`;
   if (dewpoint != null && dewpoint > THRESHOLDS.DEWPOINT.POOR) {
     return `Very humid (dew ${Math.round(dewpoint)}°)`;
   }
@@ -145,13 +145,12 @@ function poorDayReason({ wind, rain, high, low, feelsLike, dewpoint }) {
 }
 
 /** @param {DayMetrics} m */
-function marginalDayReason({ wind, rain, high, low, feelsLike, dewpoint }) {
+function marginalDayReason({ wind, rain, low, temp, dewpoint }) {
   if (wind >= 15) return `Breezy (${wind} mph)`;
   if (rain >= 30) return `Some rain risk`;
-  if (feelsLike != null && feelsLike > THRESHOLDS.FEELS_LIKE.MARGINAL_MAX) {
-    return `Hot feel (${Math.round(feelsLike)}°)`;
+  if (temp != null && temp > THRESHOLDS.TEMPERATURE.MARGINAL_MAX) {
+    return `Warm (${Math.round(temp)}°)`;
   }
-  if (high != null && high > 85) return 'Warm afternoon';
   if (dewpoint != null && dewpoint > THRESHOLDS.DEWPOINT.MARGINAL) {
     return `Muggy (dew ${Math.round(dewpoint)}°)`;
   }
@@ -180,13 +179,13 @@ function idealDayReason({ wind, rain, high }) {
 
 /** @param {HourlyWeather} hour @returns {DayMetrics} */
 function hourMetrics(hour) {
-  const feelsLike = hour.feelsLike ?? null;
+  const temp = hour.temperature ?? null;
   return {
     wind: Math.round(hour.windSpeed ?? 0),
     rain: hour.rainChance ?? 0,
     high: null,
-    low: feelsLike,
-    feelsLike,
+    low: temp,
+    temp,
     dewpoint: hour.dewpoint ?? null,
   };
 }

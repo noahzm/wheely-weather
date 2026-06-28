@@ -15,6 +15,7 @@ import {
  * @typedef {{
  *   label: string;
  *   current: {
+ *     temperature?: number;
  *     feelsLike: number;
  *     windSpeed: number;
  *     windGust: number;
@@ -26,7 +27,7 @@ import {
  *     uvIndex: number;
  *     uvIndexDailyMax: number;
  *   };
- *   hourTemplate: (h: number) => { feelsLike: number; windSpeed: number; windGust: number; rainChance: number; dewpoint: number; weatherCode: number; uv: number };
+ *   hourTemplate: (h: number) => { temperature?: number; feelsLike: number; windSpeed: number; windGust: number; rainChance: number; dewpoint: number; weatherCode: number; uv: number };
  *   dayTemplate: (i: number) => { high: number; low: number; windSpeed: number; windGust: number; rainChance: number; weatherCode: number };
  *   sunrise: string;
  *   sunset: string;
@@ -41,6 +42,7 @@ const SCENARIOS = {
   ride: {
     label: 'Ride Day',
     current: {
+      temperature: 64,
       feelsLike: 68,
       windSpeed: 6,
       windGust: 11,
@@ -49,17 +51,18 @@ const SCENARIOS = {
       weatherCode: 1,
       dewpoint: 52,
       aqi: 28,
-      uvIndex: 5,
-      uvIndexDailyMax: 7,
+      uvIndex: 2,
+      uvIndexDailyMax: 4,
     },
     hourTemplate: (h) => ({
+      temperature: 56 + 10 * Math.sin(((h - 6) * Math.PI) / 12),
       feelsLike: 60 + 12 * Math.sin(((h - 6) * Math.PI) / 12),
       windSpeed: 5 + (h % 4),
       windGust: 11 + (h % 4),
       rainChance: 0,
       dewpoint: 50,
       weatherCode: h < 18 && h > 6 ? 1 : 2,
-      uv: Math.max(0, 5 * Math.sin(((h - 6) * Math.PI) / 12)),
+      uv: Math.max(0, 2 * Math.sin(((h - 6) * Math.PI) / 12)),
     }),
     dayTemplate: (i) => ({
       high: 74 + (i % 3),
@@ -78,6 +81,7 @@ const SCENARIOS = {
   maybe: {
     label: 'Mixed Conditions',
     current: {
+      temperature: 82,
       feelsLike: 88,
       windSpeed: 14,
       windGust: 22,
@@ -90,6 +94,7 @@ const SCENARIOS = {
       uvIndexDailyMax: 9,
     },
     hourTemplate: (h) => ({
+      temperature: 74 + 8 * Math.sin(((h - 6) * Math.PI) / 12),
       feelsLike: 78 + 10 * Math.sin(((h - 6) * Math.PI) / 12),
       windSpeed: 12 + (h % 5),
       windGust: 21 + (h % 5),
@@ -238,8 +243,10 @@ export function buildMockWeather(scenario) {
   const buildHour = (absHour) => {
     const h = ((absHour % 24) + 24) % 24;
     const t = spec.hourTemplate(h);
+    const temperature = t.temperature ?? t.feelsLike;
     return {
       hour: h,
+      temperature,
       feelsLike: t.feelsLike,
       windSpeed: t.windSpeed,
       windGust: t.windGust,
@@ -248,7 +255,7 @@ export function buildMockWeather(scenario) {
       weatherCode: t.weatherCode,
       uv: t.uv,
       condition: getHourlyCondition({
-        feelsLike: t.feelsLike,
+        temperature,
         wind: t.windSpeed,
         gust: t.windGust,
         rain: t.rainChance,
@@ -276,7 +283,8 @@ export function buildMockWeather(scenario) {
       rainChance: t.rainChance,
       weatherCode: t.weatherCode,
       condition: getDailyCondition({
-        feelsHigh: t.high,
+        tempLow: t.low,
+        tempHigh: t.high,
         wind: t.windSpeed,
         gust: t.windGust,
         rain: t.rainChance,
@@ -288,6 +296,7 @@ export function buildMockWeather(scenario) {
 
   const c = spec.current;
   return {
+    temperature: c.temperature ?? c.feelsLike,
     feelsLike: c.feelsLike,
     windSpeed: c.windSpeed,
     windGust: c.windGust,

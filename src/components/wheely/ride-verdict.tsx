@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Fonts, FontWeightBold, Spacing, type WheelyPalette } from '@/constants/theme';
+import { Fonts, FontWeightBold, Spacing, WheelyTheme, type WheelyPalette } from '@/constants/theme';
 import { verdictFeedback } from '@/utils/haptics';
 
 function makeStyles(c: WheelyPalette) {
@@ -15,7 +15,7 @@ function makeStyles(c: WheelyPalette) {
     },
     verdict: {
       borderWidth: 2,
-      borderColor: c.ink,
+      borderColor: c.shadow,
       paddingHorizontal: Spacing.three,
       paddingTop: Spacing.five,
       paddingBottom: Spacing.three,
@@ -26,25 +26,33 @@ function makeStyles(c: WheelyPalette) {
       top: -12,
       left: Spacing.three,
       zIndex: 2,
-      backgroundColor: c.ink,
+      backgroundColor: c.shadow,
       borderRadius: 999,
       paddingHorizontal: 12,
       paddingVertical: 6,
       transform: [{ rotate: '-2deg' }],
     },
     verdictBadgeText: {
-      color: c.paper,
+      // Badge sits on c.shadow (#161310) in both themes — always use light cream ink.
+      color: WheelyTheme.light.paper,
       fontFamily: Fonts.monoBold,
       fontSize: 16,
       fontWeight: FontWeightBold,
       textTransform: 'uppercase',
     },
     verdictText: {
-      color: c.ink,
       fontFamily: Fonts.sans,
       fontSize: 34,
       lineHeight: 36,
       fontWeight: '400',
+    },
+    acclimatizationNote: {
+      opacity: 0.75,
+      fontFamily: Fonts.mono,
+      fontSize: 13,
+      marginTop: Spacing.two,
+      textTransform: 'uppercase',
+      letterSpacing: 0.4,
     },
   });
 }
@@ -59,10 +67,12 @@ export function RideVerdict({
   status,
   message,
   label,
+  acclimatizationNote,
 }: Readonly<{
   status: 'yes' | 'maybe' | 'no';
   message: string;
   label?: string;
+  acclimatizationNote?: string | null;
 }>) {
   const { c, styles } = useStyles();
   // Fire a tone-matched haptic when the verdict first appears or changes.
@@ -70,21 +80,26 @@ export function RideVerdict({
     verdictFeedback(status);
   }, [status]);
   const meta = {
-    yes: { defaultLabel: 'Ride day', color: c.success },
-    maybe: { defaultLabel: 'Mixed conditions', color: c.warning },
-    no: { defaultLabel: 'Rest day', color: c.error },
+    yes: { defaultLabel: 'Ride day', ...c.condition.good },
+    maybe: { defaultLabel: 'Mixed conditions', ...c.condition.marginal },
+    no: { defaultLabel: 'Rest day', ...c.condition.bad },
   }[status];
   const badgeLabel = label ?? meta.defaultLabel;
   return (
     <View
       style={styles.verdictWrap}
       accessibilityLiveRegion="polite"
-      accessibilityLabel={`${badgeLabel}. ${message}`}
+      accessibilityLabel={`${badgeLabel}. ${message}${
+        acclimatizationNote ? `. ${acclimatizationNote}` : ''
+      }`}
     >
-      <View style={[styles.verdict, { backgroundColor: meta.color }]}>
-        <ThemedText style={styles.verdictText}>{message}</ThemedText>
+      <View style={[styles.verdict, { backgroundColor: meta.bg }]}>
+        <ThemedText style={[styles.verdictText, { color: meta.ink }]}>{message}</ThemedText>
+        {!!acclimatizationNote && (
+          <ThemedText style={[styles.acclimatizationNote, { color: meta.ink }]}>{acclimatizationNote}</ThemedText>
+        )}
       </View>
-      <View style={styles.verdictBadge} pointerEvents="none">
+      <View style={[styles.verdictBadge, { pointerEvents: 'none' }]}>
         <ThemedText style={styles.verdictBadgeText}>{badgeLabel}</ThemedText>
       </View>
     </View>

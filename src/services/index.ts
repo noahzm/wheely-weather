@@ -26,12 +26,4 @@ export {
   getMockScenarioFromParams,
   isMockMode,
 } from './mockWeather';
-export {
-  DEFAULT_LAT,
-  DEFAULT_LOCATION,
-  DEFAULT_LON,
-  fetchAqi,
-  fetchNwsAlerts,
-  fetchWeatherData,
-  fetchWeatherExtras,
-} from './weatherService';
+export { fetchAqi, fetchNwsAlerts, fetchWeatherData, fetchWeatherExtras } from './weatherService';
