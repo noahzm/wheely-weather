@@ -96,7 +96,9 @@ export function RideVerdict({
       <View style={[styles.verdict, { backgroundColor: meta.bg }]}>
         <ThemedText style={[styles.verdictText, { color: meta.ink }]}>{message}</ThemedText>
         {!!acclimatizationNote && (
-          <ThemedText style={[styles.acclimatizationNote, { color: meta.ink }]}>{acclimatizationNote}</ThemedText>
+          <ThemedText style={[styles.acclimatizationNote, { color: meta.ink }]}>
+            {acclimatizationNote}
+          </ThemedText>
         )}
       </View>
       <View style={[styles.verdictBadge, { pointerEvents: 'none' }]}>

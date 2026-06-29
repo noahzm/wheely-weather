@@ -27,7 +27,7 @@ Scope your review to the changed files (use `git diff` / `git status` to find th
 
 ### Icons
 
-- Use `lucide-react-native` (pinned to `0.x`). Flag any `lucide-react` (web-only) imports or a bump toward `1.x`.
+- Use `lucide-react-native` (pinned to `^1.22.0` — earlier `1.x` shipped a broken `LucideProvider` barrel export; fixed in `1.22.0` on 2026-06-28, do not regress below it). Flag any `lucide-react` (web-only) imports or a regression below `1.22.0`.
 - **Icons must not be nested inside `<ThemedText>`.** They must be siblings in a row `View`. This is a hard rule — check every icon usage near text.
 - iOS chrome may use SF Symbols via `expo-symbols` `SymbolView`.
 
@@ -49,7 +49,7 @@ Scope your review to the changed files (use `git diff` / `git status` to find th
 
 Report findings grouped by severity:
 
-- **🔴 Must fix** — hardcoded colors, icons inside `<ThemedText>`, missing a11y on interactive elements, `lucide-react`/`1.x` imports, missing barrel export, one-sided light/dark palette change.
+- **🔴 Must fix** — hardcoded colors, icons inside `<ThemedText>`, missing a11y on interactive elements, `lucide-react` imports, `lucide-react-native` regressed below `1.22.0`, missing barrel export, one-sided light/dark palette change.
 - **🟡 Should fix** — missing story coverage, opaque backgrounds breaking the tartan, missing pressed effect, raw font strings.
 - **🟢 Nits** — minor naming/idiom drift from neighboring components.
 

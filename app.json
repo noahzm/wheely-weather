@@ -44,7 +44,8 @@
         {
           "locationWhenInUsePermission": "Allow Wheely Weather to use your location for local cycling forecasts."
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true,
