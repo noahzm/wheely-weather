@@ -113,8 +113,8 @@ async function togglePinnedLocation(
   place: RecentLocation,
   pinned: RecentLocation[],
 ): Promise<RecentLocation[]> {
-  const isPinned = pinned.some((p) => p.lat === place.lat && p.lon === place.lon);
-  return isPinned ? removePinnedLocation(place.lat, place.lon) : addPinnedLocation(place);
+  const pinnedNow = pinned.some((p) => p.lat === place.lat && p.lon === place.lon);
+  return pinnedNow ? removePinnedLocation(place.lat, place.lon) : addPinnedLocation(place);
 }
 
 function useStaleRefreshEffect(

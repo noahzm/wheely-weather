@@ -1,5 +1,5 @@
 import { useMemo, type ReactNode } from 'react';
-import { Platform, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
@@ -32,7 +32,7 @@ import { useForecast } from '@/hooks/forecast-context';
 import { useWheelyColors } from '@/hooks/use-theme';
 import type { Weather } from '@/types/weather';
 import { contentColumnStyle, screenGutterStyle } from '@/components/wheely/content-column';
-import { Spacing, TRANSPARENT, type WheelyPalette } from '@/constants/theme';
+import { Fonts, Spacing, TRANSPARENT, type WheelyPalette } from '@/constants/theme';
 
 const isWeb = Platform.OS === 'web';
 
@@ -61,6 +61,16 @@ function deriveHomeState(
 }
 
 type HomeState = ReturnType<typeof deriveHomeState>;
+
+function WebCityHeading({ city }: Readonly<{ city: string }>) {
+  const c = useWheelyColors();
+  if (!isWeb || city.length === 0) return null;
+  return (
+    <Text style={{ fontFamily: Fonts.monoBold, fontSize: 34, color: c.ink, marginBottom: Spacing.two }}>
+      {city}
+    </Text>
+  );
+}
 
 function HomeSections({
   weather,
@@ -132,6 +142,7 @@ export default function HomeScreen() {
 
   const weather = forecast.snapshot?.weather ?? null;
   const location = forecast.snapshot?.location ?? '';
+  const city = location.split(',')[0]?.trim() ?? '';
   const acclimatization = forecast.snapshot?.acclimatization ?? null;
   const derived = useMemo(
     () => (weather && acclimatization ? deriveHomeState(weather, location, acclimatization) : null),
@@ -181,8 +192,9 @@ export default function HomeScreen() {
         <View
           style={[styles.safeArea, bottomNavInset != null && { paddingBottom: bottomNavInset }]}
         >
+          <WebCityHeading city={city} />
           <View style={styles.content}>
-            <Stagger order={0}>{headerContent}</Stagger>
+            {headerContent !== null && <Stagger order={0}>{headerContent}</Stagger>}
             {weather && derived && acclimatization && (
               <HomeSections
                 weather={weather}
@@ -216,6 +228,7 @@ function makeStyles(c: WheelyPalette) {
     safeArea: {
       width: '100%',
       ...screenGutterStyle,
+      paddingTop: Platform.OS === 'web' ? Spacing.four : 0,
       paddingBottom: Spacing.three,
     },
     content: {

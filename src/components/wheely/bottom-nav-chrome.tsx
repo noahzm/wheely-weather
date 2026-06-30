@@ -1,179 +1,107 @@
 import { useMemo } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
-import { ChevronLeft, Home, Settings } from 'lucide-react-native';
-import { SymbolView } from 'expo-symbols';
+import { Home, Search, Settings } from 'lucide-react-native';
 import { usePathname, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useForecast } from '@/hooks/forecast-context';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { Fonts, Spacing, type WheelyPalette } from '@/constants/theme';
 import { GlassChrome } from './glass-chrome';
 import { HapticPressable } from './primitives';
 
-const NAV_CIRCLE_SIZE = 40;
-const NAV_PILL_RADIUS = 20;
-const NAV_CIRCLE_RADIUS = NAV_CIRCLE_SIZE / 2;
-const isIos = Platform.OS === 'ios';
+const NAV_TAB_HEIGHT = 40;
+const TAB_ICON_SIZE = 22;
 
 /** Returns the full height of the bottom nav bar including device safe inset. */
 export function bottomNavBarHeight(insetsBottom: number) {
-  return Spacing.three + NAV_CIRCLE_SIZE + Spacing.three + insetsBottom;
+  return Spacing.three + NAV_TAB_HEIGHT + Spacing.three + insetsBottom;
 }
 
-function useBottomNavStyles() {
+function useBottomNavStyles(c: WheelyPalette) {
   return useMemo(
     () =>
       StyleSheet.create({
-        row: {
+        bar: {
+          width: '100%',
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: c.border,
+          paddingTop: Spacing.two,
+        },
+        tabsRow: {
           flexDirection: 'row',
           alignItems: 'center',
-          justifyContent: 'center',
-          gap: Spacing.two,
         },
-        circle: {
-          width: NAV_CIRCLE_SIZE,
-          height: NAV_CIRCLE_SIZE,
-          borderRadius: NAV_CIRCLE_RADIUS,
+        tabItem: {
+          flex: 1,
           alignItems: 'center',
           justifyContent: 'center',
+          gap: 3,
+          minHeight: NAV_TAB_HEIGHT,
+          paddingHorizontal: Spacing.one,
         },
-        pill: {
-          borderRadius: NAV_PILL_RADIUS,
-          paddingHorizontal: Spacing.three,
-          height: NAV_CIRCLE_SIZE,
-          alignItems: 'center',
-          justifyContent: 'center',
-        },
-        cityLabel: {
+        tabLabel: {
           fontFamily: Fonts.monoBold,
-          fontSize: 15,
-        },
-        hitTarget: {
-          minWidth: 44,
-          minHeight: 44,
-          alignItems: 'center',
-          justifyContent: 'center',
+          fontSize: 11,
         },
       }),
-    [],
+    [c.border],
   );
 }
 
-/**
- * Persistent bottom navigation bar. Renders on web and iOS; returns null on
- * Android (Android keeps the Stack header). On iOS the left slot is a Back
- * chevron on non-home routes and the Home icon on the home route; on web the
- * left slot is always Home. iOS icons use SF Symbols to match the native chrome.
- */
-function leftSlotIcon(c: WheelyPalette, showBack: boolean, isHome: boolean) {
-  if (showBack) {
-    return isIos ? (
-      <SymbolView name="chevron.backward" size={22} tintColor={c.ink} />
-    ) : (
-      <ChevronLeft size={22} color={c.ink} strokeWidth={2.5} />
-    );
-  }
-  return isIos ? (
-    <SymbolView name="house.fill" size={20} tintColor={isHome ? c.ink : c.mutedInk} />
-  ) : (
-    <Home size={20} color={isHome ? c.ink : c.mutedInk} strokeWidth={isHome ? 2.5 : 2} />
-  );
-}
-
-function settingsIcon(c: WheelyPalette, isSettings: boolean) {
-  return isIos ? (
-    <SymbolView name="gearshape.fill" size={20} tintColor={isSettings ? c.ink : c.mutedInk} />
-  ) : (
-    <Settings
-      size={20}
-      color={isSettings ? c.ink : c.mutedInk}
-      strokeWidth={isSettings ? 2.5 : 2}
-    />
-  );
-}
-
+/** Persistent bottom navigation bar. Renders on web only; returns null on native (native uses NativeTabs). */
 export function BottomNavBar() {
   const insets = useSafeAreaInsets();
   const c = useWheelyColors();
-  const styles = useBottomNavStyles();
+  const styles = useBottomNavStyles(c);
   const router = useRouter();
   const pathname = usePathname();
-  const forecast = useForecast();
 
   if (Platform.OS !== 'web') return null;
 
-  const cityLabel = (
-    (forecast.snapshot?.location ?? 'Location').split(',')[0] ?? 'Location'
-  ).trim();
   const isHome = pathname === '/';
   const isLocation = pathname === '/location';
   const isSettings = pathname === '/settings';
 
-  // On iOS, pushed screens (e.g. Settings) show a Back chevron in the left
-  // slot instead of Home — Home is reached by going back. Web keeps Home.
-  const showBack = isIos && !isHome;
+  const homeColor = isHome ? c.ink : c.mutedInk;
+  const locationColor = isLocation ? c.ink : c.mutedInk;
+  const settingsColor = isSettings ? c.ink : c.mutedInk;
 
   return (
-    <View
-      style={{
-        paddingTop: Spacing.three,
-        paddingBottom: insets.bottom + Spacing.three,
-        width: '100%',
-        alignItems: 'center',
-      }}
-    >
-      <View style={styles.row}>
-        {/* Left: Back (iOS non-home) or Home */}
+    <GlassChrome style={[styles.bar, { paddingBottom: insets.bottom + Spacing.two }]}>
+      <View style={styles.tabsRow}>
         <HapticPressable
-          onPress={() => {
-            if (showBack) {
-              router.back();
-            } else {
-              router.navigate('/');
-            }
-          }}
-          accessibilityRole={showBack ? 'button' : 'tab'}
-          accessibilityLabel={showBack ? 'Back' : 'Home'}
-          accessibilityState={showBack ? undefined : { selected: isHome }}
-          style={({ pressed }) => [styles.hitTarget, pressed && { opacity: 0.7 }]}
-        >
-          <GlassChrome style={styles.circle}>{leftSlotIcon(c, showBack, isHome)}</GlassChrome>
-        </HapticPressable>
-
-        {/* City pill */}
-        <HapticPressable
-          onPress={() => {
-            router.navigate('/location');
-          }}
+          onPress={() => { router.navigate('/'); }}
           accessibilityRole="tab"
-          accessibilityLabel={`Location: ${cityLabel}`}
-          accessibilityState={{ selected: isLocation }}
-          style={({ pressed }) => [styles.hitTarget, pressed && { opacity: 0.7 }]}
+          accessibilityLabel="Home"
+          accessibilityState={{ selected: isHome }}
+          style={({ pressed }) => [styles.tabItem, pressed && { opacity: 0.7 }]}
         >
-          <GlassChrome style={styles.pill}>
-            <Text
-              style={[styles.cityLabel, { color: isLocation ? c.ink : c.mutedInk }]}
-              numberOfLines={1}
-            >
-              {cityLabel}
-            </Text>
-          </GlassChrome>
+          <Home size={TAB_ICON_SIZE} color={homeColor} strokeWidth={isHome ? 2.5 : 2} />
+          <Text style={[styles.tabLabel, { color: homeColor }]}>Home</Text>
         </HapticPressable>
 
-        {/* Settings circle */}
         <HapticPressable
-          onPress={() => {
-            router.navigate('/settings');
-          }}
+          onPress={() => { router.navigate('/location'); }}
+          accessibilityRole="tab"
+          accessibilityLabel="Search"
+          accessibilityState={{ selected: isLocation }}
+          style={({ pressed }) => [styles.tabItem, pressed && { opacity: 0.7 }]}
+        >
+          <Search size={TAB_ICON_SIZE} color={locationColor} strokeWidth={isLocation ? 2.5 : 2} />
+          <Text style={[styles.tabLabel, { color: locationColor }]}>Search</Text>
+        </HapticPressable>
+
+        <HapticPressable
+          onPress={() => { router.navigate('/settings'); }}
           accessibilityRole="tab"
           accessibilityLabel="Settings"
           accessibilityState={{ selected: isSettings }}
-          style={({ pressed }) => [styles.hitTarget, pressed && { opacity: 0.7 }]}
+          style={({ pressed }) => [styles.tabItem, pressed && { opacity: 0.7 }]}
         >
-          <GlassChrome style={styles.circle}>{settingsIcon(c, isSettings)}</GlassChrome>
+          <Settings size={TAB_ICON_SIZE} color={settingsColor} strokeWidth={isSettings ? 2.5 : 2} />
+          <Text style={[styles.tabLabel, { color: settingsColor }]}>Settings</Text>
         </HapticPressable>
       </View>
-    </View>
+    </GlassChrome>
   );
 }

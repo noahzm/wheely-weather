@@ -22,7 +22,6 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.four,
     paddingBottom: Spacing.six,
     gap: Spacing.four,
   },
