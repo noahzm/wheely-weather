@@ -14,7 +14,12 @@ import { useWheelyColors } from '@/hooks/use-theme';
 import { Fonts, Spacing } from '@/constants/theme';
 
 import { BrutalCard, HapticPressable, SectionTitle } from './primitives';
-import { isPinned, type LocationSearchListProps, type RowItem } from './location-search-list.types';
+import {
+  isPinned,
+  pinAccessibilityLabel,
+  type LocationSearchListProps,
+  type RowItem,
+} from './location-search-list.types';
 
 function PinButton({ pinned, onPress }: Readonly<{ pinned: boolean; onPress: () => void }>) {
   const c = useWheelyColors();
@@ -28,7 +33,7 @@ function PinButton({ pinned, onPress }: Readonly<{ pinned: boolean; onPress: () 
         pressed && pinButtonStyles.pressed,
       ]}
       accessibilityRole="button"
-      accessibilityLabel={pinned ? 'Unpin location' : 'Pin location'}
+      accessibilityLabel={pinAccessibilityLabel(pinned)}
     >
       <Pin size={16} color={pinned ? c.ink : c.mutedInk} strokeWidth={pinned ? 2.5 : 2} />
     </HapticPressable>
