@@ -72,7 +72,10 @@
           "locationWhenInUsePermission": "Allow Wheely Weather to use your location for local cycling forecasts."
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-image",
+      "expo-status-bar",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
