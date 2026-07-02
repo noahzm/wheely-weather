@@ -1,6 +1,6 @@
 // Default (Android / web) location search list. iOS is shadowed by location-search-list.ios.tsx
 // with a native SwiftUI List.
-import { Platform, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
 import Animated, {
   FadeIn,
   FadeOut,
@@ -70,37 +70,36 @@ function LocationRow({
   const showSub = !isAction && !!item.displayName && !item.displayName.startsWith(item.label);
 
   return (
-    <HapticPressable
-      style={({ pressed }) => [
-        styles.row,
-        { borderColor: c.border },
-        !isLast && styles.rowDivider,
-        pressed && styles.rowPressed,
-      ]}
-      onPress={onSelect}
-      disabled={busy}
-      accessibilityRole="button"
-      accessibilityLabel={item.label}
-    >
-      {isDevice && <Navigation size={18} color={c.ink} strokeWidth={2.5} style={styles.rowIcon} />}
-      <View style={styles.rowContent}>
-        <ThemedText
-          style={[styles.rowLabel, isAction && styles.rowLabelAction, { color: c.ink }]}
-          numberOfLines={1}
-        >
-          {item.label}
-        </ThemedText>
-        {showSub && (
-          <ThemedText style={[styles.rowSub, { color: c.mutedInk }]} numberOfLines={1}>
-            {item.displayName}
-          </ThemedText>
+    <View style={[styles.row, { borderColor: c.border }, !isLast && styles.rowDivider]}>
+      <HapticPressable
+        style={({ pressed }) => [styles.rowMain, pressed && styles.rowPressed]}
+        onPress={onSelect}
+        disabled={busy}
+        accessibilityRole="button"
+        accessibilityLabel={item.label}
+      >
+        {isDevice && (
+          <Navigation size={18} color={c.ink} strokeWidth={2.5} style={styles.rowIcon} />
         )}
-      </View>
+        <View style={styles.rowContent}>
+          <ThemedText
+            style={[styles.rowLabel, isAction && styles.rowLabelAction, { color: c.ink }]}
+            numberOfLines={1}
+          >
+            {item.label}
+          </ThemedText>
+          {showSub && (
+            <ThemedText style={[styles.rowSub, { color: c.mutedInk }]} numberOfLines={1}>
+              {item.displayName}
+            </ThemedText>
+          )}
+        </View>
+        {!isAction && (
+          <ChevronRight size={16} color={c.mutedInk} strokeWidth={2.5} style={styles.chevron} />
+        )}
+      </HapticPressable>
       {!isAction && <PinButton pinned={pinned} onPress={onTogglePin} />}
-      {!isAction && (
-        <ChevronRight size={16} color={c.mutedInk} strokeWidth={2.5} style={styles.chevron} />
-      )}
-    </HapticPressable>
+    </View>
   );
 }
 
@@ -108,8 +107,9 @@ export function LocationSearchList({
   sections,
   busy,
   message,
+  isLoading,
   isSearching,
-  resultsCount,
+  resultsCount: _resultsCount,
   pinnedLocations,
   onSelect,
   onTogglePin,
@@ -123,9 +123,12 @@ export function LocationSearchList({
 
   return (
     <>
-      {isSearching && resultsCount === 0 && !!message && (
+      {isSearching && !!message && (
         <BrutalCard small>
-          <ThemedText style={[styles.messageText, { color: c.mutedInk }]}>{message}</ThemedText>
+          <View style={styles.messageRow}>
+            {isLoading && <ActivityIndicator size="small" color={c.ink} />}
+            <ThemedText style={[styles.messageText, { color: c.mutedInk }]}>{message}</ThemedText>
+          </View>
         </BrutalCard>
       )}
 
@@ -170,6 +173,12 @@ export function LocationSearchList({
 }
 
 const styles = StyleSheet.create({
+  messageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.two,
+  },
   messageText: {
     fontSize: 15,
     textAlign: 'center',
@@ -189,6 +198,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     paddingVertical: 14,
     minHeight: 52,
+    gap: Spacing.two,
+  },
+  rowMain: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   rowDivider: {
     borderBottomWidth: 2,

@@ -54,7 +54,7 @@ export function NavLocationTitle() {
     return (
       <HapticPressable
         onPress={() => {
-          router.push('/location');
+          router.navigate('/location');
         }}
         accessibilityRole="button"
         accessibilityLabel={`Location: ${label}`}
@@ -72,7 +72,7 @@ export function NavLocationTitle() {
   return (
     <HapticPressable
       onPress={() => {
-        router.push('/location');
+        router.navigate('/location');
       }}
       accessibilityRole="button"
       accessibilityLabel={`Location: ${label}`}

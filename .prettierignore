@@ -1,5 +1,6 @@
 # Build / generated output
 dist/
+.wrangler/
 storybook-static/
 .expo/
 .rnstorybook/
@@ -11,3 +12,6 @@ test-results/
 
 # Lockfiles and generated data
 package-lock.json
+
+# Local Claude Code settings (gitignored; sandbox blocks writes)
+.claude/settings.local.json

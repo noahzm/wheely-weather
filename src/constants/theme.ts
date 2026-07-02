@@ -93,25 +93,28 @@ export type ThemeColor = keyof Omit<WheelyPalette, 'condition'>;
 
 /**
  * Typeface roles: National Park (all roles — display, body, labels, kickers).
- * On web these resolve to the `@fontsource` families loaded via `global.css`;
- * on native they map to the `@expo-google-fonts` families loaded in the root layout.
+ * On web these resolve to the `@fontsource` families loaded via `global.css`
+ * (paired with the `useFonts` runtime load in the root layout for `@font-face`).
+ * On native they resolve to the `National Park` family embedded at build time by
+ * the `expo-font` config plugin (Android XML resources, iOS bundled files), so
+ * `fontWeight` (e.g. `FontWeightBold` = 700) selects the right variant natively.
  */
 export const Fonts = Platform.select({
   ios: {
-    sans: 'NationalPark_400Regular',
-    display: 'NationalPark_700Bold',
+    sans: 'National Park',
+    display: 'National Park',
     serif: 'ui-serif',
-    rounded: 'NationalPark_400Regular',
-    mono: 'NationalPark_400Regular',
-    monoBold: 'NationalPark_700Bold',
+    rounded: 'National Park',
+    mono: 'National Park',
+    monoBold: 'National Park',
   },
   default: {
-    sans: 'NationalPark_400Regular',
-    display: 'NationalPark_700Bold',
+    sans: 'National Park',
+    display: 'National Park',
     serif: 'serif',
-    rounded: 'NationalPark_400Regular',
-    mono: 'NationalPark_400Regular',
-    monoBold: 'NationalPark_700Bold',
+    rounded: 'National Park',
+    mono: 'National Park',
+    monoBold: 'National Park',
   },
   web: {
     sans: 'var(--font-sans)',
@@ -124,8 +127,11 @@ export const Fonts = Platform.select({
 });
 
 /**
- * Weight to pair with Fonts.display / Fonts.monoBold. On web those roles resolve to
- * dedicated @font-face family names (expo-font); fontWeight 700 synthesizes extra bold.
+ * Weight to pair with Fonts.display / Fonts.monoBold. On native, `Fonts.*`
+ * resolve to the weighted `National Park` family, so 700 selects the bold
+ * variant embedded by the expo-font config plugin. On web those roles resolve
+ * to dedicated @font-face family names (expo-font); fontWeight 400 is correct
+ * because the family itself is already the bold face.
  */
 export const FontWeightBold = Platform.select({
   web: '400' as const,

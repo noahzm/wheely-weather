@@ -1,12 +1,13 @@
-import { useMemo, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Platform, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown, useReducedMotion } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 
 import {
   DailyForecast,
   ErrorState,
+  HapticPressable,
   HourlyForecast,
   KitGuide,
   LoadingState,
@@ -29,34 +30,46 @@ import {
 } from '@/domain';
 import type { AcclimatizationContext } from '@/services/forecastSnapshot';
 import { useForecast } from '@/hooks/forecast-context';
+import { useResolvedTempUnit } from '@/hooks/settings-context';
 import { useWheelyColors } from '@/hooks/use-theme';
+import type { TempUnit } from '@/utils/temperature';
 import type { Weather } from '@/types/weather';
 import { contentColumnStyle, screenGutterStyle } from '@/components/wheely/content-column';
 import { Fonts, Spacing, TRANSPARENT, type WheelyPalette } from '@/constants/theme';
 
 const isWeb = Platform.OS === 'web';
 
+// Web tab switches remount this screen, so play the entrance stagger only on
+// the first home mount per session; native tabs keep the screen mounted.
+let hasPlayedWebEntrance = false;
+
 function Stagger({ order, children }: Readonly<{ order: number; children: ReactNode }>) {
-  return (
-    <Animated.View entering={FadeInDown.duration(380).delay(order * 70)}>{children}</Animated.View>
-  );
+  const reduceMotion = useReducedMotion();
+  const [skipEntrance] = useState(() => isWeb && hasPlayedWebEntrance);
+  useEffect(() => {
+    hasPlayedWebEntrance = true;
+  }, []);
+  const entering =
+    reduceMotion || skipEntrance ? undefined : FadeInDown.duration(380).delay(order * 70);
+  return <Animated.View entering={entering}>{children}</Animated.View>;
 }
 
 function deriveHomeState(
   weather: Weather,
   location: string,
   acclimatization: AcclimatizationContext,
+  tempUnit: TempUnit,
 ) {
   const { thresholds, homeBaseline } = acclimatization;
   const status = getOverallStatus(weather, thresholds);
   return {
     status,
-    message: getMessage(weather, status, thresholds),
+    message: getMessage(weather, status, thresholds, tempUnit),
     label: getVerdictLabel(status, location),
     acclimatizationNote: getAcclimatizationNote(weather, homeBaseline),
     rainTiming: getRainTiming(weather.hourly),
     daylightWarning: getDaylightWarning(weather.hourly, weather.daylight),
-    alerts: getWeatherAlerts(weather),
+    alerts: getWeatherAlerts(weather, tempUnit),
   };
 }
 
@@ -64,11 +77,21 @@ type HomeState = ReturnType<typeof deriveHomeState>;
 
 function WebCityHeading({ city }: Readonly<{ city: string }>) {
   const c = useWheelyColors();
+  const router = useRouter();
   if (!isWeb || city.length === 0) return null;
   return (
-    <Text style={{ fontFamily: Fonts.monoBold, fontSize: 34, color: c.ink, marginBottom: Spacing.two }}>
-      {city}
-    </Text>
+    <View style={[contentColumnStyle, { marginBottom: Spacing.two }]}>
+      <HapticPressable
+        onPress={() => {
+          router.navigate('/location');
+        }}
+        accessibilityRole="button"
+        accessibilityLabel={`Location: ${city}. Change location`}
+        style={({ pressed }) => [{ alignSelf: 'flex-start' }, pressed && { opacity: 0.7 }]}
+      >
+        <Text style={{ fontFamily: Fonts.monoBold, fontSize: 34, color: c.ink }}>{city}</Text>
+      </HapticPressable>
+    </View>
   );
 }
 
@@ -139,14 +162,19 @@ function HomeSections({
 export default function HomeScreen() {
   const forecast = useForecast();
   const router = useRouter();
+  const [locating, setLocating] = useState(false);
 
   const weather = forecast.snapshot?.weather ?? null;
   const location = forecast.snapshot?.location ?? '';
   const city = location.split(',')[0]?.trim() ?? '';
   const acclimatization = forecast.snapshot?.acclimatization ?? null;
+  const tempUnit = useResolvedTempUnit();
   const derived = useMemo(
-    () => (weather && acclimatization ? deriveHomeState(weather, location, acclimatization) : null),
-    [weather, location, acclimatization],
+    () =>
+      weather && acclimatization
+        ? deriveHomeState(weather, location, acclimatization, tempUnit)
+        : null,
+    [weather, location, acclimatization, tempUnit],
   );
 
   const c = useWheelyColors();
@@ -165,8 +193,16 @@ export default function HomeScreen() {
     return (
       <View style={styles.screen}>
         <LocationPromptState
+          busy={locating}
+          statusMessage={forecast.statusMessage}
+          onUseDeviceLocation={() => {
+            setLocating(true);
+            void forecast.useDeviceLocation().finally(() => {
+              setLocating(false);
+            });
+          }}
           onChooseLocation={() => {
-            router.push('/location');
+            router.navigate('/location');
           }}
         />
       </View>

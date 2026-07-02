@@ -8,6 +8,8 @@ import {
   APPEARANCE_VALUES,
   GEAR_LABELS,
   GEAR_MODES,
+  TEMP_UNIT_LABELS,
+  TEMP_UNIT_VALUES,
   type SettingsFormProps,
 } from './settings-form.types';
 import { BrutalCard, SectionTitle } from './primitives';
@@ -43,6 +45,8 @@ export function SettingsForm({
   onGearChange,
   appearance,
   onAppearanceChange,
+  tempUnit,
+  onTempUnitChange,
   homeLabel,
   canSetHome,
   onSetHome,
@@ -89,6 +93,27 @@ export function SettingsForm({
               {APPEARANCE_VALUES.map((value, index) => (
                 <Text key={value} modifiers={[tag(value)]}>
                   {APPEARANCE_LABELS[index]}
+                </Text>
+              ))}
+            </Picker>
+          </Host>
+        </BrutalCard>
+      </View>
+
+      <View style={styles.group}>
+        <SectionTitle title="Units" />
+        <BrutalCard>
+          <Host style={styles.host}>
+            <Picker
+              selection={tempUnit}
+              onSelectionChange={(value) => {
+                onTempUnitChange(value);
+              }}
+              modifiers={[pickerStyle('segmented')]}
+            >
+              {TEMP_UNIT_VALUES.map((value, index) => (
+                <Text key={value} modifiers={[tag(value)]}>
+                  {TEMP_UNIT_LABELS[index]}
                 </Text>
               ))}
             </Picker>

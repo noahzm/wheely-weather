@@ -16,6 +16,8 @@ import {
   APPEARANCE_VALUES,
   GEAR_LABELS,
   GEAR_MODES,
+  TEMP_UNIT_LABELS,
+  TEMP_UNIT_VALUES,
   type SettingsFormProps,
 } from './settings-form.types';
 
@@ -46,6 +48,8 @@ export function SettingsForm({
   onGearChange,
   appearance,
   onAppearanceChange,
+  tempUnit,
+  onTempUnitChange,
   homeLabel,
   canSetHome,
   onSetHome,
@@ -82,6 +86,23 @@ export function SettingsForm({
               selectionFeedback();
               const index = event.nativeEvent.selectedSegmentIndex;
               onAppearanceChange(APPEARANCE_VALUES[index] ?? 'system');
+            }}
+            style={styles.control}
+          />
+        </BrutalCard>
+      </View>
+
+      <View style={styles.group}>
+        <SectionTitle title="Units" />
+        <BrutalCard>
+          <SegmentedControl
+            values={[...TEMP_UNIT_LABELS]}
+            selectedIndex={TEMP_UNIT_VALUES.indexOf(tempUnit)}
+            appearance={colorScheme}
+            onChange={(event) => {
+              selectionFeedback();
+              const index = event.nativeEvent.selectedSegmentIndex;
+              onTempUnitChange(TEMP_UNIT_VALUES[index] ?? 'auto');
             }}
             style={styles.control}
           />

@@ -1,11 +1,21 @@
-import { ActivityIndicator, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { Stack } from 'expo-router';
 import { Search, X } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   BrutalCard,
   HapticPressable,
   WebContentColumn,
+  WebScreenHeader,
   bottomNavBarHeight,
 } from '@/components/wheely';
 import { LocationSearchList } from '@/components/wheely/location-search-list';
@@ -59,11 +69,13 @@ function WebSearchField({
 
 export default function LocationSearchScreen() {
   const c = useWheelyColors();
+  const insets = useSafeAreaInsets();
   const {
     query,
     setQuery,
     busy,
     message,
+    isLoading,
     isSearching,
     resultsCount,
     sections,
@@ -76,6 +88,7 @@ export default function LocationSearchScreen() {
     sections,
     busy,
     message,
+    isLoading,
     isSearching,
     resultsCount,
     pinnedLocations,
@@ -110,9 +123,26 @@ export default function LocationSearchScreen() {
             contentInsetAdjustmentBehavior="automatic"
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
-            contentContainerStyle={isWeb ? styles.scrollContentWeb : styles.scrollContent}
+            contentContainerStyle={
+              isWeb
+                ? [
+                    styles.scrollContentWeb,
+                    { paddingBottom: bottomNavBarHeight(insets.bottom) + Spacing.six },
+                  ]
+                : styles.scrollContent
+            }
           >
             <WebContentColumn innerStyle={styles.scrollInner}>
+              {isWeb && (
+                <WebScreenHeader
+                  variant="title"
+                  title={
+                    <Text style={{ fontFamily: Fonts.monoBold, fontSize: 34, color: c.ink }}>
+                      Search
+                    </Text>
+                  }
+                />
+              )}
               {isWeb && <WebSearchField c={c} query={query} onQueryChange={setQuery} />}
               <LocationSearchList {...listProps} />
             </WebContentColumn>
@@ -144,7 +174,6 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     paddingTop: Spacing.four,
-    paddingBottom: bottomNavBarHeight(0) + Spacing.six,
   },
   scrollInner: {
     gap: Spacing.four,

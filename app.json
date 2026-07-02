@@ -38,7 +38,34 @@
         }
       ],
       "expo-localization",
-      "expo-font",
+      [
+        "expo-font",
+        {
+          "android": {
+            "fonts": [
+              {
+                "fontFamily": "National Park",
+                "fontDefinitions": [
+                  {
+                    "path": "node_modules/@expo-google-fonts/national-park/400Regular/NationalPark_400Regular.ttf",
+                    "weight": 400
+                  },
+                  {
+                    "path": "node_modules/@expo-google-fonts/national-park/700Bold/NationalPark_700Bold.ttf",
+                    "weight": 700
+                  }
+                ]
+              }
+            ]
+          },
+          "ios": {
+            "fonts": [
+              "node_modules/@expo-google-fonts/national-park/400Regular/NationalPark_400Regular.ttf",
+              "node_modules/@expo-google-fonts/national-park/700Bold/NationalPark_700Bold.ttf"
+            ]
+          }
+        }
+      ],
       [
         "expo-location",
         {

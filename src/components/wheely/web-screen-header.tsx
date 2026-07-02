@@ -16,11 +16,9 @@ export function webHeaderHeight(insetsTop: number) {
 }
 
 function dismissScreen(router: ReturnType<typeof useRouter>) {
-  if (router.canGoBack()) {
-    router.back();
-  } else {
-    router.replace('/');
-  }
+  // Always land on home: back() could return to another tab, and on the web
+  // stack it can also strand duplicate screens (see bottom-nav-chrome).
+  router.dismissTo('/');
 }
 
 export function WebScreenHeader({
@@ -28,12 +26,13 @@ export function WebScreenHeader({
   variant = 'back',
 }: Readonly<{
   title: ReactNode;
-  variant?: 'back' | 'close';
+  variant?: 'back' | 'close' | 'title';
 }>) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const c = useWheelyColors();
   const isClose = variant === 'close';
+  const isTitleOnly = variant === 'title';
 
   if (Platform.OS !== 'web') {
     return null;
@@ -58,27 +57,29 @@ export function WebScreenHeader({
           },
         ]}
       >
-        <HapticPressable
-          onPress={() => {
-            dismissScreen(router);
-          }}
-          accessibilityRole="button"
-          accessibilityLabel={isClose ? 'Close' : 'Back'}
-          style={{
-            width: HEADER_SIDE,
-            height: HEADER_SIDE,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          {isClose ? (
-            <X size={20} color={c.ink} strokeWidth={2.5} />
-          ) : (
-            <ChevronLeft size={22} color={c.ink} strokeWidth={2.5} />
-          )}
-        </HapticPressable>
+        {!isTitleOnly && (
+          <HapticPressable
+            onPress={() => {
+              dismissScreen(router);
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={isClose ? 'Close' : 'Back'}
+            style={{
+              width: HEADER_SIDE,
+              height: HEADER_SIDE,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {isClose ? (
+              <X size={20} color={c.ink} strokeWidth={2.5} />
+            ) : (
+              <ChevronLeft size={22} color={c.ink} strokeWidth={2.5} />
+            )}
+          </HapticPressable>
+        )}
         <View style={{ flex: 1, alignItems: 'center' }}>{title}</View>
-        <View style={{ width: HEADER_SIDE }} />
+        {!isTitleOnly && <View style={{ width: HEADER_SIDE }} />}
       </View>
     </View>
   );

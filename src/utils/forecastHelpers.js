@@ -1,5 +1,6 @@
 import { BEST_DAYS_MESSAGES } from '../domain/copy';
 import { THRESHOLDS } from '../domain/constants';
+import { formatTemperature } from './temperature';
 
 /** @typedef {import('@/types/weather').Condition} Condition */
 /** @typedef {import('@/types/weather').DailyWeather} DailyWeather */
@@ -116,43 +117,43 @@ function weatherCodeReason(entry) {
   return null;
 }
 
-/** @param {DayMetrics} m */
-function badDayReason({ wind, rain, low, temp, dewpoint }) {
+/** @param {DayMetrics} m @param {import('./temperature').TempUnit} [tempUnit] */
+function badDayReason({ wind, rain, low, temp, dewpoint }, tempUnit = 'fahrenheit') {
   if (wind >= 20) return `Very windy (${wind} mph)`;
   if (rain >= 60) return `Rain likely (${rain}%)`;
   if (temp != null && temp > THRESHOLDS.TEMPERATURE.BAD_MAX) {
-    return `Dangerous heat (${Math.round(temp)}°)`;
+    return `Dangerous heat (${formatTemperature(temp, tempUnit)})`;
   }
   if (dewpoint != null && dewpoint > THRESHOLDS.DEWPOINT.BAD) {
-    return `Oppressive humidity (dew ${Math.round(dewpoint)}°)`;
+    return `Oppressive humidity (dew ${formatTemperature(dewpoint, tempUnit)})`;
   }
   if (low != null && low < 32) return 'Freezing temps';
   return 'Rough day to ride';
 }
 
-/** @param {DayMetrics} m */
-function poorDayReason({ wind, rain, low, temp, dewpoint }) {
+/** @param {DayMetrics} m @param {import('./temperature').TempUnit} [tempUnit] */
+function poorDayReason({ wind, rain, low, temp, dewpoint }, tempUnit = 'fahrenheit') {
   if (wind >= 18) return `Windy (${wind} mph)`;
   if (rain >= 45) return `Wet roads likely`;
   if (temp != null && temp > THRESHOLDS.TEMPERATURE.POOR_MAX) {
-    return `Very hot (${Math.round(temp)}°)`;
+    return `Very hot (${formatTemperature(temp, tempUnit)})`;
   }
   if (dewpoint != null && dewpoint > THRESHOLDS.DEWPOINT.POOR) {
-    return `Very humid (dew ${Math.round(dewpoint)}°)`;
+    return `Very humid (dew ${formatTemperature(dewpoint, tempUnit)})`;
   }
   if (low != null && low < 36) return 'Cold start';
   return 'Tough riding';
 }
 
-/** @param {DayMetrics} m */
-function marginalDayReason({ wind, rain, low, temp, dewpoint }) {
+/** @param {DayMetrics} m @param {import('./temperature').TempUnit} [tempUnit] */
+function marginalDayReason({ wind, rain, low, temp, dewpoint }, tempUnit = 'fahrenheit') {
   if (wind >= 15) return `Breezy (${wind} mph)`;
   if (rain >= 30) return `Some rain risk`;
   if (temp != null && temp > THRESHOLDS.TEMPERATURE.MARGINAL_MAX) {
-    return `Warm (${Math.round(temp)}°)`;
+    return `Warm (${formatTemperature(temp, tempUnit)})`;
   }
   if (dewpoint != null && dewpoint > THRESHOLDS.DEWPOINT.MARGINAL) {
-    return `Muggy (dew ${Math.round(dewpoint)}°)`;
+    return `Muggy (dew ${formatTemperature(dewpoint, tempUnit)})`;
   }
   if (low != null && low < 45) return 'Cool start';
   return 'Mixed conditions';
@@ -191,8 +192,8 @@ function hourMetrics(hour) {
 }
 
 /** Builds a short explanation for why an hourly point is limiting to ride. */
-/** @param {HourlyWeather} hour @returns {string | null} */
-export function getHourConditionReason(hour) {
+/** @param {HourlyWeather} hour @param {import('./temperature').TempUnit} [tempUnit] @returns {string | null} */
+export function getHourConditionReason(hour, tempUnit = 'fahrenheit') {
   const codeReason = weatherCodeReason(hour);
   if (codeReason) return codeReason;
 
@@ -201,13 +202,13 @@ export function getHourConditionReason(hour) {
   const m = hourMetrics(hour);
   switch (hour.condition) {
     case 'bad': {
-      return badDayReason(m);
+      return badDayReason(m, tempUnit);
     }
     case 'poor': {
-      return poorDayReason(m);
+      return poorDayReason(m, tempUnit);
     }
     case 'marginal': {
-      return marginalDayReason(m);
+      return marginalDayReason(m, tempUnit);
     }
     default: {
       return null;
@@ -216,21 +217,21 @@ export function getHourConditionReason(hour) {
 }
 
 /** Builds a short explanation for why a daily card rates the way it does. */
-/** @param {DailyWeather} day */
-export function getDayConditionReason(day) {
+/** @param {DailyWeather} day @param {import('./temperature').TempUnit} [tempUnit] */
+export function getDayConditionReason(day, tempUnit = 'fahrenheit') {
   const codeReason = weatherCodeReason(day);
   if (codeReason) return codeReason;
 
   const m = dayMetrics(day);
   switch (day.condition) {
     case 'bad': {
-      return badDayReason(m);
+      return badDayReason(m, tempUnit);
     }
     case 'poor': {
-      return poorDayReason(m);
+      return poorDayReason(m, tempUnit);
     }
     case 'marginal': {
-      return marginalDayReason(m);
+      return marginalDayReason(m, tempUnit);
     }
     case 'fair': {
       return fairDayReason(m);

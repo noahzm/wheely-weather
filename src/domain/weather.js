@@ -1,4 +1,5 @@
 import { THRESHOLDS } from './constants';
+import { formatTemperature } from '../utils/temperature';
 import {
   WEATHER_DESCRIPTIONS,
   STATUS_MESSAGES as MSG,
@@ -39,7 +40,7 @@ import {
  *   SCORCHING: GearTip;
  *   PERFECT: () => GearTip;
  *   NEUTRAL: GearTip;
- *   TEMP_SWING: (min: number, max: number) => GearTip;
+ *   TEMP_SWING: (min: string, max: string) => GearTip;
  *   RAIN_HIGH: GearTip;
  *   RAIN_COMING: GearTip;
  *   RAIN_POSSIBLE: GearTip;
@@ -352,9 +353,10 @@ const selectBaseMessage = (status, issues) => {
  * Collects the limiting-factor labels to mention in the verdict, in insertion
  * order (temp → wind → rain → weather → dewpoint → AQI → UV).
  * @param {Weather} weather @param {RideStatus} status @param {typeof THRESHOLDS} thresholds
+ * @param {import('../utils/temperature').TempUnit} [tempUnit]
  * @returns {string[]}
  */
-const collectMessageIssues = (weather, status, thresholds) => {
+const collectMessageIssues = (weather, status, thresholds, tempUnit = 'fahrenheit') => {
   /** @type {string[]} */
   const issues = [];
   /**
@@ -369,14 +371,14 @@ const collectMessageIssues = (weather, status, thresholds) => {
     if (status === 'no' && (rating === 'bad' || rating === 'poor')) issues.push(label);
   };
 
-  const temp = Math.round(weather.temperature);
+  const temp = formatTemperature(weather.temperature, tempUnit, { withUnitLabel: true });
   addIssue(
     weather.temperature,
     'temperature',
-    weather.temperature < 50 ? `cold (${temp}°F)` : `hot (${temp}°F)`,
+    weather.temperature < 50 ? `cold (${temp})` : `hot (${temp})`,
   );
   if (status === 'no' && issues.length > 0) {
-    issues[0] = weather.temperature < 36 ? `too cold (${temp}\u00B0F)` : `too hot (${temp}\u00B0F)`;
+    issues[0] = weather.temperature < 36 ? `too cold (${temp})` : `too hot (${temp})`;
   }
   const gustDriven = isGustDriven(weather.windSpeed, weather.windGust);
   const windLabel = buildWindLabel(weather, status, gustDriven);
@@ -402,7 +404,7 @@ const collectMessageIssues = (weather, status, thresholds) => {
   addIssue(
     weather.dewpoint,
     'dewpoint',
-    `${status === 'no' ? 'heavy humidity' : 'sticky'} (dew ${Math.round(weather.dewpoint)}°F)`,
+    `${status === 'no' ? 'heavy humidity' : 'sticky'} (dew ${formatTemperature(weather.dewpoint, tempUnit, { withUnitLabel: true })})`,
   );
   if (weather.aqi != null) {
     addIssue(
@@ -414,15 +416,18 @@ const collectMessageIssues = (weather, status, thresholds) => {
   return issues;
 };
 
-/** @param {Weather} weather @param {RideStatus} status @param {typeof THRESHOLDS} [thresholds] */
-export const getMessage = (weather, status, thresholds = THRESHOLDS) => {
+/** @param {Weather} weather @param {RideStatus} status @param {typeof THRESHOLDS} [thresholds] @param {import('../utils/temperature').TempUnit} [tempUnit] */
+export const getMessage = (weather, status, thresholds = THRESHOLDS, tempUnit = 'fahrenheit') => {
   if (weather.hasThunderstorms) return MSG.THUNDERSTORM;
   if (status === 'yes') {
-    return MSG.GOOD(Math.round(weather.feelsLike), weather.condition);
+    return MSG.GOOD(
+      formatTemperature(weather.feelsLike, tempUnit, { withUnitLabel: true }),
+      weather.condition,
+    );
   }
 
   const laterGood = getLaterGoodHour(weather.hourly);
-  const issues = collectMessageIssues(weather, status, thresholds);
+  const issues = collectMessageIssues(weather, status, thresholds, tempUnit);
 
   let msg = selectBaseMessage(status, issues);
 
@@ -433,8 +438,13 @@ export const getMessage = (weather, status, thresholds = THRESHOLDS) => {
 };
 
 /** Returns up to 3 limiting ride factors with label, value, and condition rating. */
-/** @param {Weather | null | undefined} weather @param {RideStatus | null | undefined} status @param {typeof THRESHOLDS} [thresholds] @returns {RideFactor[]} */
-export const getRideFactors = (weather, status, thresholds = THRESHOLDS) => {
+/** @param {Weather | null | undefined} weather @param {RideStatus | null | undefined} status @param {typeof THRESHOLDS} [thresholds] @param {import('../utils/temperature').TempUnit} [tempUnit] @returns {RideFactor[]} */
+export const getRideFactors = (
+  weather,
+  status,
+  thresholds = THRESHOLDS,
+  tempUnit = 'fahrenheit',
+) => {
   if (!weather || !status || status === 'yes') return [];
 
   /** @param {Condition} rating */
@@ -452,7 +462,7 @@ export const getRideFactors = (weather, status, thresholds = THRESHOLDS) => {
     factors.push({
       type: 'temperature',
       label: 'Temperature',
-      value: `${Math.round(weather.temperature)}°F`,
+      value: formatTemperature(weather.temperature, tempUnit, { withUnitLabel: true }),
       condition: tempRating,
     });
   }
@@ -484,7 +494,7 @@ export const getRideFactors = (weather, status, thresholds = THRESHOLDS) => {
     factors.push({
       type: 'dewpoint',
       label: 'Humidity',
-      value: `Dew ${Math.round(weather.dewpoint)}°F`,
+      value: `Dew ${formatTemperature(weather.dewpoint, tempUnit, { withUnitLabel: true })}`,
       condition: dewRating,
     });
   }
@@ -619,15 +629,21 @@ function getTemperatureTips(w, tipsSet) {
  * Builds the weather-driven add-on tips (rain, wind, UV, temp swing, mugginess).
  * `hasAdverse` flags conditions that contradict the ideal-day PERFECT copy.
  * @param {Weather} weather @param {RideWindow} w @param {GearTipSet} tipsSet
+ * @param {import('../utils/temperature').TempUnit} [tempUnit]
  * @returns {{ tips: GearTip[], hasAdverse: boolean }}
  */
-function buildSupportingTips(weather, w, tipsSet) {
+function buildSupportingTips(weather, w, tipsSet, tempUnit = 'fahrenheit') {
   /** @type {GearTip[]} */
   const tips = [];
   let hasAdverse = false;
 
   if (w.maxTemp - w.minTemp >= 15) {
-    tips.push(tipsSet.TEMP_SWING(Math.round(w.minTemp), Math.round(w.maxTemp)));
+    tips.push(
+      tipsSet.TEMP_SWING(
+        formatTemperature(w.minTemp, tempUnit),
+        formatTemperature(w.maxTemp, tempUnit),
+      ),
+    );
   }
 
   if (w.maxRain > 50) {
@@ -678,10 +694,10 @@ function mergeTipItems(tips) {
   return items;
 }
 
-/** @param {Weather} weather @param {RideWindow} w @param {GearTipSet} tipsSet @param {RideStatus} [status] */
-function getGearTips(weather, w, tipsSet, status) {
+/** @param {Weather} weather @param {RideWindow} w @param {GearTipSet} tipsSet @param {RideStatus} [status] @param {import('../utils/temperature').TempUnit} [tempUnit] */
+function getGearTips(weather, w, tipsSet, status, tempUnit = 'fahrenheit') {
   const temperatureTips = getTemperatureTips(w, tipsSet);
-  const { tips: supportingTips, hasAdverse } = buildSupportingTips(weather, w, tipsSet);
+  const { tips: supportingTips, hasAdverse } = buildSupportingTips(weather, w, tipsSet, tempUnit);
 
   // An empty temperature tip means the ride window sits in the ideal band, so
   // lead with PERFECT unless an adverse add-on contradicts it. NEUTRAL is the
@@ -703,15 +719,15 @@ function getGearTips(weather, w, tipsSet, status) {
   return { headline, items: mergeTipItems(tips) };
 }
 
-/** @param {Weather} weather @param {'casual' | 'pro'} [mode] @param {RideStatus} [status] */
-export const getGearSuggestion = (weather, mode = 'casual', status) => {
+/** @param {Weather} weather @param {'casual' | 'pro'} [mode] @param {RideStatus} [status] @param {import('../utils/temperature').TempUnit} [tempUnit] */
+export const getGearSuggestion = (weather, mode = 'casual', status, tempUnit = 'fahrenheit') => {
   const w = getRideWindow(weather);
   const tipsSet = /** @type {GearTipSet} */ (mode === 'pro' ? GEAR_TIPS.PRO : GEAR_TIPS.CASUAL);
-  return getGearTips(weather, w, tipsSet, status);
+  return getGearTips(weather, w, tipsSet, status, tempUnit);
 };
 
-/** @param {Weather} weather */
-export const getWeatherAlerts = (weather) => {
+/** @param {Weather} weather @param {import('../utils/temperature').TempUnit} [tempUnit] */
+export const getWeatherAlerts = (weather, tempUnit = 'fahrenheit') => {
   /** @type {WeatherAlert[]} */
   const alerts = [];
   if (weather.nwsAlerts) {
@@ -729,14 +745,18 @@ export const getWeatherAlerts = (weather) => {
       alerts.push({
         type: 'heat',
         severity: 'extreme',
-        message: ALERT_MESSAGES.HEAT_EXTREME(Math.round(weather.feelsLike)),
+        message: ALERT_MESSAGES.HEAT_EXTREME(
+          formatTemperature(weather.feelsLike, tempUnit, { withUnitLabel: true }),
+        ),
         icon: 'thermometer',
       });
     else if (weather.feelsLike > 95)
       alerts.push({
         type: 'heat',
         severity: 'warning',
-        message: ALERT_MESSAGES.HEAT_WARNING(Math.round(weather.feelsLike)),
+        message: ALERT_MESSAGES.HEAT_WARNING(
+          formatTemperature(weather.feelsLike, tempUnit, { withUnitLabel: true }),
+        ),
         icon: 'thermometer',
       });
   }

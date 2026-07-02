@@ -14,3 +14,4 @@ export {
   getWindDirectionLabel,
 } from './weatherLabels';
 export { hourLabel, fullHourLabel } from './timeFormat';
+export { fahrenheitToCelsius, formatTemperature, type TempUnit } from './temperature';

@@ -14,6 +14,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ColorSchemeOverrideContext } from '@/hooks/use-theme';
 import { SettingsProvider, useAppearance } from '@/hooks/settings-context';
 import { ForecastProvider } from '@/hooks/forecast-context';
+import { useWebDocumentTheme } from '@/hooks/use-web-document-theme';
 
 function navigationTheme(isDark: boolean) {
   const base = isDark ? DarkTheme : DefaultTheme;
@@ -86,10 +87,13 @@ function renderRootChrome(stack: ReactNode): ReactNode {
 }
 
 export default function RootLayout() {
-  const [fontsLoaded, fontError] = useFonts({
-    NationalPark_400Regular,
-    NationalPark_700Bold,
-  });
+  // Native: National Park is embedded at build time by the expo-font config
+  // plugin (Android XML resources / iOS bundled files), so no runtime load is
+  // needed and the gate resolves immediately. Web still needs the runtime
+  // @font-face registration that `useFonts` provides.
+  const [fontsLoaded, fontError] = useFonts(
+    Platform.OS === 'web' ? { NationalPark_400Regular, NationalPark_700Bold } : {},
+  );
 
   if (!fontsLoaded && !fontError) {
     return null;
@@ -109,6 +113,8 @@ function ThemedRoot() {
   const override = appearance === 'system' ? null : appearance;
   const isDark = (override ?? (systemScheme === 'dark' ? 'dark' : 'light')) === 'dark';
   const wheelyBg = WheelyTheme[isDark ? 'dark' : 'light'].background;
+
+  useWebDocumentTheme(isDark);
 
   useEffect(() => {
     if (Platform.OS === 'web') return;

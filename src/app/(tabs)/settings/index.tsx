@@ -1,19 +1,22 @@
 import { useCallback } from 'react';
-import { Platform, View } from 'react-native';
+import { Platform, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { SettingsForm, bottomNavBarHeight } from '@/components/wheely';
-import { useGearMode, useAppearance, useHomeLocation } from '@/hooks/settings-context';
+import { SettingsForm, WebScreenHeader, bottomNavBarHeight } from '@/components/wheely';
+import { useGearMode, useAppearance, useHomeLocation, useTempUnit } from '@/hooks/settings-context';
 import { useForecast } from '@/hooks/forecast-context';
-import { TRANSPARENT } from '@/constants/theme';
+import { useWheelyColors } from '@/hooks/use-theme';
+import { Fonts, TRANSPARENT } from '@/constants/theme';
 
 const isWeb = Platform.OS === 'web';
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
+  const c = useWheelyColors();
   const [gearMode, setGearMode] = useGearMode();
   const [appearance, setAppearance] = useAppearance();
   const [homeLocation, setHomeLocation] = useHomeLocation();
+  const [tempUnit, setTempUnit] = useTempUnit();
   const forecast = useForecast();
   const bottomNavInset = isWeb ? bottomNavBarHeight(insets.bottom) : undefined;
 
@@ -44,11 +47,21 @@ export default function SettingsScreen() {
       ]}
       collapsable={false}
     >
+      {isWeb && (
+        <WebScreenHeader
+          variant="title"
+          title={
+            <Text style={{ fontFamily: Fonts.monoBold, fontSize: 34, color: c.ink }}>Settings</Text>
+          }
+        />
+      )}
       <SettingsForm
         gearMode={gearMode}
         onGearChange={setGearMode}
         appearance={appearance}
         onAppearanceChange={setAppearance}
+        tempUnit={tempUnit}
+        onTempUnitChange={setTempUnit}
         homeLabel={homeLabel}
         canSetHome={!!active}
         onSetHome={onSetHome}
