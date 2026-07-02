@@ -11,11 +11,11 @@ npm install
 ```
 
 | Command                                           | Description                                               |
-| ------------------------------------------------- | --------------------------------------------------------- |
-| `npm run web` / `npm run ios` / `npm run android` | Run the app                                               |
-| `npm run storybook:web`                           | Component workshop at http://localhost:6006               |
-| `npm run build:web`                               | Export the web build (`expo export --platform web`)       |
-| `npm run deploy:web`                              | Build then deploy the web build via Wrangler (Cloudflare) |
+| -------------------------------------------------- | ----------------------------------------------------------- |
+| `npm run web` / `npm run ios` / `npm run android` | Run the app                                                |
+| `npm run storybook:web`                           | Component workshop at http://localhost:6006                |
+| `npm run build:web`                                | Export the web build (`expo export --platform web`)        |
+| `npm run deploy:web`                               | Build then deploy the web build via Wrangler (Cloudflare)   |
 
 ## Quality gates
 
@@ -33,7 +33,7 @@ npm run build:web
 
 ## Architecture
 
-For the full architecture, conventions, and toolchain constraints, see [`AGENTS.md`](./AGENTS.md).
+For the full architecture, conventions, and toolchain constraints, see [`CLAUDE.md`](./CLAUDE.md).
 
 ## License
 
