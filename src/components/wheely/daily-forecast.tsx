@@ -5,15 +5,9 @@ import type { LucideIcon } from 'lucide-react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { CONDITION_DISPLAY } from '@/domain';
-import {
-  dayLabel,
-  formatTemperature,
-  getBestDayInfo,
-  getBestDaysBlurb,
-  getDayConditionReason,
-} from '@/utils';
+import { dayLabel, getBestDayInfo, getBestDaysBlurb, getDayConditionReason } from '@/utils';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { useResolvedTempUnit } from '@/hooks/settings-context';
+import { useTemperatureDisplay } from '@/hooks/use-temperature-display';
 import { Fonts, FontWeightBold, Spacing, type WheelyPalette } from '@/constants/theme';
 import type { DailyWeather } from '@/types/weather';
 import { BrutalCard, BurstChip, asCondition, weatherIconFor, weatherSfSymbol } from './primitives';
@@ -128,7 +122,7 @@ function DayRow({
   icon: LucideIcon;
 }>) {
   const { c, styles } = useStyles();
-  const tempUnit = useResolvedTempUnit();
+  const { unit: tempUnit, format: formatTemp } = useTemperatureDisplay();
   const condition = asCondition(day.condition);
   return (
     <View style={[styles.dayRow, best && styles.dayRowBest, last && styles.dayRowLast]}>
@@ -148,8 +142,8 @@ function DayRow({
           )}
         </View>
         <ThemedText style={styles.dayTemp} numberOfLines={1}>
-          {formatTemperature(day.high, tempUnit)}
-          <ThemedText style={styles.dayLow}>/{formatTemperature(day.low, tempUnit)}</ThemedText>
+          {formatTemp(day.high)}
+          <ThemedText style={styles.dayLow}>/{formatTemp(day.low)}</ThemedText>
         </ThemedText>
         <View style={styles.conditionCell}>
           <View style={[styles.conditionSwatch, { backgroundColor: c.condition[condition].bg }]} />
