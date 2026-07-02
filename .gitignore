@@ -34,6 +34,9 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
+.env.*
+!.env.example
 .env*.local
 
 # typescript
@@ -57,3 +60,5 @@ storybook-static
 # Editor / tool logs
 .cursor/
 .playwright-mcp/
+.antigravitycli/
+.claude/settings.json
