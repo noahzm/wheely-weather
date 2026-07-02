@@ -75,8 +75,7 @@ export const applyAcclimatization = (
 export const resolveThresholds = (
   homeBaseline: HomeBaseline | null | undefined,
   base: Thresholds = THRESHOLDS,
-): Thresholds =>
-  applyAcclimatization(base, deriveAcclimatization(homeBaseline));
+): Thresholds => applyAcclimatization(base, deriveAcclimatization(homeBaseline));
 
 /**
  * A short, honest relative-context note: how today's heat/humidity compares to
