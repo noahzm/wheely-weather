@@ -7,8 +7,8 @@
     "noFallthroughCasesInSwitch": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "allowJs": true,
-    "checkJs": true,
+    "allowJs": false,
+    "checkJs": false,
     "paths": {
       "@/*": ["./src/*"],
       "@/assets/*": ["./assets/*"]

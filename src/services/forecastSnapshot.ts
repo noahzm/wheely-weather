@@ -33,13 +33,9 @@ async function fetchSafeLocationName(location: SavedLocation) {
     .catch(() => 'Your Location');
 }
 
-async function fetchSafeExtras(
-  lat: number,
-  lon: number,
-  mockScenario: string | null,
-): Promise<ForecastExtras> {
+async function fetchSafeExtras(lat: number, lon: number): Promise<ForecastExtras> {
   try {
-    return await fetchWeatherExtras(lat, lon, { mockScenario });
+    return await fetchWeatherExtras(lat, lon);
   } catch {
     return { aqi: null, nwsAlerts: [] };
   }
@@ -85,7 +81,7 @@ export async function getForecastSnapshot({
   const weatherPromise = fetchWeatherData(savedLocation.lat, savedLocation.lon, { thresholds });
   const locationNamePromise = fetchSafeLocationName(savedLocation);
   const [weather, locationName] = await Promise.all([weatherPromise, locationNamePromise]);
-  const extras = await fetchSafeExtras(savedLocation.lat, savedLocation.lon, mockScenario);
+  const extras = await fetchSafeExtras(savedLocation.lat, savedLocation.lon);
 
   return {
     weather: { ...weather, ...extras },
