@@ -6,8 +6,6 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
-    "**/*.js",
-    "**/*.jsx",
     ".storybook/**/*.ts",
     ".storybook/**/*.tsx",
     ".expo/types/**/*.ts",
