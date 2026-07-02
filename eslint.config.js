@@ -123,6 +123,7 @@ module.exports = defineConfig([
       complexity: ['error', 20],
       'max-depth': ['error', 4],
       'max-params': ['error', 5],
+      'max-lines': ['error', { max: 700, skipBlankLines: true, skipComments: true }],
       'max-lines-per-function': ['error', { max: 120, skipBlankLines: true, skipComments: true }],
     },
   },
@@ -156,6 +157,7 @@ module.exports = defineConfig([
   {
     files: ['**/*.{test,spec}.{js,jsx,ts,tsx}'],
     rules: {
+      'max-lines': 'off', // test suites can be long by design
       'max-lines-per-function': 'off', // describe() blocks are legitimately long
       'sonarjs/no-duplicate-string': 'off',
       'sonarjs/no-nested-conditional': 'off', // terse inline expectations are fine in tests
