@@ -1,12 +1,10 @@
-import { THRESHOLDS } from './constants';
+import { THRESHOLDS, type Thresholds } from './constants';
+import type { HomeBaseline } from '@/types/weather';
 
-/** @typedef {import('@/types/weather').Weather} Weather */
-/**
- * A rider's home-climate baseline: the representative *warm* exposure at home,
- * used to estimate heat/humidity acclimatization.
- * @typedef {{ warmTemp: number; warmDewpoint: number }} HomeBaseline
- */
-/** @typedef {{ tempShift: number; dewShift: number }} Acclimatization */
+export interface Acclimatization {
+  tempShift: number;
+  dewShift: number;
+}
 
 // Warm-exposure anchors for the "default" temperate recreational rider the base
 // thresholds encode. A temperate home (summer high ~80°F, dew ~60°F) yields ~zero
@@ -19,17 +17,16 @@ const DAMP = 0.5;
 const MAX_TEMP_SHIFT = 6;
 const MAX_DEW_SHIFT = 7;
 
-/** @param {number} v @param {number} lo @param {number} hi */
-const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
 /**
  * Derives how much warmer/muggier conditions a home-acclimatized rider tolerates,
  * relative to the base (temperate) thresholds. Only positive (warm/humid) shifts —
  * cold and wind are out of scope (the body doesn't acclimatize to them the same way).
- * @param {HomeBaseline | null | undefined} homeBaseline
- * @returns {Acclimatization}
  */
-export const deriveAcclimatization = (homeBaseline) => {
+export const deriveAcclimatization = (
+  homeBaseline: HomeBaseline | null | undefined,
+): Acclimatization => {
   if (!homeBaseline) return { tempShift: 0, dewShift: 0 };
   return {
     tempShift: clamp((homeBaseline.warmTemp - REF_TEMP) * DAMP, 0, MAX_TEMP_SHIFT),
@@ -43,11 +40,11 @@ export const deriveAcclimatization = (homeBaseline) => {
  * moves, and shifted thresholds are clamped strictly below it, so a genuinely
  * dangerous day still rates "bad" even for an acclimatized rider. Go/no-go gates
  * (wind, AQI, rain, UV) are returned untouched.
- * @param {typeof THRESHOLDS} base
- * @param {Acclimatization} acclimatization
- * @returns {typeof THRESHOLDS}
  */
-export const applyAcclimatization = (base, { tempShift, dewShift }) => {
+export const applyAcclimatization = (
+  base: Thresholds,
+  { tempShift, dewShift }: Acclimatization,
+): Thresholds => {
   if (!tempShift && !dewShift) return base;
 
   const t = base.TEMPERATURE;
@@ -74,22 +71,22 @@ export const applyAcclimatization = (base, { tempShift, dewShift }) => {
 
 /**
  * Resolves the thresholds to rate a forecast with, given the rider's home climate.
- * @param {HomeBaseline | null | undefined} homeBaseline
- * @param {typeof THRESHOLDS} [base]
- * @returns {typeof THRESHOLDS}
  */
-export const resolveThresholds = (homeBaseline, base = THRESHOLDS) =>
+export const resolveThresholds = (
+  homeBaseline: HomeBaseline | null | undefined,
+  base: Thresholds = THRESHOLDS,
+): Thresholds =>
   applyAcclimatization(base, deriveAcclimatization(homeBaseline));
 
 /**
  * A short, honest relative-context note: how today's heat/humidity compares to
  * what the rider is used to at home. Keeps the absolute verdict honest while
  * adding the personal read. Returns null when there's nothing useful to say.
- * @param {Pick<Weather, 'temperature' | 'dewpoint'>} weather
- * @param {HomeBaseline | null | undefined} homeBaseline
- * @returns {string | null}
  */
-export const getAcclimatizationNote = (weather, homeBaseline) => {
+export const getAcclimatizationNote = (
+  weather: { temperature: number; dewpoint?: number | null } | null | undefined,
+  homeBaseline: HomeBaseline | null | undefined,
+): string | null => {
   if (!homeBaseline || weather?.temperature == null) return null;
   const { tempShift, dewShift } = deriveAcclimatization(homeBaseline);
   const acclimatized = tempShift > 0 || dewShift > 0;

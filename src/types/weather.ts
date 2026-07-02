@@ -106,3 +106,13 @@ export interface LocationSearchResult {
 }
 
 export type MockScenario = 'ride' | 'maybe' | 'rest' | 'alert';
+
+/**
+ * A rider's home-climate baseline: representative *warm* exposure at home, used
+ * to estimate heat/humidity acclimatization. Derived from recent weather because
+ * the body acclimatizes to recent exposure (~weeks), not annual normals.
+ */
+export interface HomeBaseline {
+  warmTemp: number;
+  warmDewpoint: number;
+}

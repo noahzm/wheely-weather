@@ -2,16 +2,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { fetchWithTimeout } from './http';
 import type { SavedLocation } from './locationStorage';
+import type { HomeBaseline } from '@/types/weather';
 
-/**
- * A rider's home-climate baseline: representative *warm* exposure at home, used
- * to estimate heat/humidity acclimatization. Derived from recent weather because
- * the body acclimatizes to recent exposure (~weeks), not annual normals.
- */
-export interface HomeBaseline {
-  warmTemp: number;
-  warmDewpoint: number;
-}
+export type { HomeBaseline } from '@/types/weather';
 
 interface CachedBaseline extends HomeBaseline {
   version: 1;
