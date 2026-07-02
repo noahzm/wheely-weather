@@ -16,7 +16,6 @@ import { SymbolView, type SFSymbol } from 'expo-symbols';
 import { ThemedText } from '@/components/themed-text';
 import { CONDITION_DISPLAY, evaluateCondition, THRESHOLDS } from '@/domain';
 import {
-  formatTemperature,
   getAqiLabel,
   getDewpointLabel,
   getUvCondition,
@@ -25,7 +24,7 @@ import {
   getWindDirectionLabel,
 } from '@/utils';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { useResolvedTempUnit } from '@/hooks/settings-context';
+import { useTemperatureDisplay } from '@/hooks/use-temperature-display';
 import { Fonts, FontWeightBold, Spacing, type WheelyPalette } from '@/constants/theme';
 import type { Weather } from '@/types/weather';
 import { BrutalCard, Chip, asCondition } from './primitives';
@@ -106,7 +105,7 @@ export function RideSpecs({
   thresholds = THRESHOLDS,
 }: Readonly<{ weather: Weather; thresholds?: typeof THRESHOLDS }>) {
   const { c, styles } = useStyles();
-  const tempUnit = useResolvedTempUnit();
+  const { format: formatTemp } = useTemperatureDisplay();
 
   const metrics: {
     Icon: LucideIcon;
@@ -128,8 +127,8 @@ export function RideSpecs({
       Icon: Thermometer,
       sf: 'thermometer.medium',
       label: 'Temperature',
-      value: formatTemperature(weather.temperature, tempUnit),
-      qualifier: `feels ${formatTemperature(weather.feelsLike, tempUnit)}`,
+      value: formatTemp(weather.temperature),
+      qualifier: `feels ${formatTemp(weather.feelsLike)}`,
       condition: evaluateCondition(weather.temperature, 'temperature', thresholds),
     },
     {
@@ -160,7 +159,7 @@ export function RideSpecs({
       Icon: Droplet,
       sf: 'humidity.fill',
       label: 'Dewpoint',
-      value: formatTemperature(weather.dewpoint, tempUnit),
+      value: formatTemp(weather.dewpoint),
       qualifier: getDewpointLabel(weather.dewpoint),
       condition: evaluateCondition(weather.dewpoint, 'dewpoint', thresholds),
     },
