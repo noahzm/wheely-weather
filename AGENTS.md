@@ -18,6 +18,7 @@ Expo Router + React Native app (iOS, Android, web) that scores how good conditio
 - `npm run test:e2e` — Playwright e2e (`e2e/`).
 - `npx vitest run --project unit src/domain/weather.test.ts` — run a single test file.
 - `npx tsc --noEmit` — typecheck.
+- `npm run build:web` — `expo export --platform web`; the CI "Web export" gate, also run before `npm run deploy:web` (wrangler, see `wheely-web-cloudflare-launch` memory).
 
 ### Testing notes
 
