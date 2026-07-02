@@ -16,7 +16,7 @@ import { useExpandAnimation } from './animated-expand';
 import { asCondition } from './primitives';
 import { useHourlyScrollPicker } from './use-hourly-scroll-picker';
 
-type ChartHour = HourlyWeather & { isPast: boolean; idx: number };
+export type ChartHour = HourlyWeather & { isPast: boolean; idx: number };
 
 function isLimitingCondition(condition: string): boolean {
   return condition === 'marginal' || condition === 'poor' || condition === 'bad';
