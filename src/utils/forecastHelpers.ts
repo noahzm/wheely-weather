@@ -2,9 +2,8 @@ import { BEST_DAYS_MESSAGES } from '../domain/copy';
 import { THRESHOLDS } from '../domain/constants';
 import { formatTemperature } from './temperature';
 
-/** @typedef {import('@/types/weather').Condition} Condition */
-/** @typedef {import('@/types/weather').DailyWeather} DailyWeather */
-/** @typedef {import('@/types/weather').HourlyWeather} HourlyWeather */
+import type { Condition, DailyWeather, HourlyWeather } from '@/types/weather';
+import type { TempUnit } from './temperature';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const DAY_NAMES_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -13,8 +12,7 @@ const HEAVY_RAIN_CODES = new Set([65, 82]);
 const SNOW_CODES = new Set([71, 73, 75, 77, 85, 86]);
 
 /** Returns "Today" for index 0, otherwise a short label like "Mon 24". */
-/** @param {Date | string} date @param {number} index */
-export function dayLabel(date, index) {
+export function dayLabel(date: Date | string, index: number): string {
   if (index === 0) return 'Today';
   const d = new Date(date);
   const weekday = DAY_NAMES_SHORT[d.getDay()];
@@ -22,8 +20,7 @@ export function dayLabel(date, index) {
   return `${weekday} ${num}`;
 }
 
-/** @type {Record<Condition, number>} */
-const CONDITION_SCORE = {
+const CONDITION_SCORE: Record<Condition, number> = {
   good: 300,
   fair: 200,
   marginal: 100,
@@ -32,23 +29,21 @@ const CONDITION_SCORE = {
 };
 
 // Prefer overall ride quality first, then reward calmer, drier, more comfortable days.
-/** @param {DailyWeather} day */
-function scoreDay(day) {
-  const conditionScore = CONDITION_SCORE[day.condition] ?? 0;
+function scoreDay(day: DailyWeather): number {
+  const conditionScore = CONDITION_SCORE[day.condition];
 
-  const rainBonus = Math.max(0, 30 - (day.rainChance ?? 30)) * 1.5;
-  const windBonus = Math.max(0, 18 - (day.windSpeed ?? 18)) * 1.5;
-  const avgTemp = ((day.high ?? 68) + (day.low ?? day.high ?? 68)) / 2;
+  const rainBonus = Math.max(0, 30 - day.rainChance) * 1.5;
+  const windBonus = Math.max(0, 18 - day.windSpeed) * 1.5;
+  const avgTemp = (day.high + day.low) / 2;
   const comfortBonus = Math.max(0, 18 - Math.abs(avgTemp - 68));
 
   return conditionScore + rainBonus + windBonus + comfortBonus;
 }
 
-/** @param {DailyWeather} day */
-function bestDayRationale(day) {
-  const rain = day.rainChance ?? 100;
-  const wind = day.windSpeed ?? 99;
-  const high = day.high ?? 0;
+function bestDayRationale(day: DailyWeather): string {
+  const rain = day.rainChance;
+  const wind = day.windSpeed;
+  const high = day.high;
   if (rain <= 10 && wind <= 8) return 'Low wind and dry roads';
   if (high < 50 && rain <= 20) return 'Cool and clear';
   if (high > 80 && rain <= 20) return 'Warm and dry';
@@ -58,9 +53,8 @@ function bestDayRationale(day) {
 }
 
 /** Finds the index and rationale of the single best day for cycling in the 8-day forecast. */
-/** @param {DailyWeather[]} daily */
-export function getBestDayInfo(daily) {
-  if (!daily || daily.length === 0) return { index: -1, rationale: '' };
+export function getBestDayInfo(daily: DailyWeather[]): { index: number; rationale: string } {
+  if (daily.length === 0) return { index: -1, rationale: '' };
 
   let bestIdx = -1;
   let bestScore = -Infinity;
@@ -83,24 +77,22 @@ export function getBestDayInfo(daily) {
   return { index: bestIdx, rationale: bestDayRationale(bestDay) };
 }
 
-/**
- * @typedef {Object} DayMetrics
- * @property {number} wind
- * @property {number} rain
- * @property {number | null} high
- * @property {number | null} low
- * @property {number | null} temp
- * @property {number | null} dewpoint
- */
+interface DayMetrics {
+  wind: number;
+  rain: number;
+  high: number | null;
+  low: number | null;
+  temp: number | null;
+  dewpoint: number | null;
+}
 
-/** @param {DailyWeather} day @returns {DayMetrics} */
-function dayMetrics(day) {
-  const high = day.high ?? null;
+function dayMetrics(day: DailyWeather): DayMetrics {
+  const high = day.high;
   return {
-    wind: Math.round(day.windSpeed ?? 0),
-    rain: day.rainChance ?? 0,
+    wind: Math.round(day.windSpeed),
+    rain: day.rainChance,
     high,
-    low: day.low ?? high,
+    low: day.low,
     // The verdict rates daytime air temperature, so reasons key off the air-temp
     // high rather than apparent feels-like.
     temp: high,
@@ -108,8 +100,7 @@ function dayMetrics(day) {
   };
 }
 
-/** @param {{ weatherCode: number | null }} entry @returns {string | null} */
-function weatherCodeReason(entry) {
+function weatherCodeReason(entry: { weatherCode: number | null }): string | null {
   if (entry.weatherCode == null) return null;
   if (STORM_CODES.has(entry.weatherCode)) return 'Storm risk';
   if (SNOW_CODES.has(entry.weatherCode)) return 'Wintry roads';
@@ -117,8 +108,10 @@ function weatherCodeReason(entry) {
   return null;
 }
 
-/** @param {DayMetrics} m @param {import('./temperature').TempUnit} [tempUnit] */
-function badDayReason({ wind, rain, low, temp, dewpoint }, tempUnit = 'fahrenheit') {
+function badDayReason(
+  { wind, rain, low, temp, dewpoint }: DayMetrics,
+  tempUnit: TempUnit = 'fahrenheit',
+): string {
   if (wind >= 20) return `Very windy (${wind} mph)`;
   if (rain >= 60) return `Rain likely (${rain}%)`;
   if (temp != null && temp > THRESHOLDS.TEMPERATURE.BAD_MAX) {
@@ -131,8 +124,10 @@ function badDayReason({ wind, rain, low, temp, dewpoint }, tempUnit = 'fahrenhei
   return 'Rough day to ride';
 }
 
-/** @param {DayMetrics} m @param {import('./temperature').TempUnit} [tempUnit] */
-function poorDayReason({ wind, rain, low, temp, dewpoint }, tempUnit = 'fahrenheit') {
+function poorDayReason(
+  { wind, rain, low, temp, dewpoint }: DayMetrics,
+  tempUnit: TempUnit = 'fahrenheit',
+): string {
   if (wind >= 18) return `Windy (${wind} mph)`;
   if (rain >= 45) return `Wet roads likely`;
   if (temp != null && temp > THRESHOLDS.TEMPERATURE.POOR_MAX) {
@@ -145,8 +140,10 @@ function poorDayReason({ wind, rain, low, temp, dewpoint }, tempUnit = 'fahrenhe
   return 'Tough riding';
 }
 
-/** @param {DayMetrics} m @param {import('./temperature').TempUnit} [tempUnit] */
-function marginalDayReason({ wind, rain, low, temp, dewpoint }, tempUnit = 'fahrenheit') {
+function marginalDayReason(
+  { wind, rain, low, temp, dewpoint }: DayMetrics,
+  tempUnit: TempUnit = 'fahrenheit',
+): string {
   if (wind >= 15) return `Breezy (${wind} mph)`;
   if (rain >= 30) return `Some rain risk`;
   if (temp != null && temp > THRESHOLDS.TEMPERATURE.MARGINAL_MAX) {
@@ -159,8 +156,7 @@ function marginalDayReason({ wind, rain, low, temp, dewpoint }, tempUnit = 'fahr
   return 'Mixed conditions';
 }
 
-/** @param {DayMetrics} m */
-function fairDayReason({ wind, rain, high }) {
+function fairDayReason({ wind, rain, high }: DayMetrics): string {
   if (wind >= 12) return 'Breezy';
   if (rain > 15) return 'Chance of rain';
   if (high != null && high < 50) return 'Cool but clear';
@@ -168,8 +164,7 @@ function fairDayReason({ wind, rain, high }) {
   return 'Fair window';
 }
 
-/** @param {DayMetrics} m */
-function idealDayReason({ wind, rain, high }) {
+function idealDayReason({ wind, rain, high }: DayMetrics): string {
   if (rain <= 10 && wind <= 8) return 'Low wind and dry';
   if (high != null && high < 50 && rain <= 20) return 'Cool and clear';
   if (high != null && high > 80 && rain <= 20) return 'Warm and dry';
@@ -178,12 +173,11 @@ function idealDayReason({ wind, rain, high }) {
   return 'Prime riding weather';
 }
 
-/** @param {HourlyWeather} hour @returns {DayMetrics} */
-function hourMetrics(hour) {
-  const temp = hour.temperature ?? null;
+function hourMetrics(hour: HourlyWeather): DayMetrics {
+  const temp = hour.temperature;
   return {
-    wind: Math.round(hour.windSpeed ?? 0),
-    rain: hour.rainChance ?? 0,
+    wind: Math.round(hour.windSpeed),
+    rain: hour.rainChance,
     high: null,
     low: temp,
     temp,
@@ -192,8 +186,10 @@ function hourMetrics(hour) {
 }
 
 /** Builds a short explanation for why an hourly point is limiting to ride. */
-/** @param {HourlyWeather} hour @param {import('./temperature').TempUnit} [tempUnit] @returns {string | null} */
-export function getHourConditionReason(hour, tempUnit = 'fahrenheit') {
+export function getHourConditionReason(
+  hour: HourlyWeather,
+  tempUnit: TempUnit = 'fahrenheit',
+): string | null {
   const codeReason = weatherCodeReason(hour);
   if (codeReason) return codeReason;
 
@@ -217,8 +213,10 @@ export function getHourConditionReason(hour, tempUnit = 'fahrenheit') {
 }
 
 /** Builds a short explanation for why a daily card rates the way it does. */
-/** @param {DailyWeather} day @param {import('./temperature').TempUnit} [tempUnit] */
-export function getDayConditionReason(day, tempUnit = 'fahrenheit') {
+export function getDayConditionReason(
+  day: DailyWeather,
+  tempUnit: TempUnit = 'fahrenheit',
+): string {
   const codeReason = weatherCodeReason(day);
   if (codeReason) return codeReason;
 
@@ -242,18 +240,15 @@ export function getDayConditionReason(day, tempUnit = 'fahrenheit') {
   }
 }
 
-/** @param {string} value */
-function capitalize(value) {
+function capitalize(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-/** @param {DailyWeather} day @param {number} index */
-function blurbDayLabel(day, index) {
+function blurbDayLabel(day: DailyWeather, index: number): string {
   return index === 0 ? 'today' : (DAY_NAMES[new Date(day.date).getDay()] ?? '');
 }
 
-/** @param {string[]} labels */
-function joinDayLabels(labels) {
+function joinDayLabels(labels: string[]): string {
   if (labels.length === 0) return '';
   if (labels.length === 1) return capitalize(labels[0] ?? '');
   if (labels.length === 2)
@@ -267,8 +262,11 @@ function joinDayLabels(labels) {
 }
 
 /** Builds a sentence listing the best cycling days this week. */
-/** @param {DailyWeather[]} daily @param {number} bestDayIdx @param {string} rationale */
-export function getBestDaysBlurb(daily, bestDayIdx, rationale) {
+export function getBestDaysBlurb(
+  daily: DailyWeather[],
+  bestDayIdx: number,
+  rationale: string,
+): string {
   const preferredDays = daily
     .map((day, i) => ({ day, i, label: blurbDayLabel(day, i) }))
     .filter(({ day }) => day.condition === 'good')

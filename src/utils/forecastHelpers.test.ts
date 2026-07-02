@@ -170,7 +170,7 @@ describe('getHourConditionReason', () => {
 
 describe('getBestDaysBlurb', () => {
   // Builds a week where the given indices are "good", the rest "marginal".
-  const weekWith = (condByIndex) =>
+  const weekWith = (condByIndex: Record<number, string>) =>
     WEEK.map((date, i) => day({ date, condition: condByIndex[i] ?? 'marginal' }));
 
   it('names a single good day as the best ride window', () => {

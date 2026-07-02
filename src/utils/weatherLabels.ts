@@ -1,6 +1,7 @@
+import type { Condition } from '@/types/weather';
+
 /** Human-friendly labels for weather metrics used in the UI. */
-/** @param {number | null | undefined} aqi */
-export const getAqiLabel = (aqi) => {
+export const getAqiLabel = (aqi: number | null | undefined): string => {
   if (aqi == null) return '–';
   if (aqi <= 50) return 'Good';
   if (aqi <= 100) return 'Moderate';
@@ -10,8 +11,7 @@ export const getAqiLabel = (aqi) => {
   return 'Hazardous';
 };
 
-/** @param {number | null | undefined} dp */
-export const getDewpointLabel = (dp) => {
+export const getDewpointLabel = (dp: number | null | undefined): string => {
   if (dp == null) return '–';
   if (dp < 50) return 'Dry';
   if (dp < 60) return 'Comfortable';
@@ -20,11 +20,10 @@ export const getDewpointLabel = (dp) => {
   return 'Oppressive';
 };
 
-/** @param {number | null | undefined} degrees */
-export const getWindDirectionLabel = (degrees) => {
+export const getWindDirectionLabel = (degrees: number | null | undefined): string => {
   if (degrees == null) return '–';
-  const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-  return dirs[Math.round(degrees / 45) % 8];
+  const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] as const;
+  return dirs[Math.round(degrees / 45) % 8] ?? '–';
 };
 
 /**
@@ -32,14 +31,12 @@ export const getWindDirectionLabel = (degrees) => {
  * Lucide's Wind glyph points east at 0° rotation, so add 90° after the
  * 180° flip to align the icon with where the wind is blowing to.
  */
-/** @param {number | null | undefined} degrees */
-export const getWindArrowRotation = (degrees) => {
+export const getWindArrowRotation = (degrees: number | null | undefined): number | null => {
   if (degrees == null) return null;
   return (degrees + 90) % 360;
 };
 
-/** @param {number} uv */
-export const getUvLabel = (uv) => {
+export const getUvLabel = (uv: number): string => {
   if (uv <= 2) return 'Low';
   if (uv <= 5) return 'Moderate';
   if (uv <= 7) return 'High';
@@ -48,8 +45,7 @@ export const getUvLabel = (uv) => {
 };
 
 /** Maps a UV index value to the same 5-level condition scale used elsewhere. */
-/** @param {number | null | undefined} uv */
-export const getUvCondition = (uv) => {
+export const getUvCondition = (uv: number | null | undefined): Condition | undefined => {
   if (uv == null) return;
   if (uv <= 2) return 'good';
   if (uv <= 5) return 'fair';
