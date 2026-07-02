@@ -3,29 +3,35 @@ import {
   Button,
   ContentUnavailableView,
   Host,
+  HStack,
   Label,
   List,
   ProgressView,
   Section,
+  Spacer,
   SwipeActions,
   Text,
+  VStack,
 } from '@expo/ui/swift-ui';
 import {
   Animation,
   animation,
+  buttonStyle,
+  controlSize,
   disabled,
   foregroundStyle,
-  listRowSeparator,
+  labelStyle,
   listStyle,
-  onTapGesture,
-  scrollContentBackground,
   tag,
+  tint,
 } from '@expo/ui/swift-ui/modifiers';
 
 import { Spacing, TRANSPARENT } from '@/constants/theme';
+import { useWheelyColors } from '@/hooks/use-theme';
 
 import {
   isPinned,
+  pinAccessibilityLabel,
   placeKey,
   type LocationSearchListProps,
   type LocationSection,
@@ -36,30 +42,21 @@ function hasSubtitle(item: RowItem): boolean {
   return !!item.displayName && !item.displayName.startsWith(item.label);
 }
 
-function LocationRowLabel({
-  item,
-  busy,
-  onSelect,
-}: Readonly<{
-  item: RowItem;
-  busy: boolean;
-  onSelect: () => void;
-}>) {
+function LocationRowTexts({ item }: Readonly<{ item: RowItem }>) {
   const showSub = hasSubtitle(item);
-  const rowModifiers = [onTapGesture(onSelect), disabled(busy)];
 
   if (showSub) {
     return (
-      <Label modifiers={rowModifiers}>
+      <VStack alignment="leading" spacing={2}>
         <Text>{item.label}</Text>
         <Text modifiers={[foregroundStyle({ type: 'hierarchical', style: 'secondary' })]}>
           {item.displayName}
         </Text>
-      </Label>
+      </VStack>
     );
   }
 
-  return <Label title={item.label} modifiers={rowModifiers} />;
+  return <Text>{item.label}</Text>;
 }
 
 function PinnableRow({
@@ -75,15 +72,36 @@ function PinnableRow({
   onSelect: () => void;
   onTogglePin: () => void;
 }>) {
+  const c = useWheelyColors();
   const rowId = placeKey(item);
+  const pinModifiers = [
+    labelStyle('iconOnly'),
+    buttonStyle('plain'),
+    controlSize('small'),
+    disabled(busy),
+    tint(c.primary),
+  ];
+  const swipePinModifiers = [labelStyle('iconOnly'), tint(c.primary)];
 
   return (
-    <SwipeActions modifiers={[tag(rowId), listRowSeparator('hidden')]}>
-      <LocationRowLabel item={item} busy={busy} onSelect={onSelect} />
+    <SwipeActions modifiers={[tag(rowId)]}>
+      <HStack alignment="center">
+        <Button modifiers={[buttonStyle('plain'), disabled(busy)]} onPress={onSelect}>
+          <LocationRowTexts item={item} />
+          <Spacer />
+        </Button>
+        <Button
+          label={pinAccessibilityLabel(pinned)}
+          systemImage={pinned ? 'pin.fill' : 'pin'}
+          modifiers={pinModifiers}
+          onPress={onTogglePin}
+        />
+      </HStack>
       <SwipeActions.Actions edge="trailing" allowsFullSwipe>
         <Button
-          systemImage={pinned ? 'pin.slash' : 'pin'}
-          label={pinned ? 'Unpin' : 'Pin'}
+          systemImage={pinned ? 'pin.fill' : 'pin'}
+          label={pinAccessibilityLabel(pinned)}
+          modifiers={swipePinModifiers}
           onPress={onTogglePin}
         />
       </SwipeActions.Actions>
@@ -101,17 +119,15 @@ function OptionsRow({
   onSelect: (item: RowItem) => void;
 }>) {
   return (
-    <Label
-      title={item.label}
-      systemImage="location.fill"
-      modifiers={[
-        tag(placeKey(item)),
-        onTapGesture(() => {
-          onSelect(item);
-        }),
-        disabled(busy),
-      ]}
-    />
+    <Button
+      modifiers={[buttonStyle('plain'), disabled(busy)]}
+      onPress={() => {
+        onSelect(item);
+      }}
+    >
+      <Label title={item.label} systemImage="location.fill" modifiers={[tag(placeKey(item))]} />
+      <Spacer />
+    </Button>
   );
 }
 
@@ -161,7 +177,7 @@ function LocationSectionView({
 }
 
 /**
- * iOS location search list — native SwiftUI List with swipe-to-pin.
+ * iOS location search list — native SwiftUI List with tap-to-pin and swipe-to-pin.
  */
 export function LocationSearchList({
   sections,
@@ -181,8 +197,7 @@ export function LocationSearchList({
       <Host style={styles.listHost}>
         <List
           modifiers={[
-            listStyle('plain'),
-            scrollContentBackground('hidden'),
+            listStyle('insetGrouped'),
             animation(Animation.spring({ duration: 0.35 }), pinnedLocations.length),
           ]}
         >
