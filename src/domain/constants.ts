@@ -1,3 +1,5 @@
+import type { Condition } from '@/types/weather';
+
 // Thresholds reproduce the cycling-weather reference's zone tables, mapped
 // zone->condition: ideal->good, good->fair, caution->marginal, hard->poor,
 // avoid->bad. The verdict rates raw air temperature (dew point carries humidity
@@ -76,10 +78,12 @@ export const THRESHOLDS = {
   },
 };
 
+export type Thresholds = typeof THRESHOLDS;
+
 // Labels map 1:1 to the rating's real meaning. "fair" must not read as "Good"
 // (it demotes the overall verdict to "Maybe"), so the scale stays honest rather
 // than inflating every rating by one notch.
-export const CONDITION_DISPLAY = {
+export const CONDITION_DISPLAY: Record<Condition, string> = {
   good: 'Good',
   fair: 'Fair',
   marginal: 'Iffy',

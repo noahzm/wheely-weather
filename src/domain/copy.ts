@@ -3,15 +3,13 @@
  * Separates human-readable strings from core weather logic.
  */
 
-/** @typedef {import('@/types/weather').GearTip} GearTip */
+import type { RideStatus } from '@/types/weather';
 
 // Stable pick helper to prevent flickering on re-renders.
-/** @template T @param {T[]} arr */
-const pick = (arr) => arr[new Date().getHours() % arr.length];
+const pick = <T,>(arr: readonly T[]): T | undefined => arr[new Date().getHours() % arr.length];
 
-/** djb2-style hash for deterministic, seed-varied picks.
- * @param {string} str */
-function seededHash(str) {
+/** djb2-style hash for deterministic, seed-varied picks. */
+function seededHash(str: string): number {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     // `| 0` is an intentional 32-bit wrap (not Math.trunc) and charCodeAt hashes
@@ -22,7 +20,7 @@ function seededHash(str) {
   return Math.abs(hash);
 }
 
-const VERDICT_LABELS = {
+const VERDICT_LABELS: Record<RideStatus, readonly string[]> = {
   yes: ['Let’s ride', 'Good to go', 'Ride day', 'Wheels up', 'Clear for riding', 'Send it'],
   maybe: [
     'Not terrible',
@@ -46,12 +44,9 @@ const VERDICT_LABELS = {
  * Picks a verdict badge label from a per-status pool, seeded by location and
  * the current day+hour so different locations show different labels and the
  * label rotates when the forecast hour rolls over.
- * @param {'yes' | 'maybe' | 'no'} status
- * @param {string} [location]
- * @returns {string}
  */
-export function getVerdictLabel(status, location = '') {
-  const pool = VERDICT_LABELS[status] ?? VERDICT_LABELS.maybe;
+export function getVerdictLabel(status: RideStatus, location = ''): string {
+  const pool = VERDICT_LABELS[status];
   const now = new Date();
   const day = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 1).getTime()) / 864e5);
   const hour = now.getHours();
@@ -59,16 +54,14 @@ export function getVerdictLabel(status, location = '') {
   return pool[seededHash(seed) % pool.length] ?? '';
 }
 
-/** @param {string[]} items */
-function formatList(items) {
-  if (items.length <= 1) return items[0] || '';
+function formatList(items: readonly string[]): string {
+  if (items.length <= 1) return items[0] ?? '';
   if (items.length === 2) return `${items[0]} and ${items[1]}`;
   return `${items.slice(0, -1).join(', ')}, and ${items.at(-1)}`;
 }
 
-/** Tail appended to a verdict sentence when issues were trimmed for brevity.
- * @param {number} extra */
-function moreTail(extra) {
+/** Tail appended to a verdict sentence when issues were trimmed for brevity. */
+function moreTail(extra: number): string {
   return extra > 0 ? `, plus ${extra} more` : '';
 }
 
@@ -83,8 +76,7 @@ export const LOCATION_SOURCE_BADGES = {
   },
 };
 
-/** @type {Record<number, string>} */
-export const WEATHER_DESCRIPTIONS = {
+export const WEATHER_DESCRIPTIONS: Record<number, string> = {
   0: 'Clear skies',
   1: 'Mostly clear',
   2: 'Partly cloudy',
@@ -113,20 +105,16 @@ export const WEATHER_DESCRIPTIONS = {
 
 export const STATUS_MESSAGES = {
   THUNDERSTORM: 'Thunderstorms today. Stay off the road.',
-  /** @param {string} tempLabel @param {string} cond */
-  GOOD: (tempLabel, cond) =>
+  GOOD: (tempLabel: string, cond: string) =>
     `Ideal ride conditions. ${tempLabel}, ${cond.toLowerCase()}, and light winds.`,
   MAYBE_IDEAL: 'On the edge of comfortable.',
-  /** @param {string[]} issues @param {number} [extra] */
-  MAYBE_ISSUES: (issues, extra = 0) =>
+  MAYBE_ISSUES: (issues: readonly string[], extra = 0) =>
     `Rideable. But it’s ${formatList(issues)}${moreTail(extra)}.`,
-  /** @param {string} time */
-  LATER_GOOD: (time) => ` Conditions improve around ${time}.`,
+  LATER_GOOD: (time: string) => ` Conditions improve around ${time}.`,
   NO_IDEAL: 'No clear ride window right now.',
-  /** @param {string[]} issues @param {number} [extra] */
-  NO_ISSUES: (issues, extra = 0) => `Sit this one out: ${formatList(issues)}${moreTail(extra)}.`,
-  /** @param {string} time */
-  CLEAR_UP: (time) => ` Clears by ${time}.`,
+  NO_ISSUES: (issues: readonly string[], extra = 0) =>
+    `Sit this one out: ${formatList(issues)}${moreTail(extra)}.`,
+  CLEAR_UP: (time: string) => ` Clears by ${time}.`,
   REST_DAY: () =>
     pick([
       ' A good day for drivetrain maintenance.',
@@ -232,8 +220,7 @@ export const GEAR_TIPS = {
         { slot: 'bottom', icon: 'Shorts', label: 'Shorts' },
       ],
     },
-    /** @param {string} min @param {string} max */
-    TEMP_SWING: (min, max) => ({
+    TEMP_SWING: (min: string, max: string) => ({
       items: [
         {
           icon: 'Thermometer',
@@ -281,8 +268,7 @@ export const GEAR_TIPS = {
     WINDY: {
       items: [{ icon: 'Wind', label: 'Windbreaker', qualifier: 'Windy conditions' }],
     },
-    /** @param {number} speed */
-    WIND_PICKUP: (speed) => ({
+    WIND_PICKUP: (speed: number) => ({
       items: [
         {
           icon: 'Wind',
@@ -391,8 +377,7 @@ export const GEAR_TIPS = {
         { slot: 'bottom', icon: 'Shorts', label: 'Bib shorts' },
       ],
     },
-    /** @param {string} min @param {string} max */
-    TEMP_SWING: (min, max) => ({
+    TEMP_SWING: (min: string, max: string) => ({
       items: [
         {
           icon: 'Thermometer',
@@ -441,8 +426,7 @@ export const GEAR_TIPS = {
     WINDY: {
       items: [{ icon: 'Wind', label: 'Wind vest', qualifier: 'Windy conditions' }],
     },
-    /** @param {number} speed */
-    WIND_PICKUP: (speed) => ({
+    WIND_PICKUP: (speed: number) => ({
       items: [
         {
           icon: 'Wind',
@@ -477,13 +461,10 @@ export const GEAR_TIPS = {
 };
 
 export const RAIN_MESSAGES = {
-  /** @param {string} time */
-  CLEARING: (time) => `Clears by ${time}`,
+  CLEARING: (time: string) => `Clears by ${time}`,
   THROUGHOUT: 'Rain throughout',
-  /** @param {string} start @param {string} end */
-  WINDOW: (start, end) => `Rain ${start}–${end}`,
-  /** @param {string} time */
-  LATER: (time) => `Rain likely after ${time}`,
+  WINDOW: (start: string, end: string) => `Rain ${start}–${end}`,
+  LATER: (time: string) => `Rain likely after ${time}`,
 };
 
 export const DAYLIGHT_MESSAGES = {
@@ -491,10 +472,8 @@ export const DAYLIGHT_MESSAGES = {
 };
 
 export const ALERT_MESSAGES = {
-  /** @param {string} tempLabel */
-  HEAT_EXTREME: (tempLabel) =>
+  HEAT_EXTREME: (tempLabel: string) =>
     `Dangerously hot, ${tempLabel} felt. Serious heat stroke risk. Not a ride day.`,
-  /** @param {string} tempLabel */
-  HEAT_WARNING: (tempLabel) =>
+  HEAT_WARNING: (tempLabel: string) =>
     `Very hot, ${tempLabel} felt. High risk of heat exhaustion. Ride early, or ride indoors.`,
 };

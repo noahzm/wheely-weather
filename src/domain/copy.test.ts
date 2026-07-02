@@ -5,7 +5,7 @@ import { BEST_DAYS_MESSAGES } from './copy';
 // within an hour, NOT random (see AGENTS.md / the inline warning in copy.js).
 // We exercise it through BEST_DAYS_MESSAGES.NONE(), which has 4 variants.
 describe('copy pick() variant selection', () => {
-  const atHour = (h) => vi.setSystemTime(new Date(2026, 5, 22, h, 30, 0));
+  const atHour = (h: number) => vi.setSystemTime(new Date(2026, 5, 22, h, 30, 0));
 
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
