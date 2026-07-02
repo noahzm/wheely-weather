@@ -1,165 +1,23 @@
-import { type RefObject, useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, Platform, type AppStateStatus } from 'react-native';
-import * as Location from 'expo-location';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-import {
-  addPinnedLocation,
-  loadPinnedLocations,
-  loadRecentLocations,
-  loadSavedLocation,
-  removePinnedLocation,
-  saveLocation,
-  saveRecentLocation,
-  type RecentLocation,
-  type SavedLocation,
-} from '@/services/locationStorage';
-import {
-  getForecastErrorKind,
-  getForecastSnapshot,
-  type ForecastSnapshot,
-} from '@/services/forecastSnapshot';
+import { saveLocation, saveRecentLocation, type RecentLocation, type SavedLocation } from '@/services/locationStorage';
+import { getForecastErrorKind } from '@/services/forecastSnapshot';
 import { useHomeLocation } from '@/hooks/settings-context';
 
-const STALE_REFRESH_MS = 15 * 60 * 1000;
-const LOCATION_DENIED_MESSAGE = 'Location access denied. Search for a city instead.';
-const LOCATION_INSECURE_MESSAGE =
-  'Location requires a secure connection (HTTPS). Search for a city instead.';
-
-function isWebInsecureContext(): boolean {
-  return Platform.OS === 'web' && !globalThis.isSecureContext;
-}
-
-interface ForecastState {
-  snapshot: ForecastSnapshot | null;
-  savedLocation: SavedLocation | null;
-  recentLocations: RecentLocation[];
-  pinnedLocations: RecentLocation[];
-  loading: boolean;
-  refreshing: boolean;
-  needsLocation: boolean;
-  errorKind: 'network' | 'default' | null;
-  statusMessage: string;
-}
-
-const INITIAL_FORECAST_STATE: ForecastState = {
-  snapshot: null,
-  savedLocation: null,
-  recentLocations: [],
-  pinnedLocations: [],
-  loading: true,
-  refreshing: false,
-  needsLocation: false,
-  errorKind: null,
-  statusMessage: '',
-};
-
-type ForecastLoadResult =
-  | { kind: 'needsLocation'; recentLocations: RecentLocation[]; pinnedLocations: RecentLocation[] }
-  | {
-      kind: 'loaded';
-      snapshot: ForecastSnapshot;
-      savedLocation: SavedLocation | null;
-      recentLocations: RecentLocation[];
-      pinnedLocations: RecentLocation[];
-    };
-
-async function resolveDeviceLocation(
-  requestIfUndetermined: boolean,
-): Promise<SavedLocation | null> {
-  let permission = await Location.getForegroundPermissionsAsync();
-  if (permission.status === Location.PermissionStatus.UNDETERMINED && requestIfUndetermined) {
-    permission = await Location.requestForegroundPermissionsAsync();
-  }
-  if (permission.status !== Location.PermissionStatus.GRANTED) {
-    return null;
-  }
-  const position = await Location.getCurrentPositionAsync({
-    accuracy: Location.Accuracy.Balanced,
-  });
-  return saveLocation({
-    lat: position.coords.latitude,
-    lon: position.coords.longitude,
-    name: null,
-    source: 'device',
-  });
-}
-
-async function loadForecastData(
-  locationOverride: SavedLocation | null | undefined,
-  mockScenario: string | null,
-  homeLocation: SavedLocation | null,
-): Promise<ForecastLoadResult> {
-  const [storedLocation, recentLocations, pinnedLocations] = await Promise.all([
-    locationOverride === undefined ? loadSavedLocation() : Promise.resolve(locationOverride),
-    loadRecentLocations(),
-    loadPinnedLocations(),
-  ]);
-
-  let savedLocation = storedLocation;
-  if (!mockScenario && !savedLocation) {
-    if (Platform.OS === 'web') {
-      return { kind: 'needsLocation', recentLocations, pinnedLocations };
-    }
-    savedLocation = await resolveDeviceLocation(true);
-    if (!savedLocation) {
-      return { kind: 'needsLocation', recentLocations, pinnedLocations };
-    }
-  }
-
-  const snapshot = await getForecastSnapshot({ savedLocation, homeLocation, mockScenario });
-  return { kind: 'loaded', snapshot, savedLocation, recentLocations, pinnedLocations };
-}
-
-async function requestDeviceLocation(): Promise<SavedLocation | null> {
-  const permission = await Location.requestForegroundPermissionsAsync();
-  if (permission.status !== Location.PermissionStatus.GRANTED) {
-    return null;
-  }
-  return resolveDeviceLocation(false);
-}
-
-// Device locations are stored without a name; once reverse geocoding resolves
-// one, persist it so later loads show the city immediately.
-function persistResolvedDeviceName(result: Extract<ForecastLoadResult, { kind: 'loaded' }>) {
-  const { savedLocation, snapshot } = result;
-  if (
-    !snapshot.mockScenario &&
-    savedLocation?.source === 'device' &&
-    !savedLocation.name &&
-    snapshot.location !== 'Your Location'
-  ) {
-    void saveLocation({ ...savedLocation, name: snapshot.location }).catch(() => {
-      /* best-effort */
-    });
-  }
-}
-
-async function togglePinnedLocation(
-  place: RecentLocation,
-  pinned: RecentLocation[],
-): Promise<RecentLocation[]> {
-  const pinnedNow = pinned.some((p) => p.lat === place.lat && p.lon === place.lon);
-  return pinnedNow ? removePinnedLocation(place.lat, place.lon) : addPinnedLocation(place);
-}
-
-function useStaleRefreshEffect(
-  loadForecast: (override?: SavedLocation | null, refreshOnly?: boolean) => Promise<void>,
-  lastLoadedAt: RefObject<number>,
-  needsLocationRef: RefObject<boolean>,
-) {
-  useEffect(() => {
-    const subscription = AppState.addEventListener('change', (nextState: AppStateStatus) => {
-      if (nextState !== 'active') return;
-      if (needsLocationRef.current) return;
-      if (!lastLoadedAt.current || Date.now() - lastLoadedAt.current > STALE_REFRESH_MS) {
-        void loadForecast(undefined, true);
-      }
-    });
-    return () => {
-      subscription.remove();
-    };
-  }, [loadForecast, lastLoadedAt, needsLocationRef]);
-}
+import {
+  isWebInsecureContext,
+  LOCATION_DENIED_MESSAGE,
+  LOCATION_INSECURE_MESSAGE,
+  requestDeviceLocation,
+} from './forecast/device-location';
+import {
+  INITIAL_FORECAST_STATE,
+  loadForecastData,
+  persistResolvedDeviceName,
+  togglePinnedLocation,
+  type ForecastState,
+} from './forecast/load-forecast-data';
+import { useStaleRefresh } from './forecast/use-stale-refresh';
 
 export function useWeatherForecast(mockScenario: string | null) {
   const [state, setState] = useState<ForecastState>(INITIAL_FORECAST_STATE);
@@ -227,7 +85,7 @@ export function useWeatherForecast(mockScenario: string | null) {
     void loadForecast();
   }, [loadForecast]);
 
-  useStaleRefreshEffect(loadForecast, lastLoadedAt, needsLocationRef);
+  useStaleRefresh(loadForecast, lastLoadedAt, needsLocationRef);
 
   const refresh = useCallback(() => {
     if (needsLocationRef.current) return;
