@@ -2,7 +2,6 @@ import type { Preview } from '@storybook/react-native-web-vite';
 
 import './preview.css';
 
-import { TartanBackground } from '../src/components/tartan-background';
 import { ColorSchemeOverrideContext } from '../src/hooks/use-theme';
 
 const preview: Preview = {
@@ -50,9 +49,7 @@ const preview: Preview = {
       const scheme = context.globals.theme === 'dark' ? 'dark' : 'light';
       return (
         <ColorSchemeOverrideContext.Provider value={scheme}>
-          <TartanBackground>
-            <Story />
-          </TartanBackground>
+          <Story />
         </ColorSchemeOverrideContext.Provider>
       );
     },

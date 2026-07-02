@@ -34,7 +34,7 @@ Scope your review to the changed files (use `git diff` / `git status` to find th
 ### Structure & surfaces
 
 - `src/components/wheely/` is **one component per file**, each re-exported from `src/components/wheely/index.ts`. New components must be added to that barrel. `src/components/wheely-ui.tsx` is a backward-compat barrel; new code should import from `@/components/wheely`.
-- Content surfaces use `BrutalCard` / `brutalShadow`; chrome (headers, nav/title pills) uses `GlassView` from `expo-glass-effect` over the tartan backdrop. Screens and the `Stack` run transparent so the tartan shows through — flag opaque screen backgrounds.
+- Content surfaces use `BrutalCard` / `brutalShadow`; chrome (headers, nav/title pills) uses `GlassView` from `expo-glass-effect` over the flat theme background. On web, screens and the `Stack` run transparent so the page's flat background shows through — flag opaque screen backgrounds there.
 
 ### Accessibility & polish
 
@@ -50,7 +50,7 @@ Scope your review to the changed files (use `git diff` / `git status` to find th
 Report findings grouped by severity:
 
 - **🔴 Must fix** — hardcoded colors, icons inside `<ThemedText>`, missing a11y on interactive elements, `lucide-react` imports, `lucide-react-native` regressed below `1.22.0`, missing barrel export, one-sided light/dark palette change.
-- **🟡 Should fix** — missing story coverage, opaque backgrounds breaking the tartan, missing pressed effect, raw font strings.
+- **🟡 Should fix** — missing story coverage, opaque backgrounds breaking the flat background, missing pressed effect, raw font strings.
 - **🟢 Nits** — minor naming/idiom drift from neighboring components.
 
 For each finding give `file:line`, the rule violated, and the concrete fix. If everything passes, say so plainly and note what you checked.
