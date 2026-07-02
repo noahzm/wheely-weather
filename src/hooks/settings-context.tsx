@@ -1,41 +1,72 @@
-import { createContext, useContext, useMemo, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 
 import * as Localization from 'expo-localization';
 
-import { useGearMode as useGearModeStore } from './use-gear-mode';
-import { useAppearance as useAppearanceStore } from './use-appearance';
-import { useHomeLocation as useHomeLocationStore } from './use-home-location';
-import { useTempUnit as useTempUnitStore } from './use-temp-unit';
-import type { Appearance, SavedLocation, TempUnitPreference } from '@/services/locationStorage';
+import {
+  clearHomeLocation,
+  loadAppearance,
+  loadGearMode,
+  loadHomeLocation,
+  loadTempUnit,
+  saveAppearance,
+  saveGearMode,
+  saveHomeLocation,
+  saveTempUnit,
+  type SavedLocation,
+} from '@/services/locationStorage';
+import type { Appearance, GearMode, TempUnitPreference } from '@/types/settings';
 import type { TempUnit } from '@/utils/temperature';
 
-type GearMode = 'casual' | 'pro';
-type GearTuple = readonly [GearMode, (next: GearMode) => void];
-type AppearanceTuple = readonly [Appearance, (next: Appearance) => void];
-type HomeLocationTuple = readonly [SavedLocation | null, (next: SavedLocation | null) => void];
-type TempUnitTuple = readonly [TempUnitPreference, (next: TempUnitPreference) => void];
+type SettingTuple<T> = readonly [T, (next: T) => void];
 
 interface SettingsValue {
-  gear: GearTuple;
-  appearance: AppearanceTuple;
-  homeLocation: HomeLocationTuple;
-  tempUnit: TempUnitTuple;
+  gear: SettingTuple<GearMode>;
+  appearance: SettingTuple<Appearance>;
+  homeLocation: SettingTuple<SavedLocation | null>;
+  tempUnit: SettingTuple<TempUnitPreference>;
+}
+
+/**
+ * One persisted setting: seeded from storage on mount, then written back on
+ * every change. Persistence is best-effort — write failures are swallowed so a
+ * flaky disk never breaks the in-session state.
+ */
+function usePersistedSetting<T>(
+  initial: T,
+  load: () => Promise<T>,
+  save: (next: T) => Promise<unknown>,
+): SettingTuple<T> {
+  const [value, setValue] = useState<T>(initial);
+
+  useEffect(() => {
+    void load().then(setValue);
+  }, [load]);
+
+  const select = (next: T) => {
+    setValue(next);
+    save(next).catch(() => {
+      // Best-effort persistence; ignore write failures.
+    });
+  };
+
+  return [value, select];
 }
 
 // ---------- context ----------
-// A single source of truth for the persisted gear mode and appearance
-// preference, shared app-wide. Previously each screen called the storage hooks
-// directly, so they held isolated state — toggling in Settings never reached
-// the root layout (theme) or the kit guide. The provider owns one instance of
-// each store hook and broadcasts it through context.
+// A single source of truth for the persisted settings, shared app-wide.
+// Screens must consume these hooks (not ad-hoc storage state) so a toggle in
+// Settings immediately reaches the root layout (theme) and the kit guide.
 const SettingsContext = createContext<SettingsValue | null>(null);
 
 // ---------- provider ----------
 export function SettingsProvider({ children }: Readonly<{ children: ReactNode }>) {
-  const gear = useGearModeStore();
-  const appearance = useAppearanceStore();
-  const homeLocation = useHomeLocationStore();
-  const tempUnit = useTempUnitStore();
+  const gear = usePersistedSetting<GearMode>('casual', loadGearMode, saveGearMode);
+  const appearance = usePersistedSetting<Appearance>('system', loadAppearance, saveAppearance);
+  const homeLocation = usePersistedSetting<SavedLocation | null>(null, loadHomeLocation, (next) =>
+    next ? saveHomeLocation(next) : clearHomeLocation(),
+  );
+  const tempUnit = usePersistedSetting<TempUnitPreference>('auto', loadTempUnit, saveTempUnit);
   const value = useMemo<SettingsValue>(
     () => ({ gear, appearance, homeLocation, tempUnit }),
     [gear, appearance, homeLocation, tempUnit],
@@ -50,21 +81,21 @@ function useSettings(): SettingsValue {
 }
 
 // ---------- consumers ----------
-// Drop-in replacements for the standalone hooks: same `[value, setter]` shape,
-// but reading from the shared provider so all screens stay in sync.
-export function useGearMode(): GearTuple {
+// Same `[value, setter]` shape as useState, reading from the shared provider
+// so all screens stay in sync.
+export function useGearMode(): SettingTuple<GearMode> {
   return useSettings().gear;
 }
 
-export function useAppearance(): AppearanceTuple {
+export function useAppearance(): SettingTuple<Appearance> {
   return useSettings().appearance;
 }
 
-export function useHomeLocation(): HomeLocationTuple {
+export function useHomeLocation(): SettingTuple<SavedLocation | null> {
   return useSettings().homeLocation;
 }
 
-export function useTempUnit(): TempUnitTuple {
+export function useTempUnit(): SettingTuple<TempUnitPreference> {
   return useSettings().tempUnit;
 }
 

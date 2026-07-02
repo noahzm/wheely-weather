@@ -48,7 +48,7 @@ Expo Router + React Native app (iOS, Android, web) that scores how good conditio
 - `src/utils/` — formatting/label helpers (`forecastHelpers`, `weatherLabels`, `hourlyChart`, `timeFormat`).
 - `src/services/` — data fetching, storage, snapshots. `locationSearch.ios.ts` uses Apple's native geocoder (via `modules/apple-location-search`); `locationSearch.ts` is the non-iOS fallback.
 - `src/constants/theme.ts` — palette + typography source of truth (also `Spacing`, `MaxContentWidth`, `TRANSPARENT`).
-- `src/hooks/use-theme.ts` — theme resolution and color hooks; `use-gear-mode.ts` — persisted Everyday/Performance (`casual`/`pro`) gear mode.
+- `src/hooks/use-theme.ts` — theme resolution and color hooks.
 - `src/stories/` — Storybook stories and fixtures.
 - `modules/apple-location-search` — custom Expo native module wrapping Apple's `MKLocalSearch`.
 
@@ -58,7 +58,7 @@ Expo Router + React Native app (iOS, Android, web) that scores how good conditio
 
 Before the weather fetch, `getForecastSnapshot()` (`src/services/forecastSnapshot.ts`) resolves acclimatization context by calling `homeClimate.ts` and baking adjusted thresholds into the snapshot. Mock scenarios bypass acclimatization and use base `THRESHOLDS` directly.
 
-App-wide **settings** (gear mode + appearance preference + home location) flow through a separate `SettingsProvider` / `settings-context.tsx`, the outermost provider in `_layout`. Consume `useGearMode` / `useAppearance` / `useHomeLocation` from `@/hooks/settings-context` — **not** the standalone store hooks (`use-gear-mode`, `use-appearance`, `use-home-location`), which hold isolated state, so a toggle in Settings never reaches the theme or kit guide.
+App-wide **settings** (gear mode + appearance preference + home location + temperature unit) flow through a separate `SettingsProvider` / `settings-context.tsx`, the outermost provider in `_layout`. State + persistence live directly in the provider (one `usePersistedSetting` helper per setting); consume `useGearMode` / `useAppearance` / `useHomeLocation` / `useTempUnit` / `useResolvedTempUnit` from `@/hooks/settings-context`. Do not create standalone store hooks holding their own `useState` for these — isolated state means a toggle in Settings never reaches the theme or kit guide. The preference types (`GearMode`, `Appearance`, `TempUnitPreference`) and their label/value option arrays live in `src/types/settings.ts`.
 
 ### Mock dev scenarios
 
