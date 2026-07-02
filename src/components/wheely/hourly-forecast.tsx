@@ -47,9 +47,6 @@ function makeStyles(c: WheelyPalette) {
     hourChart: {
       position: 'relative',
     },
-    webChartScroll: {
-      overscrollBehaviorX: 'none',
-    },
     scrollContent: {
       flexDirection: 'row',
     },
@@ -263,7 +260,6 @@ function HourlyChartShell({
         horizontal
         showsHorizontalScrollIndicator={false}
         decelerationRate="fast"
-        style={isWeb ? styles.webChartScroll : undefined}
         snapToOffsets={snapToOffsets}
         scrollEventThrottle={16}
         onScroll={onWebScroll ?? scrollHandler}
