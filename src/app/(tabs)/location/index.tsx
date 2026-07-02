@@ -11,13 +11,8 @@ import { Stack } from 'expo-router';
 import { Search, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import {
-  BrutalCard,
-  HapticPressable,
-  WebContentColumn,
-  WebScreenHeader,
-  bottomNavBarHeight,
-} from '@/components/wheely';
+import { WebContentColumn, WebScreenHeader, bottomNavBarHeight } from '@/components/wheely';
+import { BrutalCard, HapticPressable } from '@/components/wheely/primitives';
 import { LocationSearchList } from '@/components/wheely/location-search-list';
 import { useLocationSearchScreen } from '@/hooks/use-location-search-screen';
 import { useWheelyColors } from '@/hooks/use-theme';

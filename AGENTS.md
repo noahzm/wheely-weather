@@ -16,14 +16,14 @@ Expo Router + React Native app (iOS, Android, web) that scores how good conditio
 - `npm run format` / `npm run format:check` — Prettier.
 - `npm test` — unit tests (`vitest run --project unit`).
 - `npm run test:e2e` — Playwright e2e (`e2e/`).
-- `npx vitest run --project unit src/domain/weather.test.js` — run a single test file.
+- `npx vitest run --project unit src/domain/weather.test.ts` — run a single test file.
 - `npx tsc --noEmit` — typecheck.
 
 ### Testing notes
 
 - `npm test` runs only the `unit` Vitest project (Node env): `src/**/*.{test,spec}.*`, excluding stories. Pure domain/utils logic lives here.
 - The `storybook` Vitest project runs stories in a real browser via Playwright. It needs `npx playwright install` first; in restricted/sandboxed environments it will fail to launch Chromium, so prefer `--project unit` there.
-- Domain and utility logic (`src/domain`, `src/utils`) is plain JS/TS with colocated `*.test.{js,ts}` — keep it framework-free and unit-tested.
+- Domain and utility logic (`src/domain`, `src/utils`) is TypeScript with colocated `*.test.{ts}` — keep domain framework-free and unit-tested.
 - `npm run test:e2e` runs Playwright against Storybook (not the app), so Storybook must build successfully first.
 - CI runs all four gates (format, lint, typecheck, test) regardless of earlier failures.
 
@@ -39,16 +39,17 @@ Expo Router + React Native app (iOS, Android, web) that scores how good conditio
 ## Architecture
 
 - `src/app/` — Expo Router routes under a `(tabs)` group with three children: `(home)`, `(location)`, `(settings)`. The root `_layout.tsx` is wrapped in `SettingsProvider` (outermost), loads National Park, sets the status bar, and nests `ForecastProvider` + `TartanBackground` around a transparent navigator. Tabs use `expo-router/unstable-native-tabs` `NativeTabs` on iOS/Android — SF Symbols (`sf="house.fill"`, `sf="gearshape.fill"`) on iOS, Material icons on Android. `_layout.web.tsx` provides a platform-split web tab treatment.
-- `src/components/wheely/` — the presentational components, split one-per-file (representative, not exhaustive): `primitives` (`SectionTitle`, `Chip`, `BurstChip`, `BrutalCard`, `brutalShadow`, icon maps, helpers), `weather-header`, `ride-verdict`, `weather-alerts`, `hourly-forecast`, `kit-guide`, `ride-specs`, `daily-forecast`, `status` (`ErrorState`/`LoadingState`/`LocationPromptState`); chrome (`glass-chrome`, `home-nav-chrome`, `bottom-nav-chrome` (exports `bottomNavBarHeight(insetsBottom)` for clearing the nav bar inset), `web-screen-header`, `content-column`); `settings-form` (+ `.ios`/`.types`), `settings-home-section`; animation helpers (`animated-condition-chip`, `animated-expand`); and colocated chart hooks (`use-hourly-forecast-chart`, `use-hourly-scroll-picker`). Import from `@/components/wheely` (barrel at `src/components/wheely/index.ts`).
+- `src/components/wheely/` — the presentational components, split one-per-file (representative, not exhaustive): `primitives` (`SectionTitle`, `Chip`, `BurstChip`, `BrutalCard`, `brutalShadow`, icon maps, helpers — import from `@/components/wheely/primitives`, not the barrel), `weather-header`, `ride-verdict`, `weather-alerts`, `hourly-forecast` (+ siblings `hourly-chart-dot`, `hourly-chart-graphic`, `hourly-note-stickers`), `kit-guide`, `ride-specs`, `daily-forecast`, `status` (`ErrorState`/`LoadingState`/`LocationPromptState`); chrome (`glass-chrome`, `home-nav-chrome`, `bottom-nav-chrome` (exports `bottomNavBarHeight(insetsBottom)` for clearing the nav bar inset), `web-screen-header`, `content-column`); `settings-form` (+ `.ios`/`.types`), `settings-home-section`; animation helpers (`animated-condition-chip`, `animated-expand`); and colocated chart hooks (`use-hourly-forecast-chart`, `use-hourly-scroll-picker`). Import screen-level components from `@/components/wheely` (barrel at `src/components/wheely/index.ts`).
 - `src/components/tartan-background.tsx` — full-screen repeating tartan tile rendered via a `react-native-svg` `Pattern` (web re-resolves the asset URL), with a light/dark scrim.
-- `src/domain/acclimatization.js` — shifts the hot-side of TEMPERATURE and DEWPOINT comfort thresholds based on a rider's home climate baseline (dampened 0.5×, capped at 6 °F / 7 °F). Hard hazard ceilings (`BAD_MAX`) never move, so dangerous days still score "bad" regardless of acclimatization. `getAcclimatizationNote()` returns the contextual note shown in `RideVerdict`.
+- `src/domain/` — weather scoring + copy (framework-agnostic TypeScript). `weather.ts` is a re-export barrel; implementation lives in `scoring.ts`, `weather-codes.ts`, `ride-factors.ts`, `gear.ts`, and `alerts.ts`. `acclimatization.ts` shifts the hot-side of TEMPERATURE and DEWPOINT comfort thresholds based on a rider's home climate baseline (dampened 0.5×, capped at 6 °F / 7 °F). Hard hazard ceilings (`BAD_MAX`) never move, so dangerous days still score "bad" regardless of acclimatization. `getAcclimatizationNote()` returns the contextual note shown in `RideVerdict`.
 - `src/services/homeClimate.ts` — fetches 30 days of weather from Open-Meteo and computes the 75th-percentile of daily highs/dews to derive `HomeBaseline { warmTemp, warmDewpoint }`. Caches per ~11 km-rounded location for 7 days in AsyncStorage. Returns null on failure (best-effort; 4-second timeout).
 - `src/utils/haptics.ts` — `verdictFeedback(status)` fires tone-matched notification haptics (`'yes'` → Success, `'maybe'` → Warning, `'no'` → Error). Rejections are swallowed (no-op on web).
-- `src/domain/` — weather scoring + copy (framework-agnostic).
-- `src/utils/` — formatting/label helpers (`forecastHelpers`, `weatherLabels`, `hourlyChart`, `timeFormat`).
-- `src/services/` — data fetching, storage, snapshots. `locationSearch.ios.ts` uses Apple's native geocoder (via `modules/apple-location-search`); `locationSearch.ts` is the non-iOS fallback.
+- `src/utils/` — formatting/label helpers (`forecastHelpers`, `weatherLabels`, `hourlyChart`, `timeFormat`, `temperature`).
+- `src/services/` — data fetching, storage, snapshots (all TypeScript). `locationSearch.ios.ts` uses Apple's native geocoder (via `modules/apple-location-search`); `locationSearch.ts` is the non-iOS fallback. Mock scenarios are resolved only in `forecastSnapshot.ts` — services do not sniff `?mock=` globally.
 - `src/constants/theme.ts` — palette + typography source of truth (also `Spacing`, `MaxContentWidth`, `TRANSPARENT`).
 - `src/hooks/use-theme.ts` — theme resolution and color hooks.
+- `src/hooks/use-temperature-display.ts` — `useTemperatureDisplay()` wraps resolved temp unit + `formatTemperature` for screen-level call sites.
+- `src/hooks/forecast/` — `device-location.ts`, `load-forecast-data.ts`, `use-stale-refresh.ts`; consumed by `use-weather-forecast.ts`.
 - `src/stories/` — Storybook stories and fixtures.
 - `modules/apple-location-search` — custom Expo native module wrapping Apple's `MKLocalSearch`.
 
@@ -62,7 +63,7 @@ App-wide **settings** (gear mode + appearance preference + home location + tempe
 
 ### Mock dev scenarios
 
-Pass `?mock=ride|maybe|rest|alert` as a URL query param (web) or deep-link param (native) to load fixture data instead of hitting the live API. The `ForecastProvider` reads `useGlobalSearchParams().mock` and passes it to `useWeatherForecast`.
+Pass `?mock=ride|maybe|rest|alert` as a URL query param (web) or deep-link param (native) to load fixture data instead of hitting the live API. The `ForecastProvider` reads `useGlobalSearchParams().mock` and passes it to `useWeatherForecast`, which forwards `mockScenario` to `getForecastSnapshot` — the sole mock branch owner.
 
 ## Conventions
 

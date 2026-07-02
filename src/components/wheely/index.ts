@@ -1,17 +1,3 @@
-export {
-  SectionTitle,
-  Chip,
-  BurstChip,
-  BrutalCard,
-  HapticPressable,
-  brutalShadow,
-  ButtonRadius,
-  makeButtonStyles,
-  weatherIconFor,
-  GEAR_ICONS,
-  asCondition,
-  formatTime,
-} from './primitives';
 export { GlassChrome } from './glass-chrome';
 export { contentColumnStyle, screenGutterStyle, WebContentColumn } from './content-column';
 export { NavLocationTitle } from './home-nav-chrome';

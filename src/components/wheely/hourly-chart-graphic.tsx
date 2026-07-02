@@ -1,6 +1,10 @@
 import { useMemo } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
-import Animated, { useAnimatedStyle, useReducedMotion, type SharedValue } from 'react-native-reanimated';
+import Animated, {
+  useAnimatedStyle,
+  useReducedMotion,
+  type SharedValue,
+} from 'react-native-reanimated';
 import Svg, { Defs, Line, LinearGradient, Path, Stop, Text as SvgText } from 'react-native-svg';
 
 import { useWheelyColors } from '@/hooks/use-theme';

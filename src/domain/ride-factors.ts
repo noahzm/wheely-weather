@@ -1,9 +1,5 @@
 import { THRESHOLDS, type Thresholds } from './constants';
-import {
-  STATUS_MESSAGES as MSG,
-  RAIN_MESSAGES,
-  DAYLIGHT_MESSAGES,
-} from './copy';
+import { STATUS_MESSAGES as MSG, RAIN_MESSAGES, DAYLIGHT_MESSAGES } from './copy';
 import {
   evaluateCondition,
   evaluateWind,
