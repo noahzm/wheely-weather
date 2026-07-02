@@ -8,37 +8,54 @@ import {
   isThunderstorm,
 } from '../domain/weather';
 
-/** @typedef {import('@/types/weather').MockScenario} MockScenario */
-/** @typedef {import('@/types/weather').Weather} Weather */
-/** @typedef {import('@/types/weather').WeatherAlert} WeatherAlert */
-/**
- * @typedef {{
- *   label: string;
- *   current: {
- *     temperature?: number;
- *     feelsLike: number;
- *     windSpeed: number;
- *     windGust: number;
- *     windDirection: number;
- *     rainChance: number;
- *     weatherCode: number;
- *     dewpoint: number;
- *     aqi: number;
- *     uvIndex: number;
- *     uvIndexDailyMax: number;
- *   };
- *   hourTemplate: (h: number) => { temperature?: number; feelsLike: number; windSpeed: number; windGust: number; rainChance: number; dewpoint: number; weatherCode: number; uv: number };
- *   dayTemplate: (i: number) => { high: number; low: number; windSpeed: number; windGust: number; rainChance: number; weatherCode: number };
- *   sunrise: string;
- *   sunset: string;
- *   sunriseHour: number;
- *   sunsetHour: number;
- *   nwsAlerts: WeatherAlert[];
- * }} MockScenarioSpec
- */
+import type { HourlyWeather, MockScenario, Weather, WeatherAlert } from '@/types/weather';
 
-/** @type {Record<MockScenario, MockScenarioSpec>} */
-const SCENARIOS = {
+interface MockScenarioSpec {
+  label: string;
+  current: {
+    temperature?: number;
+    feelsLike: number;
+    windSpeed: number;
+    windGust: number;
+    windDirection: number;
+    rainChance: number;
+    weatherCode: number;
+    dewpoint: number;
+    aqi: number;
+    uvIndex: number;
+    uvIndexDailyMax: number;
+  };
+  hourTemplate: (h: number) => {
+    temperature?: number;
+    feelsLike: number;
+    windSpeed: number;
+    windGust: number;
+    rainChance: number;
+    dewpoint: number;
+    weatherCode: number;
+    uv: number;
+  };
+  dayTemplate: (i: number) => {
+    high: number;
+    low: number;
+    windSpeed: number;
+    windGust: number;
+    rainChance: number;
+    weatherCode: number;
+  };
+  sunrise: string;
+  sunset: string;
+  sunriseHour: number;
+  sunsetHour: number;
+  nwsAlerts: WeatherAlert[];
+}
+
+/** Narrows an arbitrary value to a known mock scenario name. */
+export function isMockScenario(value: unknown): value is MockScenario {
+  return typeof value === 'string' && value in SCENARIOS;
+}
+
+const SCENARIOS: Record<MockScenario, MockScenarioSpec> = {
   ride: {
     label: 'Ride Day',
     current: {
@@ -205,45 +222,40 @@ const SCENARIOS = {
 };
 
 /** Reads `?mock=<scenario>` from URL params. Returns null when not in mock mode. */
-/** @param {URLSearchParams} params @returns {MockScenario | null} */
-export function getMockScenarioFromParams(params) {
+export function getMockScenarioFromParams(params: URLSearchParams): MockScenario | null {
   const value = params.get('mock');
-  return value && value in SCENARIOS ? /** @type {MockScenario} */ (value) : null;
+  return isMockScenario(value) ? value : null;
 }
 
 /** Reads `?mock=<scenario>` from the browser URL. Returns null when not in mock mode. */
-export function getMockScenario() {
+export function getMockScenario(): MockScenario | null {
   // React Native polyfills `window` but not necessarily `location` (varies by
   // dev/release runtime), so guard on the actual value we need.
-  const search = globalThis.location?.search;
+  if (!('location' in globalThis)) return null;
+  const search = globalThis.location.search;
   if (typeof search !== 'string') return null;
   return getMockScenarioFromParams(new URLSearchParams(search));
 }
 
 /** Returns true when mock mode is active. */
-export function isMockMode() {
+export function isMockMode(): boolean {
   return getMockScenario() !== null;
 }
 
 /** Display label for the active scenario (used to override the location name). */
-/** @param {MockScenario | string | null | undefined} scenario */
-export function getMockLocationLabel(scenario) {
-  const s =
-    scenario && scenario in SCENARIOS ? SCENARIOS[/** @type {MockScenario} */ (scenario)] : null;
+export function getMockLocationLabel(scenario: string | null | undefined): string | null {
+  const s = isMockScenario(scenario) ? SCENARIOS[scenario] : null;
   return s ? `Mock: ${s.label}` : null;
 }
 
 /** Builds the full normalized weather payload for the given scenario. */
-/** @param {MockScenario | string | null | undefined} scenario @returns {Weather | null} */
-export function buildMockWeather(scenario) {
-  const spec =
-    scenario && scenario in SCENARIOS ? SCENARIOS[/** @type {MockScenario} */ (scenario)] : null;
+export function buildMockWeather(scenario: string | null | undefined): Weather | null {
+  const spec = isMockScenario(scenario) ? SCENARIOS[scenario] : null;
   if (!spec) return null;
 
   const nowHour = new Date().getHours();
 
-  /** @param {number} absHour */
-  const buildHour = (absHour) => {
+  const buildHour = (absHour: number): HourlyWeather => {
     const h = ((absHour % 24) + 24) % 24;
     const t = spec.hourTemplate(h);
     const temperature = t.temperature ?? t.feelsLike;

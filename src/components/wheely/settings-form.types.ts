@@ -1,13 +1,13 @@
 import type { Appearance, GearMode, TempUnitPreference } from '@/types/settings';
 
-
 export {
   GEAR_LABELS,
   GEAR_MODES,
   APPEARANCE_LABELS,
   APPEARANCE_VALUES,
   TEMP_UNIT_LABELS,
-  TEMP_UNIT_VALUES, type GearMode,
+  TEMP_UNIT_VALUES,
+  type GearMode,
 } from '@/types/settings';
 
 export interface SettingsFormProps {

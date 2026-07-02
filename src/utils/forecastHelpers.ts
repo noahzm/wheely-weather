@@ -53,8 +53,11 @@ function bestDayRationale(day: DailyWeather): string {
 }
 
 /** Finds the index and rationale of the single best day for cycling in the 8-day forecast. */
-export function getBestDayInfo(daily: DailyWeather[]): { index: number; rationale: string } {
-  if (daily.length === 0) return { index: -1, rationale: '' };
+export function getBestDayInfo(daily: DailyWeather[] | null | undefined): {
+  index: number;
+  rationale: string;
+} {
+  if (!daily || daily.length === 0) return { index: -1, rationale: '' };
 
   let bestIdx = -1;
   let bestScore = -Infinity;

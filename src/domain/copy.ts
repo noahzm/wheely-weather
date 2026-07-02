@@ -6,8 +6,7 @@
 import type { RideStatus } from '@/types/weather';
 
 // Stable pick helper to prevent flickering on re-renders.
-const pick = <T,>(arr: readonly [T, ...T[]]): T =>
-  arr[new Date().getHours() % arr.length] ?? arr[0];
+const pick = <T>(arr: readonly [T, ...T[]]): T => arr[new Date().getHours() % arr.length] ?? arr[0];
 
 /** djb2-style hash for deterministic, seed-varied picks. */
 function seededHash(str: string): number {
