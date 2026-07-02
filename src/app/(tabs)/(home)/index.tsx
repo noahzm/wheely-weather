@@ -7,17 +7,16 @@ import { useRouter } from 'expo-router';
 import {
   DailyForecast,
   ErrorState,
-  HapticPressable,
   HourlyForecast,
   KitGuide,
   LoadingState,
   LocationPromptState,
   RideSpecs,
   RideVerdict,
-  SectionTitle,
   WeatherAlerts,
   bottomNavBarHeight,
 } from '@/components/wheely';
+import { HapticPressable, SectionTitle } from '@/components/wheely/primitives';
 import { ThemedText } from '@/components/themed-text';
 import {
   getAcclimatizationNote,

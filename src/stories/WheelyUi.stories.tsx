@@ -3,8 +3,6 @@ import { fn } from 'storybook/test';
 import { View } from 'react-native';
 
 import {
-  BrutalCard,
-  Chip,
   DailyForecast,
   ErrorState,
   HourlyForecast,
@@ -12,10 +10,10 @@ import {
   LoadingState,
   RideSpecs,
   RideVerdict,
-  SectionTitle,
   WeatherAlerts,
   WeatherHeader,
 } from '@/components/wheely';
+import { BrutalCard, Chip, SectionTitle } from '@/components/wheely/primitives';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 

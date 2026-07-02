@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { saveLocation, saveRecentLocation, type RecentLocation, type SavedLocation } from '@/services/locationStorage';
+import {
+  saveLocation,
+  saveRecentLocation,
+  type RecentLocation,
+  type SavedLocation,
+} from '@/services/locationStorage';
 import { getForecastErrorKind } from '@/services/forecastSnapshot';
 import { useHomeLocation } from '@/hooks/settings-context';
 

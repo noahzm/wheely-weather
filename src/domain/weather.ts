@@ -5,11 +5,7 @@ export {
   getHourlyCondition,
   getOverallStatus,
 } from './scoring';
-export {
-  getWeatherCodeCondition,
-  getWeatherDescription,
-  isThunderstorm,
-} from './weather-codes';
+export { getWeatherCodeCondition, getWeatherDescription, isThunderstorm } from './weather-codes';
 export {
   getBestRideWindow,
   getDaylightWarning,
