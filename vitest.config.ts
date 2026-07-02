@@ -18,6 +18,14 @@ export default defineConfig({
     },
   },
   test: {
+    coverage: {
+      thresholds: {
+        statements: 90,
+        branches: 85,
+        functions: 93,
+        lines: 93,
+      },
+    },
     projects: [
       {
         test: {
