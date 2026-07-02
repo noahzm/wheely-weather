@@ -1,5 +1,5 @@
 import { type RefObject, useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, type AppStateStatus } from 'react-native';
+import { AppState, Platform, type AppStateStatus } from 'react-native';
 import * as Location from 'expo-location';
 
 import {
@@ -22,6 +22,12 @@ import { useHomeLocation } from '@/hooks/settings-context';
 
 const STALE_REFRESH_MS = 15 * 60 * 1000;
 const LOCATION_DENIED_MESSAGE = 'Location access denied. Search for a city instead.';
+const LOCATION_INSECURE_MESSAGE =
+  'Location requires a secure connection (HTTPS). Search for a city instead.';
+
+function isWebInsecureContext(): boolean {
+  return Platform.OS === 'web' && !globalThis.isSecureContext;
+}
 
 interface ForecastState {
   snapshot: ForecastSnapshot | null;
@@ -91,6 +97,9 @@ async function loadForecastData(
 
   let savedLocation = storedLocation;
   if (!mockScenario && !savedLocation) {
+    if (Platform.OS === 'web') {
+      return { kind: 'needsLocation', recentLocations, pinnedLocations };
+    }
     savedLocation = await resolveDeviceLocation(true);
     if (!savedLocation) {
       return { kind: 'needsLocation', recentLocations, pinnedLocations };
@@ -107,6 +116,22 @@ async function requestDeviceLocation(): Promise<SavedLocation | null> {
     return null;
   }
   return resolveDeviceLocation(false);
+}
+
+// Device locations are stored without a name; once reverse geocoding resolves
+// one, persist it so later loads show the city immediately.
+function persistResolvedDeviceName(result: Extract<ForecastLoadResult, { kind: 'loaded' }>) {
+  const { savedLocation, snapshot } = result;
+  if (
+    !snapshot.mockScenario &&
+    savedLocation?.source === 'device' &&
+    !savedLocation.name &&
+    snapshot.location !== 'Your Location'
+  ) {
+    void saveLocation({ ...savedLocation, name: snapshot.location }).catch(() => {
+      /* best-effort */
+    });
+  }
 }
 
 async function togglePinnedLocation(
@@ -170,6 +195,8 @@ export function useWeatherForecast(mockScenario: string | null) {
           return;
         }
 
+        persistResolvedDeviceName(result);
+
         lastLoadedAt.current = Date.now();
         needsLocationRef.current = false;
         setState((current) => ({
@@ -228,6 +255,10 @@ export function useWeatherForecast(mockScenario: string | null) {
   );
 
   const useDeviceLocation = useCallback(async () => {
+    if (isWebInsecureContext()) {
+      setState((current) => ({ ...current, statusMessage: LOCATION_INSECURE_MESSAGE }));
+      return false;
+    }
     setState((current) => ({ ...current, statusMessage: 'Checking your device location...' }));
     const next = await requestDeviceLocation();
     if (!next) {

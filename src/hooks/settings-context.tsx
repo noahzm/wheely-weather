@@ -1,19 +1,25 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
 
+import * as Localization from 'expo-localization';
+
 import { useGearMode as useGearModeStore } from './use-gear-mode';
 import { useAppearance as useAppearanceStore } from './use-appearance';
 import { useHomeLocation as useHomeLocationStore } from './use-home-location';
-import type { Appearance, SavedLocation } from '@/services/locationStorage';
+import { useTempUnit as useTempUnitStore } from './use-temp-unit';
+import type { Appearance, SavedLocation, TempUnitPreference } from '@/services/locationStorage';
+import type { TempUnit } from '@/utils/temperature';
 
 type GearMode = 'casual' | 'pro';
 type GearTuple = readonly [GearMode, (next: GearMode) => void];
 type AppearanceTuple = readonly [Appearance, (next: Appearance) => void];
 type HomeLocationTuple = readonly [SavedLocation | null, (next: SavedLocation | null) => void];
+type TempUnitTuple = readonly [TempUnitPreference, (next: TempUnitPreference) => void];
 
 interface SettingsValue {
   gear: GearTuple;
   appearance: AppearanceTuple;
   homeLocation: HomeLocationTuple;
+  tempUnit: TempUnitTuple;
 }
 
 // ---------- context ----------
@@ -29,9 +35,10 @@ export function SettingsProvider({ children }: Readonly<{ children: ReactNode }>
   const gear = useGearModeStore();
   const appearance = useAppearanceStore();
   const homeLocation = useHomeLocationStore();
+  const tempUnit = useTempUnitStore();
   const value = useMemo<SettingsValue>(
-    () => ({ gear, appearance, homeLocation }),
-    [gear, appearance, homeLocation],
+    () => ({ gear, appearance, homeLocation, tempUnit }),
+    [gear, appearance, homeLocation, tempUnit],
   );
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;
 }
@@ -55,4 +62,18 @@ export function useAppearance(): AppearanceTuple {
 
 export function useHomeLocation(): HomeLocationTuple {
   return useSettings().homeLocation;
+}
+
+export function useTempUnit(): TempUnitTuple {
+  return useSettings().tempUnit;
+}
+
+/**
+ * Resolves the persisted preference to a concrete display unit — 'auto'
+ * follows the device locale, falling back to Fahrenheit when unknown.
+ */
+export function useResolvedTempUnit(): TempUnit {
+  const [preference] = useTempUnit();
+  if (preference !== 'auto') return preference;
+  return Localization.getLocales()[0].temperatureUnit ?? 'fahrenheit';
 }

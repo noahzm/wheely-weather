@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import { buildSections, type RowItem } from '@/components/wheely/location-search-list.types';
@@ -7,24 +8,38 @@ import { searchLocations } from '@/services/locationSearch';
 import type { RecentLocation } from '@/services/locationStorage';
 
 function useLocationSearch(query: string) {
+  const trimmed = query.trim();
+  const [fetchKey, setFetchKey] = useState('');
   const [results, setResults] = useState<RecentLocation[]>([]);
   const [message, setMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const trimmed = query.trim();
     if (trimmed.length < 2) return;
+
     const controller = new AbortController();
     const runSearch = async () => {
+      setFetchKey(trimmed);
+      setResults([]);
       setMessage('Searching…');
+      setIsLoading(true);
       try {
         const places = await searchLocations(trimmed, { signal: controller.signal });
+        if (controller.signal.aborted) return;
         setResults(
           (places as (RecentLocation | null)[]).filter((p): p is RecentLocation => p != null),
         );
         setMessage(places.length > 0 ? '' : 'No matches.');
       } catch (error: unknown) {
-        if (error instanceof Error && error.name === 'AbortError') return;
-        setMessage('Search unavailable. Try again.');
+        if (controller.signal.aborted) return;
+        const rateLimited = error instanceof Error && error.message === 'Rate limited';
+        setMessage(
+          rateLimited ? 'Too many searches. Try again shortly.' : 'Search unavailable. Try again.',
+        );
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
       }
     };
     const timer = setTimeout(() => void runSearch(), 300);
@@ -32,9 +47,15 @@ function useLocationSearch(query: string) {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [query]);
+  }, [trimmed]);
 
-  return { results, message };
+  if (trimmed.length < 2) {
+    return { results: [], message: '', isLoading: false };
+  }
+  if (fetchKey !== trimmed) {
+    return { results: [], message: 'Searching…', isLoading: true };
+  }
+  return { results, message, isLoading };
 }
 
 export function useLocationSearchScreen() {
@@ -43,10 +64,16 @@ export function useLocationSearchScreen() {
 
   const [query, setQuery] = useState('');
   const [busy, setBusy] = useState(false);
-  const { results, message } = useLocationSearch(query);
+  const { results, message, isLoading } = useLocationSearch(query);
 
   const goToHome = useCallback(() => {
-    router.navigate('/');
+    // On web the tabs render as a Stack; navigate() pushes a duplicate home
+    // screen instead of unwinding, so dismiss back to it. Native tabs switch.
+    if (Platform.OS === 'web') {
+      router.dismissTo('/');
+    } else {
+      router.navigate('/');
+    }
   }, [router]);
 
   const choosePlace = useCallback(
@@ -95,6 +122,7 @@ export function useLocationSearchScreen() {
     setQuery,
     busy,
     message,
+    isLoading,
     isSearching,
     resultsCount: results.length,
     sections,

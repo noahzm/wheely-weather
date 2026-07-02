@@ -76,8 +76,8 @@ Pass `?mock=ride|maybe|rest|alert` as a URL query param (web) or deep-link param
 
 ### Typography
 
-- The app uses a single typeface, **National Park**, mapped to all roles in `Fonts` (`theme.ts`): `sans`/`mono`/`rounded` → `NationalPark_400Regular`, `display`/`monoBold` → `NationalPark_700Bold`.
-- `src/global.css` defines the `--font-*` CSS vars the web `Fonts` roles resolve to. Storybook loads the actual web font files via `@fontsource/national-park` `@import`s in `.storybook/preview.css`; Expo web and native load it via `expo-font` / `@expo-google-fonts/national-park` in `app/_layout.tsx`. Update both surfaces when adding a weight.
+- The app uses a single typeface, **National Park**, mapped to all roles in `Fonts` (`theme.ts`). On native every role resolves to the weighted `National Park` family embedded at build time by the `expo-font` config plugin (`app.json`), so `fontWeight` (`FontWeightBold` = 700 on native) selects the bold variant — Android needs this (a runtime-registered single-weight family + `fontWeight: 700` falls back to Roboto). On web the roles resolve to `--font-*` CSS vars (`src/global.css`) backed by `@font-face` families from `useFonts` in `app/_layout.tsx` (web-only; native skips the runtime load since fonts are build-time embedded).
+- Storybook loads the actual web font files via `@fontsource/national-park` `@import`s in `.storybook/preview.css`. Update both surfaces (config plugin in `app.json` + `@expo-google-fonts/national-park` TTF paths, and `@fontsource` import in `.storybook/preview.css`) when adding a weight.
 
 ### Icons
 

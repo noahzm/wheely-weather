@@ -213,8 +213,11 @@ export function getMockScenarioFromParams(params) {
 
 /** Reads `?mock=<scenario>` from the browser URL. Returns null when not in mock mode. */
 export function getMockScenario() {
-  if (globalThis.window === undefined) return null;
-  return getMockScenarioFromParams(new URLSearchParams(globalThis.location.search));
+  // React Native polyfills `window` but not necessarily `location` (varies by
+  // dev/release runtime), so guard on the actual value we need.
+  const search = globalThis.location?.search;
+  if (typeof search !== 'string') return null;
+  return getMockScenarioFromParams(new URLSearchParams(search));
 }
 
 /** Returns true when mock mode is active. */

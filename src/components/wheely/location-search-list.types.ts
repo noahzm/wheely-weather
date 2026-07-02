@@ -50,6 +50,7 @@ export interface LocationSearchListProps {
   sections: LocationSection[];
   busy: boolean;
   message: string;
+  isLoading: boolean;
   isSearching: boolean;
   resultsCount: number;
   pinnedLocations: RecentLocation[];

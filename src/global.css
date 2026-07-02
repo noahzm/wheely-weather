@@ -19,7 +19,23 @@ html,
 body,
 #root {
   font-family: var(--font-sans);
-  background-color: #1a2a32;
+  background-color: var(--wheely-background, #ffffff);
+  color-scheme: light dark;
+  /* App-like feel: no rubber-band past the edges of the document. */
+  overscroll-behavior-y: none;
+}
+
+/* Thin, theme-agnostic scrollbars (translucent thumb works on light and dark). */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(128, 128, 128, 0.45) transparent;
+}
+
+/* Controls read as buttons, not text. */
+[role='button'],
+[role='tab'] {
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 /* Poster selection + focus styling carried over from the original site. */

@@ -167,13 +167,14 @@ export function LocationSearchList({
   sections,
   busy,
   message,
+  isLoading: _isLoading,
   isSearching,
   resultsCount,
   pinnedLocations,
   onSelect,
   onTogglePin,
 }: Readonly<LocationSearchListProps>) {
-  const showUnavailable = isSearching && resultsCount === 0 && !!message;
+  const showUnavailable = isSearching && !!message && resultsCount === 0;
 
   return (
     <View style={styles.container}>

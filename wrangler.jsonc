@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "wheely-weather",
+  "main": "workers/index.mjs",
+  "compatibility_date": "2026-06-01",
+  "routes": [{ "pattern": "wheelyweather.app", "custom_domain": true }],
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    // Match the previous Netlify behavior: unknown client-side routes fall back to /index.html.
+    "not_found_handling": "single-page-application",
+    // Assets are served before the Worker by default; the geocode proxy must win for /api/*.
+    "run_worker_first": ["/api/*"],
+  },
+}

@@ -15,10 +15,13 @@ const RECENTS_KEY = 'ww_recent_locations';
 const PINS_KEY = 'ww_pinned_locations';
 const GEAR_MODE_KEY = 'gearMode';
 const APPEARANCE_KEY = 'ww_appearance';
+const TEMP_UNIT_KEY = 'ww_temp_unit';
 const RECENTS_MAX = 4;
 const PINS_MAX = 8;
 
 export type Appearance = 'system' | 'light' | 'dark';
+
+export type TempUnitPreference = 'auto' | 'fahrenheit' | 'celsius';
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);
@@ -157,6 +160,19 @@ export async function loadAppearance(): Promise<Appearance> {
 
 export async function saveAppearance(value: Appearance) {
   await AsyncStorage.setItem(APPEARANCE_KEY, value);
+}
+
+export async function loadTempUnit(): Promise<TempUnitPreference> {
+  try {
+    const raw = await AsyncStorage.getItem(TEMP_UNIT_KEY);
+    return raw === 'fahrenheit' || raw === 'celsius' ? raw : 'auto';
+  } catch {
+    return 'auto';
+  }
+}
+
+export async function saveTempUnit(value: TempUnitPreference) {
+  await AsyncStorage.setItem(TEMP_UNIT_KEY, value);
 }
 
 export async function loadPinnedLocations(): Promise<RecentLocation[]> {

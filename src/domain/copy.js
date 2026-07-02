@@ -113,8 +113,9 @@ export const WEATHER_DESCRIPTIONS = {
 
 export const STATUS_MESSAGES = {
   THUNDERSTORM: 'Thunderstorms today. Stay off the road.',
-  /** @param {number} temp @param {string} cond */
-  GOOD: (temp, cond) => `Ideal ride conditions. ${temp}°F, ${cond.toLowerCase()}, and light winds.`,
+  /** @param {string} tempLabel @param {string} cond */
+  GOOD: (tempLabel, cond) =>
+    `Ideal ride conditions. ${tempLabel}, ${cond.toLowerCase()}, and light winds.`,
   MAYBE_IDEAL: 'On the edge of comfortable.',
   /** @param {string[]} issues @param {number} [extra] */
   MAYBE_ISSUES: (issues, extra = 0) =>
@@ -231,13 +232,13 @@ export const GEAR_TIPS = {
         { slot: 'bottom', icon: 'Shorts', label: 'Shorts' },
       ],
     },
-    /** @param {number} min @param {number} max */
+    /** @param {string} min @param {string} max */
     TEMP_SWING: (min, max) => ({
       items: [
         {
           icon: 'Thermometer',
           label: 'Removable layer',
-          qualifier: `${min}° to ${max}° across the ride`,
+          qualifier: `${min} to ${max} across the ride`,
         },
       ],
     }),
@@ -390,13 +391,13 @@ export const GEAR_TIPS = {
         { slot: 'bottom', icon: 'Shorts', label: 'Bib shorts' },
       ],
     },
-    /** @param {number} min @param {number} max */
+    /** @param {string} min @param {string} max */
     TEMP_SWING: (min, max) => ({
       items: [
         {
           icon: 'Thermometer',
           label: 'Pocketed gilet or arm warmers',
-          qualifier: `${min}° to ${max}° across the window`,
+          qualifier: `${min} to ${max} across the window`,
         },
       ],
     }),
@@ -490,10 +491,10 @@ export const DAYLIGHT_MESSAGES = {
 };
 
 export const ALERT_MESSAGES = {
-  /** @param {number} temp */
-  HEAT_EXTREME: (temp) =>
-    `Dangerously hot, ${temp}°F felt. Serious heat stroke risk. Not a ride day.`,
-  /** @param {number} temp */
-  HEAT_WARNING: (temp) =>
-    `Very hot, ${temp}°F felt. High risk of heat exhaustion. Ride early, or ride indoors.`,
+  /** @param {string} tempLabel */
+  HEAT_EXTREME: (tempLabel) =>
+    `Dangerously hot, ${tempLabel} felt. Serious heat stroke risk. Not a ride day.`,
+  /** @param {string} tempLabel */
+  HEAT_WARNING: (tempLabel) =>
+    `Very hot, ${tempLabel} felt. High risk of heat exhaustion. Ride early, or ride indoors.`,
 };
