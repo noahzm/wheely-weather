@@ -1,6 +1,14 @@
-import type { Appearance, TempUnitPreference } from '@/services/locationStorage';
+import type { Appearance, GearMode, TempUnitPreference } from '@/types/settings';
 
-export type GearMode = 'casual' | 'pro';
+
+export {
+  GEAR_LABELS,
+  GEAR_MODES,
+  APPEARANCE_LABELS,
+  APPEARANCE_VALUES,
+  TEMP_UNIT_LABELS,
+  TEMP_UNIT_VALUES, type GearMode,
+} from '@/types/settings';
 
 export interface SettingsFormProps {
   gearMode: GearMode;
@@ -18,21 +26,3 @@ export interface SettingsFormProps {
   /** Clear the home location (verdict reverts to reference defaults). */
   onClearHome: () => void;
 }
-
-// Display labels paired (by index) with their persisted values.
-export const GEAR_LABELS = ['Everyday', 'Performance'] as const;
-export const GEAR_MODES = ['casual', 'pro'] as const satisfies readonly GearMode[];
-
-export const APPEARANCE_LABELS = ['System', 'Light', 'Dark'] as const;
-export const APPEARANCE_VALUES = [
-  'system',
-  'light',
-  'dark',
-] as const satisfies readonly Appearance[];
-
-export const TEMP_UNIT_LABELS = ['Auto', '°F', '°C'] as const;
-export const TEMP_UNIT_VALUES = [
-  'auto',
-  'fahrenheit',
-  'celsius',
-] as const satisfies readonly TempUnitPreference[];

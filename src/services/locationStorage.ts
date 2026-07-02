@@ -1,5 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import type { Appearance, GearMode, TempUnitPreference } from '@/types/settings';
+
 export type LocationSource = 'manual' | 'device';
 
 export interface SavedLocation {
@@ -18,10 +20,6 @@ const APPEARANCE_KEY = 'ww_appearance';
 const TEMP_UNIT_KEY = 'ww_temp_unit';
 const RECENTS_MAX = 4;
 const PINS_MAX = 8;
-
-export type Appearance = 'system' | 'light' | 'dark';
-
-export type TempUnitPreference = 'auto' | 'fahrenheit' | 'celsius';
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);
@@ -137,7 +135,7 @@ export async function saveRecentLocation(place: RecentLocation) {
   return next;
 }
 
-export async function loadGearMode() {
+export async function loadGearMode(): Promise<GearMode> {
   try {
     return (await AsyncStorage.getItem(GEAR_MODE_KEY)) === 'pro' ? 'pro' : 'casual';
   } catch {
@@ -145,7 +143,7 @@ export async function loadGearMode() {
   }
 }
 
-export async function saveGearMode(mode: 'casual' | 'pro') {
+export async function saveGearMode(mode: GearMode) {
   await AsyncStorage.setItem(GEAR_MODE_KEY, mode);
 }
 
