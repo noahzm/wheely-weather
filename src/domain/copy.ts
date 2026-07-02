@@ -6,7 +6,8 @@
 import type { RideStatus } from '@/types/weather';
 
 // Stable pick helper to prevent flickering on re-renders.
-const pick = <T,>(arr: readonly T[]): T | undefined => arr[new Date().getHours() % arr.length];
+const pick = <T,>(arr: readonly [T, ...T[]]): T =>
+  arr[new Date().getHours() % arr.length] ?? arr[0];
 
 /** djb2-style hash for deterministic, seed-varied picks. */
 function seededHash(str: string): number {
@@ -115,7 +116,7 @@ export const STATUS_MESSAGES = {
   NO_ISSUES: (issues: readonly string[], extra = 0) =>
     `Sit this one out: ${formatList(issues)}${moreTail(extra)}.`,
   CLEAR_UP: (time: string) => ` Clears by ${time}.`,
-  REST_DAY: () =>
+  REST_DAY: (): string =>
     pick([
       ' A good day for drivetrain maintenance.',
       ' A good day to wax the chain.',

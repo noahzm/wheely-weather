@@ -636,12 +636,12 @@ describe('Gear Suggestions', () => {
     hourly: [],
   };
 
-  const isPerfectHeadline = (text) =>
+  const isPerfectHeadline = (text: string) =>
     /long way|extra loop|extra miles|ideal|prime|beautiful riding|favor extra|clean roads|worth making count/i.test(
       text,
     );
 
-  const matchesItem = (gear, pattern) =>
+  const matchesItem = (gear: ReturnType<typeof getGearSuggestion>, pattern: RegExp) =>
     gear.items.some((item) => pattern.test(item.label) || pattern.test(item.qualifier ?? ''));
 
   it('shows PERFECT when all conditions are genuinely good', () => {
