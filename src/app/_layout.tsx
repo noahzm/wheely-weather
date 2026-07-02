@@ -7,7 +7,6 @@ import { NationalPark_400Regular, NationalPark_700Bold } from '@expo-google-font
 import * as SystemUI from 'expo-system-ui';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import { TartanBackground } from '@/components/tartan-background';
 import { BottomNavBar } from '@/components/wheely';
 import { WheelyTheme, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -74,12 +73,12 @@ function renderRootChrome(stack: ReactNode): ReactNode {
 
   if (Platform.OS === 'web') {
     return (
-      <TartanBackground>
+      <View style={{ flex: 1 }}>
         {stack}
         <View style={bottomNavWrapStyle}>
           <BottomNavBar />
         </View>
-      </TartanBackground>
+      </View>
     );
   }
 
