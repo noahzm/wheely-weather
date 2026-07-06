@@ -10,12 +10,14 @@
     "ios": {
       "bundleIdentifier": "app.wheelyweather",
       "icon": "./assets/WheelyWeather.icon",
+      "buildNumber": "2",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "package": "app.wheelyweather",
+      "versionCode": 2,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
