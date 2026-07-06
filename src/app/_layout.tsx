@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode } from 'react';
 import { Appearance, Platform, View } from 'react-native';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import Head from 'expo-router/head';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { NationalPark_400Regular, NationalPark_700Bold } from '@expo-google-fonts/national-park';
@@ -8,7 +9,7 @@ import * as SystemUI from 'expo-system-ui';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { BottomNavBar } from '@/components/wheely';
-import { WheelyTheme, Fonts } from '@/constants/theme';
+import { WheelyTheme, Fonts, FontWeightBold } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ColorSchemeOverrideContext } from '@/hooks/use-theme';
 import { SettingsProvider, useAppearance } from '@/hooks/settings-context';
@@ -50,7 +51,7 @@ function stackScreenOptions(isDark: boolean) {
       contentStyle: { backgroundColor: 'transparent' as const },
       headerStyle: { backgroundColor: 'transparent' as const },
       headerTintColor: palette.ink,
-      headerBackTitleStyle: { fontFamily: Fonts.monoBold },
+      headerBackTitleStyle: { fontFamily: Fonts.monoBold, fontWeight: FontWeightBold },
     };
   }
 
@@ -58,7 +59,7 @@ function stackScreenOptions(isDark: boolean) {
     contentStyle: { backgroundColor: palette.background },
     headerStyle: { backgroundColor: 'transparent' as const },
     headerTintColor: palette.ink,
-    headerBackTitleStyle: { fontFamily: Fonts.monoBold },
+    headerBackTitleStyle: { fontFamily: Fonts.monoBold, fontWeight: FontWeightBold },
   };
 }
 
@@ -140,6 +141,13 @@ function ThemedRoot() {
   return (
     <ColorSchemeOverrideContext.Provider value={override}>
       <ThemeProvider value={navigationTheme(isDark)}>
+        <Head>
+          <title>Wheely Weather — Ride forecast for cyclists</title>
+          <meta
+            name="description"
+            content="Scores how good today's weather is for a bike ride — hourly forecast, kit guide, and a plain-language ride verdict."
+          />
+        </Head>
         <StatusBar style={isDark ? 'light' : 'dark'} />
         <AnimatedSplashOverlay />
         <ForecastProvider>{renderRootChrome(stack)}</ForecastProvider>

@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 
 import { useForecast } from '@/hooks/forecast-context';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Fonts, Spacing } from '@/constants/theme';
+import { Fonts, FontWeightBold, Spacing } from '@/constants/theme';
 import { GlassChrome } from './glass-chrome';
 import { HapticPressable, makeButtonStyles } from './primitives';
 
@@ -36,6 +36,7 @@ function useNavChromeStyles() {
       },
       locationLabel: {
         fontFamily: Fonts.monoBold,
+        fontWeight: FontWeightBold,
         fontSize: 16,
         color: c.ink,
       },

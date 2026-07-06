@@ -1,6 +1,9 @@
 import type { ReactNode } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
+import { useWheelyColors } from '@/hooks/use-theme';
+import { SettingsProvider } from '@/hooks/settings-context';
+
 interface StorySurfaceProps {
   children: ReactNode;
   centered?: boolean;
@@ -12,10 +15,19 @@ export function StorySurface({
   centered = false,
   maxWidth = 760,
 }: Readonly<StorySurfaceProps>) {
+  const c = useWheelyColors();
   return (
-    <ScrollView contentContainerStyle={[styles.content, centered && styles.centered]}>
-      <View style={[styles.inner, { maxWidth }]}>{children}</View>
-    </ScrollView>
+    <SettingsProvider>
+      <ScrollView
+        contentContainerStyle={[
+          styles.content,
+          centered && styles.centered,
+          { backgroundColor: c.background },
+        ]}
+      >
+        <View style={[styles.inner, { maxWidth }]}>{children}</View>
+      </ScrollView>
+    </SettingsProvider>
   );
 }
 

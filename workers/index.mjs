@@ -16,7 +16,33 @@ export default {
       return handleGeocode(request, buildReverseUrl(url), REVERSE_CACHE_CONTROL);
     }
 
-    return env.ASSETS.fetch(request);
+    const response = await env.ASSETS.fetch(request);
+    if (response.status === 200) {
+      const pathname = url.pathname;
+      if (pathname.includes('/_expo/static/') || pathname.includes('/assets/')) {
+        const headers = new Headers(response.headers);
+        headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+        return new Response(response.body, {
+          status: response.status,
+          statusText: response.statusText,
+          headers,
+        });
+      } else if (
+        pathname === '/' ||
+        pathname.endsWith('.html') ||
+        pathname.endsWith('robots.txt') ||
+        pathname.endsWith('favicon.ico')
+      ) {
+        const headers = new Headers(response.headers);
+        headers.set('Cache-Control', 'public, max-age=0, must-revalidate');
+        return new Response(response.body, {
+          status: response.status,
+          statusText: response.statusText,
+          headers,
+        });
+      }
+    }
+    return response;
   },
 };
 

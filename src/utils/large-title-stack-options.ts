@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 
-import { Fonts } from '@/constants/theme';
+import { Fonts, FontWeightBold } from '@/constants/theme';
 import type { WheelyPalette } from '@/constants/theme';
 
 // iOS 26 auto-applies the header blur; pre-26 needs an explicit blur effect on
@@ -18,9 +18,9 @@ export function largeTitleStackOptions(c: WheelyPalette, title: string) {
     headerBlurEffect: isIOS26OrLater() ? undefined : ('regular' as const),
     headerTintColor: c.ink,
     headerTitle: title,
-    headerTitleStyle: { fontFamily: Fonts.monoBold },
+    headerTitleStyle: { fontFamily: Fonts.monoBold, fontWeight: FontWeightBold },
     headerLargeTitleEnabled: true,
-    headerLargeTitleStyle: { fontFamily: Fonts.monoBold },
-    headerBackTitleStyle: { fontFamily: Fonts.monoBold },
+    headerLargeTitleStyle: { fontFamily: Fonts.monoBold, fontWeight: FontWeightBold },
+    headerBackTitleStyle: { fontFamily: Fonts.monoBold, fontWeight: FontWeightBold },
   };
 }

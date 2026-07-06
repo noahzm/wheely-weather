@@ -40,10 +40,10 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
   smallBold: {
-    fontFamily: Fonts.sans,
+    fontFamily: Fonts.display,
     fontSize: 14,
     lineHeight: 20,
-    fontWeight: '400',
+    fontWeight: FontWeightBold,
   },
   default: {
     fontFamily: Fonts.sans,

@@ -3,6 +3,7 @@ import { Platform, RefreshControl, ScrollView, StyleSheet, Text, View } from 're
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown, useReducedMotion } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
+import Head from 'expo-router/head';
 
 import {
   DailyForecast,
@@ -34,7 +35,7 @@ import { useWheelyColors } from '@/hooks/use-theme';
 import type { TempUnit } from '@/utils/temperature';
 import type { Weather } from '@/types/weather';
 import { contentColumnStyle, screenGutterStyle } from '@/components/wheely/content-column';
-import { Fonts, Spacing, TRANSPARENT, type WheelyPalette } from '@/constants/theme';
+import { Fonts, FontWeightBold, Spacing, TRANSPARENT, type WheelyPalette } from '@/constants/theme';
 
 const isWeb = Platform.OS === 'web';
 
@@ -88,7 +89,7 @@ function WebCityHeading({ city }: Readonly<{ city: string }>) {
         accessibilityLabel={`Location: ${city}. Change location`}
         style={({ pressed }) => [{ alignSelf: 'flex-start' }, pressed && { opacity: 0.7 }]}
       >
-        <Text style={{ fontFamily: Fonts.monoBold, fontSize: 34, color: c.ink }}>{city}</Text>
+        <Text style={{ fontFamily: Fonts.monoBold, fontWeight: FontWeightBold, fontSize: 34, color: c.ink }}>{city}</Text>
       </HapticPressable>
     </View>
   );
@@ -186,6 +187,56 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const bottomNavInset = isWeb ? bottomNavBarHeight(insets.bottom) : undefined;
 
+  const title = city
+    ? `${city} Ride Forecast — Wheely Weather`
+    : 'Wheely Weather — Ride forecast for cyclists';
+  const desc = city
+    ? `Hourly weather scoring and kit guide for cycling in ${city}.`
+    : "Scores how good today's weather is for a bike ride — hourly forecast, kit guide, and a plain-language ride verdict.";
+
+  return (
+    <>
+      <Head>
+        <title>{title}</title>
+        <meta name="description" content={desc} />
+      </Head>
+      <HomeContent
+        forecast={forecast}
+        sections={sections}
+        city={city}
+        locating={locating}
+        setLocating={setLocating}
+        router={router}
+        styles={styles}
+        bottomNavInset={bottomNavInset}
+      />
+    </>
+  );
+}
+
+function HomeContent({
+  forecast,
+  sections,
+  city,
+  locating,
+  setLocating,
+  router,
+  styles,
+  bottomNavInset,
+}: Readonly<{
+  forecast: ReturnType<typeof useForecast>;
+  sections: {
+    weather: Weather;
+    thresholds: AcclimatizationContext['thresholds'];
+    derived: HomeState;
+  } | null;
+  city: string;
+  locating: boolean;
+  setLocating: (val: boolean) => void;
+  router: ReturnType<typeof useRouter>;
+  styles: ReturnType<typeof makeStyles>;
+  bottomNavInset?: number;
+}>) {
   if (forecast.loading) {
     return <LoadingState />;
   }

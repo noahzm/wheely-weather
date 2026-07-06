@@ -3,7 +3,7 @@ import { type PropsWithChildren } from 'react';
 
 const APPEARANCE_KEY = 'ww_appearance';
 
-const themeBootstrapScript = `(function(){try{var p=localStorage.getItem('${APPEARANCE_KEY}');var d=p==='dark'||(p!=='light'&&window.matchMedia('(prefers-color-scheme: dark)').matches);var b=d?'#000000':'#ffffff';document.documentElement.style.setProperty('--wheely-background',b);document.documentElement.style.colorScheme=d?'dark':'light';}catch(e){}})();`;
+const themeBootstrapScript = `(function(){try{var p=localStorage.getItem('${APPEARANCE_KEY}');var d=p==='dark'||(p!=='light'&&window.matchMedia('(prefers-color-scheme: dark)').matches);var b=d?'#000000':'#ffffff';document.documentElement.style.setProperty('--wheely-background',b);document.documentElement.style.colorScheme=d?'dark':'light';document.documentElement.setAttribute('data-theme',d?'dark':'light');}catch(e){}})();`;
 
 export default function Root({ children }: Readonly<PropsWithChildren>) {
   return (
@@ -12,11 +12,6 @@ export default function Root({ children }: Readonly<PropsWithChildren>) {
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-        <title>Wheely Weather — Ride forecast for cyclists</title>
-        <meta
-          name="description"
-          content="Scores how good today's weather is for a bike ride — hourly forecast, kit guide, and a plain-language ride verdict."
-        />
         <meta property="og:title" content="Wheely Weather" />
         <meta
           property="og:description"

@@ -137,6 +137,9 @@ export function makeButtonStyles(c: WheelyPalette) {
     primary: {
       backgroundColor: c.primary,
     },
+    primaryLabel: {
+      color: c.primaryInk,
+    },
     surface: {
       backgroundColor: c.paper,
     },
@@ -468,6 +471,7 @@ export function Chip({
   else backgroundColor = c.paper;
   let color: string;
   if (condition) color = c.condition[condition].ink;
+  else if (primary) color = c.primaryInk;
   else if (ink) color = c.paper;
   else color = c.ink;
 

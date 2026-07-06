@@ -94,11 +94,11 @@ export function ErrorState({
           ]}
         >
           {Platform.OS === 'ios' ? (
-            <SymbolView name="arrow.clockwise" size={14} tintColor={c.ink} />
+            <SymbolView name="arrow.clockwise" size={14} tintColor={c.primaryInk} />
           ) : (
-            <RefreshCw size={14} color={c.ink} strokeWidth={2.5} />
+            <RefreshCw size={14} color={c.primaryInk} strokeWidth={2.5} />
           )}
-          <ThemedText style={buttonStyles.label}>Refresh</ThemedText>
+          <ThemedText style={[buttonStyles.label, buttonStyles.primaryLabel]}>Refresh</ThemedText>
         </HapticPressable>
       </BrutalCard>
     </View>
@@ -161,8 +161,10 @@ export function LocationPromptState({
             (pressed || busy) && buttonStyles.pressed,
           ]}
         >
-          <UseLocationButtonIcon busy={busy} ink={c.ink} />
-          <ThemedText style={buttonStyles.label}>Use current location</ThemedText>
+          <UseLocationButtonIcon busy={busy} ink={c.primaryInk} />
+          <ThemedText style={[buttonStyles.label, buttonStyles.primaryLabel]}>
+            Use current location
+          </ThemedText>
         </HapticPressable>
         <HapticPressable
           onPress={onChooseLocation}

@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { Stack } from 'expo-router';
+import Head from 'expo-router/head';
 import { Search, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -16,7 +17,7 @@ import { BrutalCard, HapticPressable } from '@/components/wheely/primitives';
 import { LocationSearchList } from '@/components/wheely/location-search-list';
 import { useLocationSearchScreen } from '@/hooks/use-location-search-screen';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Fonts, Spacing, TRANSPARENT } from '@/constants/theme';
+import { Fonts, FontWeightBold, Spacing, TRANSPARENT } from '@/constants/theme';
 
 const BUSY_OVERLAY_COLOR = 'rgba(0,0,0,0.15)';
 const isWeb = Platform.OS === 'web';
@@ -93,6 +94,13 @@ export default function LocationSearchScreen() {
 
   return (
     <>
+      <Head>
+        <title>Search Location — Wheely Weather</title>
+        <meta
+          name="description"
+          content="Search for a city or location to get today's cycling weather forecast."
+        />
+      </Head>
       <Stack.Screen
         options={
           isWeb
@@ -132,7 +140,7 @@ export default function LocationSearchScreen() {
                 <WebScreenHeader
                   variant="title"
                   title={
-                    <Text style={{ fontFamily: Fonts.monoBold, fontSize: 34, color: c.ink }}>
+                    <Text style={{ fontFamily: Fonts.monoBold, fontWeight: FontWeightBold, fontSize: 34, color: c.ink }}>
                       Search
                     </Text>
                   }

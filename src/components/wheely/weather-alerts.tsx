@@ -109,9 +109,12 @@ function AlertChevron({
   color,
   style,
 }: Readonly<{ openProgress: SharedValue<number>; color: string; style: ViewStyle }>) {
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${openProgress.value * 180}deg` }],
-  }));
+  const animatedStyle = useAnimatedStyle(
+    () => ({
+      transform: [{ rotate: `${openProgress.value * 180}deg` }],
+    }),
+    [openProgress],
+  );
 
   return (
     <Animated.View style={[style, animatedStyle]}>
