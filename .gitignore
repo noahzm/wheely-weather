@@ -62,3 +62,6 @@ storybook-static
 .playwright-mcp/
 .antigravitycli/
 .claude/settings.json
+
+# Test coverage
+coverage/

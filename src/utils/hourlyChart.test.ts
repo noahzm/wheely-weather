@@ -18,6 +18,9 @@ import {
   chartX,
   chartY,
   chartPolylinePoints,
+  chartSmoothYAtSegments,
+  chartSmoothPath,
+  type ChartSplineSegment,
 } from './hourlyChart';
 
 describe('chartX', () => {
@@ -166,5 +169,48 @@ describe('chartSmoothYAtX', () => {
     const scrollX = chartScrollOffsetForIndex(1, viewportWidth, 2);
     const centerX = chartCenterXFromScroll(scrollX, viewportWidth);
     expect(chartSmoothYAtX(data, centerX)).toBeCloseTo(chartY('fair'), 0);
+  });
+});
+
+describe('chartContentPadding', () => {
+  it('returns 0 if viewport is very narrow', () => {
+    // viewportWidth = 20 -> viewportWidth/2 = 10. 10 - 24 (CHART_X_ORIGIN) = -14. Math.max(0, -14) = 0.
+    expect(chartContentPadding(20)).toBe(0);
+  });
+});
+
+describe('chartSmoothYAtSegments', () => {
+  it('returns 90 for empty segments', () => {
+    expect(chartSmoothYAtSegments([], 100)).toBe(90);
+  });
+
+  it('returns last y1 if x falls in a gap between segments', () => {
+    const segments: ChartSplineSegment[] = [
+      { x0: 0, y0: 10, cp1x: 5, cp1y: 10, cp2x: 5, cp2y: 10, x1: 10, y1: 10 },
+      { x0: 20, y0: 20, cp1x: 25, cp1y: 20, cp2x: 25, cp2y: 20, x1: 30, y1: 20 },
+    ];
+    // x = 15 is > first.x0 (0) and < last.x1 (30), but not in any segment's [x0, x1] range.
+    expect(chartSmoothYAtSegments(segments, 15)).toBe(20); // last.y1
+  });
+});
+
+describe('chartSmoothPath', () => {
+  it('returns empty string for empty data', () => {
+    expect(chartSmoothPath([])).toBe('');
+  });
+
+  it('returns move command for single data point', () => {
+    const data = [{ idx: 0, condition: 'good' }];
+    expect(chartSmoothPath(data)).toMatch(/^M 24\.0,34\.0$/);
+  });
+
+  it('returns path with curve commands for multiple data points', () => {
+    const data = [
+      { idx: 0, condition: 'good' },
+      { idx: 1, condition: 'bad' },
+    ];
+    const path = chartSmoothPath(data);
+    expect(path).toContain('M 24.0,34.0');
+    expect(path).toContain('C'); // Should contain a curve command
   });
 });

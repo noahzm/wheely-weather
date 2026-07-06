@@ -1,6 +1,13 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file guides Claude Code (claude.ai/code) when working in this repository.
+This file guides Antigravity (and other AI coding assistants) when working in this repository.
+
+## Agent Behavioral Constraints
+
+- **Testing Requirements**: When adding a new pure function to `src/utils` or `src/domain`, you MUST write a corresponding unit test.
+- **Test Execution**: After modifying any file in `src/domain`, you must run `npm test` to verify no regressions were introduced.
+- **Styling Strictness**: Never use inline styles or raw hex codes; strictly use the `useWheelyColors()` palette.
+- **Architectural Changes**: If you need to make structural or logic changes to `src/domain/scoring.ts`, always ask for user approval first.
 
 ## Expo has changed a lot recently
 
@@ -48,23 +55,33 @@ Wheely Weather is an Expo Router + React Native app (iOS, Android, web) that sco
 
 ## Architecture
 
-- `src/app/` — Expo Router routes under a `(tabs)` group with three children: `(home)`, `location`, `settings`. The root `_layout.tsx` loads National Park fonts (web only; native embeds them at build time), wraps everything in `SettingsProvider`, resolves the active scheme (`ThemedRoot`, honoring the in-app appearance override — see Conventions below), and nests `ForecastProvider` around a single-screen `Stack`. On web it also renders a fixed `BottomNavBar` outside the `Stack`. Tabs use `expo-router/unstable-native-tabs` `NativeTabs` on iOS/Android (SF Symbols on iOS, Material icons on Android); `(tabs)/_layout.web.tsx` replaces this with a plain `Stack` on web, since the root layout's `BottomNavBar` fills the tab-bar role there. `+html.tsx` is the Expo Router web HTML template.
-- `src/components/wheely/` — the presentational components. `primitives.tsx` (a single file, not a directory) is the general shared-primitives grab bag: `BrutalCard`, `brutalShadow`, `HapticPressable`, `SectionTitle`/`SectionHeading`, `Chip`, `BurstChip`/`BurstConditionChip`, `makeButtonStyles`/`ButtonRadius`, small helpers (`asCondition`, `formatTime`), and the icon maps described under Icons below — import from `@/components/wheely/primitives`, not the barrel. Screen sections: `weather-header`, `ride-verdict`, `weather-alerts`, `hourly-forecast` (+ siblings `hourly-chart-dot`, `hourly-chart-graphic`, `hourly-note-stickers`, and colocated hooks `use-hourly-forecast-chart`/`use-hourly-scroll-picker`), `kit-guide`, `ride-specs`, `daily-forecast`, `status` (`ErrorState`/`LoadingState`/`LocationPromptState`). Chrome: `glass-chrome`, `home-nav-chrome`, `bottom-nav-chrome` (exports `bottomNavBarHeight(insetsBottom)`), `web-screen-header`, `content-column`. Platform-split, not barrel-exported: `settings-form.tsx`/`.ios.tsx`/`.types.ts` (barrel exports the platform-resolved `SettingsForm`), `settings-home-section.tsx`/`.ios.tsx` (default uses `@expo/ui` `Host`/`Switch`; iOS uses `@expo/ui/swift-ui` `Toggle`), `location-search-list.tsx`/`.ios.tsx`/`.types.ts` (default is Nominatim-backed; iOS renders a native SwiftUI `List` via `@expo/ui/swift-ui`) — these are imported directly by call sites, not through the barrel. Animation helpers `animated-condition-chip`, `animated-expand` are also internal, not barrel-exported. Import screen-level components from `@/components/wheely` (barrel at `src/components/wheely/index.ts`).
-- `src/components/` (top level, outside `wheely/`) — generic, app-agnostic primitives: `themed-text.tsx`/`themed-view.tsx` (theme-aware `Text`/`View` wrappers), `external-link.tsx`, `hint-row.tsx`, `web-badge.tsx`, `animated-icon.tsx`/`.web.tsx` (exports `AnimatedSplashOverlay`, used by the root layout for the launch animation, and `AnimatedIcon`), `ui/collapsible.tsx`.
-- `src/domain/` — weather scoring + copy (framework-agnostic TypeScript). `index.ts` is the true top-level barrel, re-exporting `constants.ts`, `acclimatization.ts`, `copy.ts`, and `weather.ts`. `weather.ts` is itself a re-export barrel flattening `scoring.ts` (`evaluateCondition`, `evaluateWind`, `getDailyCondition`, `getHourlyCondition`, `getOverallStatus`), `weather-codes.ts`, `ride-factors.ts`, `gear.ts`, `alerts.ts`, and `../utils/weatherLabels`. `acclimatization.ts` shifts the hot-side of TEMPERATURE and DEWPOINT comfort thresholds based on a rider's home climate baseline: derived shift is `clamp((home - REF) * 0.5, 0, MAX)` off reference anchors of 80°F/60°F, capped at 6°F (temp) / 7°F (dewpoint), and only ever warms the comfort dials — hard hazard ceilings (`BAD_MAX`) never move, so dangerous days still score "bad" regardless of acclimatization. `getAcclimatizationNote()` returns the contextual note shown in `RideVerdict`.
-- `src/services/homeClimate.ts` — `getHomeBaseline()` fetches 30 days of Open-Meteo daily-max-temp/hourly-dewpoint for the home location and takes the 75th percentile of each as `{ warmTemp, warmDewpoint }`. Caches per ~11 km-rounded location for 7 days in AsyncStorage; returns `null` on any failure (best-effort, 4-second timeout) so callers fall back to unadjusted thresholds.
-- `src/services/` (rest) — `weatherService.ts` (live Open-Meteo/AQI/NWS-alerts fetching), `forecastSnapshot.ts` (`getForecastSnapshot`, the "load and normalize a forecast" entry point, resolving acclimatization and — when a mock scenario is set — delegating to `mockWeather.ts` instead), `mockWeather.ts` (fixture data for `?mock=`), `locationGeocoding.ts` (Nominatim-backed search/reverse-geocode), `locationSearch.ts`/`locationSearch.ios.ts` (platform split: default delegates to `locationGeocoding`; iOS uses the native module below), `locationStorage.ts` (AsyncStorage persistence for locations and settings), `http.ts` (`fetchWithTimeout`).
-- `workers/index.mjs` — the Cloudflare Worker (deployed via `wrangler.jsonc`) backing the web build. Proxies `/api/geocode/search` and `/api/geocode/reverse` to Nominatim (adds a `User-Agent`, CORS headers, cache-control — 1h for search, 24h for reverse — and passes 429s through as a JSON rate-limit error); everything else falls through to static asset serving (`./dist`, SPA fallback).
-- `modules/apple-location-search` — custom Expo native module wrapping Apple's `MKLocalSearch` on iOS, with Android/web stub implementations; consumed by `locationSearch.ios.ts`.
-- `src/hooks/use-weather-forecast.ts` — the core forecast-loading hook, backed by `src/hooks/forecast/`: `device-location.ts` (wraps `expo-location`, handles denial/insecure-context messaging), `load-forecast-data.ts` (orchestrates fetch + pinned/recent locations via `locationStorage`), `use-stale-refresh.ts` (refreshes after 15 min stale via `AppState`).
-- `src/hooks/settings-context.tsx` — `SettingsProvider` plus `useGearMode`/`useAppearance`/`useHomeLocation`/`useTempUnit`/`useResolvedTempUnit`, each backed by one `usePersistedSetting` call persisting through `locationStorage.ts`.
-- `src/hooks/use-theme.ts` — `ColorSchemeOverrideContext`, `useColorSchemeName()`, `useWheelyColors()` (see Conventions).
-- `src/hooks/use-color-scheme.ts`/`.web.ts` — platform split: native re-exports RN's `useColorScheme`; web uses `useSyncExternalStore` with a static post-hydration value.
-- `src/hooks/use-temperature-display.ts`, `use-location-search-screen.ts`, `use-web-document-theme.ts` — screen-level formatting/sync hooks.
-- `src/constants/theme.ts` — palette + typography source of truth: `WheelyPalette` (background/paper/ink/mutedInk/border/shadow/primary/primaryInk/secondary/accent/success/warning/error/condition — the last typed `WheelyConditionColors`, the good/fair/marginal/poor/bad ramp), `WheelyTheme.{light,dark}`, `Fonts`, `FontWeightBold`, `Spacing`, `MaxContentWidth`, `TRANSPARENT`, `BottomTabInset`.
-- `src/types/settings.ts` — `GearMode`, `Appearance`, `TempUnitPreference` and their paired label/value option arrays. `src/types/weather.ts` — `Condition`, `RideStatus`, `MetricType`, `HourlyWeather`, `DailyWeather`, etc.
-- `src/utils/` — `forecastHelpers`, `weatherLabels` (backs the label helpers re-exported through `domain/weather.ts`), `hourlyChart`, `timeFormat`, `temperature`, `haptics.ts` (`verdictFeedback(status)` — tone-matched notification haptics, no-op on web), `large-title-stack-options.ts` (shared by all three tab `_layout.tsx` files).
-- `src/stories/` + `.storybook/` (web) + `.rnstorybook/` (on-device) — Storybook setup and fixtures.
+- **`src/app/`** — Expo Router routes under a `(tabs)` group with three children: `(home)`, `location`, `settings`.
+  - The root `_layout.tsx` loads National Park fonts (web only; native embeds them at build time), wraps everything in `SettingsProvider`, resolves the active scheme (`ThemedRoot`, honoring the in-app appearance override), and nests `ForecastProvider` around a single-screen `Stack`.
+  - On web it also renders a fixed `BottomNavBar` outside the `Stack`. Tabs use `expo-router/unstable-native-tabs` `NativeTabs` on iOS/Android. `(tabs)/_layout.web.tsx` replaces this with a plain `Stack` on web. `+html.tsx` is the web HTML template.
+- **`src/components/wheely/`** — The presentational components.
+  - `primitives.tsx`: Shared primitives (`BrutalCard`, `brutalShadow`, `HapticPressable`, `SectionTitle`, `Chip`, `makeButtonStyles`, small helpers). **Import from `@/components/wheely/primitives`, not the barrel.**
+  - **Screen sections**: `weather-header`, `ride-verdict`, `weather-alerts`, `hourly-forecast` (+ siblings `hourly-chart-dot`, `hourly-chart-graphic`, `hourly-note-stickers`), `kit-guide`, `ride-specs`, `daily-forecast`, `status` (`ErrorState`/`LoadingState`/`LocationPromptState`).
+  - **Chrome**: `glass-chrome`, `home-nav-chrome`, `bottom-nav-chrome`, `web-screen-header`, `content-column`.
+  - **Platform-split** (not barrel-exported): `settings-form`, `settings-home-section`, `location-search-list`.
+- **`src/components/`** (top level) — Generic, app-agnostic primitives (`themed-text.tsx`, `themed-view.tsx`, `external-link.tsx`, `animated-icon.tsx`).
+- **`src/domain/`** — Weather scoring + copy (framework-agnostic TypeScript).
+  - `index.ts`: The true top-level barrel.
+  - `weather.ts`: Re-export barrel flattening scoring rules.
+  - `acclimatization.ts`: Shifts temperature/dewpoint comfort thresholds based on home climate baseline.
+- **`src/services/`**
+  - `homeClimate.ts`: Fetches 30 days of Open-Meteo temps to create an acclimatization baseline.
+  - `weatherService.ts`: Live API fetching.
+  - `forecastSnapshot.ts`: Load and normalize forecast entry point.
+  - `mockWeather.ts`: Fixture data for `?mock=`.
+  - `locationStorage.ts`: AsyncStorage persistence.
+- **`workers/index.mjs`** — Cloudflare Worker backing the web build. Proxies `/api/geocode` to Nominatim.
+- **`modules/apple-location-search`** — Custom Expo native module wrapping Apple's `MKLocalSearch` on iOS.
+- **`src/hooks/`**
+  - `use-weather-forecast.ts`: Core forecast-loading hook.
+  - `settings-context.tsx`: `SettingsProvider`.
+  - `use-theme.ts`: Theme and color resolution.
+- **`src/constants/theme.ts`** — Palette + typography source of truth.
+- **`src/utils/`** — Helpers like `hourlyChart`, `timeFormat`, `temperature`, `haptics.ts`.
 
 ### Data flow
 
