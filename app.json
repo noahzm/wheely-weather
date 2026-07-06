@@ -10,7 +10,6 @@
     "ios": {
       "bundleIdentifier": "app.wheelyweather",
       "icon": "./assets/WheelyWeather.icon",
-      "itsUsesNonExemptEncryption": false,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
