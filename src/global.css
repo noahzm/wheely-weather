@@ -24,7 +24,10 @@ body,
   color-scheme: light dark;
   /* App-like feel: no rubber-band past the edges of the document. */
   overscroll-behavior-y: none;
-  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease;
 }
 
 /* Thin, theme-agnostic scrollbars (translucent thumb works on light and dark). */

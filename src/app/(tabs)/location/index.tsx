@@ -140,7 +140,14 @@ export default function LocationSearchScreen() {
                 <WebScreenHeader
                   variant="title"
                   title={
-                    <Text style={{ fontFamily: Fonts.monoBold, fontWeight: FontWeightBold, fontSize: 34, color: c.ink }}>
+                    <Text
+                      style={{
+                        fontFamily: Fonts.monoBold,
+                        fontWeight: FontWeightBold,
+                        fontSize: 34,
+                        color: c.ink,
+                      }}
+                    >
                       Search
                     </Text>
                   }

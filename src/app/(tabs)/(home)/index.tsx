@@ -89,7 +89,16 @@ function WebCityHeading({ city }: Readonly<{ city: string }>) {
         accessibilityLabel={`Location: ${city}. Change location`}
         style={({ pressed }) => [{ alignSelf: 'flex-start' }, pressed && { opacity: 0.7 }]}
       >
-        <Text style={{ fontFamily: Fonts.monoBold, fontWeight: FontWeightBold, fontSize: 34, color: c.ink }}>{city}</Text>
+        <Text
+          style={{
+            fontFamily: Fonts.monoBold,
+            fontWeight: FontWeightBold,
+            fontSize: 34,
+            color: c.ink,
+          }}
+        >
+          {city}
+        </Text>
       </HapticPressable>
     </View>
   );
