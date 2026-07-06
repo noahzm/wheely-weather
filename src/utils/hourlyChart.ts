@@ -38,13 +38,15 @@ export function chartX(idx: number): number {
   return CHART_X_ORIGIN + idx * CHART_X_STEP;
 }
 
-/** Side padding so the first/last hour can scroll to the viewport center. */
+/** Side padding so the first/last hour can scroll to the viewport center. Worklet-safe. */
 export function chartContentPadding(viewportWidth: number): number {
+  'worklet';
   return Math.max(0, viewportWidth / 2 - CHART_X_ORIGIN);
 }
 
-/** Maximum scroll offset for a chart with `maxIndex` as the last data index. */
+/** Maximum scroll offset for a chart with `maxIndex` as the last data index. Worklet-safe. */
 export function chartMaxScrollOffset(maxIndex: number, viewportWidth: number): number {
+  'worklet';
   const padding = chartContentPadding(viewportWidth);
   return Math.max(0, padding + chartX(maxIndex) - viewportWidth / 2);
 }
@@ -71,12 +73,13 @@ export function chartScrollOffsetForIndex(
   return Math.min(Math.max(0, raw), chartMaxScrollOffset(maxIndex, viewportWidth));
 }
 
-/** Nearest data index to the viewport center at `scrollX`. */
+/** Nearest data index to the viewport center at `scrollX`. Worklet-safe. */
 export function chartIndexFromScrollOffset(
   scrollX: number,
   viewportWidth: number,
   maxIndex: number,
 ): number {
+  'worklet';
   const padding = chartContentPadding(viewportWidth);
   const centerChart = scrollX + viewportWidth / 2 - padding;
   const idx = Math.round((centerChart - CHART_X_ORIGIN) / CHART_X_STEP);
@@ -158,21 +161,6 @@ export function chartCenterXFromClampedScroll(
   return Math.min(Math.max(chartX(0), centerX), chartX(maxIndex));
 }
 
-/** Dot radius from horizontal distance to the viewport center. Worklet-safe. */
-export function chartDotRadiusAtDistance(distance: number): number {
-  'worklet';
-  const t = Math.min(1, Math.abs(distance) / CHART_X_STEP);
-  return DOT_RADIUS_MAX - t * (DOT_RADIUS_MAX - DOT_RADIUS_MIN);
-}
-
-/** Dot radius for a data index at the given viewport center X. Worklet-safe. */
-export function chartDotRadiusForIndex(idx: number, centerX: number, isNow: boolean): number {
-  'worklet';
-  const radius = chartDotRadiusAtDistance(chartX(idx) - centerX);
-  if (isNow) return Math.max(radius, DOT_RADIUS_NOW_FLOOR);
-  return radius;
-}
-
 /** Smooth 0→1 easing for scroll-linked badge motion. Worklet-safe. */
 function chartSmoothStep(t: number): number {
   'worklet';
@@ -206,34 +194,14 @@ export function chartInterpolateAtCenter(centerX: number, values: readonly numbe
   return v0 + (v1 - v0) * t;
 }
 
-/** Dot opacity with smooth brightening as a past hour approaches center. Worklet-safe. */
-export function chartDotOpacityAtDistance(
-  distance: number,
-  isPast: boolean,
-  isNow: boolean,
-): number {
-  'worklet';
-  if (!isPast || isNow) return 1;
-  const t = Math.min(1, Math.abs(distance) / (CHART_X_STEP / 2));
-  return DOT_OPACITY_MUTED + (1 - DOT_OPACITY_MUTED) * (1 - t);
+/** Static dot radius: "now" gets a slightly larger dot. */
+export function chartDotRadius(isNow: boolean): number {
+  return isNow ? DOT_RADIUS_NOW_FLOOR : DOT_RADIUS_MIN;
 }
 
-/** Discrete dot radius for reduced-motion fallback. Worklet-safe. */
-export function chartDiscreteDotRadius(isSelected: boolean, isNow: boolean): number {
-  'worklet';
-  if (isSelected) return DOT_RADIUS_MAX;
-  if (isNow) return DOT_RADIUS_NOW_FLOOR;
-  return DOT_RADIUS_MIN;
-}
-
-/** Discrete dot opacity for reduced-motion fallback. Worklet-safe. */
-export function chartDiscreteDotOpacity(
-  isPast: boolean,
-  isNow: boolean,
-  isSelected: boolean,
-): number {
-  'worklet';
-  return isPast && !isNow && !isSelected ? DOT_OPACITY_MUTED : 1;
+/** Static dot opacity: past hours are muted, except the "now" dot. */
+export function chartDotOpacity(isPast: boolean, isNow: boolean): number {
+  return isPast && !isNow ? DOT_OPACITY_MUTED : 1;
 }
 
 /** Builds monotone cubic bezier segments for the condition line. */

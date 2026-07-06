@@ -1,20 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import {
-  saveLocation,
-  saveRecentLocation,
-  type RecentLocation,
-  type SavedLocation,
-} from '@/services/locationStorage';
+import { type RecentLocation, type SavedLocation } from '@/services/locationStorage';
 import { getForecastErrorKind } from '@/services/forecastSnapshot';
-import { useHomeLocation } from '@/hooks/settings-context';
+import { useHomeLocation, useSettingsHydrated } from '@/hooks/settings-context';
 
-import {
-  isWebInsecureContext,
-  LOCATION_DENIED_MESSAGE,
-  LOCATION_INSECURE_MESSAGE,
-  requestDeviceLocation,
-} from './forecast/device-location';
 import {
   INITIAL_FORECAST_STATE,
   loadForecastData,
@@ -22,11 +11,15 @@ import {
   togglePinnedLocation,
   type ForecastState,
 } from './forecast/load-forecast-data';
+import { mergeExtrasWhenReady } from './forecast/merge-extras';
+import { useLocationActions } from './forecast/use-location-actions';
+import { useSnapshotCacheHydration, useSnapshotCachePersistence } from './forecast/use-snapshot-cache';
 import { useStaleRefresh } from './forecast/use-stale-refresh';
 
 export function useWeatherForecast(mockScenario: string | null) {
   const [state, setState] = useState<ForecastState>(INITIAL_FORECAST_STATE);
   const [homeLocation] = useHomeLocation();
+  const settingsHydrated = useSettingsHydrated();
   const lastLoadedAt = useRef(0);
   const needsLocationRef = useRef(false);
 
@@ -74,6 +67,7 @@ export function useWeatherForecast(mockScenario: string | null) {
           errorKind: null,
           statusMessage: '',
         }));
+        mergeExtrasWhenReady(result.snapshot, result.extras, setState);
       } catch (error) {
         setState((current) => ({
           ...current,
@@ -86,10 +80,16 @@ export function useWeatherForecast(mockScenario: string | null) {
     [mockScenario, homeLocation],
   );
 
+  // Wait for settings so the first fetch reads the real home location; without
+  // the gate, its async hydration changed `loadForecast`'s identity and kicked
+  // off a duplicate full fetch right after the first one.
   useEffect(() => {
+    if (!settingsHydrated) return;
     void loadForecast();
-  }, [loadForecast]);
+  }, [settingsHydrated, loadForecast]);
 
+  useSnapshotCacheHydration(setState, mockScenario);
+  useSnapshotCachePersistence(state);
   useStaleRefresh(loadForecast, lastLoadedAt, needsLocationRef);
 
   const refresh = useCallback(() => {
@@ -97,46 +97,11 @@ export function useWeatherForecast(mockScenario: string | null) {
     void loadForecast(undefined, true);
   }, [loadForecast]);
 
-  const setManualLocation = useCallback(
-    async (place: RecentLocation) => {
-      const next = await saveLocation({
-        lat: place.lat,
-        lon: place.lon,
-        name: place.label,
-        source: 'manual',
-      });
-      await saveRecentLocation(place);
-      needsLocationRef.current = false;
-      setState((current) => ({
-        ...current,
-        needsLocation: false,
-        statusMessage: 'Updating forecast...',
-      }));
-      await loadForecast(next, true);
-    },
-    [loadForecast],
+  const { setManualLocation, useDeviceLocation } = useLocationActions(
+    setState,
+    loadForecast,
+    needsLocationRef,
   );
-
-  const useDeviceLocation = useCallback(async () => {
-    if (isWebInsecureContext()) {
-      setState((current) => ({ ...current, statusMessage: LOCATION_INSECURE_MESSAGE }));
-      return false;
-    }
-    setState((current) => ({ ...current, statusMessage: 'Checking your device location...' }));
-    const next = await requestDeviceLocation();
-    if (!next) {
-      setState((current) => ({ ...current, statusMessage: LOCATION_DENIED_MESSAGE }));
-      return false;
-    }
-    needsLocationRef.current = false;
-    setState((current) => ({
-      ...current,
-      needsLocation: false,
-      statusMessage: 'Location found. Updating forecast...',
-    }));
-    await loadForecast(next, true);
-    return true;
-  }, [loadForecast]);
 
   const togglePin = useCallback(
     async (place: RecentLocation) => {

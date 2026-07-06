@@ -1,6 +1,7 @@
 import {
   REQUEST_TIMEOUT_ERROR,
-  fetchWeatherData,
+  buildWeatherFromData,
+  fetchOpenMeteoData,
   fetchWeatherExtras,
 } from '@/services/weatherService';
 import { fetchLocationName } from '@/services/locationGeocoding';
@@ -26,6 +27,16 @@ export interface ForecastSnapshot {
   acclimatization: AcclimatizationContext;
 }
 
+export interface ForecastSnapshotResult {
+  snapshot: ForecastSnapshot;
+  /**
+   * Slower, non-critical enrichments (AQI, NWS alerts) that must not hold up
+   * first paint. Resolves null when there is nothing to merge (mock data).
+   * Never rejects.
+   */
+  extras: Promise<ForecastExtras | null>;
+}
+
 async function fetchSafeLocationName(location: SavedLocation) {
   if (location.name) return location.name;
   return fetchLocationName(location.lat, location.lon)
@@ -49,22 +60,26 @@ export async function getForecastSnapshot({
   savedLocation: SavedLocation | null;
   homeLocation?: SavedLocation | null;
   mockScenario?: string | null;
-}): Promise<ForecastSnapshot> {
+}): Promise<ForecastSnapshotResult> {
   const lastUpdated = new Date();
 
   if (mockScenario) {
     const weather = buildMockWeather(mockScenario);
     if (!weather) throw new Error(`Unknown mock scenario: ${mockScenario}`);
     return {
-      weather,
-      location: getMockLocationLabel(mockScenario) ?? 'Mock location',
-      lastUpdated,
-      isManualLocation: false,
-      isDeviceLocation: false,
-      mockScenario,
-      source: 'mock',
-      // Mocks bypass acclimatization so fixtures rate against the base thresholds.
-      acclimatization: { homeBaseline: null, thresholds: THRESHOLDS },
+      snapshot: {
+        weather,
+        location: getMockLocationLabel(mockScenario) ?? 'Mock location',
+        lastUpdated,
+        isManualLocation: false,
+        isDeviceLocation: false,
+        mockScenario,
+        source: 'mock',
+        // Mocks bypass acclimatization so fixtures rate against the base thresholds.
+        acclimatization: { homeBaseline: null, thresholds: THRESHOLDS },
+      },
+      // Mock fixtures carry their own alerts inside `weather`; nothing to merge.
+      extras: Promise.resolve(null),
     };
   }
 
@@ -72,26 +87,32 @@ export async function getForecastSnapshot({
     throw new Error('Location required');
   }
 
-  // Resolve the rider's home-climate baseline (cached for a week) and the
-  // acclimatization-adjusted thresholds before fetching, so precomputed hourly
-  // and daily conditions reflect what the rider is used to.
-  const homeBaseline = await getHomeBaseline(homeLocation);
+  // Everything network-bound starts at once: the raw forecast (the long pole),
+  // the home-climate baseline (usually an AsyncStorage cache hit) that the
+  // condition ratings need, the reverse-geocoded name, and the non-critical
+  // extras — which are intentionally NOT awaited so they can land after first
+  // paint via the returned promise.
+  const extras = fetchSafeExtras(savedLocation.lat, savedLocation.lon);
+  const [data, homeBaseline, locationName] = await Promise.all([
+    fetchOpenMeteoData(savedLocation.lat, savedLocation.lon),
+    getHomeBaseline(homeLocation),
+    fetchSafeLocationName(savedLocation),
+  ]);
   const thresholds = resolveThresholds(homeBaseline);
-
-  const weatherPromise = fetchWeatherData(savedLocation.lat, savedLocation.lon, { thresholds });
-  const locationNamePromise = fetchSafeLocationName(savedLocation);
-  const [weather, locationName] = await Promise.all([weatherPromise, locationNamePromise]);
-  const extras = await fetchSafeExtras(savedLocation.lat, savedLocation.lon);
+  const weather = buildWeatherFromData(data, thresholds);
 
   return {
-    weather: { ...weather, ...extras },
-    location: locationName,
-    lastUpdated,
-    isManualLocation: savedLocation.source === 'manual',
-    isDeviceLocation: savedLocation.source === 'device',
-    mockScenario,
-    source: savedLocation.source,
-    acclimatization: { homeBaseline, thresholds },
+    snapshot: {
+      weather,
+      location: locationName,
+      lastUpdated,
+      isManualLocation: savedLocation.source === 'manual',
+      isDeviceLocation: savedLocation.source === 'device',
+      mockScenario,
+      source: savedLocation.source,
+      acclimatization: { homeBaseline, thresholds },
+    },
+    extras,
   };
 }
 

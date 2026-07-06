@@ -291,6 +291,9 @@ export function useHourlyScrollPicker(
   const isWeb = Platform.OS === 'web';
   const scrollRef = useRef<Animated.ScrollView>(null);
   const scrollX = useSharedValue(-1);
+  // Last index dispatched to React from the scroll worklet, so the UI→JS hop
+  // happens once per hour-crossing instead of on every scroll frame.
+  const lastNotifiedIdx = useSharedValue(-1);
   const hasInitialScroll = useRef(false);
   const liveScrollXRef = useRef(-1);
 
@@ -342,6 +345,7 @@ export function useHourlyScrollPicker(
     scrollRef.current?.scrollTo({ x, animated: false });
     // eslint-disable-next-line react-hooks/immutability -- reanimated shared value write
     scrollX.value = x;
+    lastNotifiedIdx.value = nowIdx;
     if (isWeb) {
       liveScrollXRef.current = x;
       // One-time imperative sync of the initial scroll position into React state
@@ -350,7 +354,7 @@ export function useHourlyScrollPicker(
       setLiveScrollX(x);
     }
     syncSelectionFromScroll(x, false);
-  }, [viewportWidth, nowIdx, maxIndex, count, syncSelectionFromScroll, isWeb, scrollX]);
+  }, [viewportWidth, nowIdx, maxIndex, count, syncSelectionFromScroll, isWeb, scrollX, lastNotifiedIdx]);
 
   const onViewportLayout = useCallback((width: number) => {
     if (width > 0) {
@@ -377,6 +381,13 @@ export function useHourlyScrollPicker(
     onScroll: (event) => {
       // eslint-disable-next-line react-hooks/immutability -- reanimated shared value write
       scrollX.value = event.contentOffset.x;
+      if (viewportWidth <= 0) return;
+      // Only hop to the JS thread when the hour under the needle changes; the
+      // end-drag/momentum handlers re-sync unconditionally as a safety net.
+      const idx = chartIndexFromScrollOffset(event.contentOffset.x, viewportWidth, maxIndex);
+      if (idx === lastNotifiedIdx.value) return;
+      // eslint-disable-next-line react-hooks/immutability -- reanimated shared value write
+      lastNotifiedIdx.value = idx;
       scheduleOnRN(syncSelectionFromScroll, event.contentOffset.x, true);
     },
   });

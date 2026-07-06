@@ -7,11 +7,8 @@ import {
   chartInterpolateAtCenter,
   chartCenterXFromScroll,
   chartContentPadding,
-  chartDotOpacityAtDistance,
-  chartDotRadiusAtDistance,
-  chartDotRadiusForIndex,
-  chartDiscreteDotOpacity,
-  chartDiscreteDotRadius,
+  chartDotOpacity,
+  chartDotRadius,
   chartIndexFromScrollOffset,
   chartMaxScrollOffset,
   chartNearestSnapOffset,
@@ -129,61 +126,18 @@ describe('chartPolylinePoints', () => {
   });
 });
 
-describe('chartDotRadiusAtDistance', () => {
-  it('is max at center', () => {
-    expect(chartDotRadiusAtDistance(0)).toBe(8);
-  });
-
-  it('is min one step away', () => {
-    expect(chartDotRadiusAtDistance(CHART_X_STEP)).toBe(5);
-    expect(chartDotRadiusAtDistance(-CHART_X_STEP)).toBe(5);
-  });
-
-  it('interpolates at mid-step', () => {
-    expect(chartDotRadiusAtDistance(CHART_X_STEP / 2)).toBe(6.5);
+describe('chartDotRadius', () => {
+  it('gives the Now dot a slightly larger radius', () => {
+    expect(chartDotRadius(true)).toBe(7);
+    expect(chartDotRadius(false)).toBe(5);
   });
 });
 
-describe('chartDotRadiusForIndex', () => {
-  it('uses the Now floor when off-center', () => {
-    const centerX = chartX(0);
-    expect(chartDotRadiusForIndex(2, centerX, true)).toBe(7);
-  });
-
-  it('uses max radius when Now is centered', () => {
-    const centerX = chartX(3);
-    expect(chartDotRadiusForIndex(3, centerX, true)).toBe(8);
-  });
-});
-
-describe('chartDotOpacityAtDistance', () => {
-  it('is full opacity at center for past hours', () => {
-    expect(chartDotOpacityAtDistance(0, true, false)).toBe(1);
-  });
-
-  it('is muted far from center for past hours', () => {
-    expect(chartDotOpacityAtDistance(CHART_X_STEP, true, false)).toBeCloseTo(0.58);
-  });
-
-  it('is always full opacity for Now and future hours', () => {
-    expect(chartDotOpacityAtDistance(CHART_X_STEP, true, true)).toBe(1);
-    expect(chartDotOpacityAtDistance(CHART_X_STEP, false, false)).toBe(1);
-  });
-});
-
-describe('chartDiscreteDotRadius', () => {
-  it('matches discrete sizing for selected, Now, and default', () => {
-    expect(chartDiscreteDotRadius(true, false)).toBe(8);
-    expect(chartDiscreteDotRadius(false, true)).toBe(7);
-    expect(chartDiscreteDotRadius(false, false)).toBe(5);
-  });
-});
-
-describe('chartDiscreteDotOpacity', () => {
-  it('mutes past non-Now dots unless selected', () => {
-    expect(chartDiscreteDotOpacity(true, false, false)).toBeCloseTo(0.58);
-    expect(chartDiscreteDotOpacity(true, false, true)).toBe(1);
-    expect(chartDiscreteDotOpacity(true, true, false)).toBe(1);
+describe('chartDotOpacity', () => {
+  it('mutes past non-Now dots', () => {
+    expect(chartDotOpacity(true, false)).toBeCloseTo(0.58);
+    expect(chartDotOpacity(true, true)).toBe(1);
+    expect(chartDotOpacity(false, false)).toBe(1);
   });
 });
 

@@ -25,6 +25,10 @@ const AnimatedText = Animated.createAnimatedComponent(Text);
 
 const STICKER_ROTATE = '-4deg';
 const STICKER_SCALE = 1.28;
+// The sticker tilt never changes — a plain style, not an animated one.
+const stickerStyle = {
+  transform: [{ rotate: STICKER_ROTATE }, { scale: STICKER_SCALE }],
+} as const;
 
 export type ChipLayoutSize = Readonly<{ width: number; height: number }>;
 
@@ -86,10 +90,6 @@ function useChartLinkedBadgeStyle(
 ) {
   const reduceMotion = useReducedMotion();
 
-  const stickerStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: STICKER_ROTATE }, { scale: STICKER_SCALE }],
-  }));
-
   const containerSizeStyle = useAnimatedStyle(() => {
     if (
       chartScroll == null ||
@@ -131,7 +131,7 @@ function useChartLinkedBadgeStyle(
     return { color: interpolateColor(t, [0, 1], [fromInk, toInk]) };
   }, [chartScroll, fallbackInk, reduceMotion]);
 
-  return { stickerStyle, containerSizeStyle, burstProps, labelStyle };
+  return { containerSizeStyle, burstProps, labelStyle };
 }
 
 /** Off-screen probe that measures chip container size for each label. */
@@ -242,9 +242,6 @@ function AnimatedConditionChipWeb({
   const color = c.condition[condition].ink;
   const appearance = linkedChipAppearance(chartScroll, backgroundColor, color);
   const size = BURST_CHIP_SIZES[large ? 'large' : 'default'];
-  const stickerStyle = {
-    transform: [{ rotate: STICKER_ROTATE }, { scale: STICKER_SCALE }],
-  };
   const hasScrollSize = appearance.width != null && appearance.height != null;
 
   return (
@@ -296,7 +293,7 @@ function AnimatedConditionChipNative({
   const backgroundColor = c.condition[condition].bg;
   const color = c.condition[condition].ink;
 
-  const { stickerStyle, containerSizeStyle, burstProps, labelStyle } = useChartLinkedBadgeStyle(
+  const { containerSizeStyle, burstProps, labelStyle } = useChartLinkedBadgeStyle(
     chartScroll,
     backgroundColor,
     color,
