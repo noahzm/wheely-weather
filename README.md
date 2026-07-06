@@ -56,7 +56,7 @@ npm run build:web
 
 ## Architecture
 
-For the full architecture, conventions, and toolchain constraints, see [`CLAUDE.md`](./CLAUDE.md).
+For the full architecture, conventions, and toolchain constraints, see [`.agents/AGENTS.md`](./.agents/AGENTS.md).
 
 ## License
 
