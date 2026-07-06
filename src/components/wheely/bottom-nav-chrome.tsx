@@ -5,7 +5,13 @@ import { usePathname, useRouter, useSegments } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Fonts, FontWeightBold, MaxContentWidth, Spacing, type WheelyPalette } from '@/constants/theme';
+import {
+  Fonts,
+  FontWeightBold,
+  MaxContentWidth,
+  Spacing,
+  type WheelyPalette,
+} from '@/constants/theme';
 import { GlassChrome } from './glass-chrome';
 import { HapticPressable } from './primitives';
 
