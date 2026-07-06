@@ -51,7 +51,7 @@ interface OpenMeteoDaily {
   uv_index_max?: (number | null)[];
 }
 
-interface OpenMeteoData {
+export interface OpenMeteoData {
   utc_offset_seconds?: number;
   current?: {
     time?: string;
@@ -375,16 +375,11 @@ export async function fetchWeatherExtras(
 }
 
 /**
- * Fetches current, hourly, and daily weather from Open-Meteo and assembles the
- * unified weather object used by the UI. Secondary enrichments arrive later.
+ * Fetches the raw Open-Meteo forecast payload. Split from parsing so the
+ * network round-trip can run in parallel with resolving the acclimatization
+ * thresholds that parsing needs.
  */
-export async function fetchWeatherData(
-  lat: number,
-  lon: number,
-  options: WeatherRequestOptions = {},
-): Promise<Weather> {
-  const thresholds = options.thresholds ?? THRESHOLDS;
-
+export async function fetchOpenMeteoData(lat: number, lon: number): Promise<OpenMeteoData> {
   const res = await fetchWithTimeout(
     `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
       `&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,wind_gusts_10m,dewpoint_2m,wind_direction_10m` +
@@ -396,6 +391,16 @@ export async function fetchWeatherData(
   );
   if (!res.ok) throw new Error('Weather API error');
   const data = (await res.json()) as OpenMeteoData;
+  if (!data.current) throw new Error('Weather API missing current data');
+  return data;
+}
+
+/**
+ * Assembles the unified weather object used by the UI from a raw Open-Meteo
+ * payload, rating conditions against the given thresholds. Secondary
+ * enrichments (AQI, alerts) arrive later.
+ */
+export function buildWeatherFromData(data: OpenMeteoData, thresholds: Thresholds): Weather {
   if (!data.current) throw new Error('Weather API missing current data');
 
   // Align with the forecast location's timezone rather than the browser's local timezone.
@@ -428,6 +433,19 @@ export async function fetchWeatherData(
     daylight: parseDaylightHours(data),
     nwsAlerts: [],
   };
+}
+
+/**
+ * Fetches current, hourly, and daily weather from Open-Meteo and assembles the
+ * unified weather object used by the UI.
+ */
+export async function fetchWeatherData(
+  lat: number,
+  lon: number,
+  options: WeatherRequestOptions = {},
+): Promise<Weather> {
+  const data = await fetchOpenMeteoData(lat, lon);
+  return buildWeatherFromData(data, options.thresholds ?? THRESHOLDS);
 }
 
 export { REQUEST_TIMEOUT_ERROR } from './http';

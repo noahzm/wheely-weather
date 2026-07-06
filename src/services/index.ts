@@ -2,12 +2,13 @@ export {
   getForecastErrorKind,
   getForecastSnapshot,
   type ForecastSnapshot,
+  type ForecastSnapshotResult,
 } from './forecastSnapshot';
 export { REQUEST_TIMEOUT_ERROR, fetchWithTimeout } from './http';
 export { fetchLocationName, searchLocations } from './locationGeocoding';
 export {
   clearLocation,
-  loadGearMode,
+  loadAllSettings,
   loadRecentLocations,
   loadSavedLocation,
   normalizeLocationRecord,
@@ -16,6 +17,7 @@ export {
   saveLocation,
   saveRecentLocation,
   type LocationSource,
+  type PersistedSettings,
   type RecentLocation,
   type SavedLocation,
 } from './locationStorage';

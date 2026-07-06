@@ -14,7 +14,7 @@ import {
 } from './animated-condition-chip';
 import { AnimatedExpand } from './animated-expand';
 import { BrutalCard, asCondition } from './primitives';
-import { CHART_HEIGHT, HourlyChartGraphic, SelectionRing } from './hourly-chart-graphic';
+import { CHART_HEIGHT, HourlyChartGraphic, SelectionMarker } from './hourly-chart-graphic';
 import { HourlyNoteStickers } from './hourly-note-stickers';
 import { useHourlyForecastChart, type ChartHour } from './use-hourly-forecast-chart';
 
@@ -123,6 +123,7 @@ function HourlyReasonFooter({
 function useHourlyChipScroll({
   data,
   c,
+  bgColors,
   scrollX,
   liveScrollX,
   viewportWidth,
@@ -131,6 +132,7 @@ function useHourlyChipScroll({
 }: Readonly<{
   data: ChartHour[];
   c: ReturnType<typeof useWheelyColors>;
+  bgColors: readonly string[];
   scrollX: SharedValue<number>;
   liveScrollX: number;
   viewportWidth: number;
@@ -148,7 +150,6 @@ function useHourlyChipScroll({
 
   const chartScroll = useMemo(() => {
     const conditions = data.map((hour) => hour.condition);
-    const bgColors = data.map((hour) => c.condition[asCondition(hour.condition)].bg);
     const inkColors = data.map((hour) => c.condition[asCondition(hour.condition)].ink);
     return {
       scrollX,
@@ -162,7 +163,7 @@ function useHourlyChipScroll({
       chipLayoutWidths: chipLayouts?.map((layout) => layout.width) ?? [],
       chipLayoutHeights: chipLayouts?.map((layout) => layout.height) ?? [],
     };
-  }, [c, chipLayouts, data, initialScrollX, liveScrollX, maxIndex, scrollX, viewportWidth]);
+  }, [bgColors, c, chipLayouts, data, initialScrollX, liveScrollX, maxIndex, scrollX, viewportWidth]);
 
   return { conditionLabels, handleChipLayouts, chartScroll };
 }
@@ -183,9 +184,17 @@ function HourlyForecastBody({
   const chart = useHourlyForecastChart(data, nowIdx);
   const maxIndex = Math.max(0, data.length - 1);
 
+  // Shared by the sticker chip and the chart's selection marker so both blend
+  // through the same per-hour condition colors.
+  const bgColors = useMemo(
+    () => data.map((hour) => c.condition[asCondition(hour.condition)].bg),
+    [c, data],
+  );
+
   const { conditionLabels, handleChipLayouts, chartScroll } = useHourlyChipScroll({
     data,
     c,
+    bgColors,
     scrollX: chart.scrollX,
     liveScrollX: chart.liveScrollX,
     viewportWidth: chart.viewportWidth,
@@ -197,7 +206,13 @@ function HourlyForecastBody({
     <View style={styles.hourlyBody}>
       <HourlyNoteStickers rainTiming={rainTiming} daylightWarning={daylightWarning} />
       <ConditionChipWidthProbe labels={conditionLabels} onLayouts={handleChipLayouts} />
-      <HourlyChartShell chart={chart} data={data} nowIdx={nowIdx} maxIndex={maxIndex} />
+      <HourlyChartShell
+        chart={chart}
+        data={data}
+        nowIdx={nowIdx}
+        maxIndex={maxIndex}
+        bgColors={bgColors}
+      />
       <HourlyReasonFooter
         reasonOpen={chart.reasonOpen}
         selectedReason={chart.selectedReason}
@@ -215,11 +230,13 @@ function HourlyChartShell({
   data,
   nowIdx,
   maxIndex,
+  bgColors,
 }: Readonly<{
   chart: ReturnType<typeof useHourlyForecastChart>;
   data: ChartHour[];
   nowIdx: number;
   maxIndex: number;
+  bgColors: readonly string[];
 }>) {
   const { styles } = useStyles();
   const {
@@ -227,7 +244,6 @@ function HourlyChartShell({
     scrollX,
     liveScrollX,
     isScrollIdle,
-    selectedIdx,
     viewportWidth,
     contentPadding,
     snapOffsets,
@@ -284,21 +300,15 @@ function HourlyChartShell({
             <HourlyChartGraphic
               data={data}
               nowIdx={nowIdx}
-              selectedIdx={selectedIdx}
               width={chartWidth}
               height={CHART_HEIGHT}
               smoothPath={smoothPath}
-              scrollX={scrollX}
-              liveScrollX={liveScrollX}
-              viewportWidth={viewportWidth}
-              maxIndex={maxIndex}
-              initialScrollX={initialScrollX}
             />
           </View>
           <View style={{ width: contentPadding }} />
         </View>
       </Animated.ScrollView>
-      <SelectionRing
+      <SelectionMarker
         segments={splineSegments}
         scrollX={scrollX}
         liveScrollX={liveScrollX}
@@ -308,6 +318,7 @@ function HourlyChartShell({
         maxIndex={maxIndex}
         initialScrollX={initialScrollX}
         selectedCondition={selected.condition}
+        bgColors={bgColors}
       />
     </View>
   );

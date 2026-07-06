@@ -4,6 +4,11 @@ Wheely Weather scores how good conditions are for a bike ride. It's an [Expo Rou
 
 The look is a layered system: a flat theme background, liquid-glass chrome (`expo-glass-effect`), neobrutalist `BrutalCard` content surfaces, and the National Park typeface.
 
+## Screenshots
+
+![Wheely Weather Home Screen - Ideal Ride Conditions](./assets/images/screenshot-1.png)
+![Wheely Weather Detail Screen - Poor Ride Conditions](./assets/images/screenshot-2.png)
+
 ## Getting started
 
 ```bash
@@ -11,11 +16,11 @@ npm install
 ```
 
 | Command                                           | Description                                               |
-| -------------------------------------------------- | ----------------------------------------------------------- |
-| `npm run web` / `npm run ios` / `npm run android` | Run the app                                                |
-| `npm run storybook:web`                           | Component workshop at http://localhost:6006                |
-| `npm run build:web`                                | Export the web build (`expo export --platform web`)        |
-| `npm run deploy:web`                               | Build then deploy the web build via Wrangler (Cloudflare)   |
+| ------------------------------------------------- | --------------------------------------------------------- |
+| `npm run web` / `npm run ios` / `npm run android` | Run the app                                               |
+| `npm run storybook:web`                           | Component workshop at http://localhost:6006               |
+| `npm run build:web`                               | Export the web build (`expo export --platform web`)       |
+| `npm run deploy:web`                              | Build then deploy the web build via Wrangler (Cloudflare) |
 
 ## Quality gates
 

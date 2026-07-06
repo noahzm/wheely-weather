@@ -5,52 +5,33 @@ import * as Localization from 'expo-localization';
 
 import {
   clearHomeLocation,
-  loadAppearance,
-  loadGearMode,
-  loadHomeLocation,
-  loadTempUnit,
+  loadAllSettings,
   saveAppearance,
   saveGearMode,
   saveHomeLocation,
   saveTempUnit,
+  type PersistedSettings,
   type SavedLocation,
 } from '@/services/locationStorage';
+import { DEFAULT_SETTINGS } from '@/services/settingsCodec';
 import type { Appearance, GearMode, TempUnitPreference } from '@/types/settings';
 import type { TempUnit } from '@/utils/temperature';
 
 type SettingTuple<T> = readonly [T, (next: T) => void];
+
+// Persistence is best-effort — write failures are swallowed so a flaky disk
+// never breaks the in-session state.
+const swallowWriteError = () => {
+  /* best-effort persistence */
+};
 
 interface SettingsValue {
   gear: SettingTuple<GearMode>;
   appearance: SettingTuple<Appearance>;
   homeLocation: SettingTuple<SavedLocation | null>;
   tempUnit: SettingTuple<TempUnitPreference>;
-}
-
-/**
- * One persisted setting: seeded from storage on mount, then written back on
- * every change. Persistence is best-effort — write failures are swallowed so a
- * flaky disk never breaks the in-session state.
- */
-function usePersistedSetting<T>(
-  initial: T,
-  load: () => Promise<T>,
-  save: (next: T) => Promise<unknown>,
-): SettingTuple<T> {
-  const [value, setValue] = useState<T>(initial);
-
-  useEffect(() => {
-    void load().then(setValue);
-  }, [load]);
-
-  const select = (next: T) => {
-    setValue(next);
-    save(next).catch(() => {
-      // Best-effort persistence; ignore write failures.
-    });
-  };
-
-  return [value, select];
+  /** True once the persisted values have been read from storage. */
+  hydrated: boolean;
 }
 
 // ---------- context ----------
@@ -61,16 +42,59 @@ const SettingsContext = createContext<SettingsValue | null>(null);
 
 // ---------- provider ----------
 export function SettingsProvider({ children }: Readonly<{ children: ReactNode }>) {
-  const gear = usePersistedSetting<GearMode>('casual', loadGearMode, saveGearMode);
-  const appearance = usePersistedSetting<Appearance>('system', loadAppearance, saveAppearance);
-  const homeLocation = usePersistedSetting<SavedLocation | null>(null, loadHomeLocation, (next) =>
-    next ? saveHomeLocation(next) : clearHomeLocation(),
-  );
-  const tempUnit = usePersistedSetting<TempUnitPreference>('auto', loadTempUnit, saveTempUnit);
+  const [settings, setSettings] = useState<PersistedSettings>(DEFAULT_SETTINGS);
+  const [hydrated, setHydrated] = useState(false);
+
+  // All settings hydrate in a single batched read + one state commit, so first
+  // paint after the splash already has the persisted appearance/units and
+  // consumers gating on `hydrated` never observe a half-loaded mix.
+  useEffect(() => {
+    let cancelled = false;
+    void loadAllSettings().then((loaded) => {
+      if (cancelled) return;
+      setSettings(loaded);
+      setHydrated(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const value = useMemo<SettingsValue>(
-    () => ({ gear, appearance, homeLocation, tempUnit }),
-    [gear, appearance, homeLocation, tempUnit],
+    () => ({
+      gear: [
+        settings.gearMode,
+        (next: GearMode) => {
+          setSettings((current) => ({ ...current, gearMode: next }));
+          saveGearMode(next).catch(swallowWriteError);
+        },
+      ],
+      appearance: [
+        settings.appearance,
+        (next: Appearance) => {
+          setSettings((current) => ({ ...current, appearance: next }));
+          saveAppearance(next).catch(swallowWriteError);
+        },
+      ],
+      homeLocation: [
+        settings.homeLocation,
+        (next: SavedLocation | null) => {
+          setSettings((current) => ({ ...current, homeLocation: next }));
+          (next ? saveHomeLocation(next) : clearHomeLocation()).catch(swallowWriteError);
+        },
+      ],
+      tempUnit: [
+        settings.tempUnit,
+        (next: TempUnitPreference) => {
+          setSettings((current) => ({ ...current, tempUnit: next }));
+          saveTempUnit(next).catch(swallowWriteError);
+        },
+      ],
+      hydrated,
+    }),
+    [settings, hydrated],
   );
+
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;
 }
 
@@ -100,11 +124,22 @@ export function useTempUnit(): SettingTuple<TempUnitPreference> {
 }
 
 /**
+ * Whether the persisted settings have been read from storage. Work that
+ * depends on a setting's real value (e.g. the first forecast fetch reading
+ * the home location) should wait for this to avoid acting on defaults.
+ */
+export function useSettingsHydrated(): boolean {
+  return useSettings().hydrated;
+}
+
+/**
  * Resolves the persisted preference to a concrete display unit — 'auto'
  * follows the device locale, falling back to Fahrenheit when unknown.
+ * `useLocales()` subscribes to locale changes instead of re-reading the
+ * native module on every render (this hook runs ~once per displayed value).
  */
 export function useResolvedTempUnit(): TempUnit {
   const [preference] = useTempUnit();
-  if (preference !== 'auto') return preference;
-  return Localization.getLocales()[0].temperatureUnit ?? 'fahrenheit';
+  const [locale] = Localization.useLocales();
+  return preference === 'auto' ? (locale.temperatureUnit ?? 'fahrenheit') : preference;
 }

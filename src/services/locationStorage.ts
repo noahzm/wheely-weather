@@ -1,15 +1,20 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import {
+  DEFAULT_SETTINGS,
+  normalizeLocationRecord,
+  parseAppearance,
+  parseGearMode,
+  parseHomeLocation,
+  parseTempUnit,
+  type PersistedSettings,
+  type SavedLocation,
+} from './settingsCodec';
+
 import type { Appearance, GearMode, TempUnitPreference } from '@/types/settings';
 
-export type LocationSource = 'manual' | 'device';
-
-export interface SavedLocation {
-  lat: number;
-  lon: number;
-  name: string | null;
-  source: LocationSource;
-}
+export { normalizeLocationRecord, type PersistedSettings } from './settingsCodec';
+export type { LocationSource, SavedLocation } from './settingsCodec';
 
 const LOCATION_KEY = 'ww_location';
 const HOME_LOCATION_KEY = 'ww_home_location';
@@ -23,28 +28,6 @@ const PINS_MAX = 8;
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);
-}
-
-function cleanName(value: unknown) {
-  if (typeof value !== 'string') return null;
-  const next = value.trim();
-  return next ? next.slice(0, 96) : null;
-}
-
-export function normalizeLocationRecord(value: unknown): SavedLocation | null {
-  if (!value || typeof value !== 'object') return null;
-  const record = value as Record<string, unknown>;
-  const lat = Number(record.lat);
-  const lon = Number(record.lon);
-  if (!isFiniteNumber(lat) || !isFiniteNumber(lon)) return null;
-  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
-  const source = record.source === 'device' ? 'device' : 'manual';
-  return {
-    lat,
-    lon,
-    name: cleanName(record.name),
-    source,
-  };
 }
 
 export async function loadSavedLocation() {
@@ -65,15 +48,6 @@ export async function saveLocation(location: SavedLocation) {
 
 export async function clearLocation() {
   await AsyncStorage.removeItem(LOCATION_KEY);
-}
-
-export async function loadHomeLocation() {
-  try {
-    const raw = await AsyncStorage.getItem(HOME_LOCATION_KEY);
-    return normalizeLocationRecord(raw ? JSON.parse(raw) : null);
-  } catch {
-    return null;
-  }
 }
 
 export async function saveHomeLocation(location: SavedLocation) {
@@ -135,42 +109,41 @@ export async function saveRecentLocation(place: RecentLocation) {
   return next;
 }
 
-export async function loadGearMode(): Promise<GearMode> {
-  try {
-    return (await AsyncStorage.getItem(GEAR_MODE_KEY)) === 'pro' ? 'pro' : 'casual';
-  } catch {
-    return 'casual';
-  }
-}
-
 export async function saveGearMode(mode: GearMode) {
   await AsyncStorage.setItem(GEAR_MODE_KEY, mode);
-}
-
-export async function loadAppearance(): Promise<Appearance> {
-  try {
-    const raw = await AsyncStorage.getItem(APPEARANCE_KEY);
-    return raw === 'light' || raw === 'dark' ? raw : 'system';
-  } catch {
-    return 'system';
-  }
 }
 
 export async function saveAppearance(value: Appearance) {
   await AsyncStorage.setItem(APPEARANCE_KEY, value);
 }
 
-export async function loadTempUnit(): Promise<TempUnitPreference> {
-  try {
-    const raw = await AsyncStorage.getItem(TEMP_UNIT_KEY);
-    return raw === 'fahrenheit' || raw === 'celsius' ? raw : 'auto';
-  } catch {
-    return 'auto';
-  }
-}
-
 export async function saveTempUnit(value: TempUnitPreference) {
   await AsyncStorage.setItem(TEMP_UNIT_KEY, value);
+}
+
+/**
+ * Loads all persisted settings in a single storage round-trip so the provider
+ * can hydrate them in one state commit (no per-setting flicker). Never
+ * rejects — any failure falls back to the defaults.
+ */
+export async function loadAllSettings(): Promise<PersistedSettings> {
+  try {
+    const entries = await AsyncStorage.multiGet([
+      GEAR_MODE_KEY,
+      APPEARANCE_KEY,
+      HOME_LOCATION_KEY,
+      TEMP_UNIT_KEY,
+    ]);
+    const byKey = new Map(entries);
+    return {
+      gearMode: parseGearMode(byKey.get(GEAR_MODE_KEY) ?? null),
+      appearance: parseAppearance(byKey.get(APPEARANCE_KEY) ?? null),
+      homeLocation: parseHomeLocation(byKey.get(HOME_LOCATION_KEY) ?? null),
+      tempUnit: parseTempUnit(byKey.get(TEMP_UNIT_KEY) ?? null),
+    };
+  } catch {
+    return { ...DEFAULT_SETTINGS };
+  }
 }
 
 export async function loadPinnedLocations(): Promise<RecentLocation[]> {

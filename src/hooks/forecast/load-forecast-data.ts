@@ -11,6 +11,7 @@ import {
   type SavedLocation,
 } from '@/services/locationStorage';
 import { getForecastSnapshot, type ForecastSnapshot } from '@/services/forecastSnapshot';
+import type { ForecastExtras } from '@/types/weather';
 
 import { resolveDeviceLocation } from './device-location';
 
@@ -43,6 +44,7 @@ export type ForecastLoadResult =
   | {
       kind: 'loaded';
       snapshot: ForecastSnapshot;
+      extras: Promise<ForecastExtras | null>;
       savedLocation: SavedLocation | null;
       recentLocations: RecentLocation[];
       pinnedLocations: RecentLocation[];
@@ -70,8 +72,12 @@ export async function loadForecastData(
     }
   }
 
-  const snapshot = await getForecastSnapshot({ savedLocation, homeLocation, mockScenario });
-  return { kind: 'loaded', snapshot, savedLocation, recentLocations, pinnedLocations };
+  const { snapshot, extras } = await getForecastSnapshot({
+    savedLocation,
+    homeLocation,
+    mockScenario,
+  });
+  return { kind: 'loaded', snapshot, extras, savedLocation, recentLocations, pinnedLocations };
 }
 
 // Device locations are stored without a name; once reverse geocoding resolves

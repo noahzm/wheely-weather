@@ -168,10 +168,15 @@ export default function HomeScreen() {
   const city = location.split(',')[0]?.trim() ?? '';
   const acclimatization = forecast.snapshot?.acclimatization ?? null;
   const tempUnit = useResolvedTempUnit();
-  const derived = useMemo(
+  // Bundle the non-null trio so rendering needs a single presence check.
+  const sections = useMemo(
     () =>
       weather && acclimatization
-        ? deriveHomeState(weather, location, acclimatization, tempUnit)
+        ? {
+            weather,
+            thresholds: acclimatization.thresholds,
+            derived: deriveHomeState(weather, location, acclimatization, tempUnit),
+          }
         : null,
     [weather, location, acclimatization, tempUnit],
   );
@@ -184,7 +189,9 @@ export default function HomeScreen() {
   if (forecast.loading) {
     return <LoadingState />;
   }
-  if (forecast.errorKind) {
+  // Only surface a full-page error when there is no content to show; with a
+  // (possibly cached) snapshot on screen, a failed refresh keeps the content.
+  if (forecast.errorKind && !forecast.snapshot) {
     return <ErrorState kind={forecast.errorKind} onRetry={forecast.refresh} />;
   }
 
@@ -230,11 +237,11 @@ export default function HomeScreen() {
           <WebCityHeading city={city} />
           <View style={styles.content}>
             {headerContent !== null && <Stagger order={0}>{headerContent}</Stagger>}
-            {weather && derived && acclimatization && (
+            {sections && (
               <HomeSections
-                weather={weather}
-                derived={derived}
-                thresholds={acclimatization.thresholds}
+                weather={sections.weather}
+                derived={sections.derived}
+                thresholds={sections.thresholds}
               />
             )}
           </View>
