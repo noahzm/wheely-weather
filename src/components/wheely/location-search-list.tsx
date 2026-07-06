@@ -11,7 +11,7 @@ import { ChevronRight, Navigation, Pin } from 'lucide-react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Fonts, Spacing } from '@/constants/theme';
+import { Fonts, FontWeightBold, Spacing } from '@/constants/theme';
 
 import { BrutalCard, HapticPressable, SectionTitle } from './primitives';
 import {
@@ -229,6 +229,7 @@ const styles = StyleSheet.create({
   },
   rowLabelAction: {
     fontFamily: Fonts.monoBold,
+    fontWeight: FontWeightBold,
   },
   rowSub: {
     fontSize: 13,

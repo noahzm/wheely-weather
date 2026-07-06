@@ -50,6 +50,7 @@ function makeStyles(c: WheelyPalette) {
       color: c.ink,
       fontFamily: Fonts.monoBold,
       fontSize: 16,
+      fontWeight: FontWeightBold,
       textTransform: 'uppercase',
     },
     weatherGlyph: { width: 26, alignItems: 'center' },

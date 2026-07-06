@@ -51,7 +51,7 @@ export function AnimatedExpand({
     if (progress <= 0) return { height: 0 };
     if (measured <= 0) return { height: 0 };
     return { height: measured * progress };
-  });
+  }, [contentHeight, openProgress]);
 
   const onMeasureLayout = (height: number) => {
     if (!hasContent) {

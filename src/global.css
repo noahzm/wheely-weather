@@ -20,15 +20,17 @@ body,
 #root {
   font-family: var(--font-sans);
   background-color: var(--wheely-background, #ffffff);
+  color: var(--wheely-ink, #161310);
   color-scheme: light dark;
   /* App-like feel: no rubber-band past the edges of the document. */
   overscroll-behavior-y: none;
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
 /* Thin, theme-agnostic scrollbars (translucent thumb works on light and dark). */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(128, 128, 128, 0.45) transparent;
+  scrollbar-color: var(--wheely-border, rgba(128, 128, 128, 0.45)) transparent;
 }
 
 /* Controls read as buttons, not text. */
@@ -40,8 +42,8 @@ body,
 
 /* Poster selection + focus styling carried over from the original site. */
 ::selection {
-  background-color: #c6a2ed;
-  color: #161310;
+  background-color: var(--wheely-primary, #c6a2ed);
+  color: var(--wheely-primary-ink, #161310);
 }
 
 :focus-visible {
