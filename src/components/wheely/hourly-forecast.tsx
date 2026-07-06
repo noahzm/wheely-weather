@@ -163,7 +163,17 @@ function useHourlyChipScroll({
       chipLayoutWidths: chipLayouts?.map((layout) => layout.width) ?? [],
       chipLayoutHeights: chipLayouts?.map((layout) => layout.height) ?? [],
     };
-  }, [bgColors, c, chipLayouts, data, initialScrollX, liveScrollX, maxIndex, scrollX, viewportWidth]);
+  }, [
+    bgColors,
+    c,
+    chipLayouts,
+    data,
+    initialScrollX,
+    liveScrollX,
+    maxIndex,
+    scrollX,
+    viewportWidth,
+  ]);
 
   return { conditionLabels, handleChipLayouts, chartScroll };
 }

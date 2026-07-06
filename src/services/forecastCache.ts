@@ -1,7 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { ForecastSnapshot } from './forecastSnapshot';
-import { decodeForecastCache, encodeForecastCache, type CachedForecast } from './forecastCacheCodec';
+import {
+  decodeForecastCache,
+  encodeForecastCache,
+  type CachedForecast,
+} from './forecastCacheCodec';
 import { loadSavedLocation, type SavedLocation } from './locationStorage';
 
 const FORECAST_CACHE_KEY = 'ww_forecast_snapshot';

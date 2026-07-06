@@ -266,7 +266,11 @@ export function SelectionMarker({
         : clamped;
     const centerX = chartCenterXFromClampedScroll(scrollForRing, viewportWidth, maxIndex);
     const y = chartSmoothYAtSegments(segments, centerX);
-    const fill = markerFillAtCenter(centerX, bgColors, c.condition[asCondition(selectedCondition)].bg);
+    const fill = markerFillAtCenter(
+      centerX,
+      bgColors,
+      c.condition[asCondition(selectedCondition)].bg,
+    );
     return (
       <View
         style={[styles.selectionRing, { top: y - SELECTION_RING_RADIUS, pointerEvents: 'none' }]}

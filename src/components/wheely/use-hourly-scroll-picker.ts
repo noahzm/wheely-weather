@@ -354,7 +354,16 @@ export function useHourlyScrollPicker(
       setLiveScrollX(x);
     }
     syncSelectionFromScroll(x, false);
-  }, [viewportWidth, nowIdx, maxIndex, count, syncSelectionFromScroll, isWeb, scrollX, lastNotifiedIdx]);
+  }, [
+    viewportWidth,
+    nowIdx,
+    maxIndex,
+    count,
+    syncSelectionFromScroll,
+    isWeb,
+    scrollX,
+    lastNotifiedIdx,
+  ]);
 
   const onViewportLayout = useCallback((width: number) => {
     if (width > 0) {
