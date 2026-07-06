@@ -6,8 +6,8 @@ The look is a layered system: a flat theme background, liquid-glass chrome (`exp
 
 ## Screenshots
 
-![Wheely Weather Home Screen - Ideal Ride Conditions](./assets/images/screenshot-1.png)
-![Wheely Weather Detail Screen - Poor Ride Conditions](./assets/images/screenshot-2.png)
+![Wheely Weather Home Screen - Ideal Ride Conditions](./assets/images/screenshot-ideal.png)
+![Wheely Weather Detail Screen - Poor Ride Conditions](./assets/images/screenshot-poor.png)
 
 ## Getting started
 
