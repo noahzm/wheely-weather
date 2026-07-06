@@ -1,8 +1,19 @@
 # Wheely Weather
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![CI Status](https://github.com/noahzm/wheely-weather/actions/workflows/ci.yml/badge.svg)](https://github.com/noahzm/wheely-weather/actions)
+[![Built with Expo](https://img.shields.io/badge/Built_with-Expo-000020.svg?logo=expo&logoColor=white)](https://expo.dev/)
+
 Wheely Weather scores how good conditions are for a bike ride. It's an [Expo Router](https://docs.expo.dev/router/introduction) app for iOS, Android, and web, live at [wheelyweather.app](https://wheelyweather.app).
 
 The look is a layered system: a flat theme background, liquid-glass chrome (`expo-glass-effect`), neobrutalist `BrutalCard` content surfaces, and the National Park typeface.
+
+## Features
+
+- 🚴‍♂️ **Custom scoring algorithm** for cycling conditions
+- 👕 **Dynamic kit recommendations** based on temperature and wind
+- 📈 **Hourly micro-forecasts** and interactive charting
+- 📱 **Cross-platform** support for iOS, Android, and Web
 
 ## Screenshots
 
@@ -10,6 +21,13 @@ The look is a layered system: a flat theme background, liquid-glass chrome (`exp
 ![Wheely Weather Detail Screen - Poor Ride Conditions](./assets/images/screenshot-poor.png)
 
 ## Getting started
+
+### Prerequisites
+
+- Node.js (LTS recommended)
+- npm or yarn
+
+### Installation
 
 ```bash
 npm install
