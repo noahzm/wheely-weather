@@ -13,7 +13,10 @@ import {
 } from './forecast/load-forecast-data';
 import { mergeExtrasWhenReady } from './forecast/merge-extras';
 import { useLocationActions } from './forecast/use-location-actions';
-import { useSnapshotCacheHydration, useSnapshotCachePersistence } from './forecast/use-snapshot-cache';
+import {
+  useSnapshotCacheHydration,
+  useSnapshotCachePersistence,
+} from './forecast/use-snapshot-cache';
 import { useStaleRefresh } from './forecast/use-stale-refresh';
 
 export function useWeatherForecast(mockScenario: string | null) {
