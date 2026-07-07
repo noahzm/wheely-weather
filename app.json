@@ -83,7 +83,10 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Allow Wheely Weather to use your location for local cycling forecasts."
+          "locationWhenInUsePermission": "Allow Wheely Weather to use your location for local cycling forecasts.",
+          "locationAlwaysAndWhenInUsePermission": false,
+          "locationAlwaysPermission": false,
+          "motionUsagePermission": false
         }
       ],
       "@react-native-community/datetimepicker",

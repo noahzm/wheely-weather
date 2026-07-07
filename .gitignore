@@ -78,3 +78,7 @@ pnpm-debug.log*
 
 # Test coverage
 coverage/
+
+# Generated Lighthouse reports
+lighthouse-report.json
+*.lighthouseci/
