@@ -38,6 +38,17 @@ function makeStyles(c: WheelyPalette, webPaddingBottom?: number) {
       textAlign: 'center',
       fontSize: 13,
     },
+    staleNotice: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.one,
+    },
+    staleNoticeText: {
+      flex: 1,
+      color: c.ink,
+      fontSize: 13,
+      lineHeight: 18,
+    },
   });
 }
 
@@ -102,6 +113,50 @@ export function ErrorState({
         </HapticPressable>
       </BrutalCard>
     </View>
+  );
+}
+
+/**
+ * Inline banner for when a background refresh (pull-to-refresh, stale-data
+ * revalidation) fails while a snapshot is still on screen — the content stays
+ * visible, but the user is told it may be out of date instead of the failure
+ * being silent. Distinct from `ErrorState`, which replaces the whole screen
+ * when there is no content to show at all.
+ */
+export function StaleDataNotice({
+  kind,
+  onRetry,
+}: Readonly<{
+  kind: 'network' | 'default';
+  onRetry: () => void;
+}>) {
+  const { c, styles } = useStyles();
+  const message =
+    kind === 'network'
+      ? "Couldn't refresh — check your connection. Showing the last forecast."
+      : "Couldn't refresh the forecast. Showing the last one.";
+  return (
+    <BrutalCard small style={styles.staleNotice}>
+      {Platform.OS === 'ios' ? (
+        <SymbolView name="exclamationmark.triangle.fill" size={16} tintColor={c.warning} />
+      ) : (
+        <AlertTriangle size={16} color={c.warning} strokeWidth={2} />
+      )}
+      <ThemedText style={styles.staleNoticeText} accessibilityLiveRegion="polite">
+        {message}
+      </ThemedText>
+      <HapticPressable
+        onPress={onRetry}
+        accessibilityRole="button"
+        accessibilityLabel="Retry refresh"
+      >
+        {Platform.OS === 'ios' ? (
+          <SymbolView name="arrow.clockwise" size={16} tintColor={c.ink} />
+        ) : (
+          <RefreshCw size={16} color={c.ink} strokeWidth={2} />
+        )}
+      </HapticPressable>
+    </BrutalCard>
   );
 }
 

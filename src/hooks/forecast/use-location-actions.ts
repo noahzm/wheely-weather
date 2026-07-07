@@ -17,39 +17,59 @@ import type { ForecastState } from './load-forecast-data';
 
 type LoadForecast = (override?: SavedLocation | null, refreshOnly?: boolean) => Promise<void>;
 
-/** User-initiated location changes: picking a place manually or using the device fix. */
+export const LOCATION_SAVE_FAILED_MESSAGE = "Couldn't save that location. Try again.";
+
+/**
+ * User-initiated location changes: picking a place manually or using the
+ * device fix. Both actions never reject — `saveLocation`/`getCurrentPositionAsync`
+ * can throw (bad data, GPS off, storage failure), so failures are caught here
+ * and surfaced via `statusMessage`, letting every call site treat these as
+ * plain `Promise<boolean>` without its own try/catch.
+ */
 export function useLocationActions(
   setState: Dispatch<SetStateAction<ForecastState>>,
   loadForecast: LoadForecast,
   needsLocationRef: RefObject<boolean>,
 ) {
   const setManualLocation = useCallback(
-    async (place: RecentLocation) => {
-      const next = await saveLocation({
-        lat: place.lat,
-        lon: place.lon,
-        name: place.label,
-        source: 'manual',
-      });
-      await saveRecentLocation(place);
-      needsLocationRef.current = false;
-      setState((current) => ({
-        ...current,
-        needsLocation: false,
-        statusMessage: 'Updating forecast...',
-      }));
-      await loadForecast(next, true);
+    async (place: RecentLocation): Promise<boolean> => {
+      try {
+        const next = await saveLocation({
+          lat: place.lat,
+          lon: place.lon,
+          name: place.label,
+          source: 'manual',
+        });
+        await saveRecentLocation(place);
+        needsLocationRef.current = false;
+        setState((current) => ({
+          ...current,
+          needsLocation: false,
+          statusMessage: 'Updating forecast...',
+        }));
+        await loadForecast(next, true);
+        return true;
+      } catch {
+        setState((current) => ({ ...current, statusMessage: LOCATION_SAVE_FAILED_MESSAGE }));
+        return false;
+      }
     },
     [loadForecast, needsLocationRef, setState],
   );
 
-  const useDeviceLocation = useCallback(async () => {
+  const useDeviceLocation = useCallback(async (): Promise<boolean> => {
     if (isWebInsecureContext()) {
       setState((current) => ({ ...current, statusMessage: LOCATION_INSECURE_MESSAGE }));
       return false;
     }
     setState((current) => ({ ...current, statusMessage: 'Checking your device location...' }));
-    const next = await requestDeviceLocation();
+    let next: SavedLocation | null;
+    try {
+      next = await requestDeviceLocation();
+    } catch {
+      setState((current) => ({ ...current, statusMessage: LOCATION_DENIED_MESSAGE }));
+      return false;
+    }
     if (!next) {
       setState((current) => ({ ...current, statusMessage: LOCATION_DENIED_MESSAGE }));
       return false;

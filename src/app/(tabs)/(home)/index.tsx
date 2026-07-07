@@ -14,6 +14,7 @@ import {
   LocationPromptState,
   RideSpecs,
   RideVerdict,
+  StaleDataNotice,
   WeatherAlerts,
   bottomNavBarHeight,
 } from '@/components/wheely';
@@ -296,6 +297,9 @@ function HomeContent({
         >
           <WebCityHeading city={city} />
           <View style={styles.content}>
+            {forecast.errorKind && sections && (
+              <StaleDataNotice kind={forecast.errorKind} onRetry={forecast.refresh} />
+            )}
             {headerContent !== null && <Stagger order={0}>{headerContent}</Stagger>}
             {sections && (
               <HomeSections

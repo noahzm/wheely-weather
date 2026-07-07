@@ -11,4 +11,4 @@ export { HourlyForecast } from './hourly-forecast';
 export { KitGuide } from './kit-guide';
 export { RideSpecs } from './ride-specs';
 export { DailyForecast } from './daily-forecast';
-export { ErrorState, LoadingState, LocationPromptState } from './status';
+export { ErrorState, LoadingState, LocationPromptState, StaleDataNotice } from './status';

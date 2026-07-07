@@ -108,8 +108,13 @@ export function useWeatherForecast(mockScenario: string | null) {
 
   const togglePin = useCallback(
     async (place: RecentLocation) => {
-      const pins = await togglePinnedLocation(place, state.pinnedLocations);
-      setState((current) => ({ ...current, pinnedLocations: pins }));
+      try {
+        const pins = await togglePinnedLocation(place, state.pinnedLocations);
+        setState((current) => ({ ...current, pinnedLocations: pins }));
+      } catch {
+        // Best-effort persistence (matches other pin/location storage calls);
+        // on failure the UI just keeps its previous pin state.
+      }
     },
     [state.pinnedLocations],
   );
