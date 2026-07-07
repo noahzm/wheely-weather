@@ -79,9 +79,9 @@ export function useLocationSearchScreen() {
   const choosePlace = useCallback(
     async (place: RecentLocation) => {
       setBusy(true);
-      await forecast.setManualLocation(place);
+      const ok = await forecast.setManualLocation(place);
       setBusy(false);
-      goToHome();
+      if (ok) goToHome();
     },
     [forecast, goToHome],
   );
