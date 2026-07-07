@@ -7,6 +7,7 @@ import {
   type CachedForecast,
 } from './forecastCacheCodec';
 import { loadSavedLocation, type SavedLocation } from './locationStorage';
+import { captureError } from './telemetry';
 
 const FORECAST_CACHE_KEY = 'ww_forecast_snapshot';
 
@@ -21,7 +22,8 @@ export async function loadCachedForecast(): Promise<CachedForecast | null> {
       loadSavedLocation(),
     ]);
     return decodeForecastCache(raw, currentLocation);
-  } catch {
+  } catch (error) {
+    captureError(error, { where: 'loadCachedForecast' });
     return null;
   }
 }
@@ -34,15 +36,16 @@ export async function saveCachedForecast(
   try {
     const encoded = encodeForecastCache(snapshot, savedLocation);
     if (encoded) await AsyncStorage.setItem(FORECAST_CACHE_KEY, encoded);
-  } catch {
+  } catch (error) {
     // A failed write just means the next launch falls back to the spinner.
+    captureError(error, { where: 'saveCachedForecast' });
   }
 }
 
 export async function clearCachedForecast(): Promise<void> {
   try {
     await AsyncStorage.removeItem(FORECAST_CACHE_KEY);
-  } catch {
-    // Best-effort.
+  } catch (error) {
+    captureError(error, { where: 'clearCachedForecast' });
   }
 }

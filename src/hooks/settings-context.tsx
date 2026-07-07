@@ -14,15 +14,16 @@ import {
   type SavedLocation,
 } from '@/services/locationStorage';
 import { DEFAULT_SETTINGS } from '@/services/settingsCodec';
+import { captureError } from '@/services/telemetry';
 import type { Appearance, GearMode, TempUnitPreference } from '@/types/settings';
 import type { TempUnit } from '@/utils/temperature';
 
 type SettingTuple<T> = readonly [T, (next: T) => void];
 
 // Persistence is best-effort — write failures are swallowed so a flaky disk
-// never breaks the in-session state.
-const swallowWriteError = () => {
-  /* best-effort persistence */
+// never breaks the in-session state, but still reported so they're not invisible.
+const swallowWriteError = (error: unknown) => {
+  captureError(error, { where: 'settings-context write' });
 };
 
 interface SettingsValue {

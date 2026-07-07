@@ -6,6 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { NationalPark_400Regular, NationalPark_700Bold } from '@expo-google-fonts/national-park';
 import * as SystemUI from 'expo-system-ui';
+import * as Sentry from '@sentry/react-native';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { BottomNavBar } from '@/components/wheely';
@@ -15,6 +16,11 @@ import { ColorSchemeOverrideContext } from '@/hooks/use-theme';
 import { SettingsProvider, useAppearance } from '@/hooks/settings-context';
 import { ForecastProvider } from '@/hooks/forecast-context';
 import { useWebDocumentTheme } from '@/hooks/use-web-document-theme';
+import { initSentry } from '@/services/telemetry';
+
+// Runs once at module load, before the first render — a no-op until
+// EXPO_PUBLIC_SENTRY_DSN is configured (see .env.example).
+initSentry();
 
 function navigationTheme(isDark: boolean) {
   const base = isDark ? DarkTheme : DefaultTheme;
@@ -86,7 +92,7 @@ function renderRootChrome(stack: ReactNode): ReactNode {
   return <>{stack}</>;
 }
 
-export default function RootLayout() {
+function RootLayout() {
   // Native: National Park is embedded at build time by the expo-font config
   // plugin (Android XML resources / iOS bundled files), so no runtime load is
   // needed and the gate resolves immediately. Web still needs the runtime
@@ -105,6 +111,8 @@ export default function RootLayout() {
     </SettingsProvider>
   );
 }
+
+export default Sentry.wrap(RootLayout);
 
 function ThemedRoot() {
   const systemScheme = useColorScheme();

@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { captureError } from './telemetry';
 import {
   DEFAULT_SETTINGS,
   normalizeLocationRecord,
@@ -34,7 +35,8 @@ export async function loadSavedLocation() {
   try {
     const raw = await AsyncStorage.getItem(LOCATION_KEY);
     return normalizeLocationRecord(raw ? JSON.parse(raw) : null);
-  } catch {
+  } catch (error) {
+    captureError(error, { where: 'loadSavedLocation' });
     return null;
   }
 }
@@ -92,7 +94,8 @@ export async function loadRecentLocations() {
       .map((item) => normalizeRecentLocation(item))
       .filter((place): place is RecentLocation => !!place)
       .slice(0, RECENTS_MAX);
-  } catch {
+  } catch (error) {
+    captureError(error, { where: 'loadRecentLocations' });
     return [];
   }
 }
@@ -141,7 +144,8 @@ export async function loadAllSettings(): Promise<PersistedSettings> {
       homeLocation: parseHomeLocation(byKey.get(HOME_LOCATION_KEY) ?? null),
       tempUnit: parseTempUnit(byKey.get(TEMP_UNIT_KEY) ?? null),
     };
-  } catch {
+  } catch (error) {
+    captureError(error, { where: 'loadAllSettings' });
     return { ...DEFAULT_SETTINGS };
   }
 }
@@ -155,7 +159,8 @@ export async function loadPinnedLocations(): Promise<RecentLocation[]> {
       .map((item) => normalizeRecentLocation(item))
       .filter((place): place is RecentLocation => !!place)
       .slice(0, PINS_MAX);
-  } catch {
+  } catch (error) {
+    captureError(error, { where: 'loadPinnedLocations' });
     return [];
   }
 }
