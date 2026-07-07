@@ -42,6 +42,9 @@ function makeStyles(c: WheelyPalette) {
       fontSize: 13,
       lineHeight: 18,
     },
+    mutedExtreme: {
+      color: c.ink,
+    },
     chevronWrap: Platform.select({
       ios: {
         alignSelf: 'flex-start',
@@ -127,6 +130,36 @@ function AlertChevron({
   );
 }
 
+function AlertDetails({
+  alert,
+  openProgress,
+  extreme,
+  styles,
+}: Readonly<{
+  alert: WeatherAlert;
+  openProgress: SharedValue<number>;
+  extreme: boolean;
+  styles: ReturnType<typeof makeStyles>;
+}>) {
+  return (
+    <AnimatedExpand
+      openProgress={openProgress}
+      style={[styles.alertContent, extreme && styles.alertExtremeBody]}
+    >
+      {!!alert.instruction && (
+        <ThemedText style={[styles.muted, extreme && styles.mutedExtreme]}>
+          {alert.instruction}
+        </ThemedText>
+      )}
+      {!!alert.expires && (
+        <ThemedText style={[styles.muted, extreme && styles.mutedExtreme]}>
+          Expires: {formatTime(alert.expires)}
+        </ThemedText>
+      )}
+    </AnimatedExpand>
+  );
+}
+
 function AlertCard({ alert }: Readonly<{ alert: WeatherAlert }>) {
   const { c, styles } = useStyles();
   const [open, setOpen] = useState(false);
@@ -155,7 +188,10 @@ function AlertCard({ alert }: Readonly<{ alert: WeatherAlert }>) {
           <View style={styles.alertTextWrap}>
             <ThemedText style={styles.alertTitle}>{alert.event ?? alert.message}</ThemedText>
             {!!alert.headline && alert.headline !== alert.event && (
-              <ThemedText style={styles.muted} numberOfLines={open ? undefined : 2}>
+              <ThemedText
+                style={[styles.muted, extreme && styles.mutedExtreme]}
+                numberOfLines={open ? undefined : 2}
+              >
                 {alert.headline}
               </ThemedText>
             )}
@@ -163,23 +199,18 @@ function AlertCard({ alert }: Readonly<{ alert: WeatherAlert }>) {
           {hasDetails && (
             <AlertChevron
               openProgress={openProgress}
-              color={c.mutedInk}
+              color={extreme ? c.ink : c.mutedInk}
               style={styles.chevronWrap}
             />
           )}
         </HapticPressable>
         {hasDetails && (
-          <AnimatedExpand
+          <AlertDetails
+            alert={alert}
             openProgress={openProgress}
-            style={[styles.alertContent, extreme && styles.alertExtremeBody]}
-          >
-            {!!alert.instruction && (
-              <ThemedText style={styles.muted}>{alert.instruction}</ThemedText>
-            )}
-            {!!alert.expires && (
-              <ThemedText style={styles.muted}>Expires: {formatTime(alert.expires)}</ThemedText>
-            )}
-          </AnimatedExpand>
+            extreme={extreme}
+            styles={styles}
+          />
         )}
       </View>
     </BrutalCard>

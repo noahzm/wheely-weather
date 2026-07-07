@@ -47,7 +47,6 @@ function makeStyles(c: WheelyPalette) {
       fontWeight: '400',
     },
     acclimatizationNote: {
-      opacity: 0.75,
       fontFamily: Fonts.mono,
       fontSize: 13,
       marginTop: Spacing.two,
