@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { type RecentLocation, type SavedLocation } from '@/services/locationStorage';
 import { getForecastErrorKind } from '@/services/forecastSnapshot';
 import { useHomeLocation, useSettingsHydrated } from '@/hooks/settings-context';
+import { captureError } from '@/services/telemetry';
 
 import {
   INITIAL_FORECAST_STATE,
@@ -72,6 +73,7 @@ export function useWeatherForecast(mockScenario: string | null) {
         }));
         mergeExtrasWhenReady(result.snapshot, result.extras, setState);
       } catch (error) {
+        captureError(error, { where: 'loadForecast' });
         setState((current) => ({
           ...current,
           loading: false,

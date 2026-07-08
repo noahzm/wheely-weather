@@ -13,6 +13,7 @@ import AppleWeatherKitModule from '../../modules/apple-weatherkit/src/AppleWeath
 import { THRESHOLDS, type Thresholds } from '../domain/constants';
 import { weatherKitConditionToWmoCode } from '../domain/weatherkit-codes';
 import { withTimeout } from './http';
+import { captureError } from './telemetry';
 import {
   buildWeatherFromData,
   fetchAqi,
@@ -119,7 +120,8 @@ async function fetchWeatherKitAlerts(lat: number, lon: number): Promise<WeatherA
       SECONDARY_FETCH_TIMEOUT_MS,
     );
     return alerts.map((alert) => toWeatherAlert(alert));
-  } catch {
+  } catch (error) {
+    captureError(error, { where: 'fetchWeatherKitAlerts' });
     return [];
   }
 }
