@@ -70,17 +70,22 @@ Wheely Weather is an Expo Router + React Native app (iOS, Android, web) that sco
   - `acclimatization.ts`: Shifts temperature/dewpoint comfort thresholds based on home climate baseline.
 - **`src/services/`**
   - `homeClimate.ts`: Fetches 30 days of Open-Meteo temps to create an acclimatization baseline.
-  - `weatherService.ts`: Live API fetching.
+  - `weatherService.ts` / `weatherService.ios.ts`: Live API fetching, platform-split — Open-Meteo by default, native Apple WeatherKit on iOS (see "Platform-split native data sources (iOS)" below). `weatherParsing.ts` holds the shared parsing both call into; `http.ts` holds the shared timeout helpers.
   - `forecastSnapshot.ts`: Load and normalize forecast entry point.
+  - `forecastCache.ts` / `forecastCacheCodec.ts`: AsyncStorage-backed last-known-good forecast, keyed to the saved location; best-effort, any failure reads as a cache miss.
+  - `locationSearch.ts` / `locationSearch.ios.ts`: Geocoding, platform-split — Nominatim (via `locationGeocoding.ts`) by default, native Apple MapKit (`MKLocalSearch`) on iOS.
   - `mockWeather.ts`: Fixture data for `?mock=`.
-  - `locationStorage.ts`: AsyncStorage persistence.
+  - `locationStorage.ts` / `settingsCodec.ts`: AsyncStorage persistence; `settingsCodec.ts` is pure parse/validate logic kept free of AsyncStorage so it runs under the unit test project.
+  - `telemetry.ts`: Sentry init and `captureError` (see "Observability (Sentry)" below).
 - **`workers/index.mjs`** — Cloudflare Worker backing the web build. Proxies `/api/geocode` to Nominatim.
 - **`modules/apple-location-search`** — Custom Expo native module wrapping Apple's `MKLocalSearch` on iOS.
+- **`modules/apple-weatherkit`** — Custom Expo native module wrapping Apple's WeatherKit on iOS; backs `weatherService.ios.ts`.
 - **`src/hooks/`**
   - `use-weather-forecast.ts`: Core forecast-loading hook.
   - `settings-context.tsx`: `SettingsProvider`.
   - `use-theme.ts`: Theme and color resolution.
 - **`src/constants/theme.ts`** — Palette + typography source of truth.
+- **`src/types/`** — Shared types: `weather.ts`, `settings.ts` (imported as `@/types/weather`, `@/types/settings`).
 - **`src/utils/`** — Helpers like `hourlyChart`, `timeFormat`, `temperature`, `haptics.ts`.
 
 ### Data flow
@@ -94,6 +99,21 @@ App-wide **settings** (gear mode, appearance preference, home location, temperat
 ### Mock dev scenarios
 
 Pass `?mock=ride|maybe|rest|alert` as a URL query param (web) or deep-link param (native) to load fixture data instead of hitting the live API. `ForecastProvider` reads `useGlobalSearchParams().mock`, validates it against the known set, and **latches** the last-seen value in state — RN tab navigation drops query params on switch, so without latching the mock scenario would disappear the moment you leave the tab it was set on. The latched value flows into `useWeatherForecast` → `loadForecastData` → `getForecastSnapshot`, the sole owner of the mock branch, which delegates to `mockWeather.ts`.
+
+### Platform-split native data sources (iOS)
+
+On iOS, `weatherService.ios.ts` and `locationSearch.ios.ts` shadow the default Open-Meteo/Nominatim implementations with native calls into `modules/apple-weatherkit` and `modules/apple-location-search` respectively (Apple WeatherKit and `MKLocalSearch`). Both native modules return `null`/throw until a native rebuild links them — there is no automatic fallback to the web APIs in that state, matching each other's behavior intentionally.
+
+**Gotcha:** `weatherService.ios.ts` must import shared parsing helpers (`buildWeatherFromData`, `fetchAqi`, etc.) from `weatherParsing.ts`, never from `weatherService.ts`. Metro's platform resolution would resolve a `./weatherService` import back to `weatherService.ios.ts` itself when building for iOS, causing infinite recursion. AQI stays on Open-Meteo even in the WeatherKit path — WeatherKit has no AQI data. `weatherkit-codes.ts` translates WeatherKit condition codes to the WMO codes the rest of the app expects.
+
+### Observability (Sentry)
+
+`src/services/telemetry.ts` wraps `@sentry/react-native`:
+
+- `initSentry()` runs once at root-layout module load (before first render) and is a no-op unless `EXPO_PUBLIC_SENTRY_DSN` is set (see `.env.example`) — the app runs fine with Sentry entirely disabled.
+- `sentryEnabled` (`Boolean(dsn)`) gates whether `_layout.tsx` applies `Sentry.wrap(RootLayout)`. Wrapping without an initialized client leaves the app-start profiler with nothing to report to and logs a spurious "Sentry.wrap was called before Sentry.init" warning on every launch, so it's skipped entirely when disabled.
+- `captureError(error, context?)` routes otherwise-swallowed errors to Sentry. Several persistence/enrichment paths (AsyncStorage reads/writes, forecast cache, settings) intentionally never reject — a flaky disk or network call shouldn't break the UI — but that previously made real bugs (storage corruption, a parsing regression) invisible. Call it from those paths without changing their existing fallback behavior; it's safe to call even when Sentry is disabled.
+- Native builds also run Sentry's Xcode/Gradle build phases, which try to upload source maps/debug symbols via `sentry-cli`. Without a configured Sentry org/project/auth token this upload fails and aborts the build — set `SENTRY_DISABLE_AUTO_UPLOAD` as a real process env var (in `.env` for local dev, an EAS env var for cloud builds) to skip it. `sentry-xcode.sh` only checks the process environment, so setting it in `.env.sentry-build-plugin` alone has no effect. A root-level `.env.sentry-build-plugin` (gitignored) is read separately by `sentry-cli` for `SENTRY_ORG`/`SENTRY_PROJECT`/`SENTRY_AUTH_TOKEN`, only needed if you actually want symbols uploaded.
 
 ## Conventions
 

@@ -51,11 +51,12 @@ CI (`.github/workflows/ci.yml`, single job, `ubuntu-latest`, Node 24) runs in or
 - **`src/app/`** — Expo Router routes under a `(tabs)` group: `(home)`, `location`, `settings`. Root `_layout.tsx` wraps everything in `SettingsProvider`, resolves the active scheme (`ThemedRoot`), and nests `ForecastProvider`. Web additionally renders a fixed `BottomNavBar`; native uses `expo-router/unstable-native-tabs`.
 - **`src/components/wheely/`** — Presentational components. `primitives.tsx` has shared primitives (`BrutalCard`, `brutalShadow`, `HapticPressable`, etc.) — **import from `@/components/wheely/primitives`, not the barrel**. Screen sections: `weather-header`, `ride-verdict`, `weather-alerts`, `hourly-forecast`, `kit-guide`, `ride-specs`, `daily-forecast`, `status`. Chrome: `glass-chrome`, `home-nav-chrome`, `bottom-nav-chrome`, `web-screen-header`, `content-column`.
 - **`src/domain/`** — Weather scoring + copy (framework-agnostic TypeScript). `acclimatization.ts` shifts comfort thresholds based on home climate baseline.
-- **`src/services/`** — `homeClimate.ts` (30-day Open-Meteo baseline), `weatherService.ts` (live API), `forecastSnapshot.ts` (load/normalize entry point), `mockWeather.ts` (fixtures for `?mock=`), `locationStorage.ts` (AsyncStorage).
+- **`src/services/`** — `homeClimate.ts` (30-day Open-Meteo baseline), `weatherService.ts`/`weatherService.ios.ts` (live API, platform-split — see below), `forecastSnapshot.ts` (load/normalize entry point), `forecastCache.ts`/`forecastCacheCodec.ts` (AsyncStorage last-known-good forecast), `locationSearch.ts`/`locationSearch.ios.ts` (geocoding, platform-split), `mockWeather.ts` (fixtures for `?mock=`), `locationStorage.ts`/`settingsCodec.ts` (AsyncStorage), `telemetry.ts` (Sentry).
 - **`workers/index.mjs`** — Cloudflare Worker backing the web build; proxies `/api/geocode` to Nominatim.
-- **`modules/apple-location-search`** — Custom Expo native module wrapping Apple's `MKLocalSearch` on iOS.
+- **`modules/apple-location-search`** / **`modules/apple-weatherkit`** — Custom Expo native modules wrapping Apple's `MKLocalSearch` and WeatherKit on iOS.
 - **`src/hooks/`** — `use-weather-forecast.ts` (core forecast-loading hook), `settings-context.tsx` (`SettingsProvider`), `use-theme.ts`.
 - **`src/constants/theme.ts`** — Palette + typography source of truth.
+- **`src/types/`** — `weather.ts`, `settings.ts`: shared domain/settings types imported as `@/types/weather`, `@/types/settings`.
 
 ### Data flow
 
@@ -66,6 +67,14 @@ App-wide **settings** (gear mode, appearance preference, home location, temperat
 ### Mock dev scenarios
 
 Pass `?mock=ride|maybe|rest|alert` as a URL query param (web) or deep-link param (native) to load fixture data instead of the live API. `ForecastProvider` reads `useGlobalSearchParams().mock`, validates it, and **latches** the last-seen value in state (RN tab navigation drops query params on switch). Flows: latched value → `useWeatherForecast` → `loadForecastData` → `getForecastSnapshot`, which delegates to `mockWeather.ts`.
+
+### iOS native data sources
+
+On iOS, `weatherService.ios.ts` and `locationSearch.ios.ts` shadow the default Open-Meteo/Nominatim implementations with native WeatherKit/MapKit calls (`modules/apple-weatherkit`, `modules/apple-location-search`). Both return `null`/throw until a native rebuild links the module — there's no automatic fallback to the web APIs. **Gotcha:** `weatherService.ios.ts` must import shared parsing helpers from `weatherParsing.ts`, never from `weatherService.ts` — Metro's platform resolution would resolve `./weatherService` back to `weatherService.ios.ts` itself on iOS, causing infinite recursion.
+
+### Observability (Sentry)
+
+`src/services/telemetry.ts` wraps `@sentry/react-native`. `initSentry()` runs once at root-layout module load and is a no-op without `EXPO_PUBLIC_SENTRY_DSN` set (see `.env.example`); `sentryEnabled` gates `Sentry.wrap(RootLayout)` so the app isn't wrapped with an uninitialized client (avoids a spurious warning on every dev launch). Use `captureError(error, context?)` to surface failures from paths that intentionally swallow errors (AsyncStorage, forecast cache, settings) without changing their fallback behavior. Native builds also run Sentry's Xcode/Gradle source-map upload phase — set `SENTRY_DISABLE_AUTO_UPLOAD` (a real env var, not just `.env.sentry-build-plugin`) to skip it locally without an auth token.
 
 ## Conventions
 
