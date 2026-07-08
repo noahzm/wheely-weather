@@ -1,5 +1,22 @@
 export const REQUEST_TIMEOUT_ERROR = 'Request timed out';
 
+/** Races an arbitrary promise (e.g. a native module call) against a timeout. */
+export async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => {
+          reject(new Error(REQUEST_TIMEOUT_ERROR));
+        }, timeoutMs);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 /** Wraps fetch with an abort timeout so slow secondary APIs fail predictably. */
 export async function fetchWithTimeout(
   url: string,

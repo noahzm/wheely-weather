@@ -13,6 +13,9 @@
       "buildNumber": "2",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
+      },
+      "entitlements": {
+        "com.apple.developer.weatherkit": true
       }
     },
     "android": {

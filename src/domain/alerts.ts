@@ -17,8 +17,13 @@ export const getWeatherAlerts = (
       });
     }
   }
-  const hasNwsHeat = alerts.some((a) => a.type === 'nws' && /\bheat\b/i.test(a.event ?? ''));
-  if (!hasNwsHeat) {
+  // Both provider sources (NWS on Android/web, WeatherKit on iOS) can already
+  // carry a heat alert — dedupe against either so we don't stack a synthesized
+  // one on top of it.
+  const hasProviderHeat = alerts.some(
+    (a) => (a.type === 'nws' || a.type === 'weatherkit') && /\bheat\b/i.test(a.event ?? ''),
+  );
+  if (!hasProviderHeat) {
     if (weather.feelsLike > 104)
       alerts.push({
         type: 'heat',

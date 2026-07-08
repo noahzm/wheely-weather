@@ -165,11 +165,10 @@ function AlertCard({ alert }: Readonly<{ alert: WeatherAlert }>) {
   const [open, setOpen] = useState(false);
   const openProgress = useExpandAnimation(open);
   const extreme = alert.severity === 'extreme';
-  const isNws = alert.type === 'nws';
   const Icon = alert.icon === 'thermometer' ? Thermometer : AlertTriangle;
   const sfIcon =
     alert.icon === 'thermometer' ? 'thermometer.medium' : 'exclamationmark.triangle.fill';
-  const hasDetails = isNws && (!!alert.instruction || !!alert.expires);
+  const hasDetails = !!alert.instruction || !!alert.expires;
 
   return (
     <BrutalCard small style={styles.alertCard}>
