@@ -9,8 +9,8 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "bundleIdentifier": "app.wheelyweather",
+      "appleTeamId": "Y2S6C64A97",
       "icon": "./assets/WheelyWeather.icon",
-      "buildNumber": "2",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       },
@@ -20,7 +20,6 @@
     },
     "android": {
       "package": "app.wheelyweather",
-      "versionCode": 2,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -89,7 +88,7 @@
           "locationWhenInUsePermission": "Allow Wheely Weather to use your location for local cycling forecasts.",
           "locationAlwaysAndWhenInUsePermission": false,
           "locationAlwaysPermission": false,
-          "motionUsagePermission": false
+          "motionUsagePermission": "Wheely Weather does not use motion or fitness data. This permission string is required by a location library dependency."
         }
       ],
       "@react-native-community/datetimepicker",
