@@ -5,6 +5,14 @@ import * as Sentry from '@sentry/react-native';
 // here should ever throw or block app startup.
 const dsn = process.env.EXPO_PUBLIC_SENTRY_DSN;
 
+/**
+ * Whether Sentry has a DSN to report to. `Sentry.wrap` should only be applied
+ * when this is true — wrapping without a configured client leaves the
+ * app-start profiler with nothing to report to, which logs a spurious
+ * "Sentry.wrap was called before Sentry.init" warning on every launch.
+ */
+export const sentryEnabled = Boolean(dsn);
+
 /** Call once from the root layout, before anything else renders. */
 export function initSentry() {
   if (!dsn) return;

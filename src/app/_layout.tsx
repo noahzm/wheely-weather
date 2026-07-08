@@ -16,7 +16,7 @@ import { ColorSchemeOverrideContext } from '@/hooks/use-theme';
 import { SettingsProvider, useAppearance } from '@/hooks/settings-context';
 import { ForecastProvider } from '@/hooks/forecast-context';
 import { useWebDocumentTheme } from '@/hooks/use-web-document-theme';
-import { initSentry } from '@/services/telemetry';
+import { initSentry, sentryEnabled } from '@/services/telemetry';
 
 // Runs once at module load, before the first render — a no-op until
 // EXPO_PUBLIC_SENTRY_DSN is configured (see .env.example).
@@ -112,7 +112,11 @@ function RootLayout() {
   );
 }
 
-export default Sentry.wrap(RootLayout);
+// Skip wrapping entirely when Sentry is disabled (no DSN) — wrapping without
+// an initialized client leaves the app-start profiler with nothing to report
+// to, which logs a spurious "Sentry.wrap was called before Sentry.init"
+// warning on every local dev launch.
+export default sentryEnabled ? Sentry.wrap(RootLayout) : RootLayout;
 
 function ThemedRoot() {
   const systemScheme = useColorScheme();
