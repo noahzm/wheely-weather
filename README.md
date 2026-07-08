@@ -4,13 +4,11 @@
 [![CI Status](https://github.com/noahzm/wheely-weather/actions/workflows/ci.yml/badge.svg)](https://github.com/noahzm/wheely-weather/actions)
 [![Built with Expo](https://img.shields.io/badge/Built_with-Expo-000020.svg?logo=expo&logoColor=white)](https://expo.dev/)
 
-Wheely Weather scores how good conditions are for a bike ride. It's an [Expo Router](https://docs.expo.dev/router/introduction) app for iOS, Android, and web, live at [wheelyweather.app](https://wheelyweather.app).
-
-The look is a layered system: a flat theme background, liquid-glass chrome (`expo-glass-effect`), neobrutalist `BrutalCard` content surfaces, and the National Park typeface.
+Wheely Weather scores how good conditions are for a bike ride, live at [wheelyweather.app](https://wheelyweather.app). It's an [Expo Router](https://docs.expo.dev/router/introduction) app for iOS, Android, and web with a liquid-glass, neobrutalist look.
 
 ## Features
 
-- 🚴‍♂️ **Custom scoring algorithm** for cycling conditions
+- 🚴 **Ride scoring** that weighs temperature, wind and gusts, rain, weather conditions, dewpoint, AQI, and UV
 - 👕 **Dynamic kit recommendations** based on temperature and wind
 - 📈 **Hourly micro-forecasts** and interactive charting
 - 📱 **Cross-platform** support for iOS, Android, and Web
