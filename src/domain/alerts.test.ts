@@ -20,6 +20,15 @@ describe('Weather Alerts', () => {
     expect(alerts.filter((alert) => alert.type === 'heat')).toHaveLength(0);
   });
 
+  it('does not duplicate a heat alert when WeatherKit (iOS) already issued one', () => {
+    const alerts = getWeatherAlerts({
+      feelsLike: 105,
+      nwsAlerts: [{ type: 'weatherkit', severity: 'warning', event: 'Heat Advisory' }],
+    });
+
+    expect(alerts.filter((alert) => alert.type === 'heat')).toHaveLength(0);
+  });
+
   it('adds a warning-level heat alert when feels like is above 95F', () => {
     const alerts = getWeatherAlerts({ feelsLike: 100 });
 
