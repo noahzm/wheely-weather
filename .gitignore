@@ -20,6 +20,7 @@ expo-env.d.ts
 *.p12
 *.key
 *.mobileprovision
+*.pem
 
 # Metro
 .metro-health-check*
@@ -31,7 +32,6 @@ yarn-error.*
 
 # macOS
 .DS_Store
-*.pem
 
 # local env files
 .env
@@ -64,10 +64,14 @@ storybook-static
 .claude/settings.json
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
+.claude/scheduled_tasks.json
 .claude/.cc-writes/
 .idea/
 .history/
 .eslintcache
+*.swp
+*.swo
+*~
 
 # Logs
 *.log
