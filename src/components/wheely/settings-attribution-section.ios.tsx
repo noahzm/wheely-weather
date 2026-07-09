@@ -63,7 +63,7 @@ export function WeatherAttributionSection() {
     <View style={styles.group}>
       <SectionTitle title="Weather data" />
       <BrutalCard small style={styles.card}>
-        <ExternalLink href={attribution.legalPageURL as `${string}:${string}`} asChild>
+        <ExternalLink href={attribution.legalPageURL} asChild>
           <HapticPressable
             hitSlop={12}
             accessibilityRole="link"
