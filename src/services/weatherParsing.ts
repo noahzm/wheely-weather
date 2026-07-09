@@ -76,7 +76,11 @@ interface NwsFeature {
 // Shared by both the Open-Meteo (weatherService.ts) and WeatherKit (weatherService.ios.ts)
 // fetch implementations.
 export const SECONDARY_FETCH_TIMEOUT_MS = 2500;
-export const FORECAST_FETCH_TIMEOUT_MS = 8000;
+// WeatherKit's first call on a fresh install involves authentication token
+// negotiation with Apple's servers plus a CLGeocoder reverse-geocode for
+// timezone resolution — easily 10-15 s, so the old 8 s ceiling timed out
+// before the data could arrive (TestFlight "Can't connect" symptom).
+export const FORECAST_FETCH_TIMEOUT_MS = 20_000;
 
 /** Normalizes a forecast timestamp down to the hourly format used by hourly.time. */
 function toHourlyTimeKey(timeStr: string | null | undefined): string | null {
