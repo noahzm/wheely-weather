@@ -6,12 +6,15 @@ Kilo-specific flight manual for Wheely Weather. For the full architecture, conve
 
 From the repo root (`/Users/noah/Projects/wheely-weather`):
 
-| Command                                           | Purpose                                                   |
-| ------------------------------------------------- | --------------------------------------------------------- |
-| `npm run web` / `npm run ios` / `npm run android` | Run the app                                               |
-| `npm run storybook:web`                           | Storybook at http://localhost:6006                        |
-| `npm run build:web`                               | Export the web build (`expo export --platform web`)       |
-| `npm run deploy:web`                              | Build then deploy the web build via Wrangler (Cloudflare) |
+| Command                                               | Purpose                                             |
+| ----------------------------------------------------- | --------------------------------------------------- |
+| `npm run web`                                         | Start Expo dev server for web                       |
+| `npm run ios` / `npm run android`                     | Build and run on simulator/device (`expo run:*`)    |
+| `npm run storybook:web`                               | Storybook at http://localhost:6006                  |
+| `npm run storybook:ios` / `npm run storybook:android` | Storybook on device (sets `STORYBOOK_ENABLED` env)  |
+| `npm run build:web`                                   | Export the web build (`expo export --platform web`) |
+| `npm run deploy:web`                                  | Build then deploy via Wrangler (Cloudflare)         |
+| `npx vitest run --project unit <file.test.ts>`        | Run a single test file                              |
 
 ## Quality gates
 
