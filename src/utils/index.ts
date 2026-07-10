@@ -3,7 +3,7 @@ export {
   getBestDayInfo,
   getBestDaysBlurb,
   getDayConditionReason,
-  getHourConditionReason,
+  getHourConditionReasons,
 } from './forecastHelpers';
 export {
   getAqiLabel,
