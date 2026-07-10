@@ -95,7 +95,14 @@
       "expo-image",
       "expo-status-bar",
       "expo-web-browser",
-      "@sentry/react-native"
+      [
+        "@sentry/react-native/expo",
+        {
+          "organization": "noah-michaels",
+          "project": "wheely-weather",
+          "disableAutoUpload": true
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
