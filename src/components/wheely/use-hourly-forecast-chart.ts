@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 
-import { getHourConditionReason } from '@/utils';
+import { getHourConditionReasons } from '@/utils';
 import { fullHourLabel } from '@/utils/timeFormat';
 import {
   CHART_X_ORIGIN,
@@ -17,10 +17,6 @@ import { asCondition } from './primitives';
 import { useHourlyScrollPicker } from './use-hourly-scroll-picker';
 
 export type ChartHour = HourlyWeather & { isPast: boolean; idx: number };
-
-function isLimitingCondition(condition: string): boolean {
-  return condition === 'marginal' || condition === 'poor' || condition === 'bad';
-}
 
 export function useHourlyForecastChart(data: ChartHour[], nowIdx: number) {
   const {
@@ -41,7 +37,9 @@ export function useHourlyForecastChart(data: ChartHour[], nowIdx: number) {
   } = useHourlyScrollPicker(nowIdx, data.length);
 
   const selected = data[selectedIdx] ?? data[nowIdx];
-  const reasonOpen = selected != null && isLimitingCondition(selected.condition);
+  const selectedReasons = selected == null ? [] : getHourConditionReasons(selected);
+  const selectedReason = selectedReasons.join(' • ') || null;
+  const reasonOpen = selectedReason != null;
   const reasonOpenProgress = useExpandAnimation(reasonOpen);
 
   const chartWidth = data.length > 0 ? chartX(data.length - 1) + CHART_X_ORIGIN : CHART_X_ORIGIN;
@@ -55,7 +53,6 @@ export function useHourlyForecastChart(data: ChartHour[], nowIdx: number) {
     throw new Error('useHourlyForecastChart requires at least one hour');
   }
 
-  const selectedReason = getHourConditionReason(selected);
   const hourLabelText = selectedIdx === nowIdx ? 'Now' : fullHourLabel(selected.hour);
   const conditionLabel = CONDITION_DISPLAY[asCondition(selected.condition)];
   const initialScrollX =

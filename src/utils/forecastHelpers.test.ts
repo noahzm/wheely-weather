@@ -3,7 +3,7 @@ import {
   dayLabel,
   getBestDayInfo,
   getDayConditionReason,
-  getHourConditionReason,
+  getHourConditionReasons,
   getBestDaysBlurb,
 } from './forecastHelpers';
 
@@ -128,43 +128,43 @@ describe('getDayConditionReason', () => {
   });
 });
 
-describe('getHourConditionReason', () => {
-  it('returns null for good and fair hours without hazardous weather codes', () => {
-    expect(getHourConditionReason(hour({ condition: 'good' }))).toBeNull();
-    expect(getHourConditionReason(hour({ condition: 'fair', windSpeed: 12 }))).toBeNull();
+describe('getHourConditionReasons', () => {
+  it('returns an empty list for good and fair hours without hazardous weather codes', () => {
+    expect(getHourConditionReasons(hour({ condition: 'good' }))).toEqual([]);
+    expect(getHourConditionReasons(hour({ condition: 'fair', windSpeed: 12 }))).toEqual([]);
   });
 
-  it('prioritizes hazardous weather codes regardless of condition tier', () => {
-    expect(getHourConditionReason(hour({ condition: 'good', weatherCode: 95 }))).toBe('Storm risk');
-    expect(getHourConditionReason(hour({ condition: 'fair', weatherCode: 73 }))).toBe(
-      'Wintry roads',
-    );
-    expect(getHourConditionReason(hour({ condition: 'marginal', weatherCode: 65 }))).toBe(
+  it('returns every matching metric reason in priority order', () => {
+    expect(
+      getHourConditionReasons(
+        hour({ condition: 'bad', windSpeed: 24, rainChance: 65, temperature: 97, dewpoint: 76 }),
+      ),
+    ).toEqual([
+      'Very windy (24 mph)',
+      'Rain likely (65%)',
+      'Dangerous heat (97°)',
+      'Oppressive humidity (dew 76°)',
+    ]);
+  });
+
+  it('includes heat and humidity reasons together', () => {
+    expect(
+      getHourConditionReasons(hour({ condition: 'poor', temperature: 94, dewpoint: 69 })),
+    ).toEqual(['Very hot (94°)', 'Very humid (dew 69°)']);
+  });
+
+  it('includes hazardous weather code reasons plus limiting metric reasons', () => {
+    expect(
+      getHourConditionReasons(
+        hour({ condition: 'marginal', weatherCode: 95, windSpeed: 16, rainChance: 35 }),
+      ),
+    ).toEqual(['Storm risk', 'Breezy (16 mph)', 'Some rain risk']);
+  });
+
+  it('does not add fallback reasons when hazardous weather is the only specific reason', () => {
+    expect(getHourConditionReasons(hour({ condition: 'bad', weatherCode: 65 }))).toEqual([
       'Heavy rain risk',
-    );
-  });
-
-  it.each([
-    ['Very windy (24 mph)', { condition: 'bad', windSpeed: 24 }],
-    ['Rain likely (65%)', { condition: 'bad', rainChance: 65 }],
-    ['Dangerous heat (97°)', { condition: 'bad', temperature: 97 }],
-    ['Oppressive humidity (dew 76°)', { condition: 'bad', dewpoint: 76 }],
-    ['Freezing temps', { condition: 'bad', temperature: 30 }],
-    ['Rough day to ride', { condition: 'bad' }],
-    ['Windy (19 mph)', { condition: 'poor', windSpeed: 19 }],
-    ['Wet roads likely', { condition: 'poor', rainChance: 50 }],
-    ['Very hot (94°)', { condition: 'poor', temperature: 94 }],
-    ['Very humid (dew 69°)', { condition: 'poor', dewpoint: 69 }],
-    ['Cold start', { condition: 'poor', temperature: 35 }],
-    ['Tough riding', { condition: 'poor' }],
-    ['Breezy (16 mph)', { condition: 'marginal', windSpeed: 16 }],
-    ['Some rain risk', { condition: 'marginal', rainChance: 35 }],
-    ['Warm (86°)', { condition: 'marginal', temperature: 86 }],
-    ['Muggy (dew 66°)', { condition: 'marginal', dewpoint: 66 }],
-    ['Cool start', { condition: 'marginal', temperature: 40 }],
-    ['Mixed conditions', { condition: 'marginal' }],
-  ])('returns %s', (expected, fields) => {
-    expect(getHourConditionReason(hour(fields))).toBe(expected);
+    ]);
   });
 });
 

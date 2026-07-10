@@ -111,52 +111,76 @@ function weatherCodeReason(entry: { weatherCode: number | null }): string | null
   return null;
 }
 
+function badConditionReasons(
+  { wind, rain, low, temp, dewpoint }: DayMetrics,
+  tempUnit: TempUnit = 'fahrenheit',
+): string[] {
+  const reasons: string[] = [];
+  if (wind >= 20) reasons.push(`Very windy (${wind} mph)`);
+  if (rain >= 60) reasons.push(`Rain likely (${rain}%)`);
+  if (temp != null && temp > THRESHOLDS.TEMPERATURE.BAD_MAX) {
+    reasons.push(`Dangerous heat (${formatTemperature(temp, tempUnit)})`);
+  }
+  if (dewpoint != null && dewpoint > THRESHOLDS.DEWPOINT.BAD) {
+    reasons.push(`Oppressive humidity (dew ${formatTemperature(dewpoint, tempUnit)})`);
+  }
+  if (low != null && low < 32) reasons.push('Freezing temps');
+  return reasons;
+}
+
+function poorConditionReasons(
+  { wind, rain, low, temp, dewpoint }: DayMetrics,
+  tempUnit: TempUnit = 'fahrenheit',
+): string[] {
+  const reasons: string[] = [];
+  if (wind >= 18) reasons.push(`Windy (${wind} mph)`);
+  if (rain >= 45) reasons.push('Wet roads likely');
+  if (temp != null && temp > THRESHOLDS.TEMPERATURE.POOR_MAX) {
+    reasons.push(`Very hot (${formatTemperature(temp, tempUnit)})`);
+  }
+  if (dewpoint != null && dewpoint > THRESHOLDS.DEWPOINT.POOR) {
+    reasons.push(`Very humid (dew ${formatTemperature(dewpoint, tempUnit)})`);
+  }
+  if (low != null && low < 36) reasons.push('Cold start');
+  return reasons;
+}
+
+function marginalConditionReasons(
+  { wind, rain, low, temp, dewpoint }: DayMetrics,
+  tempUnit: TempUnit = 'fahrenheit',
+): string[] {
+  const reasons: string[] = [];
+  if (wind >= 15) reasons.push(`Breezy (${wind} mph)`);
+  if (rain >= 30) reasons.push('Some rain risk');
+  if (temp != null && temp > THRESHOLDS.TEMPERATURE.MARGINAL_MAX) {
+    reasons.push(`Warm (${formatTemperature(temp, tempUnit)})`);
+  }
+  if (dewpoint != null && dewpoint > THRESHOLDS.DEWPOINT.MARGINAL) {
+    reasons.push(`Muggy (dew ${formatTemperature(dewpoint, tempUnit)})`);
+  }
+  if (low != null && low < 45) reasons.push('Cool start');
+  return reasons;
+}
+
 function badDayReason(
   { wind, rain, low, temp, dewpoint }: DayMetrics,
   tempUnit: TempUnit = 'fahrenheit',
 ): string {
-  if (wind >= 20) return `Very windy (${wind} mph)`;
-  if (rain >= 60) return `Rain likely (${rain}%)`;
-  if (temp != null && temp > THRESHOLDS.TEMPERATURE.BAD_MAX) {
-    return `Dangerous heat (${formatTemperature(temp, tempUnit)})`;
-  }
-  if (dewpoint != null && dewpoint > THRESHOLDS.DEWPOINT.BAD) {
-    return `Oppressive humidity (dew ${formatTemperature(dewpoint, tempUnit)})`;
-  }
-  if (low != null && low < 32) return 'Freezing temps';
-  return 'Rough day to ride';
+  return badConditionReasons({ wind, rain, low, temp, dewpoint }, tempUnit)[0] ?? 'Rough day to ride';
 }
 
 function poorDayReason(
   { wind, rain, low, temp, dewpoint }: DayMetrics,
   tempUnit: TempUnit = 'fahrenheit',
 ): string {
-  if (wind >= 18) return `Windy (${wind} mph)`;
-  if (rain >= 45) return `Wet roads likely`;
-  if (temp != null && temp > THRESHOLDS.TEMPERATURE.POOR_MAX) {
-    return `Very hot (${formatTemperature(temp, tempUnit)})`;
-  }
-  if (dewpoint != null && dewpoint > THRESHOLDS.DEWPOINT.POOR) {
-    return `Very humid (dew ${formatTemperature(dewpoint, tempUnit)})`;
-  }
-  if (low != null && low < 36) return 'Cold start';
-  return 'Tough riding';
+  return poorConditionReasons({ wind, rain, low, temp, dewpoint }, tempUnit)[0] ?? 'Tough riding';
 }
 
 function marginalDayReason(
   { wind, rain, low, temp, dewpoint }: DayMetrics,
   tempUnit: TempUnit = 'fahrenheit',
 ): string {
-  if (wind >= 15) return `Breezy (${wind} mph)`;
-  if (rain >= 30) return `Some rain risk`;
-  if (temp != null && temp > THRESHOLDS.TEMPERATURE.MARGINAL_MAX) {
-    return `Warm (${formatTemperature(temp, tempUnit)})`;
-  }
-  if (dewpoint != null && dewpoint > THRESHOLDS.DEWPOINT.MARGINAL) {
-    return `Muggy (dew ${formatTemperature(dewpoint, tempUnit)})`;
-  }
-  if (low != null && low < 45) return 'Cool start';
-  return 'Mixed conditions';
+  return marginalConditionReasons({ wind, rain, low, temp, dewpoint }, tempUnit)[0] ?? 'Mixed conditions';
 }
 
 function fairDayReason({ wind, rain, high }: DayMetrics): string {
@@ -188,31 +212,36 @@ function hourMetrics(hour: HourlyWeather): DayMetrics {
   };
 }
 
-/** Builds a short explanation for why an hourly point is limiting to ride. */
-export function getHourConditionReason(
+export function getHourConditionReasons(
   hour: HourlyWeather,
   tempUnit: TempUnit = 'fahrenheit',
-): string | null {
+): string[] {
+  const reasons: string[] = [];
   const codeReason = weatherCodeReason(hour);
-  if (codeReason) return codeReason;
+  if (codeReason) reasons.push(codeReason);
 
-  if (hour.condition === 'good' || hour.condition === 'fair') return null;
+  if (hour.condition === 'good' || hour.condition === 'fair') return reasons;
 
   const m = hourMetrics(hour);
   switch (hour.condition) {
     case 'bad': {
-      return badDayReason(m, tempUnit);
+      reasons.push(...badConditionReasons(m, tempUnit));
+      if (reasons.length === 0) reasons.push('Rough day to ride');
+      break;
     }
     case 'poor': {
-      return poorDayReason(m, tempUnit);
+      reasons.push(...poorConditionReasons(m, tempUnit));
+      if (reasons.length === 0) reasons.push('Tough riding');
+      break;
     }
     case 'marginal': {
-      return marginalDayReason(m, tempUnit);
-    }
-    default: {
-      return null;
+      reasons.push(...marginalConditionReasons(m, tempUnit));
+      if (reasons.length === 0) reasons.push('Mixed conditions');
+      break;
     }
   }
+
+  return reasons;
 }
 
 /** Builds a short explanation for why a daily card rates the way it does. */

@@ -267,12 +267,16 @@ function HourlyChartShell({
     splineSegments,
     smoothPath,
     selected,
+    selectedReason,
     hourLabelText,
     conditionLabel,
     initialScrollX,
   } = chart;
   const isWeb = Platform.OS === 'web';
   const snapToOffsets = isWeb || snapOffsets.length === 0 ? undefined : snapOffsets;
+  const accessibilityText = selectedReason
+    ? `${hourLabelText}, ${conditionLabel}, ${selectedReason}`
+    : `${hourLabelText}, ${conditionLabel}`;
 
   return (
     <View
@@ -294,7 +298,7 @@ function HourlyChartShell({
         onMomentumScrollEnd={onMomentumScrollEnd}
         accessibilityRole="adjustable"
         accessibilityLabel="Hourly ride-condition chart"
-        accessibilityValue={{ text: `${hourLabelText}, ${conditionLabel}` }}
+        accessibilityValue={{ text: accessibilityText }}
       >
         <View
           style={[
