@@ -145,7 +145,7 @@ export function makeButtonStyles(c: WheelyPalette) {
     },
     label: {
       color: c.ink,
-      fontFamily: Fonts.mono,
+      fontFamily: Fonts.body,
       fontWeight: '400',
       fontSize: 12,
       textTransform: 'uppercase',
@@ -289,7 +289,7 @@ function makeChipStyles(c: WheelyPalette) {
       alignSelf: 'flex-start',
     },
     chipText: {
-      fontFamily: Fonts.mono,
+      fontFamily: Fonts.body,
       fontWeight: '400',
       textTransform: 'uppercase',
     },
@@ -367,7 +367,7 @@ export const burstChipStyles = StyleSheet.create({
     flexDirection: 'row',
   },
   text: {
-    fontFamily: Fonts.mono,
+    fontFamily: Fonts.body,
     fontWeight: '400',
     textTransform: 'uppercase',
   },

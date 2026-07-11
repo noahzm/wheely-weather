@@ -163,24 +163,32 @@ function marginalConditionReasons(
 }
 
 function badDayReason(
-  { wind, rain, low, temp, dewpoint }: DayMetrics,
+  { wind, rain, high, low, temp, dewpoint }: DayMetrics,
   tempUnit: TempUnit = 'fahrenheit',
 ): string {
-  return badConditionReasons({ wind, rain, low, temp, dewpoint }, tempUnit)[0] ?? 'Rough day to ride';
+  return (
+    badConditionReasons({ wind, rain, high, low, temp, dewpoint }, tempUnit)[0] ??
+    'Rough day to ride'
+  );
 }
 
 function poorDayReason(
-  { wind, rain, low, temp, dewpoint }: DayMetrics,
+  { wind, rain, high, low, temp, dewpoint }: DayMetrics,
   tempUnit: TempUnit = 'fahrenheit',
 ): string {
-  return poorConditionReasons({ wind, rain, low, temp, dewpoint }, tempUnit)[0] ?? 'Tough riding';
+  return (
+    poorConditionReasons({ wind, rain, high, low, temp, dewpoint }, tempUnit)[0] ?? 'Tough riding'
+  );
 }
 
 function marginalDayReason(
-  { wind, rain, low, temp, dewpoint }: DayMetrics,
+  { wind, rain, high, low, temp, dewpoint }: DayMetrics,
   tempUnit: TempUnit = 'fahrenheit',
 ): string {
-  return marginalConditionReasons({ wind, rain, low, temp, dewpoint }, tempUnit)[0] ?? 'Mixed conditions';
+  return (
+    marginalConditionReasons({ wind, rain, high, low, temp, dewpoint }, tempUnit)[0] ??
+    'Mixed conditions'
+  );
 }
 
 function fairDayReason({ wind, rain, high }: DayMetrics): string {

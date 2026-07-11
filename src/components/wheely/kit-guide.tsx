@@ -21,7 +21,7 @@ function makeStyles(c: WheelyPalette) {
     },
     headline: {
       color: c.ink,
-      fontFamily: Fonts.monoBold,
+      fontFamily: Fonts.heading,
       fontSize: 15,
       fontWeight: FontWeightBold,
       lineHeight: 20,

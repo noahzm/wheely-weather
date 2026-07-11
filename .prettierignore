@@ -12,6 +12,3 @@ test-results/
 
 # Lockfiles and generated data
 package-lock.json
-
-# Local Claude Code settings (gitignored; sandbox blocks writes)
-.claude/settings.local.json

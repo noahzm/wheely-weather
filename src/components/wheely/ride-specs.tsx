@@ -69,7 +69,7 @@ function makeStyles(c: WheelyPalette, isCompact: boolean) {
     },
     metricLabel: {
       color: c.mutedInk,
-      fontFamily: Fonts.mono,
+      fontFamily: Fonts.body,
       fontSize: 13,
       fontWeight: '400',
       textTransform: 'uppercase',

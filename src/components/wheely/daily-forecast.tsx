@@ -22,7 +22,7 @@ function makeStyles(c: WheelyPalette) {
     weekSection: { gap: Spacing.three },
     weekBlurb: {
       color: c.mutedInk,
-      fontFamily: Fonts.monoBold,
+      fontFamily: Fonts.heading,
       fontSize: 16,
       fontWeight: FontWeightBold,
       lineHeight: 26,
@@ -48,7 +48,7 @@ function makeStyles(c: WheelyPalette) {
     dayLabelCell: { minWidth: 96 },
     dayLabel: {
       color: c.ink,
-      fontFamily: Fonts.monoBold,
+      fontFamily: Fonts.heading,
       fontSize: 16,
       fontWeight: FontWeightBold,
       textTransform: 'uppercase',
@@ -76,7 +76,7 @@ function makeStyles(c: WheelyPalette) {
     },
     conditionLabel: {
       color: c.ink,
-      fontFamily: Fonts.mono,
+      fontFamily: Fonts.body,
       fontSize: 12,
       letterSpacing: 0.5,
       textTransform: 'uppercase',

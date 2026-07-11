@@ -35,19 +35,19 @@ function makeStyles(c: WheelyPalette) {
     verdictBadgeText: {
       // Badge sits on c.shadow (#161310) in both themes — always use light cream ink.
       color: WheelyTheme.light.paper,
-      fontFamily: Fonts.monoBold,
+      fontFamily: Fonts.heading,
       fontSize: 16,
       fontWeight: FontWeightBold,
       textTransform: 'uppercase',
     },
     verdictText: {
-      fontFamily: Fonts.sans,
+      fontFamily: Fonts.body,
       fontSize: 34,
       lineHeight: 36,
       fontWeight: '400',
     },
     acclimatizationNote: {
-      fontFamily: Fonts.mono,
+      fontFamily: Fonts.body,
       fontSize: 13,
       marginTop: Spacing.two,
       textTransform: 'uppercase',

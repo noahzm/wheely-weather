@@ -35,7 +35,7 @@ function useNavChromeStyles() {
         minHeight: 0,
       },
       locationLabel: {
-        fontFamily: Fonts.monoBold,
+        fontFamily: Fonts.heading,
         fontWeight: FontWeightBold,
         fontSize: 16,
         color: c.ink,

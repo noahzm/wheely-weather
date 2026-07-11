@@ -68,7 +68,7 @@ function useBottomNavStyles(c: WheelyPalette) {
           opacity: INACTIVE_TAB_OPACITY,
         },
         tabLabel: {
-          fontFamily: Fonts.monoBold,
+          fontFamily: Fonts.heading,
           fontWeight: FontWeightBold,
           fontSize: 11,
         },
