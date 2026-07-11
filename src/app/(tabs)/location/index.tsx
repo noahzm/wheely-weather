@@ -17,7 +17,7 @@ import { BrutalCard, HapticPressable } from '@/components/wheely/primitives';
 import { LocationSearchList } from '@/components/wheely/location-search-list';
 import { useLocationSearchScreen } from '@/hooks/use-location-search-screen';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Fonts, FontWeightBold, Spacing, TRANSPARENT } from '@/constants/theme';
+import { Fonts, Spacing, TRANSPARENT } from '@/constants/theme';
 
 const BUSY_OVERLAY_COLOR = 'rgba(0,0,0,0.15)';
 const isWeb = Platform.OS === 'web';
@@ -142,8 +142,7 @@ export default function LocationSearchScreen() {
                   title={
                     <Text
                       style={{
-                        fontFamily: Fonts.monoBold,
-                        fontWeight: FontWeightBold,
+                        fontFamily: Fonts.city,
                         fontSize: 34,
                         color: c.ink,
                       }}
@@ -199,7 +198,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 16,
-    fontFamily: Fonts.sans,
+    fontFamily: Fonts.body,
     paddingVertical: Spacing.one,
     ...(isWeb ? ({ outlineStyle: 'none' } as object) : null),
   },

@@ -7,7 +7,7 @@ import { SettingsForm, WebScreenHeader, bottomNavBarHeight } from '@/components/
 import { useGearMode, useAppearance, useHomeLocation, useTempUnit } from '@/hooks/settings-context';
 import { useForecast } from '@/hooks/forecast-context';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Fonts, FontWeightBold, TRANSPARENT } from '@/constants/theme';
+import { Fonts, TRANSPARENT } from '@/constants/theme';
 
 const isWeb = Platform.OS === 'web';
 
@@ -62,8 +62,7 @@ export default function SettingsScreen() {
             title={
               <Text
                 style={{
-                  fontFamily: Fonts.monoBold,
-                  fontWeight: FontWeightBold,
+                  fontFamily: Fonts.city,
                   fontSize: 34,
                   color: c.ink,
                 }}

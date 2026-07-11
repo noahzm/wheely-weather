@@ -8,7 +8,7 @@ import {
 } from './copy';
 
 // `pick()` is intentionally `arr[new Date().getHours() % arr.length]` — stable
-// within an hour, NOT random (see AGENTS.md / the inline warning in copy.js).
+// within an hour, NOT random (see the inline warning in copy.js).
 // We exercise it through BEST_DAYS_MESSAGES.NONE(), which has 4 variants.
 describe('copy pick() variant selection', () => {
   const atHour = (h: number) => vi.setSystemTime(new Date(2026, 5, 22, h, 30, 0));

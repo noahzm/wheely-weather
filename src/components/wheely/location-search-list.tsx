@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
   messageText: {
     fontSize: 15,
     textAlign: 'center',
-    fontFamily: Fonts.sans,
+    fontFamily: Fonts.body,
   },
   sectionGroup: {
     gap: Spacing.two,
@@ -225,15 +225,15 @@ const styles = StyleSheet.create({
   },
   rowLabel: {
     fontSize: 16,
-    fontFamily: Fonts.sans,
+    fontFamily: Fonts.body,
   },
   rowLabelAction: {
-    fontFamily: Fonts.monoBold,
+    fontFamily: Fonts.heading,
     fontWeight: FontWeightBold,
   },
   rowSub: {
     fontSize: 13,
-    fontFamily: Fonts.sans,
+    fontFamily: Fonts.body,
   },
   chevron: {
     marginLeft: Spacing.two,

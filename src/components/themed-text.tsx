@@ -34,7 +34,7 @@ export function ThemedText({ style, type = 'default', themeColor, ...rest }: The
 
 const styles = StyleSheet.create({
   small: {
-    fontFamily: Fonts.sans,
+    fontFamily: Fonts.body,
     fontSize: 14,
     lineHeight: 20,
     fontWeight: '400',
@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
     fontWeight: FontWeightBold,
   },
   default: {
-    fontFamily: Fonts.sans,
+    fontFamily: Fonts.body,
     fontSize: 16,
     lineHeight: 24,
     fontWeight: '400',
@@ -64,20 +64,20 @@ const styles = StyleSheet.create({
     fontWeight: FontWeightBold,
   },
   link: {
-    fontFamily: Fonts.sans,
+    fontFamily: Fonts.body,
     lineHeight: 30,
     fontSize: 14,
     fontWeight: '400',
   },
   linkPrimary: {
-    fontFamily: Fonts.sans,
+    fontFamily: Fonts.body,
     lineHeight: 30,
     fontSize: 14,
     fontWeight: '400',
     color: LINK_BLUE,
   },
   code: {
-    fontFamily: Fonts.mono,
+    fontFamily: Fonts.body,
     fontWeight: '400',
     fontSize: 12,
   },

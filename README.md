@@ -54,7 +54,14 @@ npm run build:web
 
 ## Architecture
 
-For the full architecture, conventions, and toolchain constraints, see [`.agents/AGENTS.md`](./.agents/AGENTS.md).
+For architecture, conventions, and toolchain constraints used in this repo, see [`.github/copilot-instructions.md`](./.github/copilot-instructions.md).
+
+## Using GitHub Copilot in this repo
+
+- Start with [`.github/copilot-instructions.md`](./.github/copilot-instructions.md) for architecture, conventions, and task playbooks.
+- Copilot cloud agent sessions should use [`.github/copilot-setup-steps.yml`](./.github/copilot-setup-steps.yml) to install dependencies and pre-run baseline checks.
+- Keep edits narrow and scoped, then run quality gates in CI order:
+  `npm run format:check` → `npm run lint` → `npx tsc --noEmit` → `npm test` → `npm run build:web`.
 
 ## License
 

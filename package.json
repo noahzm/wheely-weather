@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "dependencies": {
     "@expo-google-fonts/national-park": "^0.4.1",
+    "@expo-google-fonts/rock-salt": "^0.4.1",
     "@expo/ui": "~57.0.4",
     "@fontsource/national-park": "^5.2.11",
     "@react-native-async-storage/async-storage": "2.2.0",
@@ -77,7 +78,7 @@
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
-    "ios": "expo run:ios",
+    "ios": "cross-env SENTRY_DISABLE_AUTO_UPLOAD=true expo run:ios",
     "web": "expo start --web",
     "build:web": "expo export --platform web",
     "deploy:web": "npm run build:web && wrangler deploy",

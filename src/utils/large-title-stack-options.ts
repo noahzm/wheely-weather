@@ -18,9 +18,9 @@ export function largeTitleStackOptions(c: WheelyPalette, title: string) {
     headerBlurEffect: isIOS26OrLater() ? undefined : ('regular' as const),
     headerTintColor: c.ink,
     headerTitle: title,
-    headerTitleStyle: { fontFamily: Fonts.monoBold, fontWeight: FontWeightBold },
+    headerTitleStyle: { fontFamily: Fonts.city },
     headerLargeTitleEnabled: true,
-    headerLargeTitleStyle: { fontFamily: Fonts.monoBold, fontWeight: FontWeightBold },
-    headerBackTitleStyle: { fontFamily: Fonts.monoBold, fontWeight: FontWeightBold },
+    headerLargeTitleStyle: { fontFamily: Fonts.city },
+    headerBackTitleStyle: { fontFamily: Fonts.heading, fontWeight: FontWeightBold },
   };
 }

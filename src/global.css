@@ -1,14 +1,10 @@
 :root {
   --font-display: 'NationalPark_700Bold', 'National Park', system-ui, sans-serif;
-  --font-sans:
+  --font-heading: 'NationalPark_700Bold', 'National Park', ui-sans-serif, system-ui, sans-serif;
+  --font-body:
     'NationalPark_400Regular', 'National Park', ui-sans-serif, system-ui, sans-serif,
     'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
-  --font-mono:
-    'NationalPark_400Regular', 'National Park', ui-monospace, SFMono-Regular, Menlo, Monaco,
-    Consolas, 'Liberation Mono', 'Courier New', monospace;
-  --font-mono-bold:
-    'NationalPark_700Bold', 'National Park', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
+  --font-city: 'RockSalt_400Regular', 'Rock Salt', cursive;
   --font-rounded:
     'NationalPark_400Regular', 'National Park', 'SF Pro Rounded', 'Hiragino Maru Gothic ProN',
     Meiryo, 'MS PGothic', sans-serif;
@@ -18,7 +14,7 @@
 html,
 body,
 #root {
-  font-family: var(--font-sans);
+  font-family: var(--font-body);
   background-color: var(--wheely-background, #ffffff);
   color: var(--wheely-ink, #161310);
   color-scheme: light dark;

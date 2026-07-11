@@ -20,7 +20,7 @@ function makeStyles(c: WheelyPalette) {
     },
     hint: {
       color: c.mutedInk,
-      fontFamily: Fonts.sans,
+      fontFamily: Fonts.body,
       fontSize: 13,
       lineHeight: 18,
       textAlign: 'center',

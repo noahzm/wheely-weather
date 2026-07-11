@@ -12,7 +12,7 @@ function makeStyles(c: WheelyPalette) {
     card: { gap: Spacing.two },
     hint: {
       color: c.mutedInk,
-      fontFamily: Fonts.sans,
+      fontFamily: Fonts.body,
       fontSize: 13,
       lineHeight: 18,
     },

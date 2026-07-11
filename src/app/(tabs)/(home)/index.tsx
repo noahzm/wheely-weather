@@ -36,7 +36,7 @@ import { useWheelyColors } from '@/hooks/use-theme';
 import type { TempUnit } from '@/utils/temperature';
 import type { Weather } from '@/types/weather';
 import { contentColumnStyle, screenGutterStyle } from '@/components/wheely/content-column';
-import { Fonts, FontWeightBold, Spacing, TRANSPARENT, type WheelyPalette } from '@/constants/theme';
+import { Fonts, Spacing, TRANSPARENT, type WheelyPalette } from '@/constants/theme';
 
 const isWeb = Platform.OS === 'web';
 
@@ -92,8 +92,7 @@ function WebCityHeading({ city }: Readonly<{ city: string }>) {
       >
         <Text
           style={{
-            fontFamily: Fonts.monoBold,
-            fontWeight: FontWeightBold,
+            fontFamily: Fonts.city,
             fontSize: 34,
             color: c.ink,
           }}

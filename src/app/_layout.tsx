@@ -5,6 +5,7 @@ import Head from 'expo-router/head';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { NationalPark_400Regular, NationalPark_700Bold } from '@expo-google-fonts/national-park';
+import { RockSalt_400Regular } from '@expo-google-fonts/rock-salt';
 import * as SystemUI from 'expo-system-ui';
 import * as Sentry from '@sentry/react-native';
 
@@ -57,7 +58,7 @@ function stackScreenOptions(isDark: boolean) {
       contentStyle: { backgroundColor: 'transparent' as const },
       headerStyle: { backgroundColor: 'transparent' as const },
       headerTintColor: palette.ink,
-      headerBackTitleStyle: { fontFamily: Fonts.monoBold, fontWeight: FontWeightBold },
+      headerBackTitleStyle: { fontFamily: Fonts.heading, fontWeight: FontWeightBold },
     };
   }
 
@@ -65,7 +66,7 @@ function stackScreenOptions(isDark: boolean) {
     contentStyle: { backgroundColor: palette.background },
     headerStyle: { backgroundColor: 'transparent' as const },
     headerTintColor: palette.ink,
-    headerBackTitleStyle: { fontFamily: Fonts.monoBold, fontWeight: FontWeightBold },
+    headerBackTitleStyle: { fontFamily: Fonts.heading, fontWeight: FontWeightBold },
   };
 }
 
@@ -98,7 +99,9 @@ function RootLayout() {
   // needed and the gate resolves immediately. Web still needs the runtime
   // @font-face registration that `useFonts` provides.
   const [fontsLoaded, fontError] = useFonts(
-    Platform.OS === 'web' ? { NationalPark_400Regular, NationalPark_700Bold } : {},
+    Platform.OS === 'web'
+      ? { NationalPark_400Regular, NationalPark_700Bold, RockSalt_400Regular }
+      : {},
   );
 
   if (!fontsLoaded && !fontError) {

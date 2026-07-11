@@ -1,0 +1,35 @@
+name: Copilot Config Advisory
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  advisory:
+    name: Advisory check for non-Copilot configs
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Warn on non-Copilot assistant config files
+        run: |
+          found=0
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            echo "$file"
+            found=1
+          done < <(git ls-files \
+            '.claude/**' \
+            '.agents/**' \
+            '.cursor/**' \
+            '.aider*' \
+            'CLAUDE.md' \
+            'AGENTS.md')
+
+          if [ "$found" -eq 1 ]; then
+            echo "::warning title=Advisory::Non-Copilot assistant configuration files are present. Preferred direction in this repository is Copilot-only tooling."
+          else
+            echo "No non-Copilot assistant configuration files found."
+          fi
