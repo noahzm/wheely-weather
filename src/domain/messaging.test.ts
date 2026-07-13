@@ -12,6 +12,7 @@ describe('Hourly Message Logic', () => {
       aqi: 20,
       condition: 'Clear skies',
       hourly: [{ hour: 10, condition: 'good' }],
+      daily: [],
     };
 
     expect(getMessage(weather, 'yes')).toBe(
@@ -32,6 +33,7 @@ describe('Hourly Message Logic', () => {
         { hour: 11, condition: 'fair' },
         { hour: 12, condition: 'fair' },
       ],
+      daily: [],
     };
 
     expect(getMessage(weather, 'no')).toContain('Clears by 11am');
@@ -46,6 +48,7 @@ describe('Hourly Message Logic', () => {
       dewpoint: 50,
       aqi: 20,
       hourly: [{ hour: 10, condition: 'bad' }],
+      daily: [],
     };
 
     const message = getMessage(weather, 'no');
@@ -63,6 +66,7 @@ describe('Hourly Message Logic', () => {
       dewpoint: 50,
       aqi: 20,
       hourly: [{ hour: 10, condition: 'fair' }],
+      daily: [],
     };
 
     expect(getMessage(weather, 'maybe')).toBe(
@@ -79,6 +83,7 @@ describe('Hourly Message Logic', () => {
       dewpoint: 62,
       aqi: 80,
       hourly: [{ hour: 10, condition: 'fair' }],
+      daily: [],
     };
 
     // cold, gusty, rainy, sticky, hazy => 5 issues, collapsed to 2 + "plus 3 more"
@@ -96,6 +101,7 @@ describe('Hourly Message Logic', () => {
       dewpoint: 50,
       aqi: 20,
       hourly: [{ hour: 10, condition: 'fair' }],
+      daily: [],
     };
 
     expect(getMessage(weather, 'maybe')).toBe('Rideable. But it\u2019s rainy (32% chance).');
@@ -111,6 +117,7 @@ describe('Hourly Message Logic', () => {
       aqi: 20,
       weatherCode: 65,
       hourly: [{ hour: 10, condition: 'poor' }],
+      daily: [],
     };
 
     expect(getMessage(weather, 'no')).toContain('heavy rain');
@@ -126,6 +133,7 @@ describe('Hourly Message Logic', () => {
       aqi: 20,
       weatherCode: 73,
       hourly: [{ hour: 10, condition: 'marginal' }],
+      daily: [],
     };
 
     expect(getMessage(weather, 'maybe')).toContain('snow');
@@ -141,6 +149,7 @@ describe('Hourly Message Logic', () => {
       aqi: 20,
       weatherCode: 45,
       hourly: [{ hour: 10, condition: 'fair' }],
+      daily: [],
     };
 
     expect(getMessage(weather, 'maybe')).toContain('fog');
@@ -156,6 +165,7 @@ describe('Hourly Message Logic', () => {
       dewpoint: 50,
       aqi: 20,
       hourly: [{ hour: 10, condition: 'poor' }],
+      daily: [],
     };
 
     expect(getMessage(weather, 'no')).toContain('strong gusts (34 mph gusts)');

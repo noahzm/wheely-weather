@@ -42,7 +42,7 @@ const MIN_RIDEABLE_CONDITION_RANK = RANK.fair;
 
 const hasRideableTomorrowImprovement = (weather: Weather): boolean => {
   const daily = weather.daily;
-  if (!daily || daily.length < 2) return false;
+  if (daily.length < 2) return false;
   const today = daily[0];
   const tomorrow = daily[1];
   if (!today || !tomorrow) return false;

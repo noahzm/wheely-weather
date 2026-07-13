@@ -97,7 +97,7 @@ export function KitGuide({ weather, status }: Readonly<{ weather: Weather; statu
               key={`${item.label}-${index}`}
               style={[
                 styles.kitTile,
-                tileWidth != null ? { width: tileWidth, minHeight: tileWidth } : null,
+                tileWidth == null ? null : { width: tileWidth, minHeight: tileWidth },
               ]}
             >
               <View style={styles.kitIconWrap}>
