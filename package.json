@@ -58,7 +58,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react-native": "^5.0.0",
     "eslint-plugin-sonarjs": "^4.1.0",
-    "eslint-plugin-unicorn": "^60.0.0",
+    "eslint-plugin-unicorn": "^71.1.0",
     "playwright": "^1.61.1",
     "prettier": "^3.9.5",
     "serve": "^14.2.6",
