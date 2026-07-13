@@ -31,14 +31,14 @@ Wheely Weather scores how good conditions are for a bike ride, live at [wheelywe
 npm install
 ```
 
-| Command                                           | Description                                                                              |
-| ------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `npm run web` / `npm run ios` / `npm run android` | Run the app (`ios` launches dev client + auto-connect)                                  |
-| `npm run ios:run`                                 | Native iOS build/install (`expo run:ios`)                                               |
-| `npm run ios:clean`                               | Clean native iOS regeneration + build/install                                            |
-| `npm run storybook:web`                           | Component workshop at http://localhost:6006                                              |
-| `npm run build:web`                               | Export the web build (`expo export --platform web`)                                      |
-| `npm run deploy:web`                              | Build then deploy the web build via Wrangler (Cloudflare)                                |
+| Command                                           | Description                                               |
+| ------------------------------------------------- | --------------------------------------------------------- |
+| `npm run web` / `npm run ios` / `npm run android` | Run the app (`ios` launches dev client + auto-connect)    |
+| `npm run ios:run`                                 | Native iOS build/install (`expo run:ios`)                 |
+| `npm run ios:clean`                               | Clean native iOS regeneration + build/install             |
+| `npm run storybook:web`                           | Component workshop at http://localhost:6006               |
+| `npm run build:web`                               | Export the web build (`expo export --platform web`)       |
+| `npm run deploy:web`                              | Build then deploy the web build via Wrangler (Cloudflare) |
 
 ## Quality gates
 

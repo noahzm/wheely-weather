@@ -7,10 +7,7 @@ import { useWheelyColors } from '@/hooks/use-theme';
 import { useGearMode, useResolvedTempUnit } from '@/hooks/settings-context';
 import { Fonts, FontWeightBold, Spacing, type WheelyPalette } from '@/constants/theme';
 import type { GearTipItem, RideStatus, Weather } from '@/types/weather';
-import {
-  BrutalCard,
-  GameGearIcon,
-} from './primitives';
+import { BrutalCard, GameGearIcon } from './primitives';
 
 function makeStyles(c: WheelyPalette) {
   return StyleSheet.create({
