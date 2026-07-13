@@ -78,7 +78,13 @@ export function WebScreenHeader({
             }}
           >
             {isClose ? (
-              <PlatformIcon icon={X} webName="close-circle" size={20} color={c.ink} strokeWidth={2.5} />
+              <PlatformIcon
+                icon={X}
+                webName="close-circle"
+                size={20}
+                color={c.ink}
+                strokeWidth={2.5}
+              />
             ) : (
               <PlatformIcon
                 icon={ChevronLeft}

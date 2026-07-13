@@ -216,12 +216,7 @@ function HourlyForecastBody({
     <View style={styles.hourlyBody}>
       <HourlyNoteStickers rainTiming={rainTiming} daylightWarning={daylightWarning} />
       <ConditionChipWidthProbe labels={conditionLabels} onLayouts={handleChipLayouts} />
-      <HourlyChartShell
-        chart={chart}
-        data={data}
-        nowIdx={nowIdx}
-        maxIndex={maxIndex}
-      />
+      <HourlyChartShell chart={chart} data={data} nowIdx={nowIdx} maxIndex={maxIndex} />
       <HourlyReasonFooter
         reasonOpen={chart.reasonOpen}
         selectedReason={chart.selectedReason}

@@ -178,7 +178,13 @@ export function StaleDataNotice({
         {Platform.OS === 'ios' ? (
           <SymbolView name="arrow.clockwise" size={16} tintColor={c.ink} />
         ) : (
-          <PlatformIcon icon={RefreshCw} webName="refresh" size={16} color={c.ink} strokeWidth={2} />
+          <PlatformIcon
+            icon={RefreshCw}
+            webName="refresh"
+            size={16}
+            color={c.ink}
+            strokeWidth={2}
+          />
         )}
       </HapticPressable>
     </BrutalCard>
@@ -202,7 +208,9 @@ function UseLocationButtonIcon({ busy, ink }: Readonly<{ busy: boolean; ink: str
   if (Platform.OS === 'ios') {
     return <SymbolView name="location.fill" size={14} tintColor={ink} />;
   }
-  return <PlatformIcon icon={MapPin} webName="map-marker" size={14} color={ink} strokeWidth={2.5} />;
+  return (
+    <PlatformIcon icon={MapPin} webName="map-marker" size={14} color={ink} strokeWidth={2.5} />
+  );
 }
 
 export function LocationPromptState({
@@ -266,7 +274,13 @@ export function LocationPromptState({
           {Platform.OS === 'ios' ? (
             <SymbolView name="magnifyingglass" size={14} tintColor={c.ink} />
           ) : (
-            <PlatformIcon icon={Search} webName="magnify" size={14} color={c.ink} strokeWidth={2.5} />
+            <PlatformIcon
+              icon={Search}
+              webName="magnify"
+              size={14}
+              color={c.ink}
+              strokeWidth={2.5}
+            />
           )}
           <ThemedText style={buttonStyles.label}>Search for a city</ThemedText>
         </HapticPressable>
