@@ -13,7 +13,7 @@ import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { Fonts, FontWeightBold, Spacing } from '@/constants/theme';
 
-import { BrutalCard, HapticPressable, SectionTitle } from './primitives';
+import { BrutalCard, HapticPressable, PlatformIcon, SectionTitle } from './primitives';
 import {
   isPinned,
   pinAccessibilityLabel,
@@ -35,7 +35,13 @@ function PinButton({ pinned, onPress }: Readonly<{ pinned: boolean; onPress: () 
       accessibilityRole="button"
       accessibilityLabel={pinAccessibilityLabel(pinned)}
     >
-      <Pin size={16} color={pinned ? c.ink : c.mutedInk} strokeWidth={pinned ? 2.5 : 2} />
+      <PlatformIcon
+        icon={Pin}
+        webName="pin"
+        size={16}
+        color={pinned ? c.ink : c.mutedInk}
+        strokeWidth={pinned ? 2.5 : 2}
+      />
     </HapticPressable>
   );
 }
@@ -84,7 +90,14 @@ function LocationRow({
         accessibilityLabel={item.label}
       >
         {isDevice && (
-          <Navigation size={18} color={c.ink} strokeWidth={2.5} style={styles.rowIcon} />
+          <PlatformIcon
+            icon={Navigation}
+            webName="navigation-variant"
+            size={18}
+            color={c.ink}
+            strokeWidth={2.5}
+            style={styles.rowIcon}
+          />
         )}
         <View style={styles.rowContent}>
           <ThemedText
@@ -100,7 +113,14 @@ function LocationRow({
           )}
         </View>
         {!isAction && (
-          <ChevronRight size={16} color={c.mutedInk} strokeWidth={2.5} style={styles.chevron} />
+          <PlatformIcon
+            icon={ChevronRight}
+            webName="chevron-right"
+            size={16}
+            color={c.mutedInk}
+            strokeWidth={2.5}
+            style={styles.chevron}
+          />
         )}
       </HapticPressable>
       {!isAction && <PinButton pinned={pinned} onPress={onTogglePin} />}

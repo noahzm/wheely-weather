@@ -54,6 +54,18 @@ describe('verdict labels', () => {
     expect(getVerdictLabel('maybe', 'A')).not.toBe('');
     expect(getVerdictLabel('no', 'A')).not.toBe('');
   });
+
+  it('does not reuse the hero opener phrase as a no-status badge label', () => {
+    const locations = ['Philadelphia', 'A', 'B', 'Berlin', 'Sydney'];
+    for (let day = 1; day <= 28; day++) {
+      for (let hour = 0; hour < 24; hour++) {
+        vi.setSystemTime(new Date(2026, 6, day, hour, 0, 0));
+        for (const location of locations) {
+          expect(getVerdictLabel('no', location)).not.toBe('Sit this one out');
+        }
+      }
+    }
+  });
 });
 
 describe('status messaging helpers', () => {

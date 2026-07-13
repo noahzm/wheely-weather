@@ -6,11 +6,19 @@ import { SymbolView, type SFSymbol } from 'expo-symbols';
 import Animated, { type SharedValue, useAnimatedStyle } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
+import { ExternalLink } from '@/components/external-link';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { Fonts, FontWeightBold, Spacing, type WheelyPalette } from '@/constants/theme';
 import type { WeatherAlert } from '@/types/weather';
 import { AnimatedExpand, useExpandAnimation } from './animated-expand';
-import { BrutalCard, ButtonRadius, formatTime, HapticPressable } from './primitives';
+import {
+  BrutalCard,
+  ButtonRadius,
+  formatTime,
+  HapticPressable,
+  PlatformIcon,
+  type MaterialIconName,
+} from './primitives';
 
 const EXTREME_ALERT_BG = 'rgba(255,100,44,0.16)';
 
@@ -41,6 +49,14 @@ function makeStyles(c: WheelyPalette) {
       color: c.mutedInk,
       fontSize: 13,
       lineHeight: 18,
+    },
+    linkWrap: { alignSelf: 'flex-start' },
+    linkText: {
+      color: c.ink,
+      fontFamily: Fonts.body,
+      fontSize: 13,
+      lineHeight: 18,
+      textDecorationLine: 'underline',
     },
     mutedExtreme: {
       color: c.ink,
@@ -98,12 +114,13 @@ function HazardStripe({ extreme }: Readonly<{ extreme?: boolean }>) {
 function AlertLeadingIcon({
   sfIcon,
   Icon,
+  webIcon,
   color,
-}: Readonly<{ sfIcon: SFSymbol; Icon: LucideIcon; color: string }>) {
+}: Readonly<{ sfIcon: SFSymbol; Icon: LucideIcon; webIcon: MaterialIconName; color: string }>) {
   return Platform.OS === 'ios' ? (
     <SymbolView name={sfIcon} size={20} tintColor={color} />
   ) : (
-    <Icon size={20} color={color} strokeWidth={2} />
+    <PlatformIcon icon={Icon} webName={webIcon} size={20} color={color} strokeWidth={2} />
   );
 }
 
@@ -124,7 +141,7 @@ function AlertChevron({
       {Platform.OS === 'ios' ? (
         <SymbolView name="chevron.down" size={14} tintColor={color} />
       ) : (
-        <ChevronDown size={18} color={color} />
+        <PlatformIcon icon={ChevronDown} webName="chevron-down" size={18} color={color} />
       )}
     </Animated.View>
   );
@@ -146,6 +163,11 @@ function AlertDetails({
       openProgress={openProgress}
       style={[styles.alertContent, extreme && styles.alertExtremeBody]}
     >
+      {!!alert.description && (
+        <ThemedText style={[styles.muted, extreme && styles.mutedExtreme]}>
+          {alert.description}
+        </ThemedText>
+      )}
       {!!alert.instruction && (
         <ThemedText style={[styles.muted, extreme && styles.mutedExtreme]}>
           {alert.instruction}
@@ -155,6 +177,13 @@ function AlertDetails({
         <ThemedText style={[styles.muted, extreme && styles.mutedExtreme]}>
           Expires: {formatTime(alert.expires)}
         </ThemedText>
+      )}
+      {!!alert.detailsUrl && (
+        <ExternalLink href={alert.detailsUrl} asChild>
+          <HapticPressable style={styles.linkWrap} accessibilityRole="link">
+            <ThemedText style={styles.linkText}>View full alert</ThemedText>
+          </HapticPressable>
+        </ExternalLink>
       )}
     </AnimatedExpand>
   );
@@ -168,7 +197,9 @@ function AlertCard({ alert }: Readonly<{ alert: WeatherAlert }>) {
   const Icon = alert.icon === 'thermometer' ? Thermometer : AlertTriangle;
   const sfIcon =
     alert.icon === 'thermometer' ? 'thermometer.medium' : 'exclamationmark.triangle.fill';
-  const hasDetails = !!alert.instruction || !!alert.expires;
+  const webIcon = alert.icon === 'thermometer' ? 'thermometer' : 'alert';
+  const hasDetails =
+    !!alert.description || !!alert.instruction || !!alert.expires || !!alert.detailsUrl;
 
   return (
     <BrutalCard small style={styles.alertCard}>
@@ -183,7 +214,7 @@ function AlertCard({ alert }: Readonly<{ alert: WeatherAlert }>) {
           accessibilityState={hasDetails ? { expanded: open } : undefined}
           style={[styles.alertBody, extreme && styles.alertExtremeBody]}
         >
-          <AlertLeadingIcon sfIcon={sfIcon} Icon={Icon} color={c.ink} />
+          <AlertLeadingIcon sfIcon={sfIcon} Icon={Icon} webIcon={webIcon} color={c.ink} />
           <View style={styles.alertTextWrap}>
             <ThemedText style={styles.alertTitle}>{alert.event ?? alert.message}</ThemedText>
             {!!alert.headline && alert.headline !== alert.event && (

@@ -14,6 +14,7 @@ import { THRESHOLDS, type Thresholds } from '../domain/constants';
 import { weatherKitConditionToWmoCode } from '../domain/weatherkit-codes';
 import { withTimeout } from './http';
 import { captureError } from './telemetry';
+import { mapWeatherKitAlert } from './weatherkitAlertMapping';
 import {
   buildWeatherFromData,
   fetchAqi,
@@ -24,23 +25,11 @@ import {
 
 import type { ForecastExtras, Weather, WeatherAlert } from '@/types/weather';
 
-import type {
-  WeatherKitAlert,
-  WeatherKitForecastResult,
-} from '../../modules/apple-weatherkit/src/AppleWeatherKit.types';
+import type { WeatherKitForecastResult } from '../../modules/apple-weatherkit/src/AppleWeatherKit.types';
 
 export { buildWeatherFromData, fetchAqi, fetchNwsAlerts } from './weatherParsing';
 export type { OpenMeteoData } from './weatherParsing';
 export { REQUEST_TIMEOUT_ERROR } from './http';
-
-/** Maps WeatherKit's 4-tier severity (plus "unknown") to the app's 2-tier scheme. */
-const WEATHERKIT_SEVERITY: Record<string, WeatherAlert['severity']> = {
-  minor: 'warning',
-  moderate: 'warning',
-  unknown: 'warning',
-  severe: 'extreme',
-  extreme: 'extreme',
-};
 
 function toOpenMeteoData(result: WeatherKitForecastResult): OpenMeteoData {
   return {
@@ -86,17 +75,6 @@ function toOpenMeteoData(result: WeatherKitForecastResult): OpenMeteoData {
   };
 }
 
-function toWeatherAlert(alert: WeatherKitAlert): WeatherAlert {
-  return {
-    type: 'weatherkit',
-    severity: WEATHERKIT_SEVERITY[alert.severity] ?? 'warning',
-    event: alert.summary,
-    headline: alert.summary,
-    message: alert.summary,
-    expires: alert.expirationDate,
-  };
-}
-
 /**
  * Fetches the current/hourly/daily forecast from WeatherKit, reshaped into
  * the same `OpenMeteoData` wire format the Android/web fetch produces.
@@ -119,7 +97,7 @@ async function fetchWeatherKitAlerts(lat: number, lon: number): Promise<WeatherA
       AppleWeatherKitModule.alerts(lat, lon),
       SECONDARY_FETCH_TIMEOUT_MS,
     );
-    return alerts.map((alert) => toWeatherAlert(alert));
+    return alerts.map((alert) => mapWeatherKitAlert(alert));
   } catch (error) {
     captureError(error, { where: 'fetchWeatherKitAlerts' });
     return [];

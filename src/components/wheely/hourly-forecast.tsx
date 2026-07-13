@@ -221,7 +221,6 @@ function HourlyForecastBody({
         data={data}
         nowIdx={nowIdx}
         maxIndex={maxIndex}
-        bgColors={bgColors}
       />
       <HourlyReasonFooter
         reasonOpen={chart.reasonOpen}
@@ -240,13 +239,11 @@ function HourlyChartShell({
   data,
   nowIdx,
   maxIndex,
-  bgColors,
 }: Readonly<{
   chart: ReturnType<typeof useHourlyForecastChart>;
   data: ChartHour[];
   nowIdx: number;
   maxIndex: number;
-  bgColors: readonly string[];
 }>) {
   const { styles } = useStyles();
   const {
@@ -317,6 +314,13 @@ function HourlyChartShell({
               width={chartWidth}
               height={CHART_HEIGHT}
               smoothPath={smoothPath}
+              scrollX={scrollX}
+              liveScrollX={liveScrollX}
+              isScrollIdle={isScrollIdle}
+              snapOffsets={snapOffsets}
+              viewportWidth={viewportWidth}
+              maxIndex={maxIndex}
+              initialScrollX={initialScrollX}
             />
           </View>
           <View style={{ width: contentPadding }} />
@@ -332,7 +336,6 @@ function HourlyChartShell({
         maxIndex={maxIndex}
         initialScrollX={initialScrollX}
         selectedCondition={selected.condition}
-        bgColors={bgColors}
       />
     </View>
   );

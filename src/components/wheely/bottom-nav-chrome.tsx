@@ -1,10 +1,10 @@
-import { useMemo, type ComponentType } from 'react';
+import { useMemo } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
-import { Home, Search, Settings, type LucideProps } from 'lucide-react-native';
+import { Home, Search, Settings, type LucideIcon } from 'lucide-react-native';
 import { usePathname, useRouter, useSegments } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useWheelyColors } from '@/hooks/use-theme';
+import { useColorSchemeName, useWheelyColors } from '@/hooks/use-theme';
 import {
   Fonts,
   FontWeightBold,
@@ -13,11 +13,11 @@ import {
   type WheelyPalette,
 } from '@/constants/theme';
 import { GlassChrome } from './glass-chrome';
-import { HapticPressable } from './primitives';
+import { HapticPressable, PlatformIcon, type MaterialIconName } from './primitives';
 
 const NAV_TAB_HEIGHT = 40;
 const TAB_ICON_SIZE = 22;
-const INACTIVE_TAB_OPACITY = 0.55;
+const DARK_INACTIVE_TAB_OPACITY = 0.55;
 
 /** Returns the full height of the bottom nav bar including device safe inset. */
 export function bottomNavBarHeight(insetsBottom: number) {
@@ -64,9 +64,7 @@ function useBottomNavStyles(c: WheelyPalette) {
         tabPillActive: {
           backgroundColor: c.primary,
         },
-        tabPillInactive: {
-          opacity: INACTIVE_TAB_OPACITY,
-        },
+        tabPillInactive: {},
         tabLabel: {
           fontFamily: Fonts.heading,
           fontWeight: FontWeightBold,
@@ -80,19 +78,24 @@ function useBottomNavStyles(c: WheelyPalette) {
 function NavTab({
   label,
   icon: Icon,
+  webIcon,
   active,
   onPress,
   styles,
   c,
+  inactiveOpacity,
 }: Readonly<{
   label: string;
-  icon: ComponentType<LucideProps>;
+  icon: LucideIcon;
+  webIcon: MaterialIconName;
   active: boolean;
   onPress: () => void;
   styles: ReturnType<typeof useBottomNavStyles>;
   c: WheelyPalette;
+  inactiveOpacity: number;
 }>) {
   const color = active ? c.primaryInk : c.ink;
+  const inactiveStyle = !active && inactiveOpacity < 1 ? { opacity: inactiveOpacity } : null;
   return (
     <HapticPressable
       onPress={onPress}
@@ -101,8 +104,20 @@ function NavTab({
       accessibilityState={{ selected: active }}
       style={({ pressed }) => [styles.tabItem, pressed && { opacity: 0.7 }]}
     >
-      <View style={[styles.tabPill, active ? styles.tabPillActive : styles.tabPillInactive]}>
-        <Icon size={TAB_ICON_SIZE} color={color} strokeWidth={active ? 2.5 : 2} />
+      <View
+        style={[
+          styles.tabPill,
+          active ? styles.tabPillActive : styles.tabPillInactive,
+          inactiveStyle,
+        ]}
+      >
+        <PlatformIcon
+          icon={Icon}
+          webName={webIcon}
+          size={TAB_ICON_SIZE}
+          color={color}
+          strokeWidth={active ? 2.5 : 2}
+        />
         <Text style={[styles.tabLabel, { color }]}>{label}</Text>
       </View>
     </HapticPressable>
@@ -113,7 +128,9 @@ function NavTab({
 export function BottomNavBar() {
   const insets = useSafeAreaInsets();
   const c = useWheelyColors();
+  const colorScheme = useColorSchemeName();
   const styles = useBottomNavStyles(c);
+  const inactiveOpacity = colorScheme === 'light' ? 1 : DARK_INACTIVE_TAB_OPACITY;
   const router = useRouter();
   const pathname = usePathname();
   const segments = useSegments();
@@ -131,32 +148,38 @@ export function BottomNavBar() {
         <NavTab
           label="Home"
           icon={Home}
+          webIcon="home"
           active={isHome}
           onPress={() => {
             if (!isHome) router.dismissTo('/');
           }}
           styles={styles}
           c={c}
+          inactiveOpacity={inactiveOpacity}
         />
         <NavTab
           label="Search"
           icon={Search}
+          webIcon="magnify"
           active={isLocation}
           onPress={() => {
             if (!isLocation) router.dismissTo('/location');
           }}
           styles={styles}
           c={c}
+          inactiveOpacity={inactiveOpacity}
         />
         <NavTab
           label="Settings"
           icon={Settings}
+          webIcon="cog"
           active={isSettings}
           onPress={() => {
             if (!isSettings) router.dismissTo('/settings');
           }}
           styles={styles}
           c={c}
+          inactiveOpacity={inactiveOpacity}
         />
       </View>
     </GlassChrome>

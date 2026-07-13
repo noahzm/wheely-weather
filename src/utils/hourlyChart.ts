@@ -199,6 +199,27 @@ export function chartDotRadius(isNow: boolean): number {
   return isNow ? DOT_RADIUS_NOW_FLOOR : DOT_RADIUS_MIN;
 }
 
+/** Dot radius blended at viewport center for per-hour swell/shrink motion. Worklet-safe. */
+export function chartDotRadiusAtCenter(
+  idx: number,
+  isNow: boolean,
+  centerX: number,
+  count: number,
+): number {
+  'worklet';
+  const base = chartDotRadius(isNow);
+  if (count <= 1) return DOT_RADIUS_MAX;
+
+  const { i, t } = chartScrollBlendAtCenter(centerX, count);
+  if (idx === i) {
+    return base + (DOT_RADIUS_MAX - base) * (1 - t);
+  }
+  if (idx === i + 1) {
+    return base + (DOT_RADIUS_MAX - base) * t;
+  }
+  return base;
+}
+
 /** Static dot opacity: past hours are muted, except the "now" dot. */
 export function chartDotOpacity(isPast: boolean, isNow: boolean): number {
   return isPast && !isNow ? DOT_OPACITY_MUTED : 1;

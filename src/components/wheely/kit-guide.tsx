@@ -1,7 +1,5 @@
-import { useMemo } from 'react';
-import { Package } from 'lucide-react-native';
-import { Platform, StyleSheet, View } from 'react-native';
-import { SymbolView, type SFSymbol } from 'expo-symbols';
+import { useMemo, useState } from 'react';
+import { StyleSheet, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { getGearSuggestion } from '@/domain';
@@ -9,16 +7,13 @@ import { useWheelyColors } from '@/hooks/use-theme';
 import { useGearMode, useResolvedTempUnit } from '@/hooks/settings-context';
 import { Fonts, FontWeightBold, Spacing, type WheelyPalette } from '@/constants/theme';
 import type { GearTipItem, RideStatus, Weather } from '@/types/weather';
-import { BrutalCard, GEAR_ICONS, GEAR_SF_SYMBOLS } from './primitives';
+import {
+  BrutalCard,
+  GameGearIcon,
+} from './primitives';
 
 function makeStyles(c: WheelyPalette) {
   return StyleSheet.create({
-    bodyStrong: {
-      color: c.ink,
-      fontWeight: '400',
-      fontSize: 15,
-      lineHeight: 20,
-    },
     headline: {
       color: c.ink,
       fontFamily: Fonts.heading,
@@ -26,23 +21,49 @@ function makeStyles(c: WheelyPalette) {
       fontWeight: FontWeightBold,
       lineHeight: 20,
     },
-    kitRow: {
+    kitGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      columnGap: Spacing.three,
+      rowGap: Spacing.three,
+      paddingTop: Spacing.two,
+    },
+    kitTile: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: Spacing.two,
+      borderWidth: 2,
+      borderColor: c.border,
+      borderRadius: 12,
+      paddingHorizontal: Spacing.three,
+      paddingVertical: Spacing.three,
+    },
+    kitIconWrap: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: Spacing.three,
-      paddingVertical: Spacing.three,
-      borderBottomWidth: 2,
-      borderColor: c.border,
+      justifyContent: 'center',
+      width: 64,
+      height: 64,
     },
-    kitRowLast: { borderBottomWidth: 0, paddingBottom: 0 },
-    kitIcon: {
-      width: 28,
+    textWrap: {
+      alignItems: 'center',
+      gap: Spacing.one,
+      width: '100%',
     },
-    flex: { flex: 1 },
+    bodyStrong: {
+      color: c.ink,
+      fontWeight: '400',
+      fontSize: 14,
+      lineHeight: 18,
+      textAlign: 'center',
+      flexShrink: 1,
+    },
     muted: {
       color: c.mutedInk,
-      fontSize: 13,
-      lineHeight: 18,
+      fontSize: 12,
+      lineHeight: 16,
+      textAlign: 'center',
+      flexShrink: 1,
     },
   });
 }
@@ -56,32 +77,36 @@ function useStyles() {
 export function KitGuide({ weather, status }: Readonly<{ weather: Weather; status?: RideStatus }>) {
   const [mode] = useGearMode();
   const tempUnit = useResolvedTempUnit();
+  const { width } = useWindowDimensions();
+  const [gridWidth, setGridWidth] = useState(0);
   const gear = getGearSuggestion(weather, mode, status, tempUnit);
   const { c, styles } = useStyles();
+  const isWide = width >= 900;
+  const columnCount = isWide ? 3 : 2;
+  const gap = Spacing.three;
+  const tileWidth = gridWidth > 0 ? (gridWidth - gap * (columnCount - 1)) / columnCount : undefined;
+
+  const handleGridLayout = (event: LayoutChangeEvent) => {
+    setGridWidth(event.nativeEvent.layout.width);
+  };
 
   return (
     <BrutalCard>
       {!!gear.headline && <ThemedText style={styles.headline}>{gear.headline}</ThemedText>}
-      <View accessibilityLiveRegion="polite">
+      <View style={styles.kitGrid} accessibilityLiveRegion="polite" onLayout={handleGridLayout}>
         {gear.items.map((item: GearTipItem, index: number) => {
-          const Icon = GEAR_ICONS[item.icon] ?? Package;
-          const sfName = GEAR_SF_SYMBOLS[item.icon] ?? 'shippingbox.fill';
           return (
             <View
               key={`${item.label}-${index}`}
-              style={[styles.kitRow, index === gear.items.length - 1 && styles.kitRowLast]}
+              style={[
+                styles.kitTile,
+                tileWidth != null ? { width: tileWidth, minHeight: tileWidth } : null,
+              ]}
             >
-              {Platform.OS === 'ios' ? (
-                <SymbolView
-                  name={sfName as SFSymbol}
-                  size={20}
-                  tintColor={c.mutedInk}
-                  style={styles.kitIcon}
-                />
-              ) : (
-                <Icon size={20} color={c.mutedInk} strokeWidth={1.75} style={styles.kitIcon} />
-              )}
-              <View style={styles.flex}>
+              <View style={styles.kitIconWrap}>
+                <GameGearIcon iconKey={item.icon} size={56} color={c.mutedInk} />
+              </View>
+              <View style={styles.textWrap}>
                 <ThemedText style={styles.bodyStrong}>{item.label}</ThemedText>
                 {!!item.qualifier && <ThemedText style={styles.muted}>{item.qualifier}</ThemedText>}
               </View>

@@ -1,14 +1,35 @@
+@font-face {
+  font-family: 'RonzinoRegular';
+  src: url('/fonts/Ronzino-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'RonzinoMedium';
+  src: url('/fonts/Ronzino-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'RonzinoBold';
+  src: url('/fonts/Ronzino-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
-  --font-display: 'NationalPark_700Bold', 'National Park', system-ui, sans-serif;
-  --font-heading: 'NationalPark_700Bold', 'National Park', ui-sans-serif, system-ui, sans-serif;
-  --font-body:
-    'NationalPark_400Regular', 'National Park', ui-sans-serif, system-ui, sans-serif,
-    'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
-  --font-city: 'RockSalt_400Regular', 'Rock Salt', cursive;
-  --font-rounded:
-    'NationalPark_400Regular', 'National Park', 'SF Pro Rounded', 'Hiragino Maru Gothic ProN',
-    Meiryo, 'MS PGothic', sans-serif;
-  --font-serif: Georgia, 'Times New Roman', serif;
+  --font-sans: 'RonzinoRegular', Georgia, 'Times New Roman', serif;
+  --font-display: 'RonzinoBold', Georgia, 'Times New Roman', serif;
+  --font-heading: 'RonzinoBold', Georgia, 'Times New Roman', serif;
+  --font-body: 'RonzinoRegular', Georgia, 'Times New Roman', serif;
+  --font-city: 'RonzinoMedium', Georgia, 'Times New Roman', serif;
+  --font-rounded: 'RonzinoMedium', Georgia, 'Times New Roman', serif;
+  --font-serif: var(--font-body);
 }
 
 html,

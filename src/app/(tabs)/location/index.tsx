@@ -13,7 +13,8 @@ import { Search, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { WebContentColumn, WebScreenHeader, bottomNavBarHeight } from '@/components/wheely';
-import { BrutalCard, HapticPressable } from '@/components/wheely/primitives';
+import { WEB_TITLE_CONTENT_SPACING } from '@/components/wheely/web-screen-header';
+import { BrutalCard, HapticPressable, PlatformIcon } from '@/components/wheely/primitives';
 import { LocationSearchList } from '@/components/wheely/location-search-list';
 import { useLocationSearchScreen } from '@/hooks/use-location-search-screen';
 import { useWheelyColors } from '@/hooks/use-theme';
@@ -35,7 +36,13 @@ function WebSearchField({
   return (
     <BrutalCard small style={styles.searchCard}>
       <View style={styles.searchRow}>
-        <Search size={18} color={c.mutedInk} strokeWidth={2.5} />
+        <PlatformIcon
+          icon={Search}
+          webName="magnify"
+          size={18}
+          color={c.mutedInk}
+          strokeWidth={2.5}
+        />
         <TextInput
           value={query}
           onChangeText={onQueryChange}
@@ -55,7 +62,13 @@ function WebSearchField({
             accessibilityRole="button"
             accessibilityLabel="Clear search"
           >
-            <X size={18} color={c.mutedInk} strokeWidth={2.5} />
+            <PlatformIcon
+              icon={X}
+              webName="close-circle"
+              size={18}
+              color={c.mutedInk}
+              strokeWidth={2.5}
+            />
           </HapticPressable>
         )}
       </View>
@@ -139,6 +152,7 @@ export default function LocationSearchScreen() {
               {isWeb && (
                 <WebScreenHeader
                   variant="title"
+                  withScreenGutter={false}
                   title={
                     <Text
                       style={{
@@ -182,10 +196,9 @@ const styles = StyleSheet.create({
   scrollContentWeb: {
     width: '100%',
     alignItems: 'center',
-    paddingTop: Spacing.four,
   },
   scrollInner: {
-    gap: Spacing.four,
+    gap: WEB_TITLE_CONTENT_SPACING,
   },
   searchCard: {
     paddingVertical: Spacing.two,

@@ -10,7 +10,9 @@ import { Spacing, TRANSPARENT } from '@/constants/theme';
 import { selectionFeedback } from '@/utils/haptics';
 import { BrutalCard, SectionTitle } from './primitives';
 import { WebContentColumn } from './content-column';
+import { WEB_TITLE_CONTENT_SPACING } from './web-screen-header';
 import { HomeClimateSection } from './settings-home-section';
+import { IconAttributionSection } from './settings-icon-attribution-section';
 import {
   APPEARANCE_LABELS,
   APPEARANCE_VALUES,
@@ -29,7 +31,7 @@ const styles = StyleSheet.create({
   contentWeb: {
     width: '100%',
     alignItems: 'center',
-    paddingTop: Spacing.three,
+    paddingTop: WEB_TITLE_CONTENT_SPACING,
     paddingBottom: Spacing.three,
   },
   form: {
@@ -115,6 +117,8 @@ export function SettingsForm({
         onSetHome={onSetHome}
         onClearHome={onClearHome}
       />
+
+      <IconAttributionSection />
     </>
   );
 

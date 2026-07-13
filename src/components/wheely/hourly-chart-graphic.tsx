@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import Animated, {
-  interpolateColor,
   useAnimatedStyle,
   useReducedMotion,
   type SharedValue,
@@ -9,14 +8,14 @@ import Animated, {
 import Svg, { Defs, Line, LinearGradient, Path, Stop, Text as SvgText } from 'react-native-svg';
 
 import { useWheelyColors } from '@/hooks/use-theme';
-import { type WheelyPalette } from '@/constants/theme';
+import { Fonts, type WheelyPalette } from '@/constants/theme';
 import {
-  DOT_RADIUS_MAX,
   chartCenterXFromClampedScroll,
   chartCenterXFromScroll,
   chartClampScrollOffset,
+  chartDotRadius,
+  chartDotRadiusAtCenter,
   chartNearestSnapOffset,
-  chartScrollBlendAtCenter,
   chartSmoothYAtSegments,
   chartX,
   chartY,
@@ -25,15 +24,11 @@ import {
 import { hourLabel } from '@/utils/timeFormat';
 
 import { HourlyChartDot } from './hourly-chart-dot';
-import { asCondition } from './primitives';
 import type { ChartHour } from './use-hourly-forecast-chart';
 
 export const CHART_HEIGHT = 176;
 const SELECTION_RING_SIZE = 32;
 export const SELECTION_RING_RADIUS = SELECTION_RING_SIZE / 2;
-// The marker's filled dot plays the "enlarged dot at center" role the
-// per-dot swell animation used to.
-const SELECTION_DOT_SIZE = DOT_RADIUS_MAX * 2;
 
 function makeStyles(c: WheelyPalette) {
   return StyleSheet.create({
@@ -55,11 +50,6 @@ function makeStyles(c: WheelyPalette) {
       alignItems: 'center',
       justifyContent: 'center',
     },
-    selectionDot: {
-      width: SELECTION_DOT_SIZE,
-      height: SELECTION_DOT_SIZE,
-      borderRadius: SELECTION_DOT_SIZE / 2,
-    },
   });
 }
 
@@ -69,10 +59,60 @@ function useStyles() {
   return { c, styles };
 }
 
+function webDotCenterX({
+  liveScrollX,
+  isScrollIdle,
+  snapOffsets,
+  viewportWidth,
+  maxIndex,
+}: Readonly<{
+  liveScrollX: number;
+  isScrollIdle: boolean;
+  snapOffsets: number[];
+  viewportWidth: number;
+  maxIndex: number;
+}>): number | null {
+  if (Platform.OS !== 'web' || viewportWidth <= 0 || liveScrollX < 0) return null;
+  const clamped = chartClampScrollOffset(liveScrollX, viewportWidth, maxIndex);
+  const snapTarget =
+    isScrollIdle && snapOffsets.length > 0 ? chartNearestSnapOffset(clamped, snapOffsets) : clamped;
+  return chartCenterXFromClampedScroll(snapTarget, viewportWidth, maxIndex);
+}
+
+function dotRadiusForRender(
+  idx: number,
+  isNow: boolean,
+  centerX: number | null,
+  count: number,
+): number {
+  if (centerX == null) return chartDotRadius(isNow);
+  return chartDotRadiusAtCenter(idx, isNow, centerX, count);
+}
+
+function hourLabelNode(d: ChartHour, nowIdx: number, count: number, labelColor: string) {
+  if (d.idx !== nowIdx && d.idx % 3 !== 0 && d.idx !== count - 1) return null;
+  /* eslint-disable @typescript-eslint/no-deprecated */
+  return (
+    <SvgText
+      key={`label-${d.idx}`}
+      x={chartX(d.idx)}
+      y={166}
+      fontFamily={Fonts.body}
+      fontSize={10}
+      fontWeight="400"
+      textAnchor="middle"
+      fill={labelColor}
+    >
+      {d.idx === nowIdx ? 'Now' : hourLabel(d.hour)}
+    </SvgText>
+  );
+  /* eslint-enable @typescript-eslint/no-deprecated */
+}
+
 /**
- * The static SVG chart: gridlines, gradient spline, dots, and hour labels.
- * Deliberately free of scroll/selection props so its subtree never re-renders
- * while the user scrubs — all motion lives in the SelectionMarker overlay.
+ * SVG chart with gridlines, gradient spline, dots, and hour labels.
+ * Dot radius responds to the selected hour (web via JS scroll state, native
+ * via shared-value animated props inside HourlyChartDot).
  */
 export function HourlyChartGraphic({
   data,
@@ -80,17 +120,38 @@ export function HourlyChartGraphic({
   width,
   height,
   smoothPath,
+  scrollX,
+  liveScrollX,
+  isScrollIdle,
+  snapOffsets,
+  viewportWidth,
+  maxIndex,
+  initialScrollX,
 }: Readonly<{
   data: ChartHour[];
   nowIdx: number;
   width: number;
   height: number;
   smoothPath: string;
+  scrollX: SharedValue<number>;
+  liveScrollX: number;
+  isScrollIdle: boolean;
+  snapOffsets: number[];
+  viewportWidth: number;
+  maxIndex: number;
+  initialScrollX: number;
 }>) {
   const { c, styles } = useStyles();
   const firstIdx = data[0]?.idx ?? 0;
   const lastIdx = data.at(-1)?.idx ?? 0;
   const gradTotal = chartX(lastIdx) - chartX(firstIdx);
+  const webCenterX = webDotCenterX({
+    liveScrollX,
+    isScrollIdle,
+    snapOffsets,
+    viewportWidth,
+    maxIndex,
+  });
 
   return (
     <Svg width={width} height={height} style={styles.hourChartSvg}>
@@ -148,42 +209,17 @@ export function HourlyChartGraphic({
           isPast={d.isPast}
           fill={c.condition[d.condition].bg}
           stroke={c.paper}
+          radius={dotRadiusForRender(d.idx, d.idx === nowIdx, webCenterX, data.length)}
+          scrollX={scrollX}
+          viewportWidth={viewportWidth}
+          initialScrollX={initialScrollX}
+          maxIndex={maxIndex}
+          count={data.length}
         />
       ))}
-      {/* eslint-disable @typescript-eslint/no-deprecated */}
-      {data.map((d) => {
-        if (d.idx !== nowIdx && d.idx % 3 !== 0 && d.idx !== data.length - 1) return null;
-        return (
-          <SvgText
-            key={`label-${d.idx}`}
-            x={chartX(d.idx)}
-            y={166}
-            fontSize={10}
-            fontWeight="400"
-            textAnchor="middle"
-            fill={c.ink}
-          >
-            {d.idx === nowIdx ? 'Now' : hourLabel(d.hour)}
-          </SvgText>
-        );
-      })}
-      {/* eslint-enable @typescript-eslint/no-deprecated */}
+      {data.map((d) => hourLabelNode(d, nowIdx, data.length, c.ink))}
     </Svg>
   );
-}
-
-/** Marker fill blended between the hours adjacent to the viewport center. Worklet-safe. */
-function markerFillAtCenter(
-  centerX: number,
-  bgColors: readonly string[],
-  fallback: string,
-): string {
-  'worklet';
-  if (bgColors.length === 0) return fallback;
-  const { i, t } = chartScrollBlendAtCenter(centerX, bgColors.length);
-  const fromBg = bgColors[i] ?? fallback;
-  const toBg = bgColors[i + 1] ?? fromBg;
-  return interpolateColor(t, [0, 1], [fromBg, toBg]);
 }
 
 function SelectionMarkerAnimated({
@@ -192,19 +228,16 @@ function SelectionMarkerAnimated({
   viewportWidth,
   initialScrollX,
   selectedCondition,
-  bgColors,
 }: Readonly<{
   segments: ChartSplineSegment[];
   scrollX: SharedValue<number>;
   viewportWidth: number;
   initialScrollX: number;
   selectedCondition: string;
-  bgColors: readonly string[];
 }>) {
-  const { c, styles } = useStyles();
+  const { styles } = useStyles();
   const reduceMotion = useReducedMotion();
   const discreteTop = chartY(selectedCondition) - SELECTION_RING_RADIUS;
-  const discreteFill = c.condition[asCondition(selectedCondition)].bg;
 
   const animatedStyle = useAnimatedStyle(() => {
     if (reduceMotion || viewportWidth <= 0) {
@@ -216,20 +249,7 @@ function SelectionMarkerAnimated({
     return { top: y - SELECTION_RING_RADIUS };
   }, [segments, viewportWidth, initialScrollX, reduceMotion, discreteTop]);
 
-  const dotStyle = useAnimatedStyle(() => {
-    if (reduceMotion || viewportWidth <= 0) {
-      return { backgroundColor: discreteFill };
-    }
-    const offsetX = scrollX.value < 0 ? initialScrollX : scrollX.value;
-    const centerX = chartCenterXFromScroll(offsetX, viewportWidth);
-    return { backgroundColor: markerFillAtCenter(centerX, bgColors, discreteFill) };
-  }, [bgColors, viewportWidth, initialScrollX, reduceMotion, discreteFill]);
-
-  return (
-    <Animated.View style={[styles.selectionRing, animatedStyle, { pointerEvents: 'none' }]}>
-      <Animated.View style={[styles.selectionDot, dotStyle]} />
-    </Animated.View>
-  );
+  return <Animated.View style={[styles.selectionRing, animatedStyle, { pointerEvents: 'none' }]} />;
 }
 
 export function SelectionMarker({
@@ -242,7 +262,6 @@ export function SelectionMarker({
   maxIndex,
   initialScrollX,
   selectedCondition,
-  bgColors,
 }: Readonly<{
   segments: ChartSplineSegment[];
   scrollX: SharedValue<number>;
@@ -253,9 +272,8 @@ export function SelectionMarker({
   maxIndex: number;
   initialScrollX: number;
   selectedCondition: string;
-  bgColors: readonly string[];
 }>) {
-  const { c, styles } = useStyles();
+  const { styles } = useStyles();
   const reduceMotion = useReducedMotion();
 
   if (Platform.OS === 'web' && !reduceMotion && viewportWidth > 0 && liveScrollX >= 0) {
@@ -266,17 +284,10 @@ export function SelectionMarker({
         : clamped;
     const centerX = chartCenterXFromClampedScroll(scrollForRing, viewportWidth, maxIndex);
     const y = chartSmoothYAtSegments(segments, centerX);
-    const fill = markerFillAtCenter(
-      centerX,
-      bgColors,
-      c.condition[asCondition(selectedCondition)].bg,
-    );
     return (
       <View
         style={[styles.selectionRing, { top: y - SELECTION_RING_RADIUS, pointerEvents: 'none' }]}
-      >
-        <View style={[styles.selectionDot, { backgroundColor: fill }]} />
-      </View>
+      />
     );
   }
 
@@ -287,7 +298,6 @@ export function SelectionMarker({
       viewportWidth={viewportWidth}
       initialScrollX={initialScrollX}
       selectedCondition={selectedCondition}
-      bgColors={bgColors}
     />
   );
 }

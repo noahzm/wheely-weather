@@ -42,6 +42,7 @@ export interface WeatherAlert {
   description?: string;
   instruction?: string;
   expires?: string;
+  detailsUrl?: string;
   message?: string;
   icon?: string;
 }

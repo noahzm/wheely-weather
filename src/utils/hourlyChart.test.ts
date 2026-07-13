@@ -9,6 +9,7 @@ import {
   chartContentPadding,
   chartDotOpacity,
   chartDotRadius,
+  chartDotRadiusAtCenter,
   chartIndexFromScrollOffset,
   chartMaxScrollOffset,
   chartNearestSnapOffset,
@@ -133,6 +134,29 @@ describe('chartDotRadius', () => {
   it('gives the Now dot a slightly larger radius', () => {
     expect(chartDotRadius(true)).toBe(7);
     expect(chartDotRadius(false)).toBe(5);
+  });
+});
+
+describe('chartDotRadiusAtCenter', () => {
+  it('maxes the selected hour dot when centered exactly on an hour', () => {
+    expect(chartDotRadiusAtCenter(3, false, chartX(3), 10)).toBe(8);
+    expect(chartDotRadiusAtCenter(3, true, chartX(3), 10)).toBe(8);
+  });
+
+  it('blends swell between neighboring dots while crossing hour boundaries', () => {
+    const mid = chartX(3) + CHART_X_STEP / 2;
+    const left = chartDotRadiusAtCenter(3, false, mid, 10);
+    const right = chartDotRadiusAtCenter(4, false, mid, 10);
+    expect(left).toBeGreaterThan(5);
+    expect(left).toBeLessThan(8);
+    expect(right).toBeGreaterThan(5);
+    expect(right).toBeLessThan(8);
+  });
+
+  it('keeps non-neighbor dots at base radius', () => {
+    const mid = chartX(3) + CHART_X_STEP / 2;
+    expect(chartDotRadiusAtCenter(0, false, mid, 10)).toBe(5);
+    expect(chartDotRadiusAtCenter(0, true, mid, 10)).toBe(7);
   });
 });
 

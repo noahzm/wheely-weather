@@ -10,10 +10,18 @@ import { useWheelyColors } from '@/hooks/use-theme';
 import { useTemperatureDisplay } from '@/hooks/use-temperature-display';
 import { Fonts, FontWeightBold, Spacing, type WheelyPalette } from '@/constants/theme';
 import type { DailyWeather } from '@/types/weather';
-import { BrutalCard, BurstChip, asCondition, weatherIconFor, weatherSfSymbol } from './primitives';
+import {
+  BrutalCard,
+  BurstChip,
+  PlatformIcon,
+  asCondition,
+  weatherIconFor,
+  weatherSfSymbol,
+  weatherWebIconName,
+} from './primitives';
 
 // Width reserved on the best-day row so its text clears the burst sticker.
-// Sized against the rendered width of the large BurstChip ("BEST DAY") — revisit
+// Sized against the rendered width of the large BurstChip ("BEST BET") — revisit
 // if BURST_CHIP_SIZES.large padding or the sticker copy changes.
 const BEST_STICKER_RESERVE = 128;
 
@@ -51,7 +59,6 @@ function makeStyles(c: WheelyPalette) {
       fontFamily: Fonts.heading,
       fontSize: 16,
       fontWeight: FontWeightBold,
-      textTransform: 'uppercase',
     },
     weatherGlyph: { width: 26, alignItems: 'center' },
     dayTemp: {
@@ -78,8 +85,6 @@ function makeStyles(c: WheelyPalette) {
       color: c.ink,
       fontFamily: Fonts.body,
       fontSize: 12,
-      letterSpacing: 0.5,
-      textTransform: 'uppercase',
     },
     bestSticker: {
       position: 'absolute',
@@ -139,7 +144,13 @@ function DayRow({
               tintColor={c.mutedInk}
             />
           ) : (
-            <DayIcon size={20} color={c.mutedInk} strokeWidth={2} />
+            <PlatformIcon
+              icon={DayIcon}
+              webName={weatherWebIconName(day.weatherCode)}
+              size={20}
+              color={c.mutedInk}
+              strokeWidth={2}
+            />
           )}
         </View>
         <ThemedText style={styles.dayTemp} numberOfLines={1}>
@@ -156,10 +167,15 @@ function DayRow({
         <View
           style={[styles.bestSticker, { pointerEvents: 'none' }]}
           accessibilityRole="text"
-          accessibilityLabel="Best ride day"
+          accessibilityLabel="Best bet"
         >
-          <BurstChip backgroundColor={c.condition.good.bg} color={c.condition.good.ink} large>
-            Best day
+          <BurstChip
+            backgroundColor={c.condition.good.bg}
+            color={c.condition.good.ink}
+            large
+            burstScaleY={1.18}
+          >
+            Best bet
           </BurstChip>
         </View>
       ) : null}

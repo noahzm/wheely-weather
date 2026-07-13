@@ -32,7 +32,7 @@ const VERDICT_LABELS: Record<RideStatus, readonly string[]> = {
   ],
   no: [
     'Probably shouldn’t',
-    'Sit this one out',
+    'Not today',
     'Rest day',
     'Skip it',
     'Off the bike today',
@@ -115,6 +115,7 @@ export const STATUS_MESSAGES = {
   NO_ISSUES: (issues: readonly string[], extra = 0) =>
     `Sit this one out: ${formatList(issues)}${moreTail(extra)}.`,
   CLEAR_UP: (time: string) => ` Clears by ${time}.`,
+  TOMORROW_BETTER: ' Tomorrow should be the better ride window.',
   REST_DAY: (): string =>
     pick([
       ' A good day for drivetrain maintenance.',
@@ -122,7 +123,6 @@ export const STATUS_MESSAGES = {
       ' Time well spent on the indoor trainer.',
       ' Time to plan next weekend’s route.',
       ' Save the legs for a better window.',
-      ' Tomorrow’s the better window.',
     ]),
 };
 
@@ -154,27 +154,27 @@ export const GEAR_TIPS = {
     FREEZING: {
       headline: 'Heavy winter layers',
       items: [
-        { slot: 'top', icon: 'Shirt', label: 'Long-sleeve thermal base layer' },
+        { slot: 'top', icon: 'LongSleeveShirt', label: 'Long-sleeve thermal base layer' },
         { icon: 'Jacket', label: 'Insulated jacket' },
         { slot: 'bottom', icon: 'Pants', label: 'Long pants' },
         { icon: 'Hand', label: 'Insulated gloves' },
-        { icon: 'Snowflake', label: 'Wool cap and ear coverage' },
+        { icon: 'WoolCap', label: 'Wool cap and ear coverage' },
       ],
     },
     COLD: {
       headline: 'Bundle up.',
       items: [
-        { slot: 'top', icon: 'Shirt', label: 'Long-sleeve top' },
+        { slot: 'top', icon: 'LongSleeveShirt', label: 'Long-sleeve top' },
         { icon: 'Jacket', label: 'Jacket' },
         { slot: 'bottom', icon: 'Pants', label: 'Long pants' },
         { icon: 'Hand', label: 'Gloves' },
-        { icon: 'Snowflake', label: 'Wool cap' },
+        { icon: 'WoolCap', label: 'Wool cap' },
       ],
     },
     COOL: {
       headline: 'Light layers',
       items: [
-        { slot: 'top', icon: 'Shirt', label: 'Long-sleeve shirt or hoodie' },
+        { slot: 'top', icon: 'LongSleeveShirt', label: 'Long-sleeve shirt or hoodie' },
         { slot: 'bottom', icon: 'Pants', label: 'Pants or heavier shorts' },
       ],
     },
@@ -186,21 +186,21 @@ export const GEAR_TIPS = {
           icon: 'Shirt',
           label: 'Short sleeve or light long sleeve',
         },
-        { slot: 'bottom', icon: 'Shorts', label: 'Shorts or light pants' },
+        { slot: 'bottom', icon: 'CasualShorts', label: 'Shorts or light pants' },
       ],
     },
     HOT: {
       headline: 'Light and airy',
       items: [
         { slot: 'top', icon: 'Shirt', label: 'Short-sleeve top' },
-        { slot: 'bottom', icon: 'Shorts', label: 'Shorts' },
+        { slot: 'bottom', icon: 'CasualShorts', label: 'Shorts' },
       ],
     },
     SCORCHING: {
       headline: 'Beat the heat.',
       items: [
         { slot: 'top', icon: 'Shirt', label: 'Light short-sleeve top' },
-        { slot: 'bottom', icon: 'Shorts', label: 'Shorts' },
+        { slot: 'bottom', icon: 'CasualShorts', label: 'Shorts' },
       ],
     },
     PERFECT: () => ({
@@ -211,13 +211,13 @@ export const GEAR_TIPS = {
       ]),
       items: [
         { slot: 'top', icon: 'Shirt', label: 'Short-sleeve top' },
-        { slot: 'bottom', icon: 'Shorts', label: 'Shorts' },
+        { slot: 'bottom', icon: 'CasualShorts', label: 'Shorts' },
       ],
     }),
     NEUTRAL: {
       items: [
         { slot: 'top', icon: 'Shirt', label: 'Short-sleeve top' },
-        { slot: 'bottom', icon: 'Shorts', label: 'Shorts' },
+        { slot: 'bottom', icon: 'CasualShorts', label: 'Shorts' },
       ],
     },
     TEMP_SWING: (min: string, max: string) => ({
@@ -280,7 +280,7 @@ export const GEAR_TIPS = {
     UV_EXTREME: () => ({
       items: [
         {
-          icon: 'Sun',
+          icon: 'Sunscreen',
           label: 'Sunscreen',
           qualifier: pick(['Very high UV', 'Extreme UV']),
         },
@@ -288,7 +288,7 @@ export const GEAR_TIPS = {
       ],
     }),
     UV_HIGH: {
-      items: [{ icon: 'Sun', label: 'Sunscreen', qualifier: 'High UV' }],
+      items: [{ icon: 'Sunscreen', label: 'Sunscreen', qualifier: 'High UV' }],
     },
     MUGGY: {
       items: [
@@ -305,7 +305,7 @@ export const GEAR_TIPS = {
     FREEZING: {
       headline: 'Full winter kit',
       items: [
-        { icon: 'Shirt', label: 'Long-sleeve thermal base layer' },
+        { icon: 'LongSleeveShirt', label: 'Long-sleeve thermal base layer' },
         { icon: 'Jacket', label: 'Insulated jacket' },
         { slot: 'bottom', icon: 'Pants', label: 'Winter bib tights' },
         { icon: 'Footprints', label: 'Shoe covers' },
@@ -316,8 +316,8 @@ export const GEAR_TIPS = {
     COLD: {
       headline: 'Cold-weather kit',
       items: [
-        { icon: 'Shirt', label: 'Long-sleeve base layer' },
-        { icon: 'Shirt', label: 'Long-sleeve jersey' },
+        { icon: 'LongSleeveShirt', label: 'Long-sleeve base layer' },
+        { icon: 'LongSleeveShirt', label: 'Long-sleeve jersey' },
         { slot: 'bottom', icon: 'Pants', label: 'Thermal bib tights' },
         { icon: 'Hand', label: 'Full-finger gloves' },
         { icon: 'Jacket', label: 'Vest or jacket' },
@@ -327,7 +327,7 @@ export const GEAR_TIPS = {
       headline: 'Short sleeve with warmers',
       items: [
         { icon: 'Shirt', label: 'Short-sleeve jersey' },
-        { slot: 'bottom', icon: 'Shorts', label: 'Bib shorts' },
+        { slot: 'bottom', icon: 'BibShorts', label: 'Bib shorts' },
         { icon: 'Thermometer', label: 'Arm warmers' },
         { icon: 'Thermometer', label: 'Knee warmers' },
         { icon: 'Layers', label: 'Gilet', qualifier: 'for descents' },
@@ -337,7 +337,7 @@ export const GEAR_TIPS = {
       headline: 'Jersey and bibs',
       items: [
         { icon: 'Shirt', label: 'Short-sleeve jersey' },
-        { slot: 'bottom', icon: 'Shorts', label: 'Bib shorts' },
+        { slot: 'bottom', icon: 'BibShorts', label: 'Bib shorts' },
         {
           icon: 'Thermometer',
           label: 'Arm warmers',
@@ -349,14 +349,14 @@ export const GEAR_TIPS = {
       headline: 'Lightweight jersey and bibs',
       items: [
         { icon: 'Shirt', label: 'Lightweight short-sleeve jersey' },
-        { slot: 'bottom', icon: 'Shorts', label: 'Bib shorts' },
+        { slot: 'bottom', icon: 'BibShorts', label: 'Bib shorts' },
       ],
     },
     SCORCHING: {
       headline: 'Beat the heat.',
       items: [
         { icon: 'Shirt', label: 'Lightweight short-sleeve jersey' },
-        { slot: 'bottom', icon: 'Shorts', label: 'Bib shorts' },
+        { slot: 'bottom', icon: 'BibShorts', label: 'Bib shorts' },
       ],
     },
     PERFECT: () => ({
@@ -368,13 +368,13 @@ export const GEAR_TIPS = {
       ]),
       items: [
         { icon: 'Shirt', label: 'Short-sleeve jersey' },
-        { slot: 'bottom', icon: 'Shorts', label: 'Bib shorts' },
+        { slot: 'bottom', icon: 'BibShorts', label: 'Bib shorts' },
       ],
     }),
     NEUTRAL: {
       items: [
         { icon: 'Shirt', label: 'Short-sleeve jersey' },
-        { slot: 'bottom', icon: 'Shorts', label: 'Bib shorts' },
+        { slot: 'bottom', icon: 'BibShorts', label: 'Bib shorts' },
       ],
     },
     TEMP_SWING: (min: string, max: string) => ({
@@ -438,7 +438,7 @@ export const GEAR_TIPS = {
     UV_EXTREME: () => ({
       items: [
         {
-          icon: 'Sun',
+          icon: 'Sunscreen',
           label: 'Sunscreen on arms and legs',
           qualifier: pick(['Very high UV', 'Extreme UV']),
         },
@@ -446,7 +446,7 @@ export const GEAR_TIPS = {
       ],
     }),
     UV_HIGH: {
-      items: [{ icon: 'Sun', label: 'Sunscreen', qualifier: 'High UV' }],
+      items: [{ icon: 'Sunscreen', label: 'Sunscreen', qualifier: 'High UV' }],
     },
     MUGGY: {
       items: [
