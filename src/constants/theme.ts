@@ -7,6 +7,13 @@ import '@/global.css';
 
 import { Platform } from 'react-native';
 
+const IOS_BODY_FONT = 'Ronzino-Regular';
+const DEFAULT_BODY_FONT = 'Ronzino-Regular';
+const IOS_HEADING_FONT = 'Ronzino-Bold';
+const DEFAULT_HEADING_FONT = 'Ronzino-Bold';
+const IOS_CITY_FONT = 'Ronzino-Medium';
+const DEFAULT_CITY_FONT = 'Ronzino-Medium';
+
 interface WheelyConditionColors {
   good: { bg: string; ink: string };
   fair: { bg: string; ink: string };
@@ -42,7 +49,7 @@ export const WheelyTheme: { light: WheelyPalette; dark: WheelyPalette } = {
     background: '#ffffff',
     paper: '#F5F1F6',
     ink: '#161310',
-    mutedInk: '#5C544C',
+    mutedInk: '#161310',
     border: '#CFC4DC',
     shadow: '#161310',
     primary: '#C6A2ED',
@@ -92,30 +99,26 @@ export const WheelyTheme: { light: WheelyPalette; dark: WheelyPalette } = {
 export type ThemeColor = keyof Omit<WheelyPalette, 'condition'>;
 
 /**
- * Typeface roles: National Park for body, heading, display, labels, and kickers;
- * Rock Salt for city/page titles.
- * On web these resolve to the families loaded via `global.css` and the root
- * layout's `useFonts` runtime `@font-face` registration.
- * On native they resolve to families embedded at build time by the `expo-font`
- * config plugin (Android XML resources, iOS bundled files), so `fontWeight`
- * selects the right National Park variant natively.
+ * Typeface roles resolve by platform:
+ * - web: CSS variables from `global.css` (including local @font-face declarations)
+ * - native: family names embedded by the `expo-font` config plugin
  */
 export const Fonts = Platform.select({
   ios: {
-    body: 'National Park',
-    heading: 'National Park',
-    display: 'National Park',
-    city: 'Rock Salt',
-    serif: 'ui-serif',
-    rounded: 'National Park',
+    body: IOS_BODY_FONT,
+    heading: IOS_HEADING_FONT,
+    display: IOS_HEADING_FONT,
+    city: IOS_CITY_FONT,
+    serif: IOS_BODY_FONT,
+    rounded: IOS_HEADING_FONT,
   },
   default: {
-    body: 'National Park',
-    heading: 'National Park',
-    display: 'National Park',
-    city: 'Rock Salt',
-    serif: 'serif',
-    rounded: 'National Park',
+    body: DEFAULT_BODY_FONT,
+    heading: DEFAULT_HEADING_FONT,
+    display: DEFAULT_HEADING_FONT,
+    city: DEFAULT_CITY_FONT,
+    serif: DEFAULT_BODY_FONT,
+    rounded: DEFAULT_HEADING_FONT,
   },
   web: {
     body: 'var(--font-body)',
@@ -128,15 +131,13 @@ export const Fonts = Platform.select({
 });
 
 /**
- * Weight to pair with Fonts.heading / Fonts.display. On native, `Fonts.*`
- * resolve to the weighted `National Park` family, so 700 selects the bold
- * variant embedded by the expo-font config plugin. On web those roles resolve
- * to dedicated @font-face family names (expo-font); fontWeight 400 is correct
- * because the family itself is already the bold face. Pair Fonts.body with 400.
+ * Weight to pair with Fonts.heading / Fonts.display.
+ * Pair Fonts.body with 400.
  */
 export const FontWeightBold = Platform.select({
   web: '400' as const,
-  default: '700' as const,
+  ios: '400' as const,
+  default: '400' as const,
 });
 
 export const Spacing = {

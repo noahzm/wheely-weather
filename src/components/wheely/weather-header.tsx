@@ -5,7 +5,7 @@ import { MapPin } from 'lucide-react-native';
 import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { Spacing, type WheelyPalette } from '@/constants/theme';
-import { HapticPressable, makeButtonStyles } from './primitives';
+import { HapticPressable, PlatformIcon, makeButtonStyles } from './primitives';
 
 function makeStyles(c: WheelyPalette) {
   return StyleSheet.create({
@@ -51,7 +51,7 @@ export function WeatherHeader({
           pressed && buttonStyles.pressed,
         ]}
       >
-        <MapPin size={14} color={c.ink} strokeWidth={2.5} />
+        <PlatformIcon icon={MapPin} webName="map-marker" size={14} color={c.ink} strokeWidth={2.5} />
         <ThemedText style={buttonStyles.label}>{location || 'Set location'}</ThemedText>
       </HapticPressable>
       {!!statusMessage && (

@@ -38,6 +38,18 @@ const buildWindLabel = (weather: Weather, status: RideStatus, gustDriven: boolea
 // (insertion order is temp → wind → rain → weather → dewpoint → AQI) and roll the
 // rest into a "plus N more" tail. "The numbers" section carries the full detail.
 const MAX_INLINE_ISSUES = 3;
+const MIN_RIDEABLE_CONDITION_RANK = RANK.fair;
+
+const hasRideableTomorrowImprovement = (weather: Weather): boolean => {
+  const daily = weather.daily;
+  if (!daily || daily.length < 2) return false;
+  const today = daily[0];
+  const tomorrow = daily[1];
+  if (!today || !tomorrow) return false;
+  const todayRank = RANK[today.condition];
+  const tomorrowRank = RANK[tomorrow.condition];
+  return tomorrowRank > todayRank && tomorrowRank >= MIN_RIDEABLE_CONDITION_RANK;
+};
 
 const selectBaseMessage = (status: RideStatus, issues: string[]): string => {
   const extra = issues.length > MAX_INLINE_ISSUES ? issues.length - 2 : 0;
@@ -135,7 +147,8 @@ export const getMessage = (
   let msg = selectBaseMessage(status, issues);
 
   if (laterGood) msg += status === 'maybe' ? MSG.LATER_GOOD(laterGood) : MSG.CLEAR_UP(laterGood);
-  else if (status === 'no') msg += MSG.REST_DAY();
+  else if (status === 'no')
+    msg += hasRideableTomorrowImprovement(weather) ? MSG.TOMORROW_BETTER : MSG.REST_DAY();
 
   return msg;
 };

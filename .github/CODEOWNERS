@@ -1,0 +1,7 @@
+# Default owner for all files
+* @noahzm
+
+# Workflow and policy files
+.github/workflows/* @noahzm
+SECURITY.md @noahzm
+CONTRIBUTING.md @noahzm

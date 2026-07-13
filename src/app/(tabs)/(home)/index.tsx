@@ -16,8 +16,10 @@ import {
   RideVerdict,
   StaleDataNotice,
   WeatherAlerts,
+  WebScreenHeader,
   bottomNavBarHeight,
 } from '@/components/wheely';
+import { WEB_TITLE_CONTENT_SPACING } from '@/components/wheely/web-screen-header';
 import { HapticPressable, SectionTitle } from '@/components/wheely/primitives';
 import { ThemedText } from '@/components/themed-text';
 import {
@@ -81,26 +83,30 @@ function WebCityHeading({ city }: Readonly<{ city: string }>) {
   const router = useRouter();
   if (!isWeb || city.length === 0) return null;
   return (
-    <View style={[contentColumnStyle, { marginBottom: Spacing.two }]}>
-      <HapticPressable
-        onPress={() => {
-          router.navigate('/location');
-        }}
-        accessibilityRole="button"
-        accessibilityLabel={`Location: ${city}. Change location`}
-        style={({ pressed }) => [{ alignSelf: 'flex-start' }, pressed && { opacity: 0.7 }]}
-      >
-        <Text
-          style={{
-            fontFamily: Fonts.city,
-            fontSize: 34,
-            color: c.ink,
+    <WebScreenHeader
+      variant="title"
+      withScreenGutter={false}
+      title={
+        <HapticPressable
+          onPress={() => {
+            router.navigate('/location');
           }}
+          accessibilityRole="button"
+          accessibilityLabel={`Location: ${city}. Change location`}
+          style={({ pressed }) => [pressed && { opacity: 0.7 }]}
         >
-          {city}
-        </Text>
-      </HapticPressable>
-    </View>
+          <Text
+            style={{
+              fontFamily: Fonts.city,
+              fontSize: 34,
+              color: c.ink,
+            }}
+          >
+            {city}
+          </Text>
+        </HapticPressable>
+      }
+    />
   );
 }
 
@@ -333,11 +339,12 @@ function makeStyles(c: WheelyPalette) {
     safeArea: {
       width: '100%',
       ...screenGutterStyle,
-      paddingTop: Platform.OS === 'web' ? Spacing.four : 0,
+      paddingTop: 0,
       paddingBottom: Spacing.three,
     },
     content: {
       ...contentColumnStyle,
+      marginTop: Platform.OS === 'web' ? WEB_TITLE_CONTENT_SPACING : 0,
       gap: 48,
     },
     section: {

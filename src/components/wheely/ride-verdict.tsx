@@ -38,7 +38,6 @@ function makeStyles(c: WheelyPalette) {
       fontFamily: Fonts.heading,
       fontSize: 16,
       fontWeight: FontWeightBold,
-      textTransform: 'uppercase',
     },
     verdictText: {
       fontFamily: Fonts.body,
@@ -50,8 +49,6 @@ function makeStyles(c: WheelyPalette) {
       fontFamily: Fonts.body,
       fontSize: 13,
       marginTop: Spacing.two,
-      textTransform: 'uppercase',
-      letterSpacing: 0.4,
     },
   });
 }

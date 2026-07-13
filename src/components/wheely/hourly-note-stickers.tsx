@@ -6,6 +6,7 @@ import { SymbolView, type SFSymbol } from 'expo-symbols';
 import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { Spacing, type WheelyPalette } from '@/constants/theme';
+import { PlatformIcon } from './primitives';
 
 const NOTE_STICKER_ROTATE = '4deg';
 
@@ -53,7 +54,13 @@ function HourlyNoteSticker({ icon, text }: Readonly<{ icon: SFSymbol; text: stri
       {Platform.OS === 'ios' ? (
         <SymbolView name={icon} size={13} tintColor={c.ink} />
       ) : (
-        <FallbackIcon size={13} color={c.ink} strokeWidth={2.5} />
+        <PlatformIcon
+          icon={FallbackIcon}
+          webName={icon === 'umbrella.fill' ? 'umbrella' : 'weather-sunset-up'}
+          size={13}
+          color={c.ink}
+          strokeWidth={2.5}
+        />
       )}
       <ThemedText style={styles.noteStickerText}>{text}</ThemedText>
     </View>

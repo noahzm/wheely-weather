@@ -3,9 +3,6 @@ import { Appearance, Platform, View } from 'react-native';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import Head from 'expo-router/head';
 import { StatusBar } from 'expo-status-bar';
-import { useFonts } from 'expo-font';
-import { NationalPark_400Regular, NationalPark_700Bold } from '@expo-google-fonts/national-park';
-import { RockSalt_400Regular } from '@expo-google-fonts/rock-salt';
 import * as SystemUI from 'expo-system-ui';
 import * as Sentry from '@sentry/react-native';
 
@@ -94,20 +91,6 @@ function renderRootChrome(stack: ReactNode): ReactNode {
 }
 
 function RootLayout() {
-  // Native: National Park is embedded at build time by the expo-font config
-  // plugin (Android XML resources / iOS bundled files), so no runtime load is
-  // needed and the gate resolves immediately. Web still needs the runtime
-  // @font-face registration that `useFonts` provides.
-  const [fontsLoaded, fontError] = useFonts(
-    Platform.OS === 'web'
-      ? { NationalPark_400Regular, NationalPark_700Bold, RockSalt_400Regular }
-      : {},
-  );
-
-  if (!fontsLoaded && !fontError) {
-    return null;
-  }
-
   return (
     <SettingsProvider>
       <ThemedRoot />

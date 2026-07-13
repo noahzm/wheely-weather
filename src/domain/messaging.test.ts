@@ -160,4 +160,42 @@ describe('Hourly Message Logic', () => {
 
     expect(getMessage(weather, 'no')).toContain('strong gusts (34 mph gusts)');
   });
+
+  it('mentions tomorrow only when tomorrow is at least fair and better than today', () => {
+    const weather = {
+      hasThunderstorms: false,
+      temperature: 30,
+      feelsLike: 27,
+      windSpeed: 5,
+      rainChance: 10,
+      dewpoint: 50,
+      aqi: 20,
+      hourly: [{ hour: 10, condition: 'bad' }],
+      daily: [
+        { date: '2026-07-12', high: 35, low: 25, windSpeed: 8, windGust: 10, rainChance: 10, weatherCode: 1, condition: 'bad' },
+        { date: '2026-07-13', high: 62, low: 51, windSpeed: 7, windGust: 9, rainChance: 5, weatherCode: 1, condition: 'fair' },
+      ],
+    };
+
+    expect(getMessage(weather, 'no')).toContain('Tomorrow should be the better ride window.');
+  });
+
+  it('does not mention tomorrow when tomorrow improves but is still not rideable', () => {
+    const weather = {
+      hasThunderstorms: false,
+      temperature: 30,
+      feelsLike: 27,
+      windSpeed: 5,
+      rainChance: 10,
+      dewpoint: 50,
+      aqi: 20,
+      hourly: [{ hour: 10, condition: 'bad' }],
+      daily: [
+        { date: '2026-07-12', high: 35, low: 25, windSpeed: 8, windGust: 10, rainChance: 10, weatherCode: 1, condition: 'bad' },
+        { date: '2026-07-13', high: 45, low: 33, windSpeed: 12, windGust: 15, rainChance: 20, weatherCode: 3, condition: 'marginal' },
+      ],
+    };
+
+    expect(getMessage(weather, 'no')).not.toContain('Tomorrow should be the better ride window.');
+  });
 });

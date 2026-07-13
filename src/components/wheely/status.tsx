@@ -7,7 +7,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { MaxContentWidth, Spacing, TRANSPARENT, type WheelyPalette } from '@/constants/theme';
-import { BrutalCard, HapticPressable, makeButtonStyles, SectionHeading } from './primitives';
+import {
+  BrutalCard,
+  HapticPressable,
+  makeButtonStyles,
+  PlatformIcon,
+  SectionHeading,
+} from './primitives';
 import { webBottomInset } from './bottom-nav-chrome';
 
 function makeStyles(c: WheelyPalette, webPaddingBottom?: number) {
@@ -84,7 +90,14 @@ export function ErrorState({
             style={styles.centerIcon}
           />
         ) : (
-          <Icon size={42} color={c.ink} strokeWidth={2} style={styles.centerIcon} />
+          <PlatformIcon
+            icon={Icon}
+            webName={network ? 'cloud-off' : 'alert'}
+            size={42}
+            color={c.ink}
+            strokeWidth={2}
+            style={styles.centerIcon}
+          />
         )}
         <SectionHeading>
           {network ? 'Forecast unavailable' : 'Something went sideways'}
@@ -107,7 +120,13 @@ export function ErrorState({
           {Platform.OS === 'ios' ? (
             <SymbolView name="arrow.clockwise" size={14} tintColor={c.primaryInk} />
           ) : (
-            <RefreshCw size={14} color={c.primaryInk} strokeWidth={2.5} />
+            <PlatformIcon
+              icon={RefreshCw}
+              webName="refresh"
+              size={14}
+              color={c.primaryInk}
+              strokeWidth={2.5}
+            />
           )}
           <ThemedText style={[buttonStyles.label, buttonStyles.primaryLabel]}>Refresh</ThemedText>
         </HapticPressable>
@@ -140,7 +159,13 @@ export function StaleDataNotice({
       {Platform.OS === 'ios' ? (
         <SymbolView name="exclamationmark.triangle.fill" size={16} tintColor={c.warning} />
       ) : (
-        <AlertTriangle size={16} color={c.warning} strokeWidth={2} />
+        <PlatformIcon
+          icon={AlertTriangle}
+          webName="alert"
+          size={16}
+          color={c.warning}
+          strokeWidth={2}
+        />
       )}
       <ThemedText style={styles.staleNoticeText} accessibilityLiveRegion="polite">
         {message}
@@ -153,7 +178,7 @@ export function StaleDataNotice({
         {Platform.OS === 'ios' ? (
           <SymbolView name="arrow.clockwise" size={16} tintColor={c.ink} />
         ) : (
-          <RefreshCw size={16} color={c.ink} strokeWidth={2} />
+          <PlatformIcon icon={RefreshCw} webName="refresh" size={16} color={c.ink} strokeWidth={2} />
         )}
       </HapticPressable>
     </BrutalCard>
@@ -177,7 +202,7 @@ function UseLocationButtonIcon({ busy, ink }: Readonly<{ busy: boolean; ink: str
   if (Platform.OS === 'ios') {
     return <SymbolView name="location.fill" size={14} tintColor={ink} />;
   }
-  return <MapPin size={14} color={ink} strokeWidth={2.5} />;
+  return <PlatformIcon icon={MapPin} webName="map-marker" size={14} color={ink} strokeWidth={2.5} />;
 }
 
 export function LocationPromptState({
@@ -198,7 +223,14 @@ export function LocationPromptState({
         {Platform.OS === 'ios' ? (
           <SymbolView name="location.fill" size={42} tintColor={c.ink} style={styles.centerIcon} />
         ) : (
-          <MapPin size={42} color={c.ink} strokeWidth={2} style={styles.centerIcon} />
+          <PlatformIcon
+            icon={MapPin}
+            webName="map-marker"
+            size={42}
+            color={c.ink}
+            strokeWidth={2}
+            style={styles.centerIcon}
+          />
         )}
         <SectionHeading>Where are you riding?</SectionHeading>
         <ThemedText style={styles.muted}>
@@ -234,7 +266,7 @@ export function LocationPromptState({
           {Platform.OS === 'ios' ? (
             <SymbolView name="magnifyingglass" size={14} tintColor={c.ink} />
           ) : (
-            <Search size={14} color={c.ink} strokeWidth={2.5} />
+            <PlatformIcon icon={Search} webName="magnify" size={14} color={c.ink} strokeWidth={2.5} />
           )}
           <ThemedText style={buttonStyles.label}>Search for a city</ThemedText>
         </HapticPressable>

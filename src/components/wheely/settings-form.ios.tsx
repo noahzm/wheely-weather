@@ -14,6 +14,7 @@ import {
 } from './settings-form.types';
 import { BrutalCard, SectionTitle } from './primitives';
 import { HomeClimateSection } from './settings-home-section';
+import { IconAttributionSection } from './settings-icon-attribution-section';
 import { WeatherAttributionSection } from './settings-attribution-section.ios';
 
 // Intrinsic height of a SwiftUI segmented Picker; the Host needs an explicit size.
@@ -129,6 +130,7 @@ export function SettingsForm({
         onClearHome={onClearHome}
       />
 
+      <IconAttributionSection />
       <WeatherAttributionSection />
     </ScrollView>
   );
