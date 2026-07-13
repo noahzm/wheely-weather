@@ -12,6 +12,16 @@ updates:
       - dependencies
     commit-message:
       prefix: 'deps'
+    ignore:
+      # Expo manages these package families through the SDK release train.
+      - dependency-name: 'expo'
+      - dependency-name: 'expo-*'
+      - dependency-name: '@expo/*'
+      - dependency-name: 'react'
+      - dependency-name: 'react-dom'
+      - dependency-name: 'react-native'
+      - dependency-name: 'react-native-*'
+      - dependency-name: '@react-native-*'
 
   - package-ecosystem: github-actions
     directory: /
