@@ -25,7 +25,7 @@
 :root {
   --font-sans: 'RonzinoRegular', Georgia, 'Times New Roman', serif;
   --font-display: 'RonzinoBold', Georgia, 'Times New Roman', serif;
-  --font-heading: 'RonzinoBold', Georgia, 'Times New Roman', serif;
+  --font-heading: 'RonzinoMedium', Georgia, 'Times New Roman', serif;
   --font-body: 'RonzinoRegular', Georgia, 'Times New Roman', serif;
   --font-city: 'RonzinoMedium', Georgia, 'Times New Roman', serif;
   --font-rounded: 'RonzinoMedium', Georgia, 'Times New Roman', serif;
@@ -69,4 +69,9 @@ body,
 :focus-visible {
   outline: 3px solid currentColor;
   outline-offset: 2px;
+}
+
+input:focus-visible,
+textarea:focus-visible {
+  outline: none;
 }

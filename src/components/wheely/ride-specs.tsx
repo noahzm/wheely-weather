@@ -18,6 +18,7 @@ import { CONDITION_DISPLAY, evaluateCondition, THRESHOLDS } from '@/domain';
 import {
   getAqiLabel,
   getDewpointLabel,
+  formatPercent,
   getUvCondition,
   getUvLabel,
   getWindArrowRotation,
@@ -27,11 +28,10 @@ import { useWheelyColors } from '@/hooks/use-theme';
 import { useTemperatureDisplay } from '@/hooks/use-temperature-display';
 import { Fonts, FontWeightBold, Spacing, type WheelyPalette } from '@/constants/theme';
 import type { Weather } from '@/types/weather';
-import { BrutalCard, Chip, asCondition, PlatformIcon, type MaterialIconName } from './primitives';
+import { BrutalCard, ConditionPill, asCondition, PlatformIcon } from './primitives';
 
 interface RideSpecMetric {
   Icon: LucideIcon;
-  webIcon: MaterialIconName;
   sf: string;
   label: string;
   value: string;
@@ -48,15 +48,13 @@ function rideSpecMetrics(
   return [
     {
       Icon: Droplets,
-      webIcon: 'water',
       sf: 'drop.fill',
       label: 'Rain Chance',
-      value: `${weather.rainChance}%`,
+      value: formatPercent(weather.rainChance),
       condition: evaluateCondition(weather.rainChance, 'rainChance', thresholds),
     },
     {
       Icon: Thermometer,
-      webIcon: 'thermometer',
       sf: 'thermometer.medium',
       label: 'Temperature',
       value: formatTemp(weather.temperature),
@@ -65,7 +63,6 @@ function rideSpecMetrics(
     },
     {
       Icon: Wind,
-      webIcon: 'weather-windy',
       sf: 'wind',
       label: 'Wind',
       value: `${Math.round(weather.windSpeed)} mph`,
@@ -81,7 +78,6 @@ function rideSpecMetrics(
     },
     {
       Icon: Gauge,
-      webIcon: 'gauge',
       sf: 'aqi.medium',
       label: 'Air Quality',
       value: weather.aqi == null ? '—' : `${weather.aqi}`,
@@ -91,7 +87,6 @@ function rideSpecMetrics(
     },
     {
       Icon: Droplet,
-      webIcon: 'water',
       sf: 'humidity.fill',
       label: 'Dewpoint',
       value: formatTemp(weather.dewpoint),
@@ -100,7 +95,6 @@ function rideSpecMetrics(
     },
     {
       Icon: Sun,
-      webIcon: 'weather-sunny',
       sf: 'sun.max.fill',
       label: 'UV Index',
       value: weather.uvIndex == null ? '—' : `${Math.round(weather.uvIndex)}`,
@@ -109,14 +103,12 @@ function rideSpecMetrics(
     },
     {
       Icon: Sunrise,
-      webIcon: 'weather-sunset-up',
       sf: 'sunrise.fill',
       label: 'Sunrise',
       value: weather.sunrise ?? '—',
     },
     {
       Icon: Sunset,
-      webIcon: 'weather-sunset-down',
       sf: 'sunset.fill',
       label: 'Sunset',
       value: weather.sunset ?? '—',
@@ -126,30 +118,19 @@ function rideSpecMetrics(
 
 function makeStyles(c: WheelyPalette, isCompact: boolean) {
   return StyleSheet.create({
-    metricsGrid: {
+    metricsPanel: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: Spacing.three,
-      overflow: 'visible',
-      ...(isCompact ? { justifyContent: 'space-between' as const } : null),
+      overflow: 'hidden',
+      padding: 0,
+      gap: 0,
     },
-    metricCard: {
-      position: 'relative',
-      width: isCompact ? '47%' : '23%',
-      minWidth: isCompact ? undefined : 150,
-      gap: Spacing.two,
-      overflow: 'visible',
-      paddingBottom: Spacing.four,
-      paddingRight: Spacing.five,
-    },
-    conditionSticker: {
-      position: 'absolute',
-      right: -12,
-      bottom: -12,
-      zIndex: 1,
-    },
-    rotatedSticker: {
-      transform: [{ rotate: '4deg' }, { scale: 1.12 }],
+    metricCell: {
+      width: isCompact ? '50%' : '25%',
+      minHeight: 112,
+      gap: Spacing.one,
+      padding: Spacing.three,
+      borderColor: c.border,
     },
     metricLabelRow: {
       flexDirection: 'row',
@@ -171,12 +152,15 @@ function makeStyles(c: WheelyPalette, isCompact: boolean) {
     metricValue: {
       color: c.ink,
       fontFamily: Fonts.display,
-      fontSize: 30,
-      lineHeight: 34,
+      fontSize: 27,
+      lineHeight: 31,
       fontWeight: FontWeightBold,
     },
     metricFooter: {
-      gap: Spacing.two,
+      flexDirection: 'row',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: Spacing.one,
     },
     muted: {
       color: c.mutedInk,
@@ -191,55 +175,61 @@ function useStyles() {
   const { width } = useWindowDimensions();
   const isCompact = Platform.OS !== 'web' || width < 640;
   const styles = useMemo(() => makeStyles(c, isCompact), [c, isCompact]);
-  return { c, styles };
+  return { c, styles, columns: isCompact ? 2 : 4 };
 }
 
 export function RideSpecs({
   weather,
   thresholds = THRESHOLDS,
 }: Readonly<{ weather: Weather; thresholds?: typeof THRESHOLDS }>) {
-  const { c, styles } = useStyles();
+  const { c, styles, columns } = useStyles();
   const { format: formatTemp } = useTemperatureDisplay();
   const metrics = rideSpecMetrics(weather, thresholds, formatTemp);
 
   return (
-    <View style={styles.metricsGrid}>
-      {metrics.map(({ Icon, webIcon, sf, label, value, qualifier, condition, iconRotation }) => (
-        <BrutalCard key={label} small style={styles.metricCard}>
-          <View style={styles.metricLabelRow}>
-            <View
-              style={[
-                styles.metricIconWrap,
-                iconRotation == null ? null : { transform: [{ rotate: `${iconRotation}deg` }] },
-              ]}
-            >
-              {Platform.OS === 'ios' ? (
-                <SymbolView name={sf as SFSymbol} size={18} tintColor={c.mutedInk} />
-              ) : (
-                <PlatformIcon
-                  icon={Icon}
-                  webName={webIcon}
-                  size={18}
-                  color={c.mutedInk}
-                  strokeWidth={2}
-                />
+    <BrutalCard style={styles.metricsPanel}>
+      {metrics.map(({ Icon, sf, label, value, qualifier, condition, iconRotation }, index) => {
+        const isLastColumn = (index + 1) % columns === 0;
+        const isLastRow =
+          Math.floor(index / columns) === Math.floor((metrics.length - 1) / columns);
+        return (
+          <View
+            key={label}
+            style={[
+              styles.metricCell,
+              {
+                borderRightWidth: isLastColumn ? 0 : 1,
+                borderBottomWidth: isLastRow ? 0 : 1,
+              },
+            ]}
+          >
+            <View style={styles.metricLabelRow}>
+              <View
+                style={[
+                  styles.metricIconWrap,
+                  iconRotation == null ? null : { transform: [{ rotate: `${iconRotation}deg` }] },
+                ]}
+              >
+                {Platform.OS === 'ios' ? (
+                  <SymbolView name={sf as SFSymbol} size={18} tintColor={c.mutedInk} />
+                ) : (
+                  <PlatformIcon icon={Icon} size={18} color={c.mutedInk} strokeWidth={2} />
+                )}
+              </View>
+              <ThemedText style={styles.metricLabel}>{label}</ThemedText>
+            </View>
+            <ThemedText style={styles.metricValue}>{value}</ThemedText>
+            <View style={styles.metricFooter}>
+              {!!qualifier && <ThemedText style={styles.muted}>{qualifier}</ThemedText>}
+              {condition && condition !== 'good' && (
+                <ConditionPill condition={asCondition(condition)}>
+                  {CONDITION_DISPLAY[asCondition(condition)]}
+                </ConditionPill>
               )}
             </View>
-            <ThemedText style={styles.metricLabel}>{label}</ThemedText>
           </View>
-          <ThemedText style={styles.metricValue}>{value}</ThemedText>
-          <View style={styles.metricFooter}>
-            {!!qualifier && <ThemedText style={styles.muted}>{qualifier}</ThemedText>}
-          </View>
-          {condition && ['marginal', 'poor', 'bad'].includes(condition) && (
-            <View style={[styles.conditionSticker, { pointerEvents: 'none' }]}>
-              <Chip condition={asCondition(condition)} large style={styles.rotatedSticker}>
-                {CONDITION_DISPLAY[asCondition(condition)]}
-              </Chip>
-            </View>
-          )}
-        </BrutalCard>
-      ))}
-    </View>
+        );
+      })}
+    </BrutalCard>
   );
 }

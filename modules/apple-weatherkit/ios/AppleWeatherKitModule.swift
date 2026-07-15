@@ -41,7 +41,7 @@ public class AppleWeatherKitModule: Module {
           var hourlyApparent: [Double] = []
           var hourlyWind: [Double] = []
           var hourlyGust: [Double?] = []
-          var hourlyPrecip: [Double] = []
+          var hourlyPrecip: [Int] = []
           var hourlyCondition: [String] = []
           var hourlyDewpoint: [Double] = []
           var hourlyUv: [Int] = []
@@ -54,7 +54,7 @@ public class AppleWeatherKitModule: Module {
             hourlyApparent.append(Self.fahrenheit(hour.apparentTemperature))
             hourlyWind.append(Self.mph(hour.wind.speed))
             hourlyGust.append(hour.wind.gust.map(Self.mph))
-            hourlyPrecip.append(hour.precipitationChance * 100)
+            hourlyPrecip.append(Self.percent(hour.precipitationChance))
             hourlyCondition.append(hour.condition.rawValue)
             hourlyDewpoint.append(Self.fahrenheit(hour.dewPoint))
             hourlyUv.append(hour.uvIndex.value)
@@ -68,7 +68,7 @@ public class AppleWeatherKitModule: Module {
           var dailyTempMin: [Double] = []
           var dailyWindMax: [Double] = []
           var dailyGustMax: [Double?] = []
-          var dailyPrecipMax: [Double] = []
+          var dailyPrecipMax: [Int] = []
           var dailyCondition: [String] = []
           var dailyUvMax: [Int] = []
 
@@ -91,7 +91,7 @@ public class AppleWeatherKitModule: Module {
             }
             dailyWindMax.append(Self.mph(windMax))
             dailyGustMax.append(day.wind.gust.map(Self.mph))
-            dailyPrecipMax.append(day.precipitationChance * 100)
+            dailyPrecipMax.append(Self.percent(day.precipitationChance))
             dailyCondition.append(day.condition.rawValue)
             dailyUvMax.append(day.uvIndex.value)
           }
@@ -175,6 +175,10 @@ public class AppleWeatherKitModule: Module {
 
   private static func mph(_ measurement: Measurement<UnitSpeed>) -> Double {
     measurement.converted(to: .milesPerHour).value
+  }
+
+  private static func percent(_ probability: Double) -> Int {
+    Int((probability * 100).rounded())
   }
 
   // WeatherSeverity isn't RawRepresentable — its `description` is a localized

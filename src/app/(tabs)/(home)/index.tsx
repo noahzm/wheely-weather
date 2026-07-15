@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Platform, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown, useReducedMotion } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
@@ -17,6 +17,7 @@ import {
   StaleDataNotice,
   WeatherAlerts,
   WebScreenHeader,
+  WebScreenTitle,
   bottomNavBarHeight,
 } from '@/components/wheely';
 import { WEB_TITLE_CONTENT_SPACING } from '@/components/wheely/web-screen-header';
@@ -38,7 +39,7 @@ import { useWheelyColors } from '@/hooks/use-theme';
 import type { TempUnit } from '@/utils/temperature';
 import type { Weather } from '@/types/weather';
 import { contentColumnStyle, screenGutterStyle } from '@/components/wheely/content-column';
-import { Fonts, Spacing, TRANSPARENT, type WheelyPalette } from '@/constants/theme';
+import { Spacing, TRANSPARENT, type WheelyPalette } from '@/constants/theme';
 
 const isWeb = Platform.OS === 'web';
 
@@ -79,7 +80,6 @@ function deriveHomeState(
 type HomeState = ReturnType<typeof deriveHomeState>;
 
 function WebCityHeading({ city }: Readonly<{ city: string }>) {
-  const c = useWheelyColors();
   const router = useRouter();
   if (!isWeb || city.length === 0) return null;
   return (
@@ -95,15 +95,7 @@ function WebCityHeading({ city }: Readonly<{ city: string }>) {
           accessibilityLabel={`Location: ${city}. Change location`}
           style={({ pressed }) => [pressed && { opacity: 0.7 }]}
         >
-          <Text
-            style={{
-              fontFamily: Fonts.city,
-              fontSize: 34,
-              color: c.ink,
-            }}
-          >
-            {city}
-          </Text>
+          <WebScreenTitle>{city}</WebScreenTitle>
         </HapticPressable>
       }
     />
@@ -345,7 +337,7 @@ function makeStyles(c: WheelyPalette) {
     content: {
       ...contentColumnStyle,
       marginTop: Platform.OS === 'web' ? WEB_TITLE_CONTENT_SPACING : 0,
-      gap: 48,
+      gap: 36,
     },
     section: {
       gap: Spacing.two,

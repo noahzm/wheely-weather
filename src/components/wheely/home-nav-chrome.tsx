@@ -4,11 +4,11 @@ import { useRouter } from 'expo-router';
 
 import { useForecast } from '@/hooks/forecast-context';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Fonts, FontWeightBold, Spacing } from '@/constants/theme';
+import { Fonts, FontWeightMedium, Spacing } from '@/constants/theme';
 import { GlassChrome } from './glass-chrome';
 import { HapticPressable, makeButtonStyles } from './primitives';
 
-const NAV_PILL_RADIUS = 22;
+const NAV_PILL_RADIUS = 10;
 const isIos = Platform.OS === 'ios';
 
 function useNavChromeStyles() {
@@ -36,7 +36,7 @@ function useNavChromeStyles() {
       },
       locationLabel: {
         fontFamily: Fonts.heading,
-        fontWeight: FontWeightBold,
+        fontWeight: FontWeightMedium,
         fontSize: 16,
         color: c.ink,
       },

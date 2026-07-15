@@ -11,7 +11,7 @@ import { ChevronRight, Navigation, Pin } from 'lucide-react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Fonts, FontWeightBold, Spacing } from '@/constants/theme';
+import { Fonts, FontWeightMedium, Spacing } from '@/constants/theme';
 
 import { BrutalCard, HapticPressable, PlatformIcon, SectionTitle } from './primitives';
 import {
@@ -37,7 +37,6 @@ function PinButton({ pinned, onPress }: Readonly<{ pinned: boolean; onPress: () 
     >
       <PlatformIcon
         icon={Pin}
-        webName="pin"
         size={16}
         color={pinned ? c.ink : c.mutedInk}
         strokeWidth={pinned ? 2.5 : 2}
@@ -92,7 +91,6 @@ function LocationRow({
         {isDevice && (
           <PlatformIcon
             icon={Navigation}
-            webName="navigation-variant"
             size={18}
             color={c.ink}
             strokeWidth={2.5}
@@ -115,7 +113,6 @@ function LocationRow({
         {!isAction && (
           <PlatformIcon
             icon={ChevronRight}
-            webName="chevron-right"
             size={16}
             color={c.mutedInk}
             strokeWidth={2.5}
@@ -249,7 +246,7 @@ const styles = StyleSheet.create({
   },
   rowLabelAction: {
     fontFamily: Fonts.heading,
-    fontWeight: FontWeightBold,
+    fontWeight: FontWeightMedium,
   },
   rowSub: {
     fontSize: 13,

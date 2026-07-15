@@ -1,5 +1,6 @@
 import { BEST_DAYS_MESSAGES } from '../domain/copy';
 import { THRESHOLDS } from '../domain/constants';
+import { formatPercent } from './percent';
 import { formatTemperature } from './temperature';
 
 import type { Condition, DailyWeather, HourlyWeather } from '@/types/weather';
@@ -30,21 +31,29 @@ const CONDITION_SCORE: Record<Condition, number> = {
 
 // Prefer overall ride quality first, then reward calmer, drier, more comfortable days.
 function scoreDay(day: DailyWeather): number {
+  if (day.rideWindowUnavailable) return -Infinity;
   const conditionScore = CONDITION_SCORE[day.condition];
 
   const rainBonus = Math.max(0, 30 - day.rainChance) * 1.5;
-  const windBonus = Math.max(0, 18 - day.windSpeed) * 1.5;
-  const avgTemp = (day.high + day.low) / 2;
+  const effectiveWind = Math.max(day.windSpeed, day.windGust ?? day.windSpeed);
+  const windBonus = Math.max(0, 24 - effectiveWind) * 1.5;
+  const avgTemp = day.rideWindow
+    ? (day.rideWindow.tempHigh + day.rideWindow.tempLow) / 2
+    : (day.high + day.low) / 2;
   const comfortBonus = Math.max(0, 18 - Math.abs(avgTemp - 68));
 
   return conditionScore + rainBonus + windBonus + comfortBonus;
 }
 
 function bestDayRationale(day: DailyWeather): string {
+  if (day.condition === 'fair') return getDayConditionReason(day);
+
   const rain = day.rainChance;
   const wind = day.windSpeed;
-  const high = day.high;
-  if (rain <= 10 && wind <= 8) return 'Low wind and dry roads';
+  const gust = day.windGust ?? wind;
+  const high = day.rideWindow?.tempHigh ?? day.high;
+  if (rain <= 10 && wind <= 8 && gust <= 15) return 'Low wind and dry roads';
+  if (gust > 15) return 'Mostly calm with manageable gusts';
   if (high < 50 && rain <= 20) return 'Cool and clear';
   if (high > 80 && rain <= 20) return 'Warm and dry';
   if (wind <= 10) return 'Calm and steady';
@@ -90,14 +99,15 @@ interface DayMetrics {
 }
 
 function dayMetrics(day: DailyWeather): DayMetrics {
-  const high = day.high;
+  const high = day.rideWindow?.tempHigh ?? day.high;
+  const low = day.rideWindow?.tempLow ?? day.low;
   return {
     wind: Math.round(day.windSpeed),
     rain: day.rainChance,
     high,
-    low: day.low,
-    // The verdict rates daytime air temperature, so reasons key off the air-temp
-    // high rather than apparent feels-like.
+    low,
+    // Daily reasons describe the selected ride window rather than overnight or
+    // brief outlier conditions elsewhere in the day.
     temp: high,
     dewpoint: day.dewpoint ?? null,
   };
@@ -117,7 +127,7 @@ function badConditionReasons(
 ): string[] {
   const reasons: string[] = [];
   if (wind >= 20) reasons.push(`Very windy (${wind} mph)`);
-  if (rain >= 60) reasons.push(`Rain likely (${rain}%)`);
+  if (rain >= 60) reasons.push(`Rain likely (${formatPercent(rain)})`);
   if (temp != null && temp > THRESHOLDS.TEMPERATURE.BAD_MAX) {
     reasons.push(`Dangerous heat (${formatTemperature(temp, tempUnit)})`);
   }
@@ -257,6 +267,7 @@ export function getDayConditionReason(
   day: DailyWeather,
   tempUnit: TempUnit = 'fahrenheit',
 ): string {
+  if (day.rideWindowUnavailable) return 'No three-hour daylight window left';
   const codeReason = weatherCodeReason(day);
   if (codeReason) return codeReason;
 
@@ -307,26 +318,22 @@ export function getBestDaysBlurb(
   bestDayIdx: number,
   rationale: string,
 ): string {
-  const preferredDays = daily
+  const rideableDays = daily
     .map((day, i) => ({ day, i, label: blurbDayLabel(day, i) }))
-    .filter(({ day }) => day.condition === 'good')
+    .filter(
+      ({ day }) =>
+        !day.rideWindowUnavailable && (day.condition === 'good' || day.condition === 'fair'),
+    )
     .map(({ i, label }) => ({ i, label }));
 
-  const workableDays = daily
-    .map((day, i) => ({ day, i, label: blurbDayLabel(day, i) }))
-    .filter(({ day }) => day.condition === 'fair')
-    .map(({ i, label }) => ({ i, label }));
-
-  const chosenDays = preferredDays.length > 0 ? preferredDays : workableDays;
-
-  if (chosenDays.length === 0) {
+  if (rideableDays.length === 0) {
     return BEST_DAYS_MESSAGES.NONE();
   }
 
-  const bestDay = chosenDays.find(({ i }) => i === bestDayIdx) ?? chosenDays[0];
+  const bestDay = rideableDays.find(({ i }) => i === bestDayIdx) ?? rideableDays[0];
   if (!bestDay) return BEST_DAYS_MESSAGES.NONE();
-  const otherDays = chosenDays.filter(({ i }) => i !== bestDay.i).map(({ label }) => label);
-  const descriptor = preferredDays.length > 0 ? 'solid ride windows' : 'workable windows';
+  const otherDays = rideableDays.filter(({ i }) => i !== bestDay.i).map(({ label }) => label);
+  const descriptor = 'solid ride windows';
 
   const bestSentence =
     otherDays.length === 0
@@ -340,11 +347,7 @@ export function getBestDaysBlurb(
 
   // Past a few qualifying days, naming each one stops being scannable.
   if (otherDays.length >= 4) {
-    const summarySentence =
-      preferredDays.length > 0
-        ? ' Most of the week is rideable too.'
-        : ' Most of the week is at least workable.';
-    return `${bestSentence}${rationaleSentence}${summarySentence}`;
+    return `${bestSentence}${rationaleSentence} Most of the week is rideable too.`;
   }
 
   const otherDaysSentence =

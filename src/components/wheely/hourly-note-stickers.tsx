@@ -8,14 +8,12 @@ import { useWheelyColors } from '@/hooks/use-theme';
 import { Spacing, type WheelyPalette } from '@/constants/theme';
 import { PlatformIcon } from './primitives';
 
-const NOTE_STICKER_ROTATE = '4deg';
-
 function makeStyles(c: WheelyPalette) {
   return StyleSheet.create({
     noteStickers: {
       position: 'absolute',
-      right: -8,
-      top: -14,
+      right: Spacing.one,
+      top: Spacing.one,
       zIndex: 4,
       alignItems: 'flex-end',
       gap: Spacing.one,
@@ -24,12 +22,12 @@ function makeStyles(c: WheelyPalette) {
       flexDirection: 'row',
       alignItems: 'center',
       gap: Spacing.one,
-      borderWidth: 2,
-      borderColor: c.shadow,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 0,
       backgroundColor: c.paper,
       paddingHorizontal: Spacing.two,
       paddingVertical: Spacing.one,
-      transform: [{ rotate: NOTE_STICKER_ROTATE }],
     },
     noteStickerText: {
       color: c.ink,
@@ -54,13 +52,7 @@ function HourlyNoteSticker({ icon, text }: Readonly<{ icon: SFSymbol; text: stri
       {Platform.OS === 'ios' ? (
         <SymbolView name={icon} size={13} tintColor={c.ink} />
       ) : (
-        <PlatformIcon
-          icon={FallbackIcon}
-          webName={icon === 'umbrella.fill' ? 'umbrella' : 'weather-sunset-up'}
-          size={13}
-          color={c.ink}
-          strokeWidth={2.5}
-        />
+        <PlatformIcon icon={FallbackIcon} size={13} color={c.ink} strokeWidth={2.5} />
       )}
       <ThemedText style={styles.noteStickerText}>{text}</ThemedText>
     </View>

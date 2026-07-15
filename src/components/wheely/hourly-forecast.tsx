@@ -34,15 +34,20 @@ function makeStyles(c: WheelyPalette) {
       position: 'relative',
       overflow: 'visible',
     },
-    conditionSticker: {
-      position: 'absolute',
-      left: -8,
-      bottom: -18,
-      zIndex: 2,
+    conditionSummary: {
+      minHeight: 38,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.two,
+      paddingHorizontal: Spacing.one,
+      paddingTop: Spacing.one,
+    },
+    reasonWrap: {
+      flex: 1,
     },
     hourReasonPanel: {
-      paddingHorizontal: Spacing.three,
-      paddingBottom: Spacing.one,
+      paddingLeft: Spacing.two,
+      paddingVertical: Spacing.one,
     },
     hourChart: {
       position: 'relative',
@@ -107,16 +112,22 @@ function HourlyReasonFooter({
   const footerText = reasonOpen && selectedReason ? selectedReason : null;
 
   return (
-    <>
-      <AnimatedExpand openProgress={reasonOpenProgress} style={styles.hourReasonPanel}>
-        {footerText && <ThemedText style={styles.hourReason}>{footerText}</ThemedText>}
-      </AnimatedExpand>
-      <View style={[styles.conditionSticker, { pointerEvents: 'none' }]}>
-        <AnimatedConditionChip condition={asCondition(condition)} chartScroll={chartScroll} large>
+    <View style={styles.conditionSummary}>
+      <View style={{ pointerEvents: 'none' }}>
+        <AnimatedConditionChip
+          condition={asCondition(condition)}
+          chartScroll={chartScroll}
+          large={false}
+        >
           {conditionLabel}
         </AnimatedConditionChip>
       </View>
-    </>
+      <View style={styles.reasonWrap}>
+        <AnimatedExpand openProgress={reasonOpenProgress} style={styles.hourReasonPanel}>
+          {footerText && <ThemedText style={styles.hourReason}>{footerText}</ThemedText>}
+        </AnimatedExpand>
+      </View>
+    </View>
   );
 }
 
@@ -215,7 +226,11 @@ function HourlyForecastBody({
   return (
     <View style={styles.hourlyBody}>
       <HourlyNoteStickers rainTiming={rainTiming} daylightWarning={daylightWarning} />
-      <ConditionChipWidthProbe labels={conditionLabels} onLayouts={handleChipLayouts} />
+      <ConditionChipWidthProbe
+        labels={conditionLabels}
+        large={false}
+        onLayouts={handleChipLayouts}
+      />
       <HourlyChartShell chart={chart} data={data} nowIdx={nowIdx} maxIndex={maxIndex} />
       <HourlyReasonFooter
         reasonOpen={chart.reasonOpen}

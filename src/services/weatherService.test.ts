@@ -116,6 +116,27 @@ describe('buildWeatherFromData — current-hour alignment', () => {
     expect(weather.rainChance).toBe(0);
     expect(weather.uvIndex).toBeNull();
   });
+
+  it('normalizes floating-point rain chance values to rounded whole percents', () => {
+    const hourlyTime = Array.from({ length: 3 }, (_, i) => hourTime('2024-01-15', i));
+    const data = makeOpenMeteoData({
+      current: { time: hourTime('2024-01-15', 1) },
+      hourly: {
+        time: hourlyTime,
+        precipitation_probability: [10.2, 56 + 1e-14, 77.8],
+      },
+      daily: {
+        time: ['2024-01-15'],
+        precipitation_probability_max: [44.6],
+      },
+    });
+
+    const weather = buildWeatherFromData(data, THRESHOLDS);
+
+    expect(weather.rainChance).toBe(56);
+    expect(weather.hourly[0]?.rainChance).toBe(56);
+    expect(weather.daily[0]?.rainChance).toBe(45);
+  });
 });
 
 describe('buildWeatherFromData — past hourly window', () => {
@@ -223,11 +244,9 @@ describe('buildWeatherFromData — daily parsing', () => {
     expect(weather.daily[1]?.dewpoint).toBe(62);
   });
 
-  it('includes the sunrise hour in the daytime window used to rate conditions', () => {
+  it('does not let one rough sunrise hour condemn an otherwise good ride day', () => {
     const hours = Array.from({ length: 24 }, (_, h) => hourTime('2024-01-20', h));
-    // Sunrise hour (7) reads a "bad" cold snap; every other daylight hour is
-    // comfortable. If the window correctly includes hour 7, that cold snap
-    // should decide the daily condition.
+    // Sunrise is bitterly cold, but a later three-hour window is comfortable.
     const temps = hours.map((_, h) => (h === 7 ? 20 : 60));
     const data = makeOpenMeteoData({
       current: { time: hourTime('2024-01-20', 0) },
@@ -241,7 +260,8 @@ describe('buildWeatherFromData — daily parsing', () => {
 
     const weather = buildWeatherFromData(data, THRESHOLDS);
 
-    expect(weather.daily[0]?.condition).toBe('bad');
+    expect(weather.daily[0]?.condition).toBe('good');
+    expect(weather.daily[0]?.rideWindow?.startHour).toBe(8);
   });
 
   it('excludes the sunset hour from the daytime window used to rate conditions', () => {
@@ -279,6 +299,72 @@ describe('buildWeatherFromData — daily parsing', () => {
     const weather = buildWeatherFromData(data, THRESHOLDS);
 
     expect(weather.daily[0]?.condition).toBe('bad');
+  });
+
+  it('stores metrics from the best contiguous three-hour daylight window', () => {
+    const hours = Array.from({ length: 7 }, (_, i) => hourTime('2024-01-20', i + 7));
+    const data = makeOpenMeteoData({
+      current: { time: hours[0] },
+      hourly: {
+        time: hours,
+        wind_speed_10m: [25, 25, 25, 5, 5, 5, 25],
+        wind_gusts_10m: [35, 35, 35, 10, 10, 10, 35],
+        precipitation_probability: [70, 70, 70, 5, 5, 5, 70],
+      },
+      daily: {
+        time: ['2024-01-20'],
+        sunrise: [hourTime('2024-01-20', 7)],
+        sunset: [hourTime('2024-01-20', 14)],
+      },
+    });
+
+    const weather = buildWeatherFromData(data, THRESHOLDS);
+    const day = weather.daily[0];
+
+    expect(day?.condition).toBe('good');
+    expect(day?.rideWindow).toMatchObject({ startHour: 10, endHour: 13 });
+    expect(day?.windSpeed).toBe(5);
+    expect(day?.windGust).toBe(10);
+    expect(day?.rainChance).toBe(5);
+  });
+
+  it('does not select a best window that has already passed today', () => {
+    const hours = Array.from({ length: 9 }, (_, i) => hourTime('2024-01-20', i + 7));
+    const data = makeOpenMeteoData({
+      current: { time: hourTime('2024-01-20', 10) },
+      hourly: {
+        time: hours,
+        wind_speed_10m: [5, 5, 5, 18, 18, 18, 18, 18, 18],
+      },
+      daily: {
+        time: ['2024-01-20'],
+        sunrise: [hourTime('2024-01-20', 7)],
+        sunset: [hourTime('2024-01-20', 16)],
+      },
+    });
+
+    const weather = buildWeatherFromData(data, THRESHOLDS);
+
+    expect(weather.daily[0]?.rideWindow?.startHour).toBe(10);
+    expect(weather.daily[0]?.condition).toBe('marginal');
+  });
+
+  it('does not create a shortened ride window when fewer than three daylight hours remain', () => {
+    const hours = Array.from({ length: 9 }, (_, i) => hourTime('2024-01-20', i + 7));
+    const data = makeOpenMeteoData({
+      current: { time: hourTime('2024-01-20', 14) },
+      hourly: { time: hours },
+      daily: {
+        time: ['2024-01-20'],
+        sunrise: [hourTime('2024-01-20', 7)],
+        sunset: [hourTime('2024-01-20', 16)],
+      },
+    });
+
+    const weather = buildWeatherFromData(data, THRESHOLDS);
+
+    expect(weather.daily[0]?.rideWindow).toBeUndefined();
+    expect(weather.daily[0]?.rideWindowUnavailable).toBe(true);
   });
 });
 

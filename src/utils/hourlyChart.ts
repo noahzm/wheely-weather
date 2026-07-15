@@ -111,11 +111,11 @@ export function chartNearestSnapOffset(offsetX: number, offsets: readonly number
 
 /**
  * Vertical pixel offset for a given condition string.
- * Maps the 1–5 score range onto the chart's usable height (34–146 px).
+ * Maps the 1–5 score range onto the compact chart's usable height (24–108 px).
  */
 export function chartY(condition: string): number {
   const score = (CONDITION_SCORE as Record<string, number>)[condition] ?? 3;
-  return 146 - ((score - 1) / 4) * 112;
+  return 108 - ((score - 1) / 4) * 84;
 }
 
 /**

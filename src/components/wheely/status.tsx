@@ -92,7 +92,6 @@ export function ErrorState({
         ) : (
           <PlatformIcon
             icon={Icon}
-            webName={network ? 'cloud-off' : 'alert'}
             size={42}
             color={c.ink}
             strokeWidth={2}
@@ -120,13 +119,7 @@ export function ErrorState({
           {Platform.OS === 'ios' ? (
             <SymbolView name="arrow.clockwise" size={14} tintColor={c.primaryInk} />
           ) : (
-            <PlatformIcon
-              icon={RefreshCw}
-              webName="refresh"
-              size={14}
-              color={c.primaryInk}
-              strokeWidth={2.5}
-            />
+            <PlatformIcon icon={RefreshCw} size={14} color={c.primaryInk} strokeWidth={2.5} />
           )}
           <ThemedText style={[buttonStyles.label, buttonStyles.primaryLabel]}>Refresh</ThemedText>
         </HapticPressable>
@@ -159,13 +152,7 @@ export function StaleDataNotice({
       {Platform.OS === 'ios' ? (
         <SymbolView name="exclamationmark.triangle.fill" size={16} tintColor={c.warning} />
       ) : (
-        <PlatformIcon
-          icon={AlertTriangle}
-          webName="alert"
-          size={16}
-          color={c.warning}
-          strokeWidth={2}
-        />
+        <PlatformIcon icon={AlertTriangle} size={16} color={c.warning} strokeWidth={2} />
       )}
       <ThemedText style={styles.staleNoticeText} accessibilityLiveRegion="polite">
         {message}
@@ -178,13 +165,7 @@ export function StaleDataNotice({
         {Platform.OS === 'ios' ? (
           <SymbolView name="arrow.clockwise" size={16} tintColor={c.ink} />
         ) : (
-          <PlatformIcon
-            icon={RefreshCw}
-            webName="refresh"
-            size={16}
-            color={c.ink}
-            strokeWidth={2}
-          />
+          <PlatformIcon icon={RefreshCw} size={16} color={c.ink} strokeWidth={2} />
         )}
       </HapticPressable>
     </BrutalCard>
@@ -208,9 +189,7 @@ function UseLocationButtonIcon({ busy, ink }: Readonly<{ busy: boolean; ink: str
   if (Platform.OS === 'ios') {
     return <SymbolView name="location.fill" size={14} tintColor={ink} />;
   }
-  return (
-    <PlatformIcon icon={MapPin} webName="map-marker" size={14} color={ink} strokeWidth={2.5} />
-  );
+  return <PlatformIcon icon={MapPin} size={14} color={ink} strokeWidth={2.5} />;
 }
 
 export function LocationPromptState({
@@ -233,7 +212,6 @@ export function LocationPromptState({
         ) : (
           <PlatformIcon
             icon={MapPin}
-            webName="map-marker"
             size={42}
             color={c.ink}
             strokeWidth={2}
@@ -274,13 +252,7 @@ export function LocationPromptState({
           {Platform.OS === 'ios' ? (
             <SymbolView name="magnifyingglass" size={14} tintColor={c.ink} />
           ) : (
-            <PlatformIcon
-              icon={Search}
-              webName="magnify"
-              size={14}
-              color={c.ink}
-              strokeWidth={2.5}
-            />
+            <PlatformIcon icon={Search} size={14} color={c.ink} strokeWidth={2.5} />
           )}
           <ThemedText style={buttonStyles.label}>Search for a city</ThemedText>
         </HapticPressable>

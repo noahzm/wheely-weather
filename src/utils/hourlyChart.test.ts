@@ -86,13 +86,13 @@ describe('chart scroll picker', () => {
 
 describe('chartY', () => {
   it('maps "good" to top (small y)', () => {
-    expect(chartY('good')).toBe(34); // 146 - (4/4)*112
+    expect(chartY('good')).toBe(24);
   });
   it('maps "bad" to bottom (large y)', () => {
-    expect(chartY('bad')).toBe(146); // 146 - (0/4)*112
+    expect(chartY('bad')).toBe(108);
   });
   it('maps "fair" correctly', () => {
-    expect(chartY('fair')).toBe(62); // 146 - (3/4)*112 = 146-84 = 62
+    expect(chartY('fair')).toBe(45);
   });
   it('defaults unknown condition to "marginal" mid-point', () => {
     expect(chartY('unknown')).toBe(chartY('marginal'));
@@ -225,7 +225,7 @@ describe('chartSmoothPath', () => {
 
   it('returns move command for single data point', () => {
     const data = [{ idx: 0, condition: 'good' }];
-    expect(chartSmoothPath(data)).toMatch(/^M 24\.0,34\.0$/);
+    expect(chartSmoothPath(data)).toMatch(/^M 24\.0,24\.0$/);
   });
 
   it('returns path with curve commands for multiple data points', () => {
@@ -234,7 +234,7 @@ describe('chartSmoothPath', () => {
       { idx: 1, condition: 'bad' },
     ];
     const path = chartSmoothPath(data);
-    expect(path).toContain('M 24.0,34.0');
+    expect(path).toContain('M 24.0,24.0');
     expect(path).toContain('C'); // Should contain a curve command
   });
 });

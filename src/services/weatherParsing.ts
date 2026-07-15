@@ -1,11 +1,14 @@
 import {
   getWeatherDescription,
+  getWeatherCodeCondition,
   isThunderstorm,
   getHourlyCondition,
   getDailyCondition,
 } from '../domain/weather';
+import { RANK } from '../domain/scoring';
 import type { Thresholds } from '../domain/constants';
 import { fetchWithTimeout } from './http';
+import { normalizePercent } from '../utils/percent';
 
 import type { DailyWeather, HourlyWeather, Weather, WeatherAlert } from '@/types/weather';
 
@@ -17,6 +20,38 @@ interface DaylightHours {
 interface TempRange {
   min: number;
   max: number;
+}
+
+interface DailyRideWindow {
+  startHour: number;
+  endHour: number;
+  tempLow: number;
+  tempHigh: number;
+  windSpeed: number;
+  windGust: number | null;
+  rainChance: number;
+  dewpoint: number | null;
+  weatherCode: number | null;
+  condition: DailyWeather['condition'];
+}
+
+interface RideWindowHour {
+  hour: number;
+  temperature: number;
+  windSpeed: number;
+  windGust: number | null;
+  rainChance: number;
+  dewpoint: number | null;
+  weatherCode: number | null;
+}
+
+interface DailyParseContext {
+  data: OpenMeteoData;
+  currentDate: string;
+  daytimeTempByDate: Record<string, TempRange>;
+  dewpointByDate: Record<string, number>;
+  bestRideWindows: Record<string, DailyRideWindow>;
+  thresholds: Thresholds;
 }
 
 interface OpenMeteoHourly {
@@ -90,6 +125,9 @@ function toHourlyTimeKey(timeStr: string | null | undefined): string | null {
 
 const pad2 = (n: number): string => String(n).padStart(2, '0');
 
+const normalizeRainChance = (value: number | null | undefined): number =>
+  normalizePercent(value ?? 0);
+
 /** Computes the current hour as a naive ISO string in the forecast location's timezone. */
 function currentHourStrForLocation(data: OpenMeteoData): string {
   const offsetSeconds = data.utc_offset_seconds ?? 0;
@@ -110,7 +148,7 @@ function buildHourRecord(
   const wind = data.hourly.wind_speed_10m[idx];
   if (t == null || temperature == null || feelsLike == null || wind == null) return null;
   const gust = data.hourly.wind_gusts_10m?.[idx] ?? null;
-  const rain = data.hourly.precipitation_probability[idx] ?? 0;
+  const rain = normalizeRainChance(data.hourly.precipitation_probability[idx]);
   const code = data.hourly.weather_code[idx] ?? null;
   const dewpoint = data.hourly.dewpoint_2m[idx] ?? null;
   const uv = data.hourly.uv_index?.[idx] ?? 0;
@@ -219,47 +257,247 @@ function buildDaytimeAggregates(
   return { dewpointByDate, daytimeTempByDate };
 }
 
+const DAILY_RIDE_WINDOW_HOURS = 3;
+
+function getWorstWeatherCode(codes: (number | null)[]): number | null {
+  let worstCode: number | null = null;
+  let worstRank = Infinity;
+  for (const code of codes) {
+    if (code == null) continue;
+    const rank = RANK[getWeatherCodeCondition(code)];
+    if (rank < worstRank) {
+      worstCode = code;
+      worstRank = rank;
+    }
+  }
+  return worstCode;
+}
+
+function scoreRideWindow(window: DailyRideWindow): number {
+  const avgTemp = (window.tempLow + window.tempHigh) / 2;
+  const gust = window.windGust ?? window.windSpeed;
+  return (
+    RANK[window.condition] * 1000 -
+    window.rainChance * 2 -
+    window.windSpeed * 3 -
+    gust +
+    Math.max(0, 20 - Math.abs(avgTemp - 68))
+  );
+}
+
+function buildRideWindowCandidate(
+  hours: RideWindowHour[],
+  thresholds: Thresholds,
+): DailyRideWindow | null {
+  if (hours.length !== DAILY_RIDE_WINDOW_HOURS) return null;
+  const first = hours[0];
+  const last = hours.at(-1);
+  if (!first || !last) return null;
+  if (last.hour - first.hour !== hours.length - 1) return null;
+
+  const temperatures = hours.map((hour) => hour.temperature);
+  const windSpeed = Math.max(...hours.map((hour) => hour.windSpeed));
+  const gusts = hours.map((hour) => hour.windGust).filter((gust): gust is number => gust != null);
+  const windGust = gusts.length > 0 ? Math.max(...gusts) : null;
+  const rainChance = Math.max(...hours.map((hour) => hour.rainChance));
+  const dewpoints = hours
+    .map((hour) => hour.dewpoint)
+    .filter((dewpoint): dewpoint is number => dewpoint != null);
+  const dewpoint = dewpoints.length > 0 ? Math.max(...dewpoints) : null;
+  const weatherCode = getWorstWeatherCode(hours.map((hour) => hour.weatherCode));
+  const tempLow = Math.min(...temperatures);
+  const tempHigh = Math.max(...temperatures);
+
+  return {
+    startHour: first.hour,
+    endHour: last.hour + 1,
+    tempLow,
+    tempHigh,
+    windSpeed,
+    windGust,
+    rainChance,
+    dewpoint,
+    weatherCode,
+    condition: getDailyCondition(
+      {
+        tempLow,
+        tempHigh,
+        wind: windSpeed,
+        gust: windGust,
+        rain: rainChance,
+        code: weatherCode,
+        dewpoint,
+      },
+      thresholds,
+    ),
+  };
+}
+
+function selectBestRideWindow(
+  hours: RideWindowHour[],
+  thresholds: Thresholds,
+): DailyRideWindow | null {
+  if (hours.length < DAILY_RIDE_WINDOW_HOURS) return null;
+
+  let best: DailyRideWindow | null = null;
+  let bestScore = -Infinity;
+  for (let start = 0; start <= hours.length - DAILY_RIDE_WINDOW_HOURS; start++) {
+    const candidate = buildRideWindowCandidate(
+      hours.slice(start, start + DAILY_RIDE_WINDOW_HOURS),
+      thresholds,
+    );
+    if (!candidate) continue;
+    const score = scoreRideWindow(candidate);
+    if (score > bestScore) {
+      best = candidate;
+      bestScore = score;
+    }
+  }
+  return best;
+}
+
+/**
+ * Finds each date's best contiguous three-hour daylight window. Metrics within
+ * a candidate stay worst-case so its rating remains honest, but a brief rough
+ * hour no longer condemns an otherwise rideable day.
+ */
+function buildBestRideWindows(
+  data: OpenMeteoData,
+  daylightByDate: Record<string, DaylightHours>,
+  thresholds: Thresholds,
+): Record<string, DailyRideWindow> {
+  const hoursByDate: Record<string, RideWindowHour[]> = {};
+  const currentHourKey = toHourlyTimeKey(data.current?.time) ?? currentHourStrForLocation(data);
+
+  for (const [i, time] of data.hourly.time.entries()) {
+    if (time < currentHourKey) continue;
+    const date = time.slice(0, 10);
+    const daylight = daylightByDate[date];
+    const hour = Number.parseInt(time.slice(11, 13), 10);
+    if (!daylight || hour < daylight.sunriseHour || hour >= daylight.sunsetHour) continue;
+
+    const temperature = data.hourly.temperature_2m[i];
+    const windSpeed = data.hourly.wind_speed_10m[i];
+    const rainChanceRaw = data.hourly.precipitation_probability[i];
+    if (temperature == null || windSpeed == null || rainChanceRaw == null) continue;
+
+    const dateHours = hoursByDate[date] ?? [];
+    dateHours.push({
+      hour,
+      temperature,
+      windSpeed,
+      windGust: data.hourly.wind_gusts_10m?.[i] ?? null,
+      rainChance: normalizeRainChance(rainChanceRaw),
+      dewpoint: data.hourly.dewpoint_2m[i] ?? null,
+      weatherCode: data.hourly.weather_code[i] ?? null,
+    });
+    hoursByDate[date] = dateHours;
+  }
+
+  const bestByDate: Record<string, DailyRideWindow> = {};
+  for (const [date, hours] of Object.entries(hoursByDate)) {
+    const best = selectBestRideWindow(hours, thresholds);
+    if (best) bestByDate[date] = best;
+  }
+
+  return bestByDate;
+}
+
+function buildFallbackDailyWeather(
+  context: DailyParseContext,
+  dateStr: string,
+  index: number,
+): DailyWeather | null {
+  const { data, daytimeTempByDate, dewpointByDate, thresholds } = context;
+  const high = data.daily.temperature_2m_max[index];
+  const low = data.daily.temperature_2m_min[index];
+  const windSpeed = data.daily.wind_speed_10m_max[index];
+  const rainChanceRaw = data.daily.precipitation_probability_max[index];
+  if (high == null || low == null || windSpeed == null || rainChanceRaw == null) return null;
+  const daytime = daytimeTempByDate[dateStr];
+  const tempLow = daytime?.min ?? low;
+  const tempHigh = daytime?.max ?? high;
+  const gust = data.daily.wind_gusts_10m_max?.[index] ?? null;
+  const code = data.daily.weather_code[index] ?? null;
+  const dewpoint = dewpointByDate[dateStr] ?? null;
+  const fallbackRainChance = normalizeRainChance(rainChanceRaw);
+  const fallbackCondition = getDailyCondition(
+    {
+      tempLow,
+      tempHigh,
+      wind: windSpeed,
+      gust,
+      rain: fallbackRainChance,
+      code,
+      dewpoint,
+    },
+    thresholds,
+  );
+
+  return {
+    date: new Date(dateStr + 'T12:00:00'),
+    high: Math.round(high),
+    low: Math.round(low),
+    feelsLike: data.daily.apparent_temperature_max[index] ?? null,
+    dewpoint,
+    windSpeed,
+    windGust: gust,
+    rainChance: fallbackRainChance,
+    weatherCode: code,
+    condition: fallbackCondition,
+  };
+}
+
+function applyRideWindow(day: DailyWeather, window: DailyRideWindow): DailyWeather {
+  return {
+    ...day,
+    rideWindow: {
+      startHour: window.startHour,
+      endHour: window.endHour,
+      tempLow: window.tempLow,
+      tempHigh: window.tempHigh,
+    },
+    dewpoint: window.dewpoint,
+    windSpeed: window.windSpeed,
+    windGust: window.windGust,
+    rainChance: window.rainChance,
+    weatherCode: window.weatherCode,
+    condition: window.condition,
+  };
+}
+
+function buildDailyWeather(
+  context: DailyParseContext,
+  dateStr: string,
+  index: number,
+): DailyWeather | null {
+  const day = buildFallbackDailyWeather(context, dateStr, index);
+  if (!day) return null;
+  const rideWindow = context.bestRideWindows[dateStr];
+  if (rideWindow) return applyRideWindow(day, rideWindow);
+  return dateStr === context.currentDate ? { ...day, rideWindowUnavailable: true } : day;
+}
+
 /** Parses the 8-day daily forecast into a simplified array with cycling conditions. */
 function parseDaily(data: OpenMeteoData, thresholds: Thresholds): DailyWeather[] {
+  const currentDate = (
+    toHourlyTimeKey(data.current?.time) ?? currentHourStrForLocation(data)
+  ).slice(0, 10);
   const daylightByDate = buildDaylightByDate(data);
   const { dewpointByDate, daytimeTempByDate } = buildDaytimeAggregates(data, daylightByDate);
+  const bestRideWindows = buildBestRideWindows(data, daylightByDate, thresholds);
+  const context: DailyParseContext = {
+    data,
+    currentDate,
+    daytimeTempByDate,
+    dewpointByDate,
+    bestRideWindows,
+    thresholds,
+  };
 
-  return data.daily.time.flatMap((dateStr, i) => {
-    const high = data.daily.temperature_2m_max[i];
-    const low = data.daily.temperature_2m_min[i];
-    const windSpeed = data.daily.wind_speed_10m_max[i];
-    const rainChance = data.daily.precipitation_probability_max[i];
-    // Skip any day missing a required field (parallel arrays should never be
-    // short, but bail rather than fabricate 0° / 0% values if they are).
-    if (high == null || low == null || windSpeed == null || rainChance == null) return [];
-
-    const apparentMax = data.daily.apparent_temperature_max[i] ?? null;
-    const daytime = daytimeTempByDate[dateStr];
-    // Rate temperature on the worst air temperature across daylight hours; fall
-    // back to the day's high/low when daylight coverage is missing.
-    const tempLow = daytime ? daytime.min : low;
-    const tempHigh = daytime ? daytime.max : high;
-    const gust = data.daily.wind_gusts_10m_max?.[i] ?? null;
-    const code = data.daily.weather_code[i] ?? null;
-    const dewpoint = dewpointByDate[dateStr] ?? null;
-    return [
-      {
-        date: new Date(dateStr + 'T12:00:00'),
-        high: Math.round(high),
-        low: Math.round(low),
-        feelsLike: apparentMax,
-        dewpoint,
-        windSpeed,
-        windGust: gust,
-        rainChance,
-        weatherCode: code,
-        condition: getDailyCondition(
-          { tempLow, tempHigh, wind: windSpeed, gust, rain: rainChance, code, dewpoint },
-          thresholds,
-        ),
-      },
-    ];
-  });
+  return data.daily.time
+    .map((dateStr, index) => buildDailyWeather(context, dateStr, index))
+    .filter((day): day is DailyWeather => day !== null);
 }
 
 /** Formats a naive datetime string from Open-Meteo (in the location's TZ) as "H:MM AM/PM". */
@@ -372,7 +610,7 @@ export function buildWeatherFromData(data: OpenMeteoData, thresholds: Thresholds
   const currentHourStr = toHourlyTimeKey(data.current.time) ?? currentHourStrForLocation(data);
   const hourIdx = data.hourly.time.indexOf(currentHourStr);
   const currentRainChance =
-    hourIdx === -1 ? 0 : (data.hourly.precipitation_probability[hourIdx] ?? 0);
+    hourIdx === -1 ? 0 : normalizeRainChance(data.hourly.precipitation_probability[hourIdx]);
 
   const hourlyParsed = parseHourly(data, currentHourStr, thresholds);
 

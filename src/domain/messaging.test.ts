@@ -15,9 +15,7 @@ describe('Hourly Message Logic', () => {
       daily: [],
     };
 
-    expect(getMessage(weather, 'yes')).toBe(
-      'Ideal ride conditions. 68°F, clear skies, and light winds.',
-    );
+    expect(getMessage(weather, 'yes')).toBe('68°F, clear skies, with light winds.');
   });
 
   it('mentions when conditions become fair later even if they never reach fully good', () => {
@@ -98,6 +96,21 @@ describe('Hourly Message Logic', () => {
       temperature: 60,
       windSpeed: 5,
       rainChance: 32,
+      dewpoint: 50,
+      aqi: 20,
+      hourly: [{ hour: 10, condition: 'fair' }],
+      daily: [],
+    };
+
+    expect(getMessage(weather, 'maybe')).toBe('Rideable. But it\u2019s rainy (32% chance).');
+  });
+
+  it('rounds rain chance in rider-facing copy', () => {
+    const weather = {
+      hasThunderstorms: false,
+      temperature: 60,
+      windSpeed: 5,
+      rainChance: 32 + 1e-14,
       dewpoint: 50,
       aqi: 20,
       hourly: [{ hour: 10, condition: 'fair' }],

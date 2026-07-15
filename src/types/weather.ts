@@ -20,6 +20,13 @@ export interface DailyWeather {
   date: Date | string;
   high: number;
   low: number;
+  rideWindow?: {
+    startHour: number;
+    endHour: number;
+    tempLow: number;
+    tempHigh: number;
+  };
+  rideWindowUnavailable?: boolean;
   feelsLike?: number | null;
   dewpoint?: number | null;
   windSpeed: number;

@@ -106,7 +106,7 @@ export const WEATHER_DESCRIPTIONS: Record<number, string> = {
 export const STATUS_MESSAGES = {
   THUNDERSTORM: 'Thunderstorms today. Stay off the road.',
   GOOD: (tempLabel: string, cond: string) =>
-    `Ideal ride conditions. ${tempLabel}, ${cond.toLowerCase()}, and light winds.`,
+    `${tempLabel}, ${cond.toLowerCase()}, with light winds.`,
   MAYBE_IDEAL: 'On the edge of comfortable.',
   MAYBE_ISSUES: (issues: readonly string[], extra = 0) =>
     `Rideable. But it’s ${formatList(issues)}${moreTail(extra)}.`,

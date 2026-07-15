@@ -51,13 +51,7 @@ export function WeatherHeader({
           pressed && buttonStyles.pressed,
         ]}
       >
-        <PlatformIcon
-          icon={MapPin}
-          webName="map-marker"
-          size={14}
-          color={c.ink}
-          strokeWidth={2.5}
-        />
+        <PlatformIcon icon={MapPin} size={14} color={c.ink} strokeWidth={2.5} />
         <ThemedText style={buttonStyles.label}>{location || 'Set location'}</ThemedText>
       </HapticPressable>
       {!!statusMessage && (

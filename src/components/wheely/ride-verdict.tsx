@@ -3,7 +3,13 @@ import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Fonts, FontWeightBold, Spacing, WheelyTheme, type WheelyPalette } from '@/constants/theme';
+import {
+  Fonts,
+  FontWeightMedium,
+  Spacing,
+  WheelyTheme,
+  type WheelyPalette,
+} from '@/constants/theme';
 import { verdictFeedback } from '@/utils/haptics';
 
 function makeStyles(c: WheelyPalette) {
@@ -17,7 +23,7 @@ function makeStyles(c: WheelyPalette) {
       borderWidth: 2,
       borderColor: c.shadow,
       paddingHorizontal: Spacing.three,
-      paddingTop: Spacing.five,
+      paddingTop: Spacing.four,
       paddingBottom: Spacing.three,
       overflow: 'hidden',
     },
@@ -28,21 +34,21 @@ function makeStyles(c: WheelyPalette) {
       zIndex: 2,
       backgroundColor: c.shadow,
       borderRadius: 999,
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      transform: [{ rotate: '-2deg' }],
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      transform: [{ rotate: '-1deg' }],
     },
     verdictBadgeText: {
       // Badge sits on c.shadow (#161310) in both themes — always use light cream ink.
       color: WheelyTheme.light.paper,
       fontFamily: Fonts.heading,
-      fontSize: 16,
-      fontWeight: FontWeightBold,
+      fontSize: 14,
+      fontWeight: FontWeightMedium,
     },
     verdictText: {
       fontFamily: Fonts.body,
-      fontSize: 34,
-      lineHeight: 36,
+      fontSize: 29,
+      lineHeight: 33,
       fontWeight: '400',
     },
     acclimatizationNote: {

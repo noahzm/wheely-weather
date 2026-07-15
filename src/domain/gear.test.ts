@@ -109,7 +109,7 @@ describe('Gear Suggestions', () => {
     expect(matchesItem(gear, /muggy/i)).toBe(true);
   });
 
-  it('picks one consistent bottom across a cold-start, hot-peak window', () => {
+  it('picks one consistent bottom across a changing three-hour window', () => {
     const gear = getGearSuggestion(
       {
         feelsLike: 52,
@@ -119,8 +119,8 @@ describe('Gear Suggestions', () => {
         hourly: [
           { feelsLike: 52, windSpeed: 5, rainChance: 0, dewpoint: 50, uv: 3 },
           { feelsLike: 66, windSpeed: 5, rainChance: 0, dewpoint: 50, uv: 5 },
-          { feelsLike: 78, windSpeed: 5, rainChance: 0, dewpoint: 50, uv: 6 },
           { feelsLike: 84, windSpeed: 5, rainChance: 0, dewpoint: 50, uv: 7 },
+          { feelsLike: 20, windSpeed: 30, rainChance: 80, dewpoint: 50, uv: 0 },
         ],
       },
       'casual',
@@ -128,8 +128,9 @@ describe('Gear Suggestions', () => {
 
     const bottoms = gear.items.filter((item) => item.slot === 'bottom');
     expect(bottoms).toHaveLength(1);
-    // The hot peak wins the bottom slot, matching the top-slot behavior.
+    // The third-hour hot peak wins; severe conditions in hour four are outside the kit window.
     expect(bottoms[0].label).toMatch(/^shorts$/i);
+    expect(matchesItem(gear, /insulated|rain jacket|windbreaker/i)).toBe(false);
   });
 
   it('keeps casual baseline bottoms when muggy neutral weather replaces the top', () => {

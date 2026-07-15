@@ -2,7 +2,7 @@ export { GlassChrome } from './glass-chrome';
 export { contentColumnStyle, screenGutterStyle, WebContentColumn } from './content-column';
 export { NavLocationTitle } from './home-nav-chrome';
 export { BottomNavBar, bottomNavBarHeight } from './bottom-nav-chrome';
-export { WebScreenHeader, webHeaderHeight } from './web-screen-header';
+export { WebScreenHeader, WebScreenTitle, webHeaderHeight } from './web-screen-header';
 export { SettingsForm } from './settings-form';
 export { WeatherHeader } from './weather-header';
 export { RideVerdict } from './ride-verdict';

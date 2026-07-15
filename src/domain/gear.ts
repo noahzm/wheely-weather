@@ -33,8 +33,10 @@ interface GearTipSet {
   MUGGY: GearTip;
 }
 
+const RIDE_WINDOW_HOURS = 3;
+
 function getRideWindow(weather: Weather): RideWindow {
-  const upcoming = weather.hourly.slice(0, 4);
+  const upcoming = weather.hourly.slice(0, RIDE_WINDOW_HOURS);
   const startConditions = upcoming[0] ?? weather;
   return {
     minTemp:

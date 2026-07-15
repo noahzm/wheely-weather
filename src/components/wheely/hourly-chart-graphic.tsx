@@ -26,7 +26,7 @@ import { hourLabel } from '@/utils/timeFormat';
 import { HourlyChartDot } from './hourly-chart-dot';
 import type { ChartHour } from './use-hourly-forecast-chart';
 
-export const CHART_HEIGHT = 176;
+export const CHART_HEIGHT = 140;
 const SELECTION_RING_SIZE = 32;
 export const SELECTION_RING_RADIUS = SELECTION_RING_SIZE / 2;
 
@@ -96,9 +96,9 @@ function hourLabelNode(d: ChartHour, nowIdx: number, count: number, labelColor: 
     <SvgText
       key={`label-${d.idx}`}
       x={chartX(d.idx)}
-      y={166}
+      y={132}
       fontFamily={Fonts.body}
-      fontSize={10}
+      fontSize={11}
       fontWeight="400"
       textAnchor="middle"
       fill={labelColor}
@@ -171,8 +171,8 @@ export function HourlyChartGraphic({
         <Line
           x1={chartX(nowIdx)}
           x2={chartX(nowIdx)}
-          y1={20}
-          y2={146}
+          y1={14}
+          y2={112}
           stroke={c.ink}
           strokeDasharray="2 3"
         />
