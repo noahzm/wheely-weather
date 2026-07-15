@@ -8,7 +8,7 @@ import * as Sentry from '@sentry/react-native';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { BottomNavBar } from '@/components/wheely';
-import { WheelyTheme, Fonts, FontWeightBold } from '@/constants/theme';
+import { WheelyTheme, Fonts, FontWeightMedium } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ColorSchemeOverrideContext } from '@/hooks/use-theme';
 import { SettingsProvider, useAppearance } from '@/hooks/settings-context';
@@ -55,7 +55,7 @@ function stackScreenOptions(isDark: boolean) {
       contentStyle: { backgroundColor: 'transparent' as const },
       headerStyle: { backgroundColor: 'transparent' as const },
       headerTintColor: palette.ink,
-      headerBackTitleStyle: { fontFamily: Fonts.heading, fontWeight: FontWeightBold },
+      headerBackTitleStyle: { fontFamily: Fonts.heading, fontWeight: FontWeightMedium },
     };
   }
 
@@ -63,7 +63,7 @@ function stackScreenOptions(isDark: boolean) {
     contentStyle: { backgroundColor: palette.background },
     headerStyle: { backgroundColor: 'transparent' as const },
     headerTintColor: palette.ink,
-    headerBackTitleStyle: { fontFamily: Fonts.heading, fontWeight: FontWeightBold },
+    headerBackTitleStyle: { fontFamily: Fonts.heading, fontWeight: FontWeightMedium },
   };
 }
 

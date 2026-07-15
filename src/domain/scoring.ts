@@ -132,7 +132,7 @@ export const getOverallStatus = (
     ...(weather.aqi == null ? [] : [evaluateCondition(weather.aqi, 'aqi', thresholds)]),
   ];
   if (conditions.some((c) => c === 'bad' || c === 'poor')) return 'no';
-  if (conditions.some((c) => c === 'marginal' || c === 'fair')) return 'maybe';
+  if (conditions.includes('marginal')) return 'maybe';
   return 'yes';
 };
 

@@ -9,8 +9,10 @@ import { Platform } from 'react-native';
 
 const IOS_BODY_FONT = 'Ronzino-Regular';
 const DEFAULT_BODY_FONT = 'Ronzino-Regular';
-const IOS_HEADING_FONT = 'Ronzino-Bold';
-const DEFAULT_HEADING_FONT = 'Ronzino-Bold';
+const IOS_HEADING_FONT = 'Ronzino-Medium';
+const DEFAULT_HEADING_FONT = 'Ronzino-Medium';
+const IOS_DISPLAY_FONT = 'Ronzino-Bold';
+const DEFAULT_DISPLAY_FONT = 'Ronzino-Bold';
 const IOS_CITY_FONT = 'Ronzino-Medium';
 const DEFAULT_CITY_FONT = 'Ronzino-Medium';
 
@@ -49,7 +51,7 @@ export const WheelyTheme: { light: WheelyPalette; dark: WheelyPalette } = {
     background: '#ffffff',
     paper: '#F5F1F6',
     ink: '#161310',
-    mutedInk: '#161310',
+    mutedInk: '#655E68',
     border: '#CFC4DC',
     shadow: '#161310',
     primary: '#C6A2ED',
@@ -68,12 +70,12 @@ export const WheelyTheme: { light: WheelyPalette; dark: WheelyPalette } = {
     },
   },
   dark: {
-    background: '#000000',
-    paper: '#1F1B24',
-    ink: '#F2E8D8',
-    mutedInk: '#9C9283',
-    border: '#413B4B',
-    shadow: '#312A3C',
+    background: '#121014',
+    paper: '#211D27',
+    ink: '#F4EBDD',
+    mutedInk: '#B7AA9B',
+    border: '#4A4254',
+    shadow: '#09080B',
     primary: '#C6A2ED',
     primaryInk: '#161310',
     secondary: '#FFD20A',
@@ -107,7 +109,7 @@ export const Fonts = Platform.select({
   ios: {
     body: IOS_BODY_FONT,
     heading: IOS_HEADING_FONT,
-    display: IOS_HEADING_FONT,
+    display: IOS_DISPLAY_FONT,
     city: IOS_CITY_FONT,
     serif: IOS_BODY_FONT,
     rounded: IOS_HEADING_FONT,
@@ -115,7 +117,7 @@ export const Fonts = Platform.select({
   default: {
     body: DEFAULT_BODY_FONT,
     heading: DEFAULT_HEADING_FONT,
-    display: DEFAULT_HEADING_FONT,
+    display: DEFAULT_DISPLAY_FONT,
     city: DEFAULT_CITY_FONT,
     serif: DEFAULT_BODY_FONT,
     rounded: DEFAULT_HEADING_FONT,
@@ -134,10 +136,16 @@ export const Fonts = Platform.select({
  * Weight to pair with Fonts.heading / Fonts.display.
  * Pair Fonts.body with 400.
  */
+export const FontWeightMedium = Platform.select({
+  web: '500' as const,
+  ios: '500' as const,
+  default: '500' as const,
+});
+
 export const FontWeightBold = Platform.select({
-  web: '400' as const,
-  ios: '400' as const,
-  default: '400' as const,
+  web: '700' as const,
+  ios: '700' as const,
+  default: '700' as const,
 });
 
 export const Spacing = {

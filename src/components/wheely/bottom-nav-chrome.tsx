@@ -7,17 +7,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColorSchemeName, useWheelyColors } from '@/hooks/use-theme';
 import {
   Fonts,
-  FontWeightBold,
+  FontWeightMedium,
   MaxContentWidth,
   Spacing,
   type WheelyPalette,
 } from '@/constants/theme';
 import { GlassChrome } from './glass-chrome';
-import { HapticPressable, PlatformIcon, type MaterialIconName } from './primitives';
+import { HapticPressable, PlatformIcon } from './primitives';
 
 const NAV_TAB_HEIGHT = 40;
 const TAB_ICON_SIZE = 22;
-const DARK_INACTIVE_TAB_OPACITY = 0.55;
+const DARK_INACTIVE_TAB_OPACITY = 0.72;
 
 /** Returns the full height of the bottom nav bar including device safe inset. */
 export function bottomNavBarHeight(insetsBottom: number) {
@@ -57,9 +57,9 @@ function useBottomNavStyles(c: WheelyPalette) {
         tabPill: {
           alignItems: 'center',
           gap: 3,
-          borderRadius: 16,
+          borderRadius: 8,
           paddingVertical: Spacing.one,
-          paddingHorizontal: Spacing.four,
+          paddingHorizontal: Spacing.three,
         },
         tabPillActive: {
           backgroundColor: c.primary,
@@ -67,7 +67,7 @@ function useBottomNavStyles(c: WheelyPalette) {
         tabPillInactive: {},
         tabLabel: {
           fontFamily: Fonts.heading,
-          fontWeight: FontWeightBold,
+          fontWeight: FontWeightMedium,
           fontSize: 11,
         },
       }),
@@ -78,7 +78,6 @@ function useBottomNavStyles(c: WheelyPalette) {
 function NavTab({
   label,
   icon: Icon,
-  webIcon,
   active,
   onPress,
   styles,
@@ -87,7 +86,6 @@ function NavTab({
 }: Readonly<{
   label: string;
   icon: LucideIcon;
-  webIcon: MaterialIconName;
   active: boolean;
   onPress: () => void;
   styles: ReturnType<typeof useBottomNavStyles>;
@@ -113,7 +111,6 @@ function NavTab({
       >
         <PlatformIcon
           icon={Icon}
-          webName={webIcon}
           size={TAB_ICON_SIZE}
           color={color}
           strokeWidth={active ? 2.5 : 2}
@@ -148,7 +145,6 @@ export function BottomNavBar() {
         <NavTab
           label="Home"
           icon={Home}
-          webIcon="home"
           active={isHome}
           onPress={() => {
             if (!isHome) router.dismissTo('/');
@@ -160,7 +156,6 @@ export function BottomNavBar() {
         <NavTab
           label="Search"
           icon={Search}
-          webIcon="magnify"
           active={isLocation}
           onPress={() => {
             if (!isLocation) router.dismissTo('/location');
@@ -172,7 +167,6 @@ export function BottomNavBar() {
         <NavTab
           label="Settings"
           icon={Settings}
-          webIcon="cog"
           active={isSettings}
           onPress={() => {
             if (!isSettings) router.dismissTo('/settings');

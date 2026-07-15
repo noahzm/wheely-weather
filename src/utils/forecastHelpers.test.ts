@@ -66,6 +66,14 @@ describe('getBestDayInfo', () => {
     expect(getBestDayInfo(daily)).toEqual({ index: -1, rationale: '' });
   });
 
+  it('skips today when no full upcoming ride window remains', () => {
+    const daily = [
+      day({ condition: 'good', rideWindowUnavailable: true }),
+      day({ condition: 'fair' }),
+    ];
+    expect(getBestDayInfo(daily).index).toBe(1);
+  });
+
   // Each row isolates one rationale branch for the single (best) day.
   it.each([
     ['Low wind and dry roads', { rainChance: 5, windSpeed: 6 }],
@@ -201,19 +209,19 @@ describe('getBestDaysBlurb', () => {
     expect(blurb).toContain('Most of the week is rideable too.');
   });
 
-  it('falls back to workable wording when no day is good', () => {
+  it('treats fair days as solid ride windows when no day is good', () => {
     const daily = WEEK.slice(0, 3).map((date, i) =>
       day({ date, condition: i === 2 ? 'fair' : i === 0 ? 'fair' : 'poor' }),
     );
     const blurb = getBestDaysBlurb(daily, 0, 'Comfortable');
     expect(blurb).toContain('Today is the best bet.');
-    expect(blurb).toContain('Wednesday is a workable window too.');
+    expect(blurb).toContain('Wednesday is a solid ride window too.');
   });
 
-  it('summarizes a mostly-workable week', () => {
+  it('summarizes a mostly-rideable fair week', () => {
     const daily = WEEK.map((date) => day({ date, condition: 'fair' }));
     const blurb = getBestDaysBlurb(daily, 0, '');
-    expect(blurb).toContain('Most of the week is at least workable.');
+    expect(blurb).toContain('Most of the week is rideable too.');
   });
 
   it('falls back to a no-standout-days message when nothing qualifies', () => {
@@ -221,5 +229,14 @@ describe('getBestDaysBlurb', () => {
     const blurb = getBestDaysBlurb(daily, -1, '');
     expect(typeof blurb).toBe('string');
     expect(blurb.length).toBeGreaterThan(0);
+  });
+
+  it('does not describe a day without an upcoming ride window as rideable', () => {
+    const daily = [
+      day({ condition: 'good', rideWindowUnavailable: true }),
+      day({ condition: 'fair' }),
+    ];
+    const blurb = getBestDaysBlurb(daily, 1, 'Fair window');
+    expect(blurb).toBe('Monday is your best ride window. Fair window expected.');
   });
 });

@@ -1,11 +1,11 @@
-import { useMemo, useState } from 'react';
-import { StyleSheet, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
+import { useMemo } from 'react';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { getGearSuggestion } from '@/domain';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { useGearMode, useResolvedTempUnit } from '@/hooks/settings-context';
-import { Fonts, FontWeightBold, Spacing, type WheelyPalette } from '@/constants/theme';
+import { Fonts, FontWeightMedium, Spacing, type WheelyPalette } from '@/constants/theme';
 import type { GearTipItem, RideStatus, Weather } from '@/types/weather';
 import { BrutalCard, GameGearIcon } from './primitives';
 
@@ -15,36 +15,36 @@ function makeStyles(c: WheelyPalette) {
       color: c.ink,
       fontFamily: Fonts.heading,
       fontSize: 15,
-      fontWeight: FontWeightBold,
+      fontWeight: FontWeightMedium,
       lineHeight: 20,
     },
     kitGrid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      columnGap: Spacing.three,
-      rowGap: Spacing.three,
-      paddingTop: Spacing.two,
+      gap: Spacing.two,
     },
     kitTile: {
+      flexGrow: 1,
       alignItems: 'center',
       justifyContent: 'center',
-      gap: Spacing.two,
-      borderWidth: 2,
+      gap: Spacing.one,
+      minHeight: 116,
+      borderWidth: 1,
       borderColor: c.border,
-      borderRadius: 12,
-      paddingHorizontal: Spacing.three,
-      paddingVertical: Spacing.three,
+      borderRadius: 10,
+      paddingHorizontal: Spacing.two,
+      paddingVertical: Spacing.two,
     },
     kitIconWrap: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      width: 64,
-      height: 64,
+      width: 48,
+      height: 48,
     },
     textWrap: {
       alignItems: 'center',
-      gap: Spacing.one,
+      gap: 2,
       width: '100%',
     },
     bodyStrong: {
@@ -75,33 +75,20 @@ export function KitGuide({ weather, status }: Readonly<{ weather: Weather; statu
   const [mode] = useGearMode();
   const tempUnit = useResolvedTempUnit();
   const { width } = useWindowDimensions();
-  const [gridWidth, setGridWidth] = useState(0);
   const gear = getGearSuggestion(weather, mode, status, tempUnit);
   const { c, styles } = useStyles();
   const isWide = width >= 900;
-  const columnCount = isWide ? 3 : 2;
-  const gap = Spacing.three;
-  const tileWidth = gridWidth > 0 ? (gridWidth - gap * (columnCount - 1)) / columnCount : undefined;
-
-  const handleGridLayout = (event: LayoutChangeEvent) => {
-    setGridWidth(event.nativeEvent.layout.width);
-  };
+  const tileWidth = isWide ? '31%' : '47%';
 
   return (
     <BrutalCard>
       {!!gear.headline && <ThemedText style={styles.headline}>{gear.headline}</ThemedText>}
-      <View style={styles.kitGrid} accessibilityLiveRegion="polite" onLayout={handleGridLayout}>
+      <View style={styles.kitGrid} accessibilityLiveRegion="polite">
         {gear.items.map((item: GearTipItem, index: number) => {
           return (
-            <View
-              key={`${item.label}-${index}`}
-              style={[
-                styles.kitTile,
-                tileWidth == null ? null : { width: tileWidth, minHeight: tileWidth },
-              ]}
-            >
+            <View key={`${item.label}-${index}`} style={[styles.kitTile, { flexBasis: tileWidth }]}>
               <View style={styles.kitIconWrap}>
-                <GameGearIcon iconKey={item.icon} size={56} color={c.mutedInk} />
+                <GameGearIcon iconKey={item.icon} size={42} color={c.mutedInk} />
               </View>
               <View style={styles.textWrap}>
                 <ThemedText style={styles.bodyStrong}>{item.label}</ThemedText>

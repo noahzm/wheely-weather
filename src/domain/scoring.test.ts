@@ -116,11 +116,23 @@ describe('Overall Status Determination', () => {
     expect(getOverallStatus(weather)).toBe('yes');
   });
 
-  it('returns "maybe" if conditions are "marginal" or "fair"', () => {
+  it('returns "yes" when conditions are fair but comfortably rideable', () => {
     const weather = {
       hasThunderstorms: false,
       temperature: 60, // good
       windSpeed: 12, // fair
+      rainChance: 0,
+      dewpoint: 50,
+      aqi: 20,
+    };
+    expect(getOverallStatus(weather)).toBe('yes');
+  });
+
+  it('returns "maybe" when any condition is marginal', () => {
+    const weather = {
+      hasThunderstorms: false,
+      temperature: 60,
+      windSpeed: 20, // marginal
       rainChance: 0,
       dewpoint: 50,
       aqi: 20,

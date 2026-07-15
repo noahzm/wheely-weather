@@ -1,18 +1,16 @@
-import {
-  ActivityIndicator,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { useState } from 'react';
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Stack } from 'expo-router';
 import Head from 'expo-router/head';
 import { Search, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { WebContentColumn, WebScreenHeader, bottomNavBarHeight } from '@/components/wheely';
+import {
+  WebContentColumn,
+  WebScreenHeader,
+  WebScreenTitle,
+  bottomNavBarHeight,
+} from '@/components/wheely';
 import { WEB_TITLE_CONTENT_SPACING } from '@/components/wheely/web-screen-header';
 import { BrutalCard, HapticPressable, PlatformIcon } from '@/components/wheely/primitives';
 import { LocationSearchList } from '@/components/wheely/location-search-list';
@@ -33,16 +31,20 @@ function WebSearchField({
   query: string;
   onQueryChange: (text: string) => void;
 }>) {
+  const [focused, setFocused] = useState(false);
   return (
-    <BrutalCard small style={styles.searchCard}>
+    <BrutalCard
+      small
+      style={[
+        styles.searchCard,
+        focused && {
+          borderColor: c.primary,
+          borderWidth: 2,
+        },
+      ]}
+    >
       <View style={styles.searchRow}>
-        <PlatformIcon
-          icon={Search}
-          webName="magnify"
-          size={18}
-          color={c.mutedInk}
-          strokeWidth={2.5}
-        />
+        <PlatformIcon icon={Search} size={18} color={c.mutedInk} strokeWidth={2.5} />
         <TextInput
           value={query}
           onChangeText={onQueryChange}
@@ -53,6 +55,12 @@ function WebSearchField({
           autoCorrect={false}
           returnKeyType="search"
           accessibilityLabel="Search for a location"
+          onFocus={() => {
+            setFocused(true);
+          }}
+          onBlur={() => {
+            setFocused(false);
+          }}
         />
         {query.length > 0 && (
           <HapticPressable
@@ -62,13 +70,7 @@ function WebSearchField({
             accessibilityRole="button"
             accessibilityLabel="Clear search"
           >
-            <PlatformIcon
-              icon={X}
-              webName="close-circle"
-              size={18}
-              color={c.mutedInk}
-              strokeWidth={2.5}
-            />
+            <PlatformIcon icon={X} size={18} color={c.mutedInk} strokeWidth={2.5} />
           </HapticPressable>
         )}
       </View>
@@ -153,17 +155,7 @@ export default function LocationSearchScreen() {
                 <WebScreenHeader
                   variant="title"
                   withScreenGutter={false}
-                  title={
-                    <Text
-                      style={{
-                        fontFamily: Fonts.city,
-                        fontSize: 34,
-                        color: c.ink,
-                      }}
-                    >
-                      Search
-                    </Text>
-                  }
+                  title={<WebScreenTitle>Search</WebScreenTitle>}
                 />
               )}
               {isWeb && <WebSearchField c={c} query={query} onQueryChange={setQuery} />}

@@ -1,19 +1,22 @@
 import { useCallback } from 'react';
-import { Platform, Text, View } from 'react-native';
+import { Platform, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Head from 'expo-router/head';
 
-import { SettingsForm, WebScreenHeader, bottomNavBarHeight } from '@/components/wheely';
+import {
+  SettingsForm,
+  WebScreenHeader,
+  WebScreenTitle,
+  bottomNavBarHeight,
+} from '@/components/wheely';
 import { useGearMode, useAppearance, useHomeLocation, useTempUnit } from '@/hooks/settings-context';
 import { useForecast } from '@/hooks/forecast-context';
-import { useWheelyColors } from '@/hooks/use-theme';
-import { Fonts, TRANSPARENT } from '@/constants/theme';
+import { TRANSPARENT } from '@/constants/theme';
 
 const isWeb = Platform.OS === 'web';
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
-  const c = useWheelyColors();
   const [gearMode, setGearMode] = useGearMode();
   const [appearance, setAppearance] = useAppearance();
   const [homeLocation, setHomeLocation] = useHomeLocation();
@@ -57,20 +60,7 @@ export default function SettingsScreen() {
         collapsable={false}
       >
         {isWeb && (
-          <WebScreenHeader
-            variant="title"
-            title={
-              <Text
-                style={{
-                  fontFamily: Fonts.city,
-                  fontSize: 34,
-                  color: c.ink,
-                }}
-              >
-                Settings
-              </Text>
-            }
-          />
+          <WebScreenHeader variant="title" title={<WebScreenTitle>Settings</WebScreenTitle>} />
         )}
         <SettingsForm
           gearMode={gearMode}

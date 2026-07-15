@@ -14,6 +14,7 @@ import {
   getWeatherDescription,
 } from './weather-codes';
 import { formatTemperature, type TempUnit } from '../utils/temperature';
+import { formatPercent } from '../utils/percent';
 
 import type {
   Condition,
@@ -102,7 +103,7 @@ const collectMessageIssues = (
   addIssue(
     weather.rainChance,
     'rainChance',
-    `${status === 'no' ? 'rain' : 'rainy'} (${weather.rainChance}% chance)`,
+    `${status === 'no' ? 'rain' : 'rainy'} (${formatPercent(weather.rainChance)} chance)`,
   );
   const weatherCodeIssue = getWeatherCodeIssue(weather.weatherCode, status);
   const precipitationAlreadyExplainsWeather =
@@ -196,7 +197,7 @@ export const getRideFactors = (
     factors.push({
       type: 'rainChance',
       label: 'Rain',
-      value: `${weather.rainChance}% chance`,
+      value: `${formatPercent(weather.rainChance)} chance`,
       condition: rainRating,
     });
   }

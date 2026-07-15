@@ -1,6 +1,5 @@
-import { useMemo, useState, type ComponentProps, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Platform, Pressable, StyleSheet, View, type PressableProps } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Svg, { Path } from 'react-native-svg';
 import {
   Bike,
@@ -27,7 +26,7 @@ import {
 
 import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Fonts, FontWeightBold, Spacing, type WheelyPalette } from '@/constants/theme';
+import { Fonts, FontWeightMedium, Spacing, type WheelyPalette } from '@/constants/theme';
 import type { Condition } from '@/types/weather';
 import { selectionFeedback } from '@/utils/haptics';
 
@@ -121,26 +120,19 @@ export function brutalShadow(color: string, width: number, height = width) {
 
 export const ButtonRadius = 12;
 
-export type MaterialIconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
-
 export function PlatformIcon({
   icon: Icon,
-  webName,
   size,
   color,
   strokeWidth = 2,
   style,
 }: Readonly<{
   icon: LucideIcon;
-  webName?: MaterialIconName;
   size: number;
   color: string;
   strokeWidth?: number;
   style?: object;
 }>) {
-  if (Platform.OS === 'web' && webName) {
-    return <MaterialCommunityIcons name={webName} size={size} color={color} style={style} />;
-  }
   return <Icon size={size} color={color} strokeWidth={strokeWidth} style={style} />;
 }
 
@@ -267,20 +259,6 @@ export function weatherSfSymbol(code: number | null | undefined): string {
   return 'cloud.fill';
 }
 
-/** Maps an Open-Meteo WMO weather code to a MaterialCommunity icon name (web). */
-export function weatherWebIconName(code: number | null | undefined): MaterialIconName {
-  if (code == null) return 'cloud';
-  if (code <= 1) return 'weather-sunny';
-  if (code <= 3) return 'weather-partly-cloudy';
-  if (code <= 48) return 'weather-fog';
-  if (code <= 65) return 'weather-rainy';
-  if (code <= 77) return 'weather-snowy';
-  if (code <= 82) return 'weather-rainy';
-  if (code <= 86) return 'weather-snowy';
-  if (code <= 99) return 'weather-lightning';
-  return 'cloud';
-}
-
 /** Gear tip icon lookup keyed by gear item name from domain. */
 export const GEAR_ICONS: Record<string, LucideIcon> = {
   Shorts: UserRound,
@@ -321,26 +299,6 @@ export const GEAR_SF_SYMBOLS: Record<string, string> = {
   Thermometer: 'thermometer.medium',
 };
 
-/** MaterialCommunity icon names for gear items, parallel to GEAR_ICONS (web). */
-export const GEAR_WEB_ICONS: Record<string, MaterialIconName> = {
-  Shorts: 'human-male',
-  CasualShorts: 'human-male',
-  BibShorts: 'bike',
-  Pants: 'human-male',
-  Jacket: 'layers',
-  Shirt: 'tshirt-crew',
-  Layers: 'layers',
-  Hand: 'hand-back-right',
-  Footprints: 'shoe-print',
-  Snowflake: 'snowflake',
-  CloudRain: 'weather-rainy',
-  Umbrella: 'umbrella',
-  Wind: 'weather-windy',
-  Sun: 'weather-sunny',
-  Glasses: 'sunglasses',
-  Thermometer: 'thermometer',
-};
-
 /** Narrows an unknown value to a valid `Condition`, defaulting to `'fair'`. */
 export function asCondition(value: unknown): Condition {
   return value === 'good' ||
@@ -360,7 +318,6 @@ export function formatTime(value: Date | string | null | undefined): string {
 
 // ─── SectionTitle ────────────────────────────────────────────────────────────
 
-const SECTION_HEADING_FONT_SIZE = 24;
 const SECTION_HEADING_LINE_HEIGHT = 28;
 
 const sectionHeadingStyles = StyleSheet.create({
@@ -370,10 +327,10 @@ const sectionHeadingStyles = StyleSheet.create({
   },
   text: {
     alignSelf: 'flex-start',
-    fontFamily: Fonts.display,
-    fontSize: SECTION_HEADING_FONT_SIZE,
+    fontFamily: Fonts.heading,
+    fontSize: 22,
     lineHeight: SECTION_HEADING_LINE_HEIGHT,
-    fontWeight: FontWeightBold,
+    fontWeight: FontWeightMedium,
   },
 });
 
@@ -406,7 +363,7 @@ function makeChipStyles(c: WheelyPalette) {
       alignItems: 'center',
       borderWidth: 1,
       borderColor: c.border,
-      borderRadius: 999,
+      borderRadius: 0,
       alignSelf: 'flex-start',
     },
     chipText: {
@@ -633,11 +590,41 @@ export function Chip({
   );
 }
 
+export function ConditionPill({
+  condition,
+  children,
+}: Readonly<{ condition: Condition; children: string }>) {
+  const c = useWheelyColors();
+  const colors = c.condition[condition];
+  return (
+    <View
+      style={{
+        alignSelf: 'flex-start',
+        borderRadius: 0,
+        backgroundColor: colors.bg,
+        paddingHorizontal: 7,
+        paddingVertical: 3,
+      }}
+    >
+      <ThemedText
+        style={{
+          color: colors.ink,
+          fontFamily: Fonts.heading,
+          fontSize: 11,
+          fontWeight: FontWeightMedium,
+        }}
+      >
+        {children}
+      </ThemedText>
+    </View>
+  );
+}
+
 // ─── BrutalCard ──────────────────────────────────────────────────────────────
 
 function makeCardStyles(c: WheelyPalette) {
   return StyleSheet.create({
-    card: {
+    featured: {
       backgroundColor: c.paper,
       borderWidth: 2,
       borderColor: c.shadow,
@@ -646,13 +633,21 @@ function makeCardStyles(c: WheelyPalette) {
       ...brutalShadow(c.shadow, 6),
       gap: Spacing.three,
     },
-    cardSmall: {
+    standard: {
       backgroundColor: c.paper,
       borderWidth: 2,
       borderColor: c.shadow,
       borderRadius: ButtonRadius,
       padding: Spacing.three,
       ...brutalShadow(c.shadow, 3),
+      gap: Spacing.three,
+    },
+    subtle: {
+      backgroundColor: c.paper,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: ButtonRadius,
+      padding: Spacing.three,
     },
   });
 }
@@ -666,12 +661,15 @@ function useCardStyles() {
 export function BrutalCard({
   children,
   small = false,
+  variant,
   style,
 }: Readonly<{
   children: ReactNode;
   small?: boolean;
+  variant?: 'featured' | 'standard' | 'subtle';
   style?: object;
 }>) {
   const { styles } = useCardStyles();
-  return <View style={[small ? styles.cardSmall : styles.card, style]}>{children}</View>;
+  const resolvedVariant = variant ?? (small ? 'subtle' : 'standard');
+  return <View style={[styles[resolvedVariant], style]}>{children}</View>;
 }

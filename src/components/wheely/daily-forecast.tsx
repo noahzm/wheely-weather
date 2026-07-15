@@ -8,95 +8,98 @@ import { CONDITION_DISPLAY } from '@/domain';
 import { dayLabel, getBestDayInfo, getBestDaysBlurb, getDayConditionReason } from '@/utils';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { useTemperatureDisplay } from '@/hooks/use-temperature-display';
-import { Fonts, FontWeightBold, Spacing, type WheelyPalette } from '@/constants/theme';
+import {
+  Fonts,
+  FontWeightBold,
+  FontWeightMedium,
+  Spacing,
+  type WheelyPalette,
+} from '@/constants/theme';
 import type { DailyWeather } from '@/types/weather';
 import {
   BrutalCard,
-  BurstChip,
+  ConditionPill,
   PlatformIcon,
   asCondition,
   weatherIconFor,
   weatherSfSymbol,
-  weatherWebIconName,
 } from './primitives';
-
-// Width reserved on the best-day row so its text clears the burst sticker.
-// Sized against the rendered width of the large BurstChip ("BEST BET") — revisit
-// if BURST_CHIP_SIZES.large padding or the sticker copy changes.
-const BEST_STICKER_RESERVE = 128;
 
 function makeStyles(c: WheelyPalette) {
   return StyleSheet.create({
     weekSection: { gap: Spacing.three },
     weekBlurb: {
       color: c.mutedInk,
+      fontFamily: Fonts.body,
+      fontSize: 15,
+      fontWeight: '400',
+      lineHeight: 23,
+    },
+    weekBlurbLead: {
+      color: c.ink,
       fontFamily: Fonts.heading,
-      fontSize: 16,
-      fontWeight: FontWeightBold,
-      lineHeight: 26,
+      fontWeight: FontWeightMedium,
     },
     dailyList: { padding: 0, gap: 0, overflow: 'visible' },
     dayRow: {
       position: 'relative',
       flexDirection: 'column',
-      gap: Spacing.one,
+      gap: Spacing.two,
       paddingHorizontal: Spacing.three,
-      paddingVertical: Spacing.three,
-      borderBottomWidth: 2,
+      paddingVertical: 14,
+      borderBottomWidth: 1,
       borderColor: c.border,
-      overflow: 'visible',
     },
-    dayRowBest: { paddingRight: BEST_STICKER_RESERVE },
+    dayRowBest: {
+      borderLeftWidth: 5,
+      borderLeftColor: c.primary,
+      paddingLeft: 11,
+    },
     dayRowLast: { borderBottomWidth: 0 },
     dayRowMain: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: Spacing.two,
+      gap: Spacing.three,
     },
-    dayLabelCell: { minWidth: 96 },
+    dayLabelCell: { width: 72 },
     dayLabel: {
       color: c.ink,
       fontFamily: Fonts.heading,
       fontSize: 16,
-      fontWeight: FontWeightBold,
+      fontWeight: FontWeightMedium,
     },
-    weatherGlyph: { width: 26, alignItems: 'center' },
+    weatherGlyph: { width: 22, alignItems: 'center' },
     dayTemp: {
       color: c.ink,
-      flexShrink: 0,
+      minWidth: 82,
+      flex: 1,
       fontFamily: Fonts.display,
-      fontSize: 24,
+      fontSize: 22,
       fontWeight: FontWeightBold,
       ...(Platform.OS === 'web' ? ({ whiteSpace: 'nowrap' } as object) : null),
     },
     dayLow: { color: c.mutedInk, fontSize: 15 },
-    conditionCell: {
+    dayMetaRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: Spacing.one,
+      justifyContent: 'space-between',
+      gap: Spacing.two,
     },
-    conditionSwatch: {
-      width: 10,
-      height: 10,
-      borderWidth: 1,
-      borderColor: c.shadow,
+    bestBadge: {
+      borderRadius: 0,
+      backgroundColor: c.primary,
+      paddingHorizontal: Spacing.two,
+      paddingVertical: 3,
     },
-    conditionLabel: {
-      color: c.ink,
-      fontFamily: Fonts.body,
-      fontSize: 12,
-    },
-    bestSticker: {
-      position: 'absolute',
-      top: 0,
-      bottom: 0,
-      right: -Spacing.one,
-      justifyContent: 'center',
-      zIndex: 1,
-      transform: [{ rotate: '-3deg' }],
+    bestBadgeText: {
+      color: c.primaryInk,
+      fontFamily: Fonts.heading,
+      fontSize: 11,
+      fontWeight: FontWeightMedium,
     },
     dayReason: {
       color: c.mutedInk,
+      flex: 1,
       fontSize: 14,
       lineHeight: 20,
     },
@@ -144,41 +147,23 @@ function DayRow({
               tintColor={c.mutedInk}
             />
           ) : (
-            <PlatformIcon
-              icon={DayIcon}
-              webName={weatherWebIconName(day.weatherCode)}
-              size={20}
-              color={c.mutedInk}
-              strokeWidth={2}
-            />
+            <PlatformIcon icon={DayIcon} size={20} color={c.mutedInk} strokeWidth={2} />
           )}
         </View>
         <ThemedText style={styles.dayTemp} numberOfLines={1}>
           {formatTemp(day.high)}
           <ThemedText style={styles.dayLow}>/{formatTemp(day.low)}</ThemedText>
         </ThemedText>
-        <View style={styles.conditionCell}>
-          <View style={[styles.conditionSwatch, { backgroundColor: c.condition[condition].bg }]} />
-          <ThemedText style={styles.conditionLabel}>{CONDITION_DISPLAY[condition]}</ThemedText>
-        </View>
+        <ConditionPill condition={condition}>{CONDITION_DISPLAY[condition]}</ConditionPill>
       </View>
-      <ThemedText style={styles.dayReason}>{getDayConditionReason(day, tempUnit)}</ThemedText>
-      {best ? (
-        <View
-          style={[styles.bestSticker, { pointerEvents: 'none' }]}
-          accessibilityRole="text"
-          accessibilityLabel="Best bet"
-        >
-          <BurstChip
-            backgroundColor={c.condition.good.bg}
-            color={c.condition.good.ink}
-            large
-            burstScaleY={1.18}
-          >
-            Best bet
-          </BurstChip>
-        </View>
-      ) : null}
+      <View style={styles.dayMetaRow}>
+        <ThemedText style={styles.dayReason}>{getDayConditionReason(day, tempUnit)}</ThemedText>
+        {best ? (
+          <View style={styles.bestBadge} accessibilityRole="text" accessibilityLabel="Best bet">
+            <ThemedText style={styles.bestBadgeText}>Best bet</ThemedText>
+          </View>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -187,6 +172,9 @@ export function DailyForecast({ daily }: Readonly<{ daily: DailyWeather[] }>) {
   const { styles } = useStyles();
   const { index: bestDayIdx, rationale } = getBestDayInfo(daily);
   const blurb = getBestDaysBlurb(daily, bestDayIdx, rationale);
+  const firstSentenceEnd = blurb.indexOf('.');
+  const blurbLead = firstSentenceEnd === -1 ? blurb : blurb.slice(0, firstSentenceEnd + 1);
+  const blurbRest = firstSentenceEnd === -1 ? '' : blurb.slice(firstSentenceEnd + 1);
 
   if (daily.length === 0) {
     return (
@@ -201,7 +189,10 @@ export function DailyForecast({ daily }: Readonly<{ daily: DailyWeather[] }>) {
   return (
     <View style={styles.weekSection}>
       <BrutalCard small>
-        <ThemedText style={styles.weekBlurb}>{blurb}</ThemedText>
+        <ThemedText style={styles.weekBlurb}>
+          <ThemedText style={styles.weekBlurbLead}>{blurbLead}</ThemedText>
+          {blurbRest}
+        </ThemedText>
       </BrutalCard>
       <BrutalCard style={styles.dailyList}>
         {daily.map((day, index) => (

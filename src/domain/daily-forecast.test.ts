@@ -89,14 +89,16 @@ describe('Weekly Forecast Logic', () => {
     expect(getBestDayInfo(daily).index).toBe(1);
   });
 
-  it('only calls genuinely good days the best ride days when good options exist', () => {
+  it('keeps fair days visible as solid alternatives to the best good day', () => {
     const daily = [
       { date: new Date('2026-04-19T12:00:00'), condition: 'fair' },
       { date: new Date('2026-04-20T12:00:00'), condition: 'good' },
       { date: new Date('2026-04-21T12:00:00'), condition: 'fair' },
     ];
 
-    expect(getBestDaysBlurb(daily, 1, '')).toContain('Monday is your best ride window.');
+    expect(getBestDaysBlurb(daily, 1, '')).toBe(
+      'Monday is the best bet. Today and Tuesday are solid ride windows too.',
+    );
   });
 
   it('keeps the blurb aligned with the single Best Bet badge when several good days exist', () => {

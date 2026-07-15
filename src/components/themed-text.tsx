@@ -1,6 +1,6 @@
 import { StyleSheet, Text, type TextProps } from 'react-native';
 
-import { Fonts, FontWeightBold, ThemeColor } from '@/constants/theme';
+import { Fonts, FontWeightBold, FontWeightMedium, ThemeColor } from '@/constants/theme';
 import { useWheelyColors } from '@/hooks/use-theme';
 
 const LINK_BLUE = '#3c87f7';
@@ -40,10 +40,10 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
   smallBold: {
-    fontFamily: Fonts.display,
+    fontFamily: Fonts.heading,
     fontSize: 14,
     lineHeight: 20,
-    fontWeight: FontWeightBold,
+    fontWeight: FontWeightMedium,
   },
   default: {
     fontFamily: Fonts.body,
