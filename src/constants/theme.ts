@@ -38,6 +38,7 @@ export interface WheelyPalette {
   success: string;
   warning: string;
   error: string;
+  link: string;
   condition: WheelyConditionColors;
 }
 
@@ -61,6 +62,7 @@ export const WheelyTheme: { light: WheelyPalette; dark: WheelyPalette } = {
     success: '#236F49',
     warning: '#FFD20A',
     error: '#FF642C',
+    link: '#3c87f7',
     condition: {
       good: { bg: '#078044', ink: '#ffffff' },
       fair: { bg: '#1b63f3', ink: '#ffffff' },
@@ -83,6 +85,7 @@ export const WheelyTheme: { light: WheelyPalette; dark: WheelyPalette } = {
     success: '#2ECC71',
     warning: '#FFD20A',
     error: '#FF6A42',
+    link: '#6BA4F9',
     condition: {
       good: { bg: '#58eea3', ink: '#161310' },
       fair: { bg: '#5885ee', ink: '#161310' },
@@ -156,6 +159,38 @@ export const Spacing = {
   four: 24,
   five: 32,
   six: 64,
+} as const;
+
+/**
+ * Typography scale. Every on-screen fontSize/lineHeight pairs one of these —
+ * do not hardcode sizes in component styles.
+ */
+export const Type = {
+  /** chip labels, tab labels */
+  micro: { fontSize: 11, lineHeight: 14 },
+  /** code, fine print */
+  caption: { fontSize: 12, lineHeight: 16 },
+  /** muted/secondary text */
+  small: { fontSize: 13, lineHeight: 18 },
+  body: { fontSize: 16, lineHeight: 24 },
+  /** section titles, day temps */
+  heading: { fontSize: 22, lineHeight: 28 },
+  /** big numerics (verdict, metric values) */
+  stat: { fontSize: 28, lineHeight: 32 },
+  subtitle: { fontSize: 32, lineHeight: 44 },
+  display: { fontSize: 48, lineHeight: 52 },
+} as const;
+
+/**
+ * Corner radius scale. Chips/pills stay square (neobrutalist); cards and
+ * buttons share `card`; `pill` covers badges and circular buttons.
+ */
+export const Radius = {
+  none: 0,
+  /** nested elements inside a card */
+  small: 8,
+  card: 12,
+  pill: 999,
 } as const;
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
