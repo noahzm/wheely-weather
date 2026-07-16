@@ -5,7 +5,7 @@ import { ChevronLeft, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Fonts, FontWeightMedium, Spacing, TRANSPARENT } from '@/constants/theme';
+import { Fonts, FontWeightMedium, Spacing, TRANSPARENT, Type } from '@/constants/theme';
 import { contentColumnStyle, screenGutterStyle } from './content-column';
 import { HapticPressable, PlatformIcon } from './primitives';
 
@@ -24,7 +24,8 @@ export function WebScreenTitle({ children }: Readonly<{ children: string }>) {
       style={{
         color: c.ink,
         fontFamily: Fonts.city,
-        fontSize: 30,
+        // Web large-title analog: subtitle size with a tighter, header-like leading.
+        fontSize: Type.subtitle.fontSize,
         lineHeight: 36,
         fontWeight: FontWeightMedium,
       }}

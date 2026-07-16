@@ -9,7 +9,9 @@ import {
   Fonts,
   FontWeightMedium,
   MaxContentWidth,
+  Radius,
   Spacing,
+  Type,
   type WheelyPalette,
 } from '@/constants/theme';
 import { GlassChrome } from './glass-chrome';
@@ -57,7 +59,7 @@ function useBottomNavStyles(c: WheelyPalette) {
         tabPill: {
           alignItems: 'center',
           gap: 3,
-          borderRadius: 8,
+          borderRadius: Radius.small,
           paddingVertical: Spacing.one,
           paddingHorizontal: Spacing.three,
         },
@@ -68,7 +70,7 @@ function useBottomNavStyles(c: WheelyPalette) {
         tabLabel: {
           fontFamily: Fonts.heading,
           fontWeight: FontWeightMedium,
-          fontSize: 11,
+          fontSize: Type.micro.fontSize,
         },
       }),
     [c.border, c.primary],

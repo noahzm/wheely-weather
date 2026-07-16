@@ -8,11 +8,18 @@ import Animated, { type SharedValue, useAnimatedStyle } from 'react-native-reani
 import { ThemedText } from '@/components/themed-text';
 import { ExternalLink } from '@/components/external-link';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Fonts, FontWeightBold, Spacing, type WheelyPalette } from '@/constants/theme';
+import {
+  Fonts,
+  FontWeightBold,
+  Radius,
+  Spacing,
+  Type,
+  type WheelyPalette,
+} from '@/constants/theme';
 import { withAlpha } from '@/utils/colors';
 import type { WeatherAlert } from '@/types/weather';
 import { AnimatedExpand, useExpandAnimation } from './animated-expand';
-import { BrutalCard, ButtonRadius, formatTime, HapticPressable, PlatformIcon } from './primitives';
+import { BrutalCard, formatTime, HapticPressable, PlatformIcon } from './primitives';
 
 function makeStyles(c: WheelyPalette) {
   return StyleSheet.create({
@@ -34,20 +41,17 @@ function makeStyles(c: WheelyPalette) {
       color: c.ink,
       fontFamily: Fonts.display,
       fontWeight: FontWeightBold,
-      fontSize: 16,
-      lineHeight: 20,
+      ...Type.body,
     },
     muted: {
       color: c.mutedInk,
-      fontSize: 13,
-      lineHeight: 18,
+      ...Type.small,
     },
     linkWrap: { alignSelf: 'flex-start' },
     linkText: {
       color: c.ink,
       fontFamily: Fonts.body,
-      fontSize: 13,
-      lineHeight: 18,
+      ...Type.small,
       textDecorationLine: 'underline',
     },
     mutedExtreme: {
@@ -201,7 +205,7 @@ function AlertCard({ alert, primary }: Readonly<{ alert: WeatherAlert; primary: 
 
   return (
     <BrutalCard small style={styles.alertCard}>
-      <View style={{ borderRadius: ButtonRadius - 2, overflow: 'hidden' }}>
+      <View style={{ borderRadius: Radius.card - 2, overflow: 'hidden' }}>
         {primary ? <HazardStripe extreme={extreme} /> : <SolidAccentBar extreme={extreme} />}
         <HapticPressable
           disabled={!hasDetails}

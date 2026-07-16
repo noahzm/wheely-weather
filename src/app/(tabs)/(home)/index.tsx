@@ -39,7 +39,7 @@ import { useWheelyColors } from '@/hooks/use-theme';
 import type { TempUnit } from '@/utils/temperature';
 import type { Weather } from '@/types/weather';
 import { contentColumnStyle, screenGutterStyle } from '@/components/wheely/content-column';
-import { Spacing, TRANSPARENT, type WheelyPalette } from '@/constants/theme';
+import { Spacing, TRANSPARENT, Type, type WheelyPalette } from '@/constants/theme';
 
 const isWeb = Platform.OS === 'web';
 
@@ -345,7 +345,7 @@ function makeStyles(c: WheelyPalette) {
     statusMessage: {
       color: c.mutedInk,
       textAlign: 'center',
-      fontSize: 13,
+      fontSize: Type.small.fontSize,
     },
   });
 }

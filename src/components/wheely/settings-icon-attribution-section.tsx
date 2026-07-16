@@ -2,7 +2,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { ExternalLink } from '@/components/external-link';
 import { ThemedText } from '@/components/themed-text';
-import { Fonts, Spacing, type WheelyPalette } from '@/constants/theme';
+import { Fonts, Spacing, Type, type WheelyPalette } from '@/constants/theme';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { BrutalCard, HapticPressable, SectionTitle } from './primitives';
 
@@ -13,15 +13,13 @@ function makeStyles(c: WheelyPalette) {
     link: {
       color: c.ink,
       fontFamily: Fonts.body,
-      fontSize: 14,
-      lineHeight: 20,
+      ...Type.small,
       textDecorationLine: 'underline',
     },
     hint: {
       color: c.mutedInk,
       fontFamily: Fonts.body,
-      fontSize: 13,
-      lineHeight: 18,
+      ...Type.small,
     },
   });
 }

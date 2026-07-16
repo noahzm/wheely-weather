@@ -3,7 +3,7 @@ import { Host, Switch } from '@expo/ui';
 
 import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Fonts, Spacing, type WheelyPalette } from '@/constants/theme';
+import { Fonts, Spacing, Type, type WheelyPalette } from '@/constants/theme';
 import { BrutalCard, SectionTitle } from './primitives';
 
 function makeStyles(c: WheelyPalette) {
@@ -13,8 +13,7 @@ function makeStyles(c: WheelyPalette) {
     hint: {
       color: c.mutedInk,
       fontFamily: Fonts.body,
-      fontSize: 13,
-      lineHeight: 18,
+      ...Type.small,
     },
   });
 }

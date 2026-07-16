@@ -26,7 +26,14 @@ import {
 
 import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Fonts, FontWeightMedium, Spacing, type WheelyPalette } from '@/constants/theme';
+import {
+  Fonts,
+  FontWeightMedium,
+  Radius,
+  Spacing,
+  Type,
+  type WheelyPalette,
+} from '@/constants/theme';
 import type { Condition } from '@/types/weather';
 import { selectionFeedback } from '@/utils/haptics';
 
@@ -118,7 +125,7 @@ export function brutalShadow(color: string, width: number, height = width) {
       };
 }
 
-export const ButtonRadius = 12;
+export const ButtonRadius = Radius.card;
 
 export function PlatformIcon({
   icon: Icon,
@@ -223,7 +230,7 @@ export function makeButtonStyles(c: WheelyPalette) {
       color: c.ink,
       fontFamily: Fonts.body,
       fontWeight: '400',
-      fontSize: 12,
+      ...Type.caption,
     },
     pressed: {
       opacity: 0.85,
@@ -318,8 +325,6 @@ export function formatTime(value: Date | string | null | undefined): string {
 
 // ─── SectionTitle ────────────────────────────────────────────────────────────
 
-const SECTION_HEADING_LINE_HEIGHT = 28;
-
 const sectionHeadingStyles = StyleSheet.create({
   row: {
     flexDirection: 'row',
@@ -328,8 +333,7 @@ const sectionHeadingStyles = StyleSheet.create({
   text: {
     alignSelf: 'flex-start',
     fontFamily: Fonts.heading,
-    fontSize: 22,
-    lineHeight: SECTION_HEADING_LINE_HEIGHT,
+    ...Type.heading,
     fontWeight: FontWeightMedium,
   },
 });
@@ -363,7 +367,7 @@ function makeChipStyles(c: WheelyPalette) {
       alignItems: 'center',
       borderWidth: 1,
       borderColor: c.border,
-      borderRadius: 0,
+      borderRadius: Radius.none,
       alignSelf: 'flex-start',
     },
     chipText: {
@@ -381,7 +385,7 @@ const chipSizes = {
       paddingVertical: 5,
     },
     text: {
-      fontSize: 11,
+      fontSize: Type.micro.fontSize,
     },
     icon: 12,
   },
@@ -392,7 +396,7 @@ const chipSizes = {
       paddingVertical: 7,
     },
     text: {
-      fontSize: 13,
+      fontSize: Type.small.fontSize,
     },
     icon: 14,
   },
@@ -406,7 +410,7 @@ export const BURST_CHIP_SIZES = {
       gap: 4,
     },
     text: {
-      fontSize: 11,
+      fontSize: Type.micro.fontSize,
     },
     icon: 12,
   },
@@ -417,7 +421,7 @@ export const BURST_CHIP_SIZES = {
       gap: 5,
     },
     text: {
-      fontSize: 14,
+      fontSize: Type.small.fontSize,
     },
     icon: 15,
   },
@@ -429,8 +433,10 @@ export const BURST_CHIP_SIZES = {
       gap: 5,
     },
     text: {
-      fontSize: 16,
-      lineHeight: 16,
+      // Tight lineHeight is part of the burst badge geometry — keep it equal
+      // to the fontSize rather than the scale's default.
+      fontSize: Type.body.fontSize,
+      lineHeight: Type.body.fontSize,
     },
     icon: 15,
   },
@@ -600,7 +606,7 @@ export function ConditionPill({
     <View
       style={{
         alignSelf: 'flex-start',
-        borderRadius: 0,
+        borderRadius: Radius.none,
         backgroundColor: colors.bg,
         paddingHorizontal: 7,
         paddingVertical: 3,
@@ -610,7 +616,7 @@ export function ConditionPill({
         style={{
           color: colors.ink,
           fontFamily: Fonts.heading,
-          fontSize: 11,
+          fontSize: Type.micro.fontSize,
           fontWeight: FontWeightMedium,
         }}
       >

@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { MaxContentWidth, Spacing, TRANSPARENT, type WheelyPalette } from '@/constants/theme';
+import { MaxContentWidth, Spacing, TRANSPARENT, Type, type WheelyPalette } from '@/constants/theme';
 import {
   BrutalCard,
   HapticPressable,
@@ -36,13 +36,12 @@ function makeStyles(c: WheelyPalette, webPaddingBottom?: number) {
     },
     muted: {
       color: c.mutedInk,
-      fontSize: 13,
-      lineHeight: 18,
+      ...Type.small,
     },
     statusMessage: {
       color: c.mutedInk,
       textAlign: 'center',
-      fontSize: 13,
+      fontSize: Type.small.fontSize,
     },
     staleNotice: {
       flexDirection: 'row',
@@ -52,8 +51,7 @@ function makeStyles(c: WheelyPalette, webPaddingBottom?: number) {
     staleNoticeText: {
       flex: 1,
       color: c.ink,
-      fontSize: 13,
-      lineHeight: 18,
+      ...Type.small,
     },
   });
 }
