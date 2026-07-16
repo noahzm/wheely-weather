@@ -12,6 +12,7 @@ import {
   bottomNavBarHeight,
 } from '@/components/wheely';
 import { WEB_TITLE_CONTENT_SPACING } from '@/components/wheely/web-screen-header';
+import { ScreenGutter } from '@/components/wheely/content-column';
 import { BrutalCard, HapticPressable, PlatformIcon } from '@/components/wheely/primitives';
 import { LocationSearchList } from '@/components/wheely/location-search-list';
 import { useLocationSearchScreen } from '@/hooks/use-location-search-screen';
@@ -143,10 +144,7 @@ export default function LocationSearchScreen() {
             keyboardDismissMode="on-drag"
             contentContainerStyle={
               isWeb
-                ? [
-                    styles.scrollContentWeb,
-                    { paddingBottom: bottomNavBarHeight(insets.bottom) + Spacing.six },
-                  ]
+                ? [styles.scrollContentWeb, { paddingBottom: bottomNavBarHeight(insets.bottom) }]
                 : styles.scrollContent
             }
           >
@@ -182,7 +180,7 @@ const styles = StyleSheet.create({
     backgroundColor: TRANSPARENT,
   },
   scrollContent: {
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: ScreenGutter,
     paddingBottom: Spacing.six,
   },
   scrollContentWeb: {

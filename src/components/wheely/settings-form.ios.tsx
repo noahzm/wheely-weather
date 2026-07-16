@@ -3,6 +3,7 @@ import { Host, Picker, Text } from '@expo/ui/swift-ui';
 import { pickerStyle, tag } from '@expo/ui/swift-ui/modifiers';
 
 import { Spacing, TRANSPARENT } from '@/constants/theme';
+import { ScreenGutter } from './content-column';
 import {
   APPEARANCE_LABELS,
   APPEARANCE_VALUES,
@@ -25,7 +26,7 @@ const styles = StyleSheet.create({
     backgroundColor: TRANSPARENT,
   },
   content: {
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: ScreenGutter,
     paddingBottom: Spacing.six,
     gap: Spacing.four,
   },

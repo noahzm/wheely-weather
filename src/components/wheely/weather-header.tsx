@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { MapPin } from 'lucide-react-native';
+import { SymbolView } from 'expo-symbols';
 
 import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
@@ -51,7 +52,11 @@ export function WeatherHeader({
           pressed && buttonStyles.pressed,
         ]}
       >
-        <PlatformIcon icon={MapPin} size={14} color={c.ink} strokeWidth={2.5} />
+        {Platform.OS === 'ios' ? (
+          <SymbolView name="location.fill" size={14} tintColor={c.ink} />
+        ) : (
+          <PlatformIcon icon={MapPin} size={14} color={c.ink} strokeWidth={2.5} />
+        )}
         <ThemedText style={buttonStyles.label}>{location || 'Set location'}</ThemedText>
       </HapticPressable>
       {!!statusMessage && (
