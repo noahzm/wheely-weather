@@ -127,6 +127,9 @@ export function brutalShadow(color: string, width: number, height = width) {
 
 export const ButtonRadius = Radius.card;
 
+/** Shared pressed-state feedback opacity for every Pressable in the app. */
+export const PressedOpacity = 0.85;
+
 export function PlatformIcon({
   icon: Icon,
   size,
@@ -233,7 +236,7 @@ export function makeButtonStyles(c: WheelyPalette) {
       ...Type.caption,
     },
     pressed: {
-      opacity: 0.85,
+      opacity: PressedOpacity,
     },
   });
 }

@@ -13,7 +13,13 @@ import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { Fonts, FontWeightMedium, Radius, Spacing, Type } from '@/constants/theme';
 
-import { BrutalCard, HapticPressable, PlatformIcon, SectionTitle } from './primitives';
+import {
+  BrutalCard,
+  HapticPressable,
+  PlatformIcon,
+  PressedOpacity,
+  SectionTitle,
+} from './primitives';
 import {
   isPinned,
   pinAccessibilityLabel,
@@ -55,7 +61,7 @@ const pinButtonStyles = StyleSheet.create({
     justifyContent: 'center',
   },
   pressed: {
-    opacity: 0.5,
+    opacity: PressedOpacity,
   },
 });
 
@@ -231,7 +237,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
   },
   rowPressed: {
-    opacity: 0.5,
+    opacity: PressedOpacity,
   },
   rowIcon: {
     marginRight: Spacing.three,

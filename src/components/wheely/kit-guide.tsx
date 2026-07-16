@@ -55,7 +55,8 @@ function makeStyles(c: WheelyPalette) {
     },
     bodyStrong: {
       color: c.ink,
-      fontWeight: '400',
+      fontFamily: Fonts.heading,
+      fontWeight: FontWeightMedium,
       ...Type.small,
       textAlign: 'center',
       flexShrink: 1,

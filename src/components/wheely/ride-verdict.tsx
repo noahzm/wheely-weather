@@ -6,11 +6,14 @@ import { useWheelyColors } from '@/hooks/use-theme';
 import {
   Fonts,
   FontWeightMedium,
+  Radius,
   Spacing,
+  Type,
   WheelyTheme,
   type WheelyPalette,
 } from '@/constants/theme';
 import { verdictFeedback } from '@/utils/haptics';
+import { BrutalCard } from './primitives';
 
 function makeStyles(c: WheelyPalette) {
   return StyleSheet.create({
@@ -20,11 +23,8 @@ function makeStyles(c: WheelyPalette) {
       marginTop: Spacing.two,
     },
     verdict: {
-      borderWidth: 2,
-      borderColor: c.shadow,
-      paddingHorizontal: Spacing.three,
       paddingTop: Spacing.four,
-      paddingBottom: Spacing.three,
+      gap: Spacing.two,
       overflow: 'hidden',
     },
     verdictBadge: {
@@ -33,28 +33,26 @@ function makeStyles(c: WheelyPalette) {
       left: Spacing.three,
       zIndex: 2,
       backgroundColor: c.shadow,
-      borderRadius: 999,
+      borderRadius: Radius.pill,
       paddingHorizontal: 10,
       paddingVertical: 5,
       transform: [{ rotate: '-1deg' }],
     },
     verdictBadgeText: {
-      // Badge sits on c.shadow (#161310) in both themes — always use light cream ink.
+      // Badge sits on c.shadow in both themes — always use light cream ink.
       color: WheelyTheme.light.paper,
       fontFamily: Fonts.heading,
-      fontSize: 14,
+      fontSize: Type.small.fontSize,
       fontWeight: FontWeightMedium,
     },
     verdictText: {
       fontFamily: Fonts.body,
-      fontSize: 29,
-      lineHeight: 33,
+      ...Type.stat,
       fontWeight: '400',
     },
     acclimatizationNote: {
       fontFamily: Fonts.body,
-      fontSize: 13,
-      marginTop: Spacing.two,
+      ...Type.small,
     },
   });
 }
@@ -95,14 +93,14 @@ export function RideVerdict({
         acclimatizationNote ? `. ${acclimatizationNote}` : ''
       }`}
     >
-      <View style={[styles.verdict, { backgroundColor: meta.bg }]}>
+      <BrutalCard variant="featured" style={[styles.verdict, { backgroundColor: meta.bg }]}>
         <ThemedText style={[styles.verdictText, { color: meta.ink }]}>{message}</ThemedText>
         {!!acclimatizationNote && (
           <ThemedText style={[styles.acclimatizationNote, { color: meta.ink }]}>
             {acclimatizationNote}
           </ThemedText>
         )}
-      </View>
+      </BrutalCard>
       <View style={[styles.verdictBadge, { pointerEvents: 'none' }]}>
         <ThemedText style={styles.verdictBadgeText}>{badgeLabel}</ThemedText>
       </View>
