@@ -3,15 +3,17 @@ import { Platform, StyleSheet, type StyleProp, type ViewStyle } from 'react-nati
 import { GlassView } from 'expo-glass-effect';
 
 import { useColorSchemeName } from '@/hooks/use-theme';
+import { WheelyTheme } from '@/constants/theme';
+import { withAlpha } from '@/utils/colors';
 
 const WEB_GLASS_FILL = {
-  light: 'rgba(245, 241, 246, 0.72)',
-  dark: 'rgba(31, 27, 36, 0.72)',
+  light: withAlpha(WheelyTheme.light.paper, 0.72),
+  dark: withAlpha(WheelyTheme.dark.paper, 0.72),
 } as const;
 
 const ANDROID_GLASS_FILL = {
-  light: 'rgba(245, 241, 246, 0.92)',
-  dark: 'rgba(31, 27, 36, 0.92)',
+  light: withAlpha(WheelyTheme.light.paper, 0.92),
+  dark: withAlpha(WheelyTheme.dark.paper, 0.92),
 } as const;
 
 function useGlassChromeStyle(style?: StyleProp<ViewStyle>): StyleProp<ViewStyle> {

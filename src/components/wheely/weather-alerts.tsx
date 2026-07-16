@@ -9,11 +9,10 @@ import { ThemedText } from '@/components/themed-text';
 import { ExternalLink } from '@/components/external-link';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { Fonts, FontWeightBold, Spacing, type WheelyPalette } from '@/constants/theme';
+import { withAlpha } from '@/utils/colors';
 import type { WeatherAlert } from '@/types/weather';
 import { AnimatedExpand, useExpandAnimation } from './animated-expand';
 import { BrutalCard, ButtonRadius, formatTime, HapticPressable, PlatformIcon } from './primitives';
-
-const EXTREME_ALERT_BG = 'rgba(255,100,44,0.16)';
 
 function makeStyles(c: WheelyPalette) {
   return StyleSheet.create({
@@ -24,7 +23,7 @@ function makeStyles(c: WheelyPalette) {
       gap: Spacing.three,
       padding: Spacing.three,
     },
-    alertExtremeBody: { backgroundColor: EXTREME_ALERT_BG },
+    alertExtremeBody: { backgroundColor: withAlpha(c.error, 0.16) },
     alertContent: {
       paddingHorizontal: Spacing.three,
       paddingBottom: Spacing.three,
