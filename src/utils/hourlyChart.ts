@@ -194,8 +194,9 @@ export function chartInterpolateAtCenter(centerX: number, values: readonly numbe
   return v0 + (v1 - v0) * t;
 }
 
-/** Static dot radius: "now" gets a slightly larger dot. */
+/** Static dot radius: "now" gets a slightly larger dot. Worklet-safe. */
 export function chartDotRadius(isNow: boolean): number {
+  'worklet';
   return isNow ? DOT_RADIUS_NOW_FLOOR : DOT_RADIUS_MIN;
 }
 

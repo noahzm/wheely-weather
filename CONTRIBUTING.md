@@ -13,8 +13,9 @@ Thanks for contributing.
    npm run web
    ```
    Or use `npm run ios` / `npm run android` as needed.
-   `npm run ios` now launches the iOS dev client and auto-connects to the active dev session.
-   Use `npm run ios:run` for a native build/install and `npm run ios:clean` for clean native regeneration.
+   `npm run ios` builds/installs and launches the iOS development build using Expo defaults.
+   Use `npm run ios:install` to build/install without bundler, `npm run ios:start` to relaunch an installed dev build, and `npm run ios:clean` for clean native regeneration.
+   If Metro connectivity is flaky, try `npm run ios:start:localhost` or `npm run ios:start:tunnel`.
 
 ## Required quality gates
 
