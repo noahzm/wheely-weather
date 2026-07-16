@@ -104,6 +104,14 @@ function HazardStripe({ extreme }: Readonly<{ extreme?: boolean }>) {
   );
 }
 
+// Non-primary alerts (i.e. every alert after the single most-severe one in a
+// stack) get a plain color bar instead of the full diagonal hazard tape, so a
+// stack of alerts doesn't read as multiple identical warnings.
+function SolidAccentBar({ extreme }: Readonly<{ extreme?: boolean }>) {
+  const c = useWheelyColors();
+  return <View style={{ height: 4, backgroundColor: extreme ? c.error : c.warning }} />;
+}
+
 function AlertLeadingIcon({
   sfIcon,
   Icon,
@@ -181,7 +189,7 @@ function AlertDetails({
   );
 }
 
-function AlertCard({ alert }: Readonly<{ alert: WeatherAlert }>) {
+function AlertCard({ alert, primary }: Readonly<{ alert: WeatherAlert; primary: boolean }>) {
   const { c, styles } = useStyles();
   const [open, setOpen] = useState(false);
   const openProgress = useExpandAnimation(open);
@@ -195,7 +203,7 @@ function AlertCard({ alert }: Readonly<{ alert: WeatherAlert }>) {
   return (
     <BrutalCard small style={styles.alertCard}>
       <View style={{ borderRadius: ButtonRadius - 2, overflow: 'hidden' }}>
-        <HazardStripe extreme={extreme} />
+        {primary ? <HazardStripe extreme={extreme} /> : <SolidAccentBar extreme={extreme} />}
         <HapticPressable
           disabled={!hasDetails}
           onPress={() => {
@@ -238,13 +246,26 @@ function AlertCard({ alert }: Readonly<{ alert: WeatherAlert }>) {
   );
 }
 
+// Only the single most-severe alert gets the full hazard-tape treatment; a
+// stack of several "extreme"/"warning" cards in identical loud stripes reads
+// as repetitive noise rather than layered severity.
+function findPrimaryAlertIndex(alerts: WeatherAlert[]): number {
+  const extremeIndex = alerts.findIndex((a) => a.severity === 'extreme');
+  return extremeIndex === -1 ? 0 : extremeIndex;
+}
+
 export function WeatherAlerts({ alerts }: Readonly<{ alerts: WeatherAlert[] }>) {
   const { styles } = useStyles();
   if (alerts.length === 0) return null;
+  const primaryIndex = findPrimaryAlertIndex(alerts);
   return (
     <View style={styles.alertStack} accessibilityLabel="Weather alerts">
       {alerts.map((alert, index) => (
-        <AlertCard key={`${alert.type}-${alert.event ?? alert.message}-${index}`} alert={alert} />
+        <AlertCard
+          key={`${alert.type}-${alert.event ?? alert.message}-${index}`}
+          alert={alert}
+          primary={index === primaryIndex}
+        />
       ))}
     </View>
   );

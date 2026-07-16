@@ -33,9 +33,12 @@ npm install
 
 | Command                                           | Description                                               |
 | ------------------------------------------------- | --------------------------------------------------------- |
-| `npm run web` / `npm run ios` / `npm run android` | Run the app (`ios` launches dev client + auto-connect)    |
-| `npm run ios:run`                                 | Native iOS build/install (`expo run:ios`)                 |
-| `npm run ios:clean`                               | Clean native iOS regeneration + build/install             |
+| `npm run web` / `npm run ios` / `npm run android` | Run the app (`ios` builds/installs and starts dev server via Expo) |
+| `npm run ios:install`                             | Build/install the iOS development app without starting Metro |
+| `npm run ios:start`                               | Launch an already installed iOS development build (default LAN host) |
+| `npm run ios:start:localhost`                     | Relaunch dev build with localhost host mode |
+| `npm run ios:start:tunnel`                        | Relaunch dev build with tunnel host mode |
+| `npm run ios:clean`                               | Clean native iOS regeneration + build/install + launch |
 | `npm run storybook:web`                           | Component workshop at http://localhost:6006               |
 | `npm run build:web`                               | Export the web build (`expo export --platform web`)       |
 | `npm run deploy:web`                              | Build then deploy the web build via Wrangler (Cloudflare) |
@@ -53,6 +56,14 @@ npm run build:web
 ```
 
 `npm run test:e2e` (Playwright against Storybook) and `npm run test:e2e:app` (Playwright against the exported web app) aren't part of CI and are run manually.
+
+If iOS dev client cannot connect to Metro, retry with:
+
+```bash
+npm run ios:start:localhost
+# or
+npm run ios:start:tunnel
+```
 
 ## Architecture
 
