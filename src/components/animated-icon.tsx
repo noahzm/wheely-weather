@@ -6,6 +6,8 @@ import { scheduleOnRN } from 'react-native-worklets';
 
 const INITIAL_SCALE_FACTOR = Dimensions.get('screen').height / 90;
 const DURATION = 600;
+// Must match the native splash `backgroundColor` in app.json (expo-splash-screen)
+// so the JS overlay hands off seamlessly — intentionally not a palette token.
 const ICON_BG_FALLBACK = '#208AEF';
 
 export function AnimatedSplashOverlay() {

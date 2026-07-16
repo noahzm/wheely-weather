@@ -17,8 +17,8 @@ import { LocationSearchList } from '@/components/wheely/location-search-list';
 import { useLocationSearchScreen } from '@/hooks/use-location-search-screen';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { Fonts, Spacing, TRANSPARENT } from '@/constants/theme';
+import { withAlpha } from '@/utils/colors';
 
-const BUSY_OVERLAY_COLOR = 'rgba(0,0,0,0.15)';
 const isWeb = Platform.OS === 'web';
 const isIOS = Platform.OS === 'ios';
 
@@ -164,7 +164,7 @@ export default function LocationSearchScreen() {
           </ScrollView>
         )}
         {busy && !isIOS && (
-          <View style={styles.busyOverlay}>
+          <View style={[styles.busyOverlay, { backgroundColor: withAlpha(c.shadow, 0.15) }]}>
             <ActivityIndicator color={c.primary} size="large" />
           </View>
         )}
@@ -211,7 +211,6 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: BUSY_OVERLAY_COLOR,
     zIndex: 10,
   },
 });
