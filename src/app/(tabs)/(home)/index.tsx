@@ -287,11 +287,12 @@ function HomeContent({
         refreshControl={
           <RefreshControl refreshing={forecast.refreshing} onRefresh={forecast.refresh} />
         }
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          bottomNavInset != null && { paddingBottom: bottomNavInset },
+        ]}
       >
-        <View
-          style={[styles.safeArea, bottomNavInset != null && { paddingBottom: bottomNavInset }]}
-        >
+        <View style={styles.safeArea}>
           <WebCityHeading city={city} />
           <View style={styles.content}>
             {forecast.errorKind && sections && (

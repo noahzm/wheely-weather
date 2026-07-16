@@ -1,15 +1,29 @@
-import { StyleSheet, View } from 'react-native';
-import { Host, Switch } from '@expo/ui';
+// Default (Android / web) home-climate section. iOS is shadowed by
+// settings-home-section.ios.tsx with a native SwiftUI Toggle.
+import { StyleSheet, Switch, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { Fonts, Spacing, Type, type WheelyPalette } from '@/constants/theme';
+import { selectionFeedback } from '@/utils/haptics';
 import { BrutalCard, SectionTitle } from './primitives';
 
 function makeStyles(c: WheelyPalette) {
   return StyleSheet.create({
     group: { gap: Spacing.two },
     card: { gap: Spacing.two },
+    toggleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: Spacing.two,
+    },
+    toggleLabel: {
+      flex: 1,
+      color: c.ink,
+      fontFamily: Fonts.body,
+      ...Type.body,
+    },
     hint: {
       color: c.mutedInk,
       fontFamily: Fonts.body,
@@ -45,17 +59,22 @@ export function HomeClimateSection({
     <View style={styles.group}>
       <SectionTitle title="Home climate" />
       <BrutalCard style={styles.card}>
-        <Host matchContents>
+        <View style={styles.toggleRow}>
+          <ThemedText style={styles.toggleLabel} numberOfLines={2}>
+            {homeLabel ?? 'Use current location as home'}
+          </ThemedText>
           <Switch
             value={!!homeLabel}
             disabled={!homeLabel && !canSetHome}
-            label={homeLabel ?? 'Use current location as home'}
+            trackColor={{ true: c.primary }}
+            accessibilityLabel={homeLabel ?? 'Use current location as home'}
             onValueChange={(v) => {
+              selectionFeedback();
               if (v) onSetHome();
               else onClearHome();
             }}
           />
-        </Host>
+        </View>
         <ThemedText style={styles.hint}>{hint}</ThemedText>
       </BrutalCard>
     </View>

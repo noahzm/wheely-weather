@@ -4,12 +4,14 @@
 import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 // eslint-disable-next-line import/no-named-as-default
 import SegmentedControl from '@expo/ui/community/segmented-control';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useColorSchemeName } from '@/hooks/use-theme';
 import { Spacing, TRANSPARENT } from '@/constants/theme';
 import { selectionFeedback } from '@/utils/haptics';
 import { BrutalCard, SectionTitle } from './primitives';
 import { WebContentColumn } from './content-column';
+import { webBottomInset } from './bottom-nav-chrome';
 import { WEB_TITLE_CONTENT_SPACING } from './web-screen-header';
 import { HomeClimateSection } from './settings-home-section';
 import { IconAttributionSection } from './settings-icon-attribution-section';
@@ -32,7 +34,6 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     paddingTop: WEB_TITLE_CONTENT_SPACING,
-    paddingBottom: Spacing.three,
   },
   form: {
     gap: Spacing.four,
@@ -58,6 +59,7 @@ export function SettingsForm({
   onClearHome,
 }: Readonly<SettingsFormProps>) {
   const colorScheme = useColorSchemeName();
+  const insets = useSafeAreaInsets();
   const form = (
     <>
       <View style={styles.group}>
@@ -126,7 +128,11 @@ export function SettingsForm({
     <ScrollView
       style={{ backgroundColor: TRANSPARENT }}
       contentInsetAdjustmentBehavior="automatic"
-      contentContainerStyle={Platform.OS === 'web' ? styles.contentWeb : styles.content}
+      contentContainerStyle={
+        Platform.OS === 'web'
+          ? [styles.contentWeb, { paddingBottom: webBottomInset(insets.bottom) }]
+          : styles.content
+      }
     >
       <WebContentColumn innerStyle={styles.form}>{form}</WebContentColumn>
     </ScrollView>

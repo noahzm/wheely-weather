@@ -8,9 +8,12 @@ export const contentColumnStyle = {
   maxWidth: MaxContentWidth,
 };
 
+/** Single horizontal screen gutter shared by every tab screen. */
+export const ScreenGutter = Spacing.three;
+
 export const screenGutterStyle = {
   alignItems: 'center' as const,
-  paddingHorizontal: Spacing.three,
+  paddingHorizontal: ScreenGutter,
 };
 
 export function WebContentColumn({

@@ -1,14 +1,8 @@
 import { useCallback } from 'react';
 import { Platform, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Head from 'expo-router/head';
 
-import {
-  SettingsForm,
-  WebScreenHeader,
-  WebScreenTitle,
-  bottomNavBarHeight,
-} from '@/components/wheely';
+import { SettingsForm, WebScreenHeader, WebScreenTitle } from '@/components/wheely';
 import { useGearMode, useAppearance, useHomeLocation, useTempUnit } from '@/hooks/settings-context';
 import { useForecast } from '@/hooks/forecast-context';
 import { TRANSPARENT } from '@/constants/theme';
@@ -16,13 +10,11 @@ import { TRANSPARENT } from '@/constants/theme';
 const isWeb = Platform.OS === 'web';
 
 export default function SettingsScreen() {
-  const insets = useSafeAreaInsets();
   const [gearMode, setGearMode] = useGearMode();
   const [appearance, setAppearance] = useAppearance();
   const [homeLocation, setHomeLocation] = useHomeLocation();
   const [tempUnit, setTempUnit] = useTempUnit();
   const forecast = useForecast();
-  const bottomNavInset = isWeb ? bottomNavBarHeight(insets.bottom) : undefined;
 
   const active = forecast.savedLocation;
   const homeLabel =
@@ -52,13 +44,7 @@ export default function SettingsScreen() {
           content="Configure gear preferences, comfort thresholds, and appearance options for your ride forecast."
         />
       </Head>
-      <View
-        style={[
-          { flex: 1, backgroundColor: TRANSPARENT },
-          bottomNavInset != null && { paddingBottom: bottomNavInset },
-        ]}
-        collapsable={false}
-      >
+      <View style={{ flex: 1, backgroundColor: TRANSPARENT }} collapsable={false}>
         {isWeb && (
           <WebScreenHeader variant="title" title={<WebScreenTitle>Settings</WebScreenTitle>} />
         )}

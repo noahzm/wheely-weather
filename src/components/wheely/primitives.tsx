@@ -289,26 +289,6 @@ export const GEAR_ICONS: Record<string, LucideIcon> = {
   Thermometer,
 };
 
-/** SF Symbol names for gear items, parallel to GEAR_ICONS (iOS). */
-export const GEAR_SF_SYMBOLS: Record<string, string> = {
-  Shorts: 'figure.stand',
-  CasualShorts: 'figure.stand',
-  BibShorts: 'bicycle',
-  Pants: 'figure.stand',
-  Jacket: 'square.3.layers.3d.fill',
-  Shirt: 'tshirt.fill',
-  Layers: 'square.3.layers.3d.fill',
-  Hand: 'hand.raised.fill',
-  Footprints: 'figure.walk',
-  Snowflake: 'snowflake',
-  CloudRain: 'cloud.rain.fill',
-  Umbrella: 'umbrella.fill',
-  Wind: 'wind',
-  Sun: 'sun.max.fill',
-  Glasses: 'eyeglasses',
-  Thermometer: 'thermometer.medium',
-};
-
 /** Narrows an unknown value to a valid `Condition`, defaulting to `'fair'`. */
 export function asCondition(value: unknown): Condition {
   return value === 'good' ||
