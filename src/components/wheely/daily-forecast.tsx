@@ -12,7 +12,6 @@ import {
   Fonts,
   FontWeightBold,
   FontWeightMedium,
-  Radius,
   Spacing,
   Type,
   type WheelyPalette,
@@ -20,6 +19,7 @@ import {
 import type { DailyWeather } from '@/types/weather';
 import {
   BrutalCard,
+  Chip,
   ConditionPill,
   PlatformIcon,
   asCondition,
@@ -86,18 +86,6 @@ function makeStyles(c: WheelyPalette) {
       justifyContent: 'space-between',
       gap: Spacing.two,
     },
-    bestBadge: {
-      borderRadius: Radius.none,
-      backgroundColor: c.primary,
-      paddingHorizontal: Spacing.two,
-      paddingVertical: 3,
-    },
-    bestBadgeText: {
-      color: c.primaryInk,
-      fontFamily: Fonts.heading,
-      fontSize: Type.micro.fontSize,
-      fontWeight: FontWeightMedium,
-    },
     dayReason: {
       color: c.mutedInk,
       flex: 1,
@@ -158,8 +146,8 @@ function DayRow({
       <View style={styles.dayMetaRow}>
         <ThemedText style={styles.dayReason}>{getDayConditionReason(day, tempUnit)}</ThemedText>
         {best ? (
-          <View style={styles.bestBadge} accessibilityRole="text" accessibilityLabel="Best bet">
-            <ThemedText style={styles.bestBadgeText}>Best bet</ThemedText>
+          <View accessibilityRole="text" accessibilityLabel="Best bet">
+            <Chip primary>Best bet</Chip>
           </View>
         ) : null}
       </View>
