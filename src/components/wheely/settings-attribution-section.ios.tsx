@@ -7,7 +7,7 @@ import type { WeatherKitAttribution } from '../../../modules/apple-weatherkit/sr
 import { ThemedText } from '@/components/themed-text';
 import { ExternalLink } from '@/components/external-link';
 import { useColorSchemeName, useWheelyColors } from '@/hooks/use-theme';
-import { Fonts, Spacing, type WheelyPalette } from '@/constants/theme';
+import { Fonts, Spacing, Type, type WheelyPalette } from '@/constants/theme';
 import { BrutalCard, HapticPressable, SectionTitle } from './primitives';
 
 function makeStyles(c: WheelyPalette) {
@@ -21,8 +21,7 @@ function makeStyles(c: WheelyPalette) {
     hint: {
       color: c.mutedInk,
       fontFamily: Fonts.body,
-      fontSize: 13,
-      lineHeight: 18,
+      ...Type.small,
       textAlign: 'center',
     },
   });

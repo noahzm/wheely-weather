@@ -1,6 +1,6 @@
 import { StyleSheet, Text, type TextProps } from 'react-native';
 
-import { Fonts, FontWeightBold, FontWeightMedium, ThemeColor } from '@/constants/theme';
+import { Fonts, FontWeightBold, FontWeightMedium, ThemeColor, Type } from '@/constants/theme';
 import { useWheelyColors } from '@/hooks/use-theme';
 
 export type ThemedTextProps = TextProps & {
@@ -33,49 +33,44 @@ export function ThemedText({ style, type = 'default', themeColor, ...rest }: The
 const styles = StyleSheet.create({
   small: {
     fontFamily: Fonts.body,
-    fontSize: 14,
-    lineHeight: 20,
+    ...Type.small,
     fontWeight: '400',
   },
   smallBold: {
     fontFamily: Fonts.heading,
-    fontSize: 14,
-    lineHeight: 20,
+    ...Type.small,
     fontWeight: FontWeightMedium,
   },
   default: {
     fontFamily: Fonts.body,
-    fontSize: 16,
-    lineHeight: 24,
+    ...Type.body,
     fontWeight: '400',
   },
   title: {
     fontFamily: Fonts.display,
-    fontSize: 48,
+    ...Type.display,
     fontWeight: FontWeightBold,
-    lineHeight: 52,
   },
   subtitle: {
     fontFamily: Fonts.display,
-    fontSize: 32,
-    lineHeight: 44,
+    ...Type.subtitle,
     fontWeight: FontWeightBold,
   },
   link: {
     fontFamily: Fonts.body,
+    ...Type.small,
     lineHeight: 30,
-    fontSize: 14,
     fontWeight: '400',
   },
   linkPrimary: {
     fontFamily: Fonts.body,
+    ...Type.small,
     lineHeight: 30,
-    fontSize: 14,
     fontWeight: '400',
   },
   code: {
     fontFamily: Fonts.body,
     fontWeight: '400',
-    fontSize: 12,
+    ...Type.caption,
   },
 });

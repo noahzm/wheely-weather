@@ -4,7 +4,7 @@ import { MapPin } from 'lucide-react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Spacing, type WheelyPalette } from '@/constants/theme';
+import { Spacing, Type, type WheelyPalette } from '@/constants/theme';
 import { HapticPressable, PlatformIcon, makeButtonStyles } from './primitives';
 
 function makeStyles(c: WheelyPalette) {
@@ -17,7 +17,7 @@ function makeStyles(c: WheelyPalette) {
     statusMessage: {
       color: c.mutedInk,
       textAlign: 'center',
-      fontSize: 13,
+      fontSize: Type.small.fontSize,
     },
   });
 }

@@ -5,7 +5,7 @@ import Animated, { type SharedValue } from 'react-native-reanimated';
 import { ThemedText } from '@/components/themed-text';
 import { CONDITION_DISPLAY } from '@/domain';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Spacing, type WheelyPalette } from '@/constants/theme';
+import { Spacing, Type, type WheelyPalette } from '@/constants/theme';
 import type { HourlyWeather } from '@/types/weather';
 import {
   AnimatedConditionChip,
@@ -57,8 +57,7 @@ function makeStyles(c: WheelyPalette) {
     },
     hourReason: {
       color: c.mutedInk,
-      fontSize: 13,
-      lineHeight: 18,
+      ...Type.small,
       textAlign: 'right',
     },
     emptyCard: {
@@ -66,11 +65,10 @@ function makeStyles(c: WheelyPalette) {
       justifyContent: 'center',
       alignItems: 'center',
     },
-    alertTitle: { color: c.ink, fontWeight: '400', fontSize: 16 },
+    alertTitle: { color: c.ink, fontWeight: '400', fontSize: Type.body.fontSize },
     muted: {
       color: c.mutedInk,
-      fontSize: 13,
-      lineHeight: 18,
+      ...Type.small,
     },
   });
 }

@@ -16,7 +16,7 @@ import { BrutalCard, HapticPressable, PlatformIcon } from '@/components/wheely/p
 import { LocationSearchList } from '@/components/wheely/location-search-list';
 import { useLocationSearchScreen } from '@/hooks/use-location-search-screen';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Fonts, Spacing, TRANSPARENT } from '@/constants/theme';
+import { Fonts, Spacing, TRANSPARENT, Type } from '@/constants/theme';
 import { withAlpha } from '@/utils/colors';
 
 const isWeb = Platform.OS === 'web';
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: 16,
+    fontSize: Type.body.fontSize,
     fontFamily: Fonts.body,
     paddingVertical: Spacing.one,
     ...(isWeb ? ({ outlineStyle: 'none' } as object) : null),

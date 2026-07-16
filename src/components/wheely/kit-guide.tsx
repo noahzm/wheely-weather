@@ -5,7 +5,14 @@ import { ThemedText } from '@/components/themed-text';
 import { getGearSuggestion } from '@/domain';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { useGearMode, useResolvedTempUnit } from '@/hooks/settings-context';
-import { Fonts, FontWeightMedium, Spacing, type WheelyPalette } from '@/constants/theme';
+import {
+  Fonts,
+  FontWeightMedium,
+  Radius,
+  Spacing,
+  Type,
+  type WheelyPalette,
+} from '@/constants/theme';
 import type { GearTipItem, RideStatus, Weather } from '@/types/weather';
 import { BrutalCard, GameGearIcon } from './primitives';
 
@@ -14,9 +21,8 @@ function makeStyles(c: WheelyPalette) {
     headline: {
       color: c.ink,
       fontFamily: Fonts.heading,
-      fontSize: 15,
       fontWeight: FontWeightMedium,
-      lineHeight: 20,
+      ...Type.body,
     },
     kitGrid: {
       flexDirection: 'row',
@@ -31,7 +37,7 @@ function makeStyles(c: WheelyPalette) {
       minHeight: 116,
       borderWidth: 1,
       borderColor: c.border,
-      borderRadius: 10,
+      borderRadius: Radius.card,
       paddingHorizontal: Spacing.two,
       paddingVertical: Spacing.two,
     },
@@ -50,15 +56,13 @@ function makeStyles(c: WheelyPalette) {
     bodyStrong: {
       color: c.ink,
       fontWeight: '400',
-      fontSize: 14,
-      lineHeight: 18,
+      ...Type.small,
       textAlign: 'center',
       flexShrink: 1,
     },
     muted: {
       color: c.mutedInk,
-      fontSize: 12,
-      lineHeight: 16,
+      ...Type.caption,
       textAlign: 'center',
       flexShrink: 1,
     },

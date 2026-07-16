@@ -5,7 +5,7 @@ import { SymbolView, type SFSymbol } from 'expo-symbols';
 
 import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Spacing, type WheelyPalette } from '@/constants/theme';
+import { Radius, Spacing, Type, type WheelyPalette } from '@/constants/theme';
 import { PlatformIcon } from './primitives';
 
 function makeStyles(c: WheelyPalette) {
@@ -24,7 +24,7 @@ function makeStyles(c: WheelyPalette) {
       gap: Spacing.one,
       borderWidth: 1,
       borderColor: c.border,
-      borderRadius: 0,
+      borderRadius: Radius.none,
       backgroundColor: c.paper,
       paddingHorizontal: Spacing.two,
       paddingVertical: Spacing.one,
@@ -32,7 +32,7 @@ function makeStyles(c: WheelyPalette) {
     noteStickerText: {
       color: c.ink,
       fontWeight: '400',
-      fontSize: 12,
+      fontSize: Type.caption.fontSize,
     },
   });
 }

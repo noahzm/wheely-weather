@@ -11,7 +11,7 @@ import { ChevronRight, Navigation, Pin } from 'lucide-react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Fonts, FontWeightMedium, Spacing } from '@/constants/theme';
+import { Fonts, FontWeightMedium, Radius, Spacing, Type } from '@/constants/theme';
 
 import { BrutalCard, HapticPressable, PlatformIcon, SectionTitle } from './primitives';
 import {
@@ -49,7 +49,7 @@ const pinButtonStyles = StyleSheet.create({
   fallback: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radius.pill,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   messageText: {
-    fontSize: 15,
+    fontSize: Type.body.fontSize,
     textAlign: 'center',
     fontFamily: Fonts.body,
   },
@@ -241,7 +241,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   rowLabel: {
-    fontSize: 16,
+    fontSize: Type.body.fontSize,
     fontFamily: Fonts.body,
   },
   rowLabelAction: {
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
     fontWeight: FontWeightMedium,
   },
   rowSub: {
-    fontSize: 13,
+    fontSize: Type.small.fontSize,
     fontFamily: Fonts.body,
   },
   chevron: {

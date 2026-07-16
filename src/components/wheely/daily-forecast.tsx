@@ -12,7 +12,9 @@ import {
   Fonts,
   FontWeightBold,
   FontWeightMedium,
+  Radius,
   Spacing,
+  Type,
   type WheelyPalette,
 } from '@/constants/theme';
 import type { DailyWeather } from '@/types/weather';
@@ -31,9 +33,8 @@ function makeStyles(c: WheelyPalette) {
     weekBlurb: {
       color: c.mutedInk,
       fontFamily: Fonts.body,
-      fontSize: 15,
       fontWeight: '400',
-      lineHeight: 23,
+      ...Type.small,
     },
     weekBlurbLead: {
       color: c.ink,
@@ -65,7 +66,7 @@ function makeStyles(c: WheelyPalette) {
     dayLabel: {
       color: c.ink,
       fontFamily: Fonts.heading,
-      fontSize: 16,
+      fontSize: Type.body.fontSize,
       fontWeight: FontWeightMedium,
     },
     weatherGlyph: { width: 22, alignItems: 'center' },
@@ -74,11 +75,11 @@ function makeStyles(c: WheelyPalette) {
       minWidth: 82,
       flex: 1,
       fontFamily: Fonts.display,
-      fontSize: 22,
+      fontSize: Type.heading.fontSize,
       fontWeight: FontWeightBold,
       ...(Platform.OS === 'web' ? ({ whiteSpace: 'nowrap' } as object) : null),
     },
-    dayLow: { color: c.mutedInk, fontSize: 15 },
+    dayLow: { color: c.mutedInk, fontSize: Type.small.fontSize },
     dayMetaRow: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -86,7 +87,7 @@ function makeStyles(c: WheelyPalette) {
       gap: Spacing.two,
     },
     bestBadge: {
-      borderRadius: 0,
+      borderRadius: Radius.none,
       backgroundColor: c.primary,
       paddingHorizontal: Spacing.two,
       paddingVertical: 3,
@@ -94,19 +95,17 @@ function makeStyles(c: WheelyPalette) {
     bestBadgeText: {
       color: c.primaryInk,
       fontFamily: Fonts.heading,
-      fontSize: 11,
+      fontSize: Type.micro.fontSize,
       fontWeight: FontWeightMedium,
     },
     dayReason: {
       color: c.mutedInk,
       flex: 1,
-      fontSize: 14,
-      lineHeight: 20,
+      ...Type.small,
     },
     muted: {
       color: c.mutedInk,
-      fontSize: 15,
-      lineHeight: 22,
+      ...Type.small,
     },
   });
 }

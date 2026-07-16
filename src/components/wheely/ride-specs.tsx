@@ -26,7 +26,7 @@ import {
 } from '@/utils';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { useTemperatureDisplay } from '@/hooks/use-temperature-display';
-import { Fonts, FontWeightBold, Spacing, type WheelyPalette } from '@/constants/theme';
+import { Fonts, FontWeightBold, Spacing, Type, type WheelyPalette } from '@/constants/theme';
 import type { Weather } from '@/types/weather';
 import { BrutalCard, ConditionPill, asCondition, PlatformIcon } from './primitives';
 
@@ -146,14 +146,13 @@ function makeStyles(c: WheelyPalette, isCompact: boolean) {
     metricLabel: {
       color: c.mutedInk,
       fontFamily: Fonts.body,
-      fontSize: 13,
+      fontSize: Type.small.fontSize,
       fontWeight: '400',
     },
     metricValue: {
       color: c.ink,
       fontFamily: Fonts.display,
-      fontSize: 27,
-      lineHeight: 31,
+      ...Type.stat,
       fontWeight: FontWeightBold,
     },
     metricFooter: {
@@ -164,8 +163,7 @@ function makeStyles(c: WheelyPalette, isCompact: boolean) {
     },
     muted: {
       color: c.mutedInk,
-      fontSize: 13,
-      lineHeight: 18,
+      ...Type.small,
     },
   });
 }
