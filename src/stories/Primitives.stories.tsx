@@ -2,10 +2,8 @@ import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 import { Pressable, View } from 'react-native';
 
 import { ExternalLink } from '@/components/external-link';
-import { HintRow } from '@/components/hint-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Collapsible } from '@/components/ui/collapsible';
 import { Spacing } from '@/constants/theme';
 
 import { StorySurface } from './story-layout';
@@ -83,18 +81,6 @@ export const ThemedViewVariants: Story = {
   ),
 };
 
-export const Hint: StoryObj<typeof HintRow> = {
-  args: {
-    title: 'Story fixture',
-    hint: 'src/stories/Primitives.stories.tsx',
-  },
-  argTypes: {
-    title: { control: 'text' },
-    hint: { control: 'text' },
-  },
-  render: (args) => <HintRow {...args} />,
-};
-
 export const Link: StoryObj<{ href: string; label: string }> = {
   args: {
     href: 'https://docs.expo.dev',
@@ -110,21 +96,5 @@ export const Link: StoryObj<{ href: string; label: string }> = {
         <ThemedText type="linkPrimary">{label}</ThemedText>
       </Pressable>
     </ExternalLink>
-  ),
-};
-
-export const CollapsiblePanel: StoryObj<{ title: string; body: string }> = {
-  args: {
-    title: 'Forecast details',
-    body: 'This content appears after opening the collapsible row.',
-  },
-  argTypes: {
-    title: { control: 'text' },
-    body: { control: 'text' },
-  },
-  render: ({ title, body }) => (
-    <Collapsible title={title}>
-      <ThemedText type="small">{body}</ThemedText>
-    </Collapsible>
   ),
 };

@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 
 import { AnimatedIcon, AnimatedSplashOverlay } from '@/components/animated-icon';
-import { WebBadge } from '@/components/web-badge';
 
 import { StorySurface } from './story-layout';
 
@@ -26,8 +25,4 @@ export const Icon: Story = {
 
 export const SplashOverlay: Story = {
   render: () => <AnimatedSplashOverlay />,
-};
-
-export const ExpoBadge: Story = {
-  render: () => <WebBadge />,
 };
