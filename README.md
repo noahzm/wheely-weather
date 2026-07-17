@@ -31,17 +31,17 @@ Wheely Weather scores how good conditions are for a bike ride, live at [wheelywe
 npm install
 ```
 
-| Command                                           | Description                                               |
-| ------------------------------------------------- | --------------------------------------------------------- |
-| `npm run web` / `npm run ios` / `npm run android` | Run the app (`ios` builds/installs and starts dev server via Expo) |
-| `npm run ios:install`                             | Build/install the iOS development app without starting Metro |
+| Command                                           | Description                                                          |
+| ------------------------------------------------- | -------------------------------------------------------------------- |
+| `npm run web` / `npm run ios` / `npm run android` | Run the app (`ios` builds/installs and starts dev server via Expo)   |
+| `npm run ios:install`                             | Build/install the iOS development app without starting Metro         |
 | `npm run ios:start`                               | Launch an already installed iOS development build (default LAN host) |
-| `npm run ios:start:localhost`                     | Relaunch dev build with localhost host mode |
-| `npm run ios:start:tunnel`                        | Relaunch dev build with tunnel host mode |
-| `npm run ios:clean`                               | Clean native iOS regeneration + build/install + launch |
-| `npm run storybook:web`                           | Component workshop at http://localhost:6006               |
-| `npm run build:web`                               | Export the web build (`expo export --platform web`)       |
-| `npm run deploy:web`                              | Build then deploy the web build via Wrangler (Cloudflare) |
+| `npm run ios:start:localhost`                     | Relaunch dev build with localhost host mode                          |
+| `npm run ios:start:tunnel`                        | Relaunch dev build with tunnel host mode                             |
+| `npm run ios:clean`                               | Clean native iOS regeneration + build/install + launch               |
+| `npm run storybook:web`                           | Component workshop at http://localhost:6006                          |
+| `npm run build:web`                               | Export the web build (`expo export --platform web`)                  |
+| `npm run deploy:web`                              | Build then deploy the web build via Wrangler (Cloudflare)            |
 
 ## Quality gates
 
