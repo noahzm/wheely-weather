@@ -9,7 +9,7 @@ import {
 
 // `pick()` is intentionally `arr[new Date().getHours() % arr.length]` — stable
 // within an hour, NOT random (see the inline warning in copy.js).
-// We exercise it through BEST_DAYS_MESSAGES.NONE(), which has 4 variants.
+// We exercise it through BEST_DAYS_MESSAGES.NONE(), which has 6 variants.
 describe('copy pick() variant selection', () => {
   const atHour = (h: number) => vi.setSystemTime(new Date(2026, 5, 22, h, 30, 0));
 
@@ -24,18 +24,18 @@ describe('copy pick() variant selection', () => {
     }
   });
 
-  it('cycles with a period equal to the number of variants (4)', () => {
-    const results = Array.from({ length: 8 }, (_, h) => {
+  it('cycles with a period equal to the number of variants (6)', () => {
+    const results = Array.from({ length: 12 }, (_, h) => {
       atHour(h);
       return BEST_DAYS_MESSAGES.NONE();
     });
 
-    // Period of 4: hour h and hour h+4 select the same variant.
-    for (let h = 0; h < 4; h++) {
-      expect(results[h]).toBe(results[h + 4]);
+    // Period of 6: hour h and hour h+6 select the same variant.
+    for (let h = 0; h < 6; h++) {
+      expect(results[h]).toBe(results[h + 6]);
     }
-    // And the first four hours cover four distinct variants.
-    expect(new Set(results.slice(0, 4)).size).toBe(4);
+    // And the first six hours cover six distinct variants.
+    expect(new Set(results.slice(0, 6)).size).toBe(6);
   });
 });
 
@@ -65,6 +65,36 @@ describe('verdict labels', () => {
         }
       }
     }
+  });
+
+  it('never hedges a no-status badge label', () => {
+    const locations = ['Philadelphia', 'A', 'B', 'Berlin', 'Sydney'];
+    for (let day = 1; day <= 28; day++) {
+      for (let hour = 0; hour < 24; hour++) {
+        vi.setSystemTime(new Date(2026, 6, day, hour, 0, 0));
+        for (const location of locations) {
+          expect(getVerdictLabel('no', location)).not.toBe('Probably shouldn’t');
+        }
+      }
+    }
+  });
+});
+
+describe('rest-day tails', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it('is stable for the same seed within the same hour', () => {
+    vi.setSystemTime(new Date(2026, 6, 2, 9, 0, 0));
+    const seed = 'Sit this one out: heavy humidity (dew 66°F).';
+    expect(STATUS_MESSAGES.REST_DAY(seed)).toBe(STATUS_MESSAGES.REST_DAY(seed));
+  });
+
+  it('varies across different seeds within the same hour', () => {
+    vi.setSystemTime(new Date(2026, 6, 2, 9, 0, 0));
+    const seeds = ['too hot', 'heavy humidity', 'rain likely', 'strong wind', 'poor air quality'];
+    const tails = new Set(seeds.map((seed) => STATUS_MESSAGES.REST_DAY(seed)));
+    expect(tails.size).toBeGreaterThan(1);
   });
 });
 

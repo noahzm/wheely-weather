@@ -11,7 +11,7 @@ describe('Gear Suggestions', () => {
   };
 
   const isPerfectHeadline = (text: string) =>
-    /long way|extra loop|extra miles|ideal|prime|beautiful riding|favor extra|clean roads|worth making count/i.test(
+    /long way|extra loop|extra miles|ideal|prime|beautiful riding|favor extra|clean roads|worth making count|coffee stop|nowhere in particular|tailwind-shaped/i.test(
       text,
     );
 
