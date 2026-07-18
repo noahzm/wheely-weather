@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { Platform, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
-import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
+import Animated, {
+  useAnimatedScrollHandler,
+  useSharedValue,
+  type SharedValue,
+} from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 
 import {
@@ -198,6 +202,89 @@ function useWebMagnetSnap(params: {
   };
 }
 
+/**
+ * Centers the "Now" hour once on mount. iOS can apply the first scrollTo
+ * against a stale content size and land short, so the initial offset is
+ * re-asserted on content-size changes until the user scrolls themselves.
+ */
+function useInitialChartScroll(params: {
+  nowIdx: number;
+  count: number;
+  maxIndex: number;
+  viewportWidth: number;
+  isWeb: boolean;
+  scrollRef: RefObject<Animated.ScrollView | null>;
+  scrollX: SharedValue<number>;
+  lastNotifiedIdx: SharedValue<number>;
+  liveScrollXRef: RefObject<number>;
+  setLiveScrollX: (x: number) => void;
+  syncSelectionFromScroll: (offsetX: number, haptic: boolean) => void;
+  selectionHapticEnabledRef: RefObject<boolean>;
+}) {
+  const {
+    nowIdx,
+    count,
+    maxIndex,
+    viewportWidth,
+    isWeb,
+    scrollRef,
+    scrollX,
+    lastNotifiedIdx,
+    liveScrollXRef,
+    setLiveScrollX,
+    syncSelectionFromScroll,
+    selectionHapticEnabledRef,
+  } = params;
+  const hasInitialScroll = useRef(false);
+
+  // Reanimated shared values are mutable by design; the immutability rule
+  // can't model worklet-driven `.value` writes.
+  // eslint-disable-next-line react-hooks/immutability
+  const applyInitialScroll = useCallback(() => {
+    if (viewportWidth <= 0 || count === 0) return;
+    const x = chartScrollOffsetForIndex(nowIdx, viewportWidth, maxIndex);
+    scrollRef.current?.scrollTo({ x, animated: false });
+    // eslint-disable-next-line react-hooks/immutability -- reanimated shared value write
+    scrollX.value = x;
+    // eslint-disable-next-line react-hooks/immutability -- reanimated shared value write
+    lastNotifiedIdx.value = nowIdx;
+    if (isWeb) {
+      liveScrollXRef.current = x;
+      setLiveScrollX(x);
+    }
+    syncSelectionFromScroll(x, false);
+  }, [
+    viewportWidth,
+    nowIdx,
+    maxIndex,
+    count,
+    syncSelectionFromScroll,
+    isWeb,
+    scrollRef,
+    scrollX,
+    lastNotifiedIdx,
+    liveScrollXRef,
+    setLiveScrollX,
+  ]);
+
+  // eslint-disable-next-line react-hooks/immutability -- applyInitialScroll writes shared values
+  useEffect(() => {
+    if (viewportWidth <= 0 || count === 0 || hasInitialScroll.current) return;
+    hasInitialScroll.current = true;
+    applyInitialScroll();
+  }, [viewportWidth, count, applyInitialScroll]);
+
+  // eslint-disable-next-line react-hooks/immutability -- applyInitialScroll writes shared values
+  const reassertInitialScroll = useCallback(() => {
+    if (!hasInitialScroll.current || selectionHapticEnabledRef.current) return;
+    applyInitialScroll();
+  }, [applyInitialScroll, selectionHapticEnabledRef]);
+
+  // Web lays out synchronously and wheel scrolls never set the drag flag, so
+  // the re-assert is native-only; web keeps its position across relayouts.
+  return { onContentSizeChange: isWeb ? undefined : reassertInitialScroll };
+}
+
 /** Wires the ScrollView gesture callbacks to selection + magnet-snap logic. */
 function useScrollGestureHandlers(params: {
   isWeb: boolean;
@@ -295,7 +382,6 @@ export function useHourlyScrollPicker(
   // Last index dispatched to React from the scroll worklet, so the UI→JS hop
   // happens once per hour-crossing instead of on every scroll frame.
   const lastNotifiedIdx = useSharedValue(-1);
-  const hasInitialScroll = useRef(false);
   const liveScrollXRef = useRef(-1);
 
   const contentPadding = viewportWidth > 0 ? chartContentPadding(viewportWidth) : 0;
@@ -339,32 +425,20 @@ export function useHourlyScrollPicker(
     setIsScrollIdle,
   });
 
-  useEffect(() => {
-    if (viewportWidth <= 0 || count === 0 || hasInitialScroll.current) return;
-    hasInitialScroll.current = true;
-    const x = chartScrollOffsetForIndex(nowIdx, viewportWidth, maxIndex);
-    scrollRef.current?.scrollTo({ x, animated: false });
-    // eslint-disable-next-line react-hooks/immutability -- reanimated shared value write
-    scrollX.value = x;
-    lastNotifiedIdx.value = nowIdx;
-    if (isWeb) {
-      liveScrollXRef.current = x;
-      // One-time imperative sync of the initial scroll position into React state
-      // for the web magnet logic; runs once guarded by hasInitialScroll.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setLiveScrollX(x);
-    }
-    syncSelectionFromScroll(x, false);
-  }, [
-    viewportWidth,
+  const { onContentSizeChange } = useInitialChartScroll({
     nowIdx,
-    maxIndex,
     count,
-    syncSelectionFromScroll,
+    maxIndex,
+    viewportWidth,
     isWeb,
+    scrollRef,
     scrollX,
     lastNotifiedIdx,
-  ]);
+    liveScrollXRef,
+    setLiveScrollX,
+    syncSelectionFromScroll,
+    selectionHapticEnabledRef,
+  });
 
   const onViewportLayout = useCallback((width: number) => {
     if (width > 0) {
@@ -396,7 +470,6 @@ export function useHourlyScrollPicker(
       // end-drag/momentum handlers re-sync unconditionally as a safety net.
       const idx = chartIndexFromScrollOffset(event.contentOffset.x, viewportWidth, maxIndex);
       if (idx === lastNotifiedIdx.value) return;
-      // eslint-disable-next-line react-hooks/immutability -- reanimated shared value write
       lastNotifiedIdx.value = idx;
       scheduleOnRN(syncSelectionFromScroll, event.contentOffset.x, true);
     },
@@ -415,6 +488,7 @@ export function useHourlyScrollPicker(
     scrollHandler: isWeb ? undefined : scrollHandler,
     onWebScroll: isWeb ? onWebScroll : undefined,
     onViewportLayout,
+    onContentSizeChange,
     onScrollBeginDrag,
     onScrollEndDrag,
     onMomentumScrollEnd,
