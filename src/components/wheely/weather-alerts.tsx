@@ -22,6 +22,9 @@ function makeStyles(c: WheelyPalette) {
       flexDirection: 'row',
       gap: Spacing.three,
       padding: Spacing.three,
+      // Shift the row up a touch: equal padding reads bottom-heavy under the
+      // accent stripe.
+      paddingTop: Spacing.three - Spacing.one,
     },
     alertExtremeBody: { backgroundColor: withAlpha(c.error, 0.16) },
     alertContent: {
@@ -30,6 +33,12 @@ function makeStyles(c: WheelyPalette) {
       gap: Spacing.one,
     },
     alertTextWrap: { flex: 1, gap: Spacing.one },
+    // Center the 20px icon on the title's first text line.
+    alertIconWrap: {
+      height: Type.body.lineHeight,
+      justifyContent: 'center',
+      alignSelf: 'flex-start',
+    },
     alertTitle: {
       color: c.ink,
       fontFamily: Fonts.display,
@@ -211,7 +220,9 @@ function AlertCard({ alert, primary }: Readonly<{ alert: WeatherAlert; primary: 
           accessibilityState={hasDetails ? { expanded: open } : undefined}
           style={[styles.alertBody, extreme && styles.alertExtremeBody]}
         >
-          <AlertLeadingIcon sfIcon={sfIcon} Icon={Icon} color={c.ink} />
+          <View style={styles.alertIconWrap}>
+            <AlertLeadingIcon sfIcon={sfIcon} Icon={Icon} color={c.ink} />
+          </View>
           <View style={styles.alertTextWrap}>
             <ThemedText style={styles.alertTitle}>{alert.event ?? alert.message}</ThemedText>
             {!!alert.headline && alert.headline !== alert.event && (

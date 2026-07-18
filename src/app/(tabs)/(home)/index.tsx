@@ -337,7 +337,8 @@ function makeStyles(c: WheelyPalette) {
     },
     content: {
       ...contentColumnStyle,
-      marginTop: Platform.OS === 'web' ? WEB_TITLE_CONTENT_SPACING : 0,
+      // Native: breathing room between the large-title header and the verdict card.
+      marginTop: Platform.OS === 'web' ? WEB_TITLE_CONTENT_SPACING : Spacing.three,
       gap: 36,
     },
     section: {
