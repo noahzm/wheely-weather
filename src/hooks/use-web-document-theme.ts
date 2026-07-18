@@ -23,7 +23,6 @@ export function useWebDocumentTheme(isDark: boolean) {
     root.style.setProperty('--wheely-shadow', palette.shadow);
     root.style.setProperty('--wheely-primary', palette.primary);
     root.style.setProperty('--wheely-primary-ink', palette.primaryInk);
-    root.style.setProperty('--wheely-secondary', palette.secondary);
     root.style.setProperty('--wheely-accent', palette.accent);
     root.style.setProperty('--wheely-success', palette.success);
     root.style.setProperty('--wheely-warning', palette.warning);

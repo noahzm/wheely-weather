@@ -11,7 +11,7 @@ import { ChevronRight, Navigation, Pin } from 'lucide-react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Fonts, FontWeightMedium, Radius, Spacing, Type } from '@/constants/theme';
+import { Fonts, Radius, Spacing, Type } from '@/constants/theme';
 
 import {
   BrutalCard,
@@ -142,6 +142,7 @@ export function LocationSearchList({
   onSelect,
   onTogglePin,
 }: Readonly<LocationSearchListProps>) {
+  // Styles the message-card contents; rows resolve the card scheme via context.
   const c = useWheelyColors();
   const reduceMotion = useReducedMotion();
   const entering = reduceMotion ? undefined : FadeIn.duration(200);
@@ -234,7 +235,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   rowDivider: {
-    borderBottomWidth: 2,
+    borderBottomWidth: 1,
   },
   rowPressed: {
     opacity: PressedOpacity,
@@ -252,7 +253,6 @@ const styles = StyleSheet.create({
   },
   rowLabelAction: {
     fontFamily: Fonts.heading,
-    fontWeight: FontWeightMedium,
   },
   rowSub: {
     fontSize: Type.small.fontSize,

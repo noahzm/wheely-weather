@@ -5,7 +5,7 @@ import Animated, { type SharedValue } from 'react-native-reanimated';
 import { ThemedText } from '@/components/themed-text';
 import { CONDITION_DISPLAY } from '@/domain';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Fonts, FontWeightBold, Spacing, Type, type WheelyPalette } from '@/constants/theme';
+import { Fonts, Spacing, Type, type WheelyPalette } from '@/constants/theme';
 import type { HourlyWeather } from '@/types/weather';
 import {
   AnimatedConditionChip,
@@ -14,7 +14,13 @@ import {
 } from './animated-condition-chip';
 import { AnimatedExpand } from './animated-expand';
 import { BrutalCard, asCondition } from './primitives';
-import { CHART_HEIGHT, HourlyChartGraphic, SelectionMarker } from './hourly-chart-graphic';
+import {
+  CHART_HEIGHT,
+  HourlyChartEdgeFades,
+  HourlyChartGraphic,
+  HourlyChartGridlines,
+  SelectionMarker,
+} from './hourly-chart-graphic';
 import { HourlyNoteStickers } from './hourly-note-stickers';
 import { useHourlyForecastChart, type ChartHour } from './use-hourly-forecast-chart';
 
@@ -34,13 +40,21 @@ function makeStyles(c: WheelyPalette) {
       position: 'relative',
       overflow: 'visible',
     },
+    // No reserved height: the row collapses with the reason drawer so a
+    // closed drawer doesn't read as an empty extended panel under the chart.
     conditionSummary: {
-      minHeight: 38,
       flexDirection: 'row',
       alignItems: 'center',
       gap: Spacing.two,
       paddingHorizontal: Spacing.one,
-      paddingTop: Spacing.one,
+    },
+    // Sticker overhang: pulled past the card's padding (Spacing.two) and
+    // border so the badge straddles the bottom-left corner.
+    conditionSticker: {
+      position: 'absolute',
+      left: -(Spacing.three + Spacing.one),
+      bottom: -(Spacing.three + Spacing.one),
+      zIndex: 5,
     },
     reasonWrap: {
       flex: 1,
@@ -68,7 +82,6 @@ function makeStyles(c: WheelyPalette) {
     alertTitle: {
       color: c.ink,
       fontFamily: Fonts.display,
-      fontWeight: FontWeightBold,
       ...Type.body,
     },
     muted: {
@@ -116,12 +129,8 @@ function HourlyReasonFooter({
 
   return (
     <View style={styles.conditionSummary}>
-      <View style={{ pointerEvents: 'none' }}>
-        <AnimatedConditionChip
-          condition={asCondition(condition)}
-          chartScroll={chartScroll}
-          large={false}
-        >
+      <View style={[styles.conditionSticker, { pointerEvents: 'none' }]}>
+        <AnimatedConditionChip condition={asCondition(condition)} chartScroll={chartScroll} large>
           {conditionLabel}
         </AnimatedConditionChip>
       </View>
@@ -229,11 +238,7 @@ function HourlyForecastBody({
   return (
     <View style={styles.hourlyBody}>
       <HourlyNoteStickers rainTiming={rainTiming} daylightWarning={daylightWarning} />
-      <ConditionChipWidthProbe
-        labels={conditionLabels}
-        large={false}
-        onLayouts={handleChipLayouts}
-      />
+      <ConditionChipWidthProbe labels={conditionLabels} large onLayouts={handleChipLayouts} />
       <HourlyChartShell chart={chart} data={data} nowIdx={nowIdx} maxIndex={maxIndex} />
       <HourlyReasonFooter
         reasonOpen={chart.reasonOpen}
@@ -295,6 +300,7 @@ function HourlyChartShell({
         onViewportLayout(event.nativeEvent.layout.width);
       }}
     >
+      <HourlyChartGridlines width={viewportWidth} />
       <Animated.ScrollView
         ref={scrollRef}
         horizontal
@@ -339,6 +345,7 @@ function HourlyChartShell({
           <View style={{ width: contentPadding }} />
         </View>
       </Animated.ScrollView>
+      <HourlyChartEdgeFades />
       <SelectionMarker
         segments={splineSegments}
         scrollX={scrollX}

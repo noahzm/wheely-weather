@@ -1,9 +1,32 @@
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { Host, Picker, Text } from '@expo/ui/swift-ui';
-import { pickerStyle, tag } from '@expo/ui/swift-ui/modifiers';
+import { useEffect, useState, type ComponentProps } from 'react';
+import { Linking, StyleSheet, View } from 'react-native';
+import {
+  Button,
+  Host,
+  HStack,
+  Image,
+  Label,
+  List,
+  Picker,
+  Section,
+  Spacer,
+  Text,
+  Toggle,
+} from '@expo/ui/swift-ui';
+import {
+  buttonStyle,
+  disabled,
+  foregroundStyle,
+  listStyle,
+  pickerStyle,
+  tag,
+  tint,
+} from '@expo/ui/swift-ui/modifiers';
 
-import { Spacing, TRANSPARENT } from '@/constants/theme';
-import { ScreenGutter } from './content-column';
+import AppleWeatherKitModule from '../../../modules/apple-weatherkit/src/AppleWeatherKitModule';
+import type { WeatherKitAttribution } from '../../../modules/apple-weatherkit/src/AppleWeatherKit.types';
+import { TRANSPARENT } from '@/constants/theme';
+import { useWheelyColors } from '@/hooks/use-theme';
 import {
   APPEARANCE_LABELS,
   APPEARANCE_VALUES,
@@ -13,35 +36,78 @@ import {
   TEMP_UNIT_VALUES,
   type SettingsFormProps,
 } from './settings-form.types';
-import { BrutalCard, SectionTitle } from './primitives';
-import { HomeClimateSection } from './settings-home-section';
-import { IconAttributionSection } from './settings-icon-attribution-section';
-import { WeatherAttributionSection } from './settings-attribution-section.ios';
-
-// Intrinsic height of a SwiftUI segmented Picker; the Host needs an explicit size.
-const SEGMENTED_HEIGHT = 34;
 
 const styles = StyleSheet.create({
-  scroll: {
+  container: {
+    flex: 1,
     backgroundColor: TRANSPARENT,
   },
-  content: {
-    paddingHorizontal: ScreenGutter,
-    paddingBottom: Spacing.six,
-    gap: Spacing.four,
-  },
-  group: {
-    gap: Spacing.two,
-  },
-  host: {
-    height: SEGMENTED_HEIGHT,
+  listHost: {
+    flex: 1,
     backgroundColor: TRANSPARENT,
   },
 });
 
 /**
- * iOS settings body — native SwiftUI segmented Pickers inside the app's BrutalCard
- * surfaces, with SectionTitle headings, to match the location screen's design.
+ * Apple's required WeatherKit attribution data (legal link). Credits-only:
+ * failures (unlinked module, network error) resolve to null silently.
+ */
+function useWeatherAttribution(): WeatherKitAttribution | null {
+  const [attribution, setAttribution] = useState<WeatherKitAttribution | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!AppleWeatherKitModule) return;
+    AppleWeatherKitModule.attribution()
+      .then((result) => {
+        if (!cancelled) setAttribution(result);
+      })
+      .catch(() => {
+        /* credits-only section; ignore failures */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return attribution;
+}
+
+function ExternalLinkRow({
+  title,
+  systemImage,
+  url,
+}: Readonly<{
+  title: string;
+  systemImage: NonNullable<ComponentProps<typeof Label>['systemImage']>;
+  url: string;
+}>) {
+  return (
+    <Button
+      modifiers={[buttonStyle('plain')]}
+      onPress={() => {
+        Linking.openURL(url).catch(() => {
+          /* row is a courtesy link; ignore failures */
+        });
+      }}
+    >
+      <HStack>
+        <Label title={title} systemImage={systemImage} />
+        <Spacer />
+        <Image
+          systemName="arrow.up.right"
+          size={13}
+          modifiers={[foregroundStyle({ type: 'hierarchical', style: 'secondary' })]}
+        />
+      </HStack>
+    </Button>
+  );
+}
+
+/**
+ * iOS settings body — a native SwiftUI inset-grouped List (matching the
+ * location search screen) with segmented pickers, the home-climate toggle,
+ * and a combined credits section.
  */
 export function SettingsForm({
   gearMode,
@@ -55,16 +121,19 @@ export function SettingsForm({
   onSetHome,
   onClearHome,
 }: Readonly<SettingsFormProps>) {
+  const c = useWheelyColors();
+  const attribution = useWeatherAttribution();
+
+  const homeOn = !!homeLabel;
+  const homeHint = homeLabel
+    ? 'Heat and humidity are judged against what you’re used to at home.'
+    : 'Set your home to adapt the verdict to your climate. Other cities adjust relative to home.';
+
   return (
-    <ScrollView
-      style={styles.scroll}
-      contentInsetAdjustmentBehavior="automatic"
-      contentContainerStyle={styles.content}
-    >
-      <View style={styles.group}>
-        <SectionTitle title="Gear" />
-        <BrutalCard>
-          <Host style={styles.host}>
+    <View style={styles.container}>
+      <Host style={styles.listHost}>
+        <List modifiers={[listStyle('insetGrouped')]}>
+          <Section title="Gear">
             <Picker
               selection={gearMode}
               onSelectionChange={(value) => {
@@ -78,14 +147,9 @@ export function SettingsForm({
                 </Text>
               ))}
             </Picker>
-          </Host>
-        </BrutalCard>
-      </View>
+          </Section>
 
-      <View style={styles.group}>
-        <SectionTitle title="Appearance" />
-        <BrutalCard>
-          <Host style={styles.host}>
+          <Section title="Appearance">
             <Picker
               selection={appearance}
               onSelectionChange={(value) => {
@@ -99,14 +163,9 @@ export function SettingsForm({
                 </Text>
               ))}
             </Picker>
-          </Host>
-        </BrutalCard>
-      </View>
+          </Section>
 
-      <View style={styles.group}>
-        <SectionTitle title="Units" />
-        <BrutalCard>
-          <Host style={styles.host}>
+          <Section title="Units">
             <Picker
               selection={tempUnit}
               onSelectionChange={(value) => {
@@ -120,19 +179,45 @@ export function SettingsForm({
                 </Text>
               ))}
             </Picker>
-          </Host>
-        </BrutalCard>
-      </View>
+          </Section>
 
-      <HomeClimateSection
-        homeLabel={homeLabel}
-        canSetHome={canSetHome}
-        onSetHome={onSetHome}
-        onClearHome={onClearHome}
-      />
+          <Section title="Home climate" footer={<Text>{homeHint}</Text>}>
+            <Toggle
+              isOn={homeOn}
+              onIsOnChange={(value: boolean) => {
+                if (value && canSetHome && !homeOn) onSetHome();
+                else if (!value && homeOn) onClearHome();
+              }}
+              modifiers={[disabled(!homeOn && !canSetHome), tint(c.accent)]}
+            >
+              <Text>{homeLabel ?? 'Use current location as home'}</Text>
+            </Toggle>
+          </Section>
 
-      <IconAttributionSection />
-      <WeatherAttributionSection />
-    </ScrollView>
+          <Section
+            title="Credits"
+            footer={
+              <Text>
+                Game-icons artwork by Lorc and Delapouite, licensed under CC BY 3.0. Apple Weather
+                provides forecasts and severe weather alerts on iOS.
+              </Text>
+            }
+          >
+            <ExternalLinkRow
+              title="Kit guide icons by game-icons.net"
+              systemImage="paintbrush"
+              url="https://game-icons.net/"
+            />
+            {attribution && (
+              <ExternalLinkRow
+                title="Apple Weather"
+                systemImage="apple.logo"
+                url={attribution.legalPageURL}
+              />
+            )}
+          </Section>
+        </List>
+      </Host>
+    </View>
   );
 }

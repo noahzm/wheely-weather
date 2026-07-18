@@ -1,20 +1,9 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
-
 import '@/global.css';
 
 import { Platform } from 'react-native';
 
-const IOS_BODY_FONT = 'Ronzino-Regular';
-const DEFAULT_BODY_FONT = 'Ronzino-Regular';
-const IOS_HEADING_FONT = 'Ronzino-Medium';
-const DEFAULT_HEADING_FONT = 'Ronzino-Medium';
-const IOS_DISPLAY_FONT = 'Ronzino-Bold';
-const DEFAULT_DISPLAY_FONT = 'Ronzino-Bold';
-const IOS_CITY_FONT = 'Ronzino-Medium';
-const DEFAULT_CITY_FONT = 'Ronzino-Medium';
+const SANS_FONT = 'AlteHaasGrotesk';
+const SANS_BOLD_FONT = 'AlteHaasGrotesk_Bold';
 
 interface WheelyConditionColors {
   good: { bg: string; ink: string };
@@ -33,8 +22,9 @@ export interface WheelyPalette {
   shadow: string;
   primary: string;
   primaryInk: string;
-  secondary: string;
   accent: string;
+  /** Text/icon color for content rendered on an `accent` background. */
+  accentInk: string;
   success: string;
   warning: string;
   error: string;
@@ -43,45 +33,47 @@ export interface WheelyPalette {
 }
 
 /**
- * Neobrutalist "race-day cue sheet" palette, ported from the Astro site's
- * daisyUI `wheely` (light) and `wheely-night` (dark) themes. In dark mode the
- * ink flips to cream and the ride-condition ramp brightens for contrast.
+ * Punk zine palette on a native iOS shell: system grouped backgrounds
+ * (`background` = systemGroupedBackground, `paper` = the elevated card
+ * surface) with `#F1BDF2` as the single shout color (`warning` stays yellow
+ * so non-extreme alert chrome reads distinctly from `error`). Cards render
+ * as `paper` in the active scheme — no inversion.
  */
 export const WheelyTheme: { light: WheelyPalette; dark: WheelyPalette } = {
   light: {
-    background: '#ffffff',
-    paper: '#F5F1F6',
-    ink: '#161310',
-    mutedInk: '#655E68',
-    border: '#CFC4DC',
-    shadow: '#161310',
-    primary: '#C6A2ED',
-    primaryInk: '#161310',
-    secondary: '#FFD20A',
-    accent: '#A6D8DC',
+    background: '#F2F2F7',
+    paper: '#ffffff',
+    ink: '#0A0A08',
+    mutedInk: '#45423B',
+    border: '#0A0A08',
+    shadow: '#0A0A08',
+    primary: '#0A0A08',
+    primaryInk: '#ffffff',
+    accent: '#F1BDF2',
+    accentInk: '#0A0A08',
     success: '#236F49',
     warning: '#FFD20A',
-    error: '#FF642C',
-    link: '#3c87f7',
+    error: '#ED4E12',
+    link: '#2563EB',
     condition: {
       good: { bg: '#078044', ink: '#ffffff' },
       fair: { bg: '#1b63f3', ink: '#ffffff' },
       marginal: { bg: '#f0b000', ink: '#161310' },
-      poor: { bg: '#d66400', ink: '#161310' },
+      poor: { bg: '#ef8817', ink: '#161310' },
       bad: { bg: '#da1d0b', ink: '#ffffff' },
     },
   },
   dark: {
-    background: '#121014',
-    paper: '#211D27',
-    ink: '#F4EBDD',
-    mutedInk: '#B7AA9B',
-    border: '#4A4254',
-    shadow: '#09080B',
-    primary: '#C6A2ED',
-    primaryInk: '#161310',
-    secondary: '#FFD20A',
-    accent: '#A6D8DC',
+    background: '#000000',
+    paper: '#1C1C1E',
+    ink: '#ffffff',
+    mutedInk: '#CFC9BE',
+    border: '#ffffff',
+    shadow: '#ffffff',
+    primary: '#ffffff',
+    primaryInk: '#0A0A08',
+    accent: '#F1BDF2',
+    accentInk: '#0A0A08',
     success: '#2ECC71',
     warning: '#FFD20A',
     error: '#FF6A42',
@@ -109,47 +101,28 @@ export type ThemeColor = keyof Omit<WheelyPalette, 'condition'>;
  * - native: family names embedded by the `expo-font` config plugin
  */
 export const Fonts = Platform.select({
-  ios: {
-    body: IOS_BODY_FONT,
-    heading: IOS_HEADING_FONT,
-    display: IOS_DISPLAY_FONT,
-    city: IOS_CITY_FONT,
-    serif: IOS_BODY_FONT,
-    rounded: IOS_HEADING_FONT,
-  },
-  default: {
-    body: DEFAULT_BODY_FONT,
-    heading: DEFAULT_HEADING_FONT,
-    display: DEFAULT_DISPLAY_FONT,
-    city: DEFAULT_CITY_FONT,
-    serif: DEFAULT_BODY_FONT,
-    rounded: DEFAULT_HEADING_FONT,
-  },
   web: {
     body: 'var(--font-body)',
     heading: 'var(--font-heading)',
     display: 'var(--font-display)',
     city: 'var(--font-city)',
-    serif: 'var(--font-serif)',
-    rounded: 'var(--font-rounded)',
+    bold: 'var(--font-bold)',
+  },
+  default: {
+    body: SANS_FONT,
+    heading: SANS_FONT,
+    display: SANS_FONT,
+    city: SANS_BOLD_FONT,
+    bold: SANS_BOLD_FONT,
   },
 });
 
 /**
- * Weight to pair with Fonts.heading / Fonts.display.
- * Pair Fonts.body with 400.
+ * Weight to pair with Fonts.city / Fonts.bold (Alte Haas Grotesk Bold, 700) so
+ * font matching resolves to the Bold face. The regular family only ships 400,
+ * so roles using Fonts.body/heading/display need no explicit weight.
  */
-export const FontWeightMedium = Platform.select({
-  web: '500' as const,
-  ios: '500' as const,
-  default: '500' as const,
-});
-
-export const FontWeightBold = Platform.select({
-  web: '700' as const,
-  ios: '700' as const,
-  default: '700' as const,
-});
+export const FontWeightBlack = '700' as const;
 
 export const Spacing = {
   half: 2,
@@ -167,29 +140,30 @@ export const Spacing = {
  */
 export const Type = {
   /** chip labels, tab labels */
-  micro: { fontSize: 11, lineHeight: 14 },
+  micro: { fontSize: 13, lineHeight: 16 },
   /** code, fine print */
-  caption: { fontSize: 12, lineHeight: 16 },
+  caption: { fontSize: 14, lineHeight: 18 },
   /** muted/secondary text */
-  small: { fontSize: 13, lineHeight: 18 },
-  body: { fontSize: 16, lineHeight: 24 },
+  small: { fontSize: 15, lineHeight: 20 },
+  body: { fontSize: 18, lineHeight: 26 },
   /** section titles, day temps */
-  heading: { fontSize: 22, lineHeight: 28 },
+  heading: { fontSize: 24, lineHeight: 30 },
   /** big numerics (verdict, metric values) */
-  stat: { fontSize: 28, lineHeight: 32 },
-  subtitle: { fontSize: 32, lineHeight: 44 },
-  display: { fontSize: 48, lineHeight: 52 },
+  stat: { fontSize: 30, lineHeight: 34 },
+  subtitle: { fontSize: 34, lineHeight: 46 },
+  display: { fontSize: 50, lineHeight: 54 },
 } as const;
 
 /**
- * Corner radius scale. Chips/pills stay square (neobrutalist); cards and
- * buttons share `card`; `pill` covers badges and circular buttons.
+ * Corner radius scale, matched to iOS grouped-list chrome: `card` mirrors the
+ * native inset-grouped card radius, `small` is the concentric radius for
+ * nested elements, and `pill` covers badges and circular buttons.
  */
 export const Radius = {
   none: 0,
   /** nested elements inside a card */
-  small: 8,
-  card: 12,
+  small: 12,
+  card: 26,
   pill: 999,
 } as const;
 

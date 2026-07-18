@@ -4,6 +4,7 @@ import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native
 import { scheduleOnRN } from 'react-native-worklets';
 
 import {
+  CHART_SCROLL_UNSET,
   chartClampScrollOffset,
   chartContentPadding,
   chartIndexFromScrollOffset,
@@ -290,7 +291,7 @@ export function useHourlyScrollPicker(
   const [isScrollIdle, setIsScrollIdle] = useState(true);
   const isWeb = Platform.OS === 'web';
   const scrollRef = useRef<Animated.ScrollView>(null);
-  const scrollX = useSharedValue(-1);
+  const scrollX = useSharedValue(CHART_SCROLL_UNSET);
   // Last index dispatched to React from the scroll worklet, so the UI→JS hop
   // happens once per hour-crossing instead of on every scroll frame.
   const lastNotifiedIdx = useSharedValue(-1);

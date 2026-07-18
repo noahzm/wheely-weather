@@ -3,15 +3,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
-import {
-  Fonts,
-  FontWeightMedium,
-  Radius,
-  Spacing,
-  Type,
-  WheelyTheme,
-  type WheelyPalette,
-} from '@/constants/theme';
+import { Fonts, Radius, Spacing, Type, type WheelyPalette } from '@/constants/theme';
 import { verdictFeedback } from '@/utils/haptics';
 import { BrutalCard } from './primitives';
 
@@ -39,11 +31,10 @@ function makeStyles(c: WheelyPalette) {
       transform: [{ rotate: '-1deg' }],
     },
     verdictBadgeText: {
-      // Badge sits on c.shadow in both themes — always use light cream ink.
-      color: WheelyTheme.light.paper,
+      // Badge sits on c.shadow (the scheme's ink), so text takes the page color.
+      color: c.background,
       fontFamily: Fonts.heading,
       fontSize: Type.small.fontSize,
-      fontWeight: FontWeightMedium,
     },
     verdictText: {
       fontFamily: Fonts.body,

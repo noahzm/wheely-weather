@@ -7,7 +7,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColorSchemeName, useWheelyColors } from '@/hooks/use-theme';
 import {
   Fonts,
-  FontWeightMedium,
   MaxContentWidth,
   Radius,
   Spacing,
@@ -69,7 +68,6 @@ function useBottomNavStyles(c: WheelyPalette) {
         tabPillInactive: {},
         tabLabel: {
           fontFamily: Fonts.heading,
-          fontWeight: FontWeightMedium,
           fontSize: Type.micro.fontSize,
         },
       }),

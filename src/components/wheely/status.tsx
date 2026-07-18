@@ -56,14 +56,23 @@ function makeStyles(c: WheelyPalette, webPaddingBottom?: number) {
   });
 }
 
-function useStyles() {
-  const c = useWheelyColors();
+function useStylesFor(c: WheelyPalette) {
   const insets = useSafeAreaInsets();
   const webPaddingBottom =
     Platform.OS === 'web' ? webBottomInset(insets.bottom) + Spacing.four : undefined;
   const styles = useMemo(() => makeStyles(c, webPaddingBottom), [c, webPaddingBottom]);
   const buttonStyles = useMemo(() => makeButtonStyles(c), [c]);
   return { c, styles, buttonStyles };
+}
+
+/** Page-level states (no card) style with the page palette. */
+function useStyles() {
+  return useStylesFor(useWheelyColors());
+}
+
+/** Card states style their contents with the card palette. */
+function useCardStyles() {
+  return useStylesFor(useWheelyColors());
 }
 
 export function ErrorState({
@@ -73,7 +82,7 @@ export function ErrorState({
   kind: 'network' | 'default';
   onRetry: () => void;
 }>) {
-  const { c, styles, buttonStyles } = useStyles();
+  const { c, styles, buttonStyles } = useCardStyles();
   const network = kind === 'network';
   const Icon = network ? CloudOff : AlertTriangle;
   const sfIcon = network ? 'cloud.slash.fill' : 'exclamationmark.triangle.fill';
@@ -140,7 +149,7 @@ export function StaleDataNotice({
   kind: 'network' | 'default';
   onRetry: () => void;
 }>) {
-  const { c, styles } = useStyles();
+  const { c, styles } = useCardStyles();
   const message =
     kind === 'network'
       ? "Couldn't refresh — check your connection. Showing the last forecast."
@@ -201,7 +210,7 @@ export function LocationPromptState({
   busy?: boolean;
   statusMessage?: string;
 }>) {
-  const { c, styles, buttonStyles } = useStyles();
+  const { c, styles, buttonStyles } = useCardStyles();
   return (
     <View style={styles.centerState}>
       <BrutalCard style={styles.centerCard}>

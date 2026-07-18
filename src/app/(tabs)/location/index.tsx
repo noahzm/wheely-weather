@@ -24,14 +24,14 @@ const isWeb = Platform.OS === 'web';
 const isIOS = Platform.OS === 'ios';
 
 function WebSearchField({
-  c,
   query,
   onQueryChange,
 }: Readonly<{
-  c: ReturnType<typeof useWheelyColors>;
   query: string;
   onQueryChange: (text: string) => void;
 }>) {
+  // Card contents render on the card's paper surface.
+  const c = useWheelyColors();
   const [focused, setFocused] = useState(false);
   return (
     <BrutalCard
@@ -39,7 +39,7 @@ function WebSearchField({
       style={[
         styles.searchCard,
         focused && {
-          borderColor: c.primary,
+          borderColor: c.accent,
           borderWidth: 2,
         },
       ]}
@@ -156,14 +156,14 @@ export default function LocationSearchScreen() {
                   title={<WebScreenTitle>Search</WebScreenTitle>}
                 />
               )}
-              {isWeb && <WebSearchField c={c} query={query} onQueryChange={setQuery} />}
+              {isWeb && <WebSearchField query={query} onQueryChange={setQuery} />}
               <LocationSearchList {...listProps} />
             </WebContentColumn>
           </ScrollView>
         )}
         {busy && !isIOS && (
           <View style={[styles.busyOverlay, { backgroundColor: withAlpha(c.shadow, 0.15) }]}>
-            <ActivityIndicator color={c.primary} size="large" />
+            <ActivityIndicator color={c.accent} size="large" />
           </View>
         )}
       </View>

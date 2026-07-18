@@ -99,6 +99,10 @@ export interface GearTip {
 export interface GearSuggestion {
   headline: string;
   items: GearTipItem[];
+  /** Core outfit: slotted items plus base temperature-tip accessories. */
+  wear: GearTipItem[];
+  /** Conditional add-ons to pack (rain shell, sunscreen, removable layer). */
+  bring: GearTipItem[];
 }
 
 export interface ForecastExtras {

@@ -16,6 +16,7 @@ import {
   chartCenterXFromScroll,
   chartInterpolateAtCenter,
   chartScrollBlendAtCenter,
+  chartScrollOffsetOrInitial,
 } from '@/utils/hourlyChart';
 
 import { BURST_CHIP_SIZES, BURST_PATH, BURST_VIEWBOX, burstChipStyles } from './primitives';
@@ -78,8 +79,7 @@ function linkedChipAppearance(
 
 function scrollCenterX(chartScroll: ChartScrollProps): number {
   'worklet';
-  const offsetX =
-    chartScroll.scrollX.value < 0 ? chartScroll.initialScrollX : chartScroll.scrollX.value;
+  const offsetX = chartScrollOffsetOrInitial(chartScroll.scrollX.value, chartScroll.initialScrollX);
   return chartCenterXFromScroll(offsetX, chartScroll.viewportWidth);
 }
 

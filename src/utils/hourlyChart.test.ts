@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  CHART_SCROLL_UNSET,
   CHART_X_ORIGIN,
   CHART_X_STEP,
   chartClampScrollOffset,
@@ -14,6 +15,7 @@ import {
   chartMaxScrollOffset,
   chartNearestSnapOffset,
   chartScrollOffsetForIndex,
+  chartScrollOffsetOrInitial,
   chartSmoothYAtX,
   chartSnapOffsets,
   chartX,
@@ -81,6 +83,18 @@ describe('chart scroll picker', () => {
     const offsets = chartSnapOffsets(36, viewportWidth);
     expect(chartNearestSnapOffset(10, offsets)).toBe(0);
     expect(chartNearestSnapOffset(550, offsets)).toBe(offsets[12]);
+  });
+});
+
+describe('chartScrollOffsetOrInitial', () => {
+  it('substitutes the initial offset while unset', () => {
+    expect(chartScrollOffsetOrInitial(CHART_SCROLL_UNSET, 550)).toBe(550);
+  });
+
+  it('passes real offsets through, including overscroll negatives', () => {
+    expect(chartScrollOffsetOrInitial(0, 550)).toBe(0);
+    expect(chartScrollOffsetOrInitial(-42.5, 550)).toBe(-42.5);
+    expect(chartScrollOffsetOrInitial(1234, 550)).toBe(1234);
   });
 });
 
