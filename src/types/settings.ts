@@ -10,7 +10,7 @@ export type TempUnitPreference = 'auto' | 'fahrenheit' | 'celsius';
 
 // Display labels paired (by index) with their persisted values. Shared by the
 // base and .ios settings forms so both platforms render identical options.
-export const GEAR_LABELS = ['Everyday', 'Performance'] as const;
+export const GEAR_LABELS = ['Casual', 'Roadie'] as const;
 export const GEAR_MODES = ['casual', 'pro'] as const satisfies readonly GearMode[];
 
 export const APPEARANCE_LABELS = ['System', 'Light', 'Dark'] as const;
