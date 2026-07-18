@@ -275,6 +275,7 @@ function HourlyChartShell({
     scrollHandler,
     onWebScroll,
     onViewportLayout,
+    onContentSizeChange,
     onScrollBeginDrag,
     onScrollEndDrag,
     onMomentumScrollEnd,
@@ -309,6 +310,7 @@ function HourlyChartShell({
         snapToOffsets={snapToOffsets}
         scrollEventThrottle={16}
         onScroll={onWebScroll ?? scrollHandler}
+        onContentSizeChange={onContentSizeChange}
         onScrollBeginDrag={onScrollBeginDrag}
         onScrollEndDrag={onScrollEndDrag}
         onMomentumScrollEnd={onMomentumScrollEnd}

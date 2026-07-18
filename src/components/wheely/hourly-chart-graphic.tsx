@@ -42,7 +42,11 @@ export const SELECTION_RING_RADIUS = SELECTION_RING_SIZE / 2;
 
 const GRIDLINE_CONDITIONS = ['good', 'fair', 'marginal', 'poor', 'bad'] as const;
 const GRIDLINE_INSET = 12;
-const EDGE_FADE_WIDTH = 28;
+// Wide enough to fully mask an hour label cut by the viewport edge: the
+// gradient holds opaque paper over the outer band so labels dissolve instead
+// of truncating mid-glyph, then fades inward.
+const EDGE_FADE_WIDTH = 44;
+const EDGE_FADE_SOLID_STOP = 0.3;
 
 function makeStyles(c: WheelyPalette) {
   return StyleSheet.create({
@@ -284,6 +288,7 @@ export function HourlyChartEdgeFades() {
         <Defs>
           <LinearGradient id="hourlyEdgeFadeL" x1="0" y1="0" x2="1" y2="0">
             <Stop offset="0" stopColor={c.paper} stopOpacity="1" />
+            <Stop offset={EDGE_FADE_SOLID_STOP} stopColor={c.paper} stopOpacity="1" />
             <Stop offset="1" stopColor={c.paper} stopOpacity="0" />
           </LinearGradient>
         </Defs>
@@ -297,6 +302,7 @@ export function HourlyChartEdgeFades() {
         <Defs>
           <LinearGradient id="hourlyEdgeFadeR" x1="0" y1="0" x2="1" y2="0">
             <Stop offset="0" stopColor={c.paper} stopOpacity="0" />
+            <Stop offset={1 - EDGE_FADE_SOLID_STOP} stopColor={c.paper} stopOpacity="1" />
             <Stop offset="1" stopColor={c.paper} stopOpacity="1" />
           </LinearGradient>
         </Defs>
