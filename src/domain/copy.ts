@@ -20,8 +20,26 @@ function seededHash(str: string): number {
   return Math.abs(hash);
 }
 
+/**
+ * Seeded variant of `pick()`: still stable within the hour (no re-render
+ * flicker), but different seeds land on different variants so two distinct
+ * forecasts don't show identical copy in the same hour.
+ */
+const seededPick = <T>(arr: readonly [T, ...T[]], seed: string): T =>
+  arr[seededHash(`${seed}|${new Date().getHours()}`) % arr.length] ?? arr[0];
+
 const VERDICT_LABELS: Record<RideStatus, readonly string[]> = {
-  yes: ['Let’s ride', 'Good to go', 'Ride day', 'Wheels up', 'Clear for riding', 'Send it'],
+  yes: [
+    'Let’s ride',
+    'Good to go',
+    'Ride day',
+    'Wheels up',
+    'Clear for riding',
+    'Send it',
+    'Party pace',
+    'Go get lost',
+    'Free miles',
+  ],
   maybe: [
     'Not terrible',
     'Borderline',
@@ -29,14 +47,20 @@ const VERDICT_LABELS: Record<RideStatus, readonly string[]> = {
     'Rideable, barely',
     'Proceed with caution',
     'Sketchy but doable',
+    'Character building',
+    'Flip a coin',
+    'For the devoted',
   ],
+  // Only committed labels here: hedged phrasing ("Probably shouldn't") reads
+  // wrong next to the definitive "Sit this one out" message body.
   no: [
-    'Probably shouldn’t',
     'Not today',
     'Rest day',
     'Skip it',
-    'Off the bike today',
+    'Hard pass',
     'Trainer weather',
+    'Wrench day',
+    'Couch miles',
   ],
 };
 
@@ -116,14 +140,22 @@ export const STATUS_MESSAGES = {
     `Sit this one out: ${formatList(issues)}${moreTail(extra)}.`,
   CLEAR_UP: (time: string) => ` Clears by ${time}.`,
   TOMORROW_BETTER: ' Tomorrow should be the better ride window.',
-  REST_DAY: (): string =>
-    pick([
-      ' A good day for drivetrain maintenance.',
-      ' A good day to wax the chain.',
-      ' Time well spent on the indoor trainer.',
-      ' Time to plan next weekend’s route.',
-      ' Save the legs for a better window.',
-    ]),
+  // Seeded by the message so different forecasts vary their tails within the
+  // same hour instead of all landing on the same one.
+  REST_DAY: (seed = ''): string =>
+    seededPick(
+      [
+        ' A good day for drivetrain maintenance.',
+        ' A good day to wax the chain.',
+        ' Time well spent on the indoor trainer.',
+        ' Time to plan next weekend’s route.',
+        ' Save the legs for a better window.',
+        ' A fine day to reorganize the parts bin.',
+        ' Read about bikes instead of riding one.',
+        ' Window-shop a bike you don’t need.',
+      ],
+      seed,
+    ),
 };
 
 export const BEST_DAYS_MESSAGES = {
@@ -133,6 +165,8 @@ export const BEST_DAYS_MESSAGES = {
       'A week of mixed conditions. Short windows, if any.',
       'Few standout days ahead. Keep plans loose.',
       'Tough week on the forecast. Watch for short openings.',
+      'Wrench week, not ride week. The bike will thank you.',
+      'Nothing golden ahead. A good week to true a wheel.',
     ]),
 };
 
@@ -179,7 +213,7 @@ export const GEAR_TIPS = {
       ],
     },
     MILD_COOL: {
-      headline: 'Mild and cool',
+      headline: 'Shirtsleeves, with a backup',
       items: [
         {
           slot: 'top',
@@ -208,6 +242,8 @@ export const GEAR_TIPS = {
         'Ideal conditions for taking the long way home.',
         'Beautiful riding weather. A day for an extra loop or coffee stop.',
         'Conditions favor extra miles.',
+        'Weather this good demands a coffee stop.',
+        'Perfect out. Ride to nowhere in particular.',
       ]),
       items: [
         { slot: 'top', icon: 'Shirt', label: 'Short-sleeve top' },
@@ -353,7 +389,7 @@ export const GEAR_TIPS = {
       ],
     },
     SCORCHING: {
-      headline: 'Beat the heat.',
+      headline: 'Ice-sock hot.',
       items: [
         { icon: 'Shirt', label: 'Lightweight short-sleeve jersey' },
         { slot: 'bottom', icon: 'BibShorts', label: 'Bib shorts' },
@@ -365,6 +401,7 @@ export const GEAR_TIPS = {
         'Conditions are ideal. A day for a longer route or a hard effort.',
         'Prime jersey-and-bibs weather.',
         'Clean roads, good weather, fresh legs. A day worth making count.',
+        'Tailwind-shaped forecast. Make it count.',
       ]),
       items: [
         { icon: 'Shirt', label: 'Short-sleeve jersey' },
