@@ -65,7 +65,7 @@ export function SettingsForm({
   const form = (
     <>
       <View style={styles.group}>
-        <SectionTitle title="Gear" />
+        <SectionTitle title="Ride style" />
         <BrutalCard>
           <SegmentedControl
             values={[...GEAR_LABELS]}

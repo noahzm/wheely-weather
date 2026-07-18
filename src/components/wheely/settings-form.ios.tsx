@@ -133,7 +133,7 @@ export function SettingsForm({
     <View style={styles.container}>
       <Host style={styles.listHost}>
         <List modifiers={[listStyle('insetGrouped')]}>
-          <Section title="Gear">
+          <Section title="Ride style">
             <Picker
               selection={gearMode}
               onSelectionChange={(value) => {
