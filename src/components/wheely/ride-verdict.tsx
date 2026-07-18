@@ -3,7 +3,14 @@ import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Fonts, Radius, Spacing, Type, type WheelyPalette } from '@/constants/theme';
+import {
+  FontWeightBlack,
+  Fonts,
+  Radius,
+  Spacing,
+  Type,
+  type WheelyPalette,
+} from '@/constants/theme';
 import { verdictFeedback } from '@/utils/haptics';
 import { BrutalCard } from './primitives';
 
@@ -33,7 +40,8 @@ function makeStyles(c: WheelyPalette) {
     verdictBadgeText: {
       // Badge sits on c.shadow (the scheme's ink), so text takes the page color.
       color: c.background,
-      fontFamily: Fonts.heading,
+      fontFamily: Fonts.bold,
+      fontWeight: FontWeightBlack,
       fontSize: Type.small.fontSize,
     },
     verdictText: {

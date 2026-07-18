@@ -5,7 +5,14 @@ import { ThemedText } from '@/components/themed-text';
 import { getGearSuggestion } from '@/domain';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { useGearMode, useResolvedTempUnit } from '@/hooks/settings-context';
-import { Fonts, Radius, Spacing, Type, type WheelyPalette } from '@/constants/theme';
+import {
+  FontWeightBlack,
+  Fonts,
+  Radius,
+  Spacing,
+  Type,
+  type WheelyPalette,
+} from '@/constants/theme';
 import type { GearTipItem, RideStatus, Weather } from '@/types/weather';
 import { BrutalCard, GameGearIcon } from './primitives';
 
@@ -75,14 +82,16 @@ function makeStyles(c: WheelyPalette) {
     },
     bodyStrong: {
       color: c.ink,
-      fontFamily: Fonts.heading,
+      fontFamily: Fonts.bold,
+      fontWeight: FontWeightBlack,
       ...Type.small,
       textAlign: 'center',
       flexShrink: 1,
     },
     bringLabel: {
       color: c.ink,
-      fontFamily: Fonts.heading,
+      fontFamily: Fonts.bold,
+      fontWeight: FontWeightBlack,
       ...Type.small,
       flexShrink: 1,
     },
