@@ -74,8 +74,7 @@
   },
   "scripts": {
     "start": "expo start",
-    "reset-project": "node ./scripts/reset-project.js",
-    "android": "expo run:android",
+    "android": "cross-env SENTRY_DISABLE_AUTO_UPLOAD=true expo run:android",
     "ios": "cross-env SENTRY_DISABLE_AUTO_UPLOAD=true expo run:ios",
     "ios:install": "cross-env SENTRY_DISABLE_AUTO_UPLOAD=true expo run:ios --no-bundler",
     "ios:start": "cross-env SENTRY_DISABLE_AUTO_UPLOAD=true expo start --dev-client --ios",

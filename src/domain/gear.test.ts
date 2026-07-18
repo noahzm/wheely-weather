@@ -164,4 +164,78 @@ describe('Gear Suggestions', () => {
     expect(matchesItem(gear, /wind vest/i)).toBe(true);
     expect(matchesItem(gear, /sunscreen/i)).toBe(true);
   });
+
+  it('splits a cold rainy day into wear (outfit) and bring (add-ons)', () => {
+    const gear = getGearSuggestion(
+      {
+        feelsLike: 40,
+        windSpeed: 5,
+        rainChance: 70,
+        dewpoint: 30,
+        hourly: [{ feelsLike: 40, windSpeed: 5, rainChance: 70, dewpoint: 30, uv: 0 }],
+      },
+      'casual',
+    );
+
+    const wearLabels = gear.wear.map((item) => item.label).join(' ');
+    expect(wearLabels).toMatch(/long-sleeve top/i);
+    expect(wearLabels).toMatch(/long pants/i);
+    expect(wearLabels).toMatch(/gloves/i);
+    expect(gear.bring.some((item) => /rain jacket/i.test(item.label))).toBe(true);
+    expect(gear.wear.some((item) => /rain jacket/i.test(item.label))).toBe(false);
+  });
+
+  it('keeps a muggy slot-override top in wear, not bring', () => {
+    const gear = getGearSuggestion(
+      {
+        ...base,
+        dewpoint: 70,
+        hourly: [{ feelsLike: 72, windSpeed: 5, rainChance: 0, dewpoint: 70, uv: 0 }],
+      },
+      'casual',
+    );
+
+    expect(gear.wear.some((item) => /moisture-wicking/i.test(item.label))).toBe(true);
+    expect(gear.bring.some((item) => /moisture-wicking/i.test(item.label))).toBe(false);
+  });
+
+  it('puts the temp-swing removable layer in bring', () => {
+    const gear = getGearSuggestion(
+      {
+        feelsLike: 50,
+        windSpeed: 5,
+        rainChance: 0,
+        dewpoint: 40,
+        hourly: [
+          { feelsLike: 50, windSpeed: 5, rainChance: 0, dewpoint: 40, uv: 0 },
+          { feelsLike: 68, windSpeed: 5, rainChance: 0, dewpoint: 40, uv: 0 },
+        ],
+      },
+      'casual',
+    );
+
+    expect(gear.bring.some((item) => /removable layer/i.test(item.label))).toBe(true);
+  });
+
+  it('leaves bring empty on a perfect day', () => {
+    const gear = getGearSuggestion(base, 'casual');
+    expect(gear.bring).toHaveLength(0);
+    expect(gear.wear.length).toBeGreaterThan(0);
+  });
+
+  it('partitions items exactly into wear and bring', () => {
+    const gear = getGearSuggestion(
+      {
+        feelsLike: 40,
+        windSpeed: 20,
+        rainChance: 70,
+        dewpoint: 30,
+        hourly: [{ feelsLike: 40, windSpeed: 20, rainChance: 70, dewpoint: 30, uv: 8 }],
+      },
+      'pro',
+    );
+
+    expect(gear.wear.length + gear.bring.length).toBe(gear.items.length);
+    expect([...gear.wear, ...gear.bring].every((item) => gear.items.includes(item))).toBe(true);
+  });
 });

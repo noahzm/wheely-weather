@@ -7,6 +7,7 @@ import {
   chartDotOpacity,
   chartDotRadius,
   chartDotRadiusAtCenter,
+  chartScrollOffsetOrInitial,
   chartX,
   chartY,
 } from '@/utils/hourlyChart';
@@ -48,7 +49,7 @@ export function HourlyChartDot({
     if (scrollX == null || viewportWidth == null || maxIndex == null || count == null) {
       return { r: chartDotRadius(isNow) };
     }
-    const offsetX = scrollX.value < 0 ? (initialScrollX ?? 0) : scrollX.value;
+    const offsetX = chartScrollOffsetOrInitial(scrollX.value, initialScrollX ?? 0);
     const centerX = chartCenterXFromClampedScroll(offsetX, viewportWidth, maxIndex);
     return {
       r: chartDotRadiusAtCenter(idx, isNow, centerX, count),

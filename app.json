@@ -60,28 +60,19 @@
           "android": {
             "fonts": [
               {
-                "fontFamily": "Ronzino-Regular",
+                "fontFamily": "AlteHaasGrotesk",
                 "fontDefinitions": [
                   {
-                    "path": "assets/fonts/Ronzino-Regular.otf",
+                    "path": "assets/fonts/AlteHaasGroteskRegular.ttf",
                     "weight": 400
                   }
                 ]
               },
               {
-                "fontFamily": "Ronzino-Medium",
+                "fontFamily": "AlteHaasGrotesk_Bold",
                 "fontDefinitions": [
                   {
-                    "path": "assets/fonts/Ronzino-Medium.otf",
-                    "weight": 500
-                  }
-                ]
-              },
-              {
-                "fontFamily": "Ronzino-Bold",
-                "fontDefinitions": [
-                  {
-                    "path": "assets/fonts/Ronzino-Bold.otf",
+                    "path": "assets/fonts/AlteHaasGroteskBold.ttf",
                     "weight": 700
                   }
                 ]
@@ -90,12 +81,8 @@
           },
           "ios": {
             "fonts": [
-              "assets/fonts/Ronzino-Regular.otf",
-              "assets/fonts/Ronzino-Medium.otf",
-              "assets/fonts/Ronzino-Bold.otf",
-              "assets/fonts/Ronzino-Oblique.otf",
-              "assets/fonts/Ronzino-MediumOblique.otf",
-              "assets/fonts/Ronzino-BoldOblique.otf"
+              "assets/fonts/AlteHaasGroteskRegular.ttf",
+              "assets/fonts/AlteHaasGroteskBold.ttf"
             ]
           }
         }

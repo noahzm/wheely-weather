@@ -1,5 +1,5 @@
-// Default (Android / web) home-climate section. iOS is shadowed by
-// settings-home-section.ios.tsx with a native SwiftUI Toggle.
+// Android / web home-climate section. On iOS the toggle lives inside the
+// native SwiftUI settings list (settings-form.ios.tsx).
 import { StyleSheet, Switch, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -66,7 +66,7 @@ export function HomeClimateSection({
           <Switch
             value={!!homeLabel}
             disabled={!homeLabel && !canSetHome}
-            trackColor={{ true: c.primary }}
+            trackColor={{ true: c.accent }}
             accessibilityLabel={homeLabel ?? 'Use current location as home'}
             onValueChange={(v) => {
               selectionFeedback();

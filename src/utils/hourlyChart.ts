@@ -32,6 +32,24 @@ export const DOT_RADIUS_MIN = 5;
 export const DOT_RADIUS_NOW_FLOOR = 7;
 const DOT_OPACITY_MUTED = 0.58;
 
+/**
+ * Sentinel for "no scroll offset received yet". Must sit far below any real
+ * offset: iOS rubber-band overscroll reports small negative offsets, and those
+ * must not be mistaken for the unset state (consumers clamp them instead).
+ */
+export const CHART_SCROLL_UNSET = -1e9;
+
+/**
+ * Resolves a raw scroll offset, substituting the initial offset until the
+ * first real scroll event arrives. Overscroll negatives pass through so
+ * rubber-banding doesn't snap consumers back to the initial position.
+ * Worklet-safe.
+ */
+export function chartScrollOffsetOrInitial(offset: number, initialScrollX: number): number {
+  'worklet';
+  return offset <= CHART_SCROLL_UNSET ? initialScrollX : offset;
+}
+
 /** Horizontal pixel offset for a given data index. Worklet-safe. */
 export function chartX(idx: number): number {
   'worklet';

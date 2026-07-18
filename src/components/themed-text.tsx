@@ -1,6 +1,6 @@
 import { StyleSheet, Text, type TextProps } from 'react-native';
 
-import { Fonts, FontWeightBold, FontWeightMedium, ThemeColor, Type } from '@/constants/theme';
+import { Fonts, ThemeColor, Type } from '@/constants/theme';
 import { useWheelyColors } from '@/hooks/use-theme';
 
 export type ThemedTextProps = TextProps & {
@@ -39,7 +39,6 @@ const styles = StyleSheet.create({
   smallBold: {
     fontFamily: Fonts.heading,
     ...Type.small,
-    fontWeight: FontWeightMedium,
   },
   default: {
     fontFamily: Fonts.body,
@@ -49,12 +48,10 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: Fonts.display,
     ...Type.display,
-    fontWeight: FontWeightBold,
   },
   subtitle: {
     fontFamily: Fonts.display,
     ...Type.subtitle,
-    fontWeight: FontWeightBold,
   },
   link: {
     fontFamily: Fonts.body,

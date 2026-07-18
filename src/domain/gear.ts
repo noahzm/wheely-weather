@@ -129,21 +129,31 @@ function buildSupportingTips(
   return { tips, hasAdverse };
 }
 
-/** Flattens tips into a deduplicated item list — later items win their slot. */
-function mergeTipItems(tips: GearTip[]): GearTipItem[] {
-  const items: GearTipItem[] = [];
-  for (const tip of tips) {
+interface MergedTipItem {
+  item: GearTipItem;
+  group: 'wear' | 'bring';
+}
+
+/**
+ * Flattens tips into a deduplicated item list — later items win their slot.
+ * Slotted items and slotless base-tip items form the outfit ('wear');
+ * slotless supporting-tip items are add-ons to pack ('bring').
+ */
+function mergeTipItems(tips: { tip: GearTip; base: boolean }[]): MergedTipItem[] {
+  const merged: MergedTipItem[] = [];
+  for (const { tip, base } of tips) {
     for (const item of tip.items) {
+      const group = item.slot || base ? 'wear' : 'bring';
       if (!item.slot) {
-        items.push(item);
+        merged.push({ item, group });
         continue;
       }
-      const idx = items.findIndex((existing) => existing.slot === item.slot);
-      if (idx === -1) items.push(item);
-      else items[idx] = item;
+      const idx = merged.findIndex((existing) => existing.item.slot === item.slot);
+      if (idx === -1) merged.push({ item, group });
+      else merged[idx] = { item, group };
     }
   }
-  return items;
+  return merged;
 }
 
 function getGearTips(
@@ -170,9 +180,18 @@ function getGearTips(
     baseTips = [tipsSet.PERFECT()];
   }
 
-  const tips = [...baseTips, ...supportingTips];
-  const headline = tips.find((t) => t.headline)?.headline ?? '';
-  return { headline, items: mergeTipItems(tips) };
+  const tips = [
+    ...baseTips.map((tip) => ({ tip, base: true })),
+    ...supportingTips.map((tip) => ({ tip, base: false })),
+  ];
+  const headline = tips.find(({ tip }) => tip.headline)?.tip.headline ?? '';
+  const merged = mergeTipItems(tips);
+  return {
+    headline,
+    items: merged.map(({ item }) => item),
+    wear: merged.filter(({ group }) => group === 'wear').map(({ item }) => item),
+    bring: merged.filter(({ group }) => group === 'bring').map(({ item }) => item),
+  };
 }
 
 export const getGearSuggestion = (

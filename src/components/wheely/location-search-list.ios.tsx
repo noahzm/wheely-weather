@@ -79,9 +79,9 @@ function PinnableRow({
     buttonStyle('plain'),
     controlSize('small'),
     disabled(busy),
-    tint(c.primary),
+    tint(c.accent),
   ];
-  const swipePinModifiers = [labelStyle('iconOnly'), tint(c.primary)];
+  const swipePinModifiers = [labelStyle('iconOnly'), tint(c.accent)];
 
   return (
     <SwipeActions modifiers={[tag(rowId)]}>

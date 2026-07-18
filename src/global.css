@@ -1,35 +1,26 @@
 @font-face {
-  font-family: 'RonzinoRegular';
-  src: url('/fonts/Ronzino-Regular.woff2') format('woff2');
+  font-family: 'AlteHaasGrotesk';
+  src: url('/fonts/AlteHaasGroteskRegular.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'RonzinoMedium';
-  src: url('/fonts/Ronzino-Medium.woff2') format('woff2');
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'RonzinoBold';
-  src: url('/fonts/Ronzino-Bold.woff2') format('woff2');
+  font-family: 'AlteHaasGroteskBold';
+  src: url('/fonts/AlteHaasGroteskBold.woff2') format('woff2');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
 }
 
 :root {
-  --font-sans: 'RonzinoRegular', Georgia, 'Times New Roman', serif;
-  --font-display: 'RonzinoBold', Georgia, 'Times New Roman', serif;
-  --font-heading: 'RonzinoMedium', Georgia, 'Times New Roman', serif;
-  --font-body: 'RonzinoRegular', Georgia, 'Times New Roman', serif;
-  --font-city: 'RonzinoMedium', Georgia, 'Times New Roman', serif;
-  --font-rounded: 'RonzinoMedium', Georgia, 'Times New Roman', serif;
-  --font-serif: var(--font-body);
+  --font-sans: 'AlteHaasGrotesk', 'Helvetica Neue', Arial, sans-serif;
+  --font-display: 'AlteHaasGrotesk', 'Helvetica Neue', Arial, sans-serif;
+  --font-heading: 'AlteHaasGrotesk', 'Helvetica Neue', Arial, sans-serif;
+  --font-body: 'AlteHaasGrotesk', 'Helvetica Neue', Arial, sans-serif;
+  --font-city: 'AlteHaasGroteskBold', 'Helvetica Neue', Arial, sans-serif;
+  --font-bold: 'AlteHaasGroteskBold', 'Helvetica Neue', Arial, sans-serif;
 }
 
 html,

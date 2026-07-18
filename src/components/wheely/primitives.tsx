@@ -25,15 +25,8 @@ import {
 } from 'lucide-react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { useWheelyColors } from '@/hooks/use-theme';
-import {
-  Fonts,
-  FontWeightMedium,
-  Radius,
-  Spacing,
-  Type,
-  type WheelyPalette,
-} from '@/constants/theme';
+import { useColorSchemeName, useWheelyColors } from '@/hooks/use-theme';
+import { Fonts, Radius, Spacing, Type, WheelyTheme, type WheelyPalette } from '@/constants/theme';
 import type { Condition } from '@/types/weather';
 import { selectionFeedback } from '@/utils/haptics';
 
@@ -214,7 +207,7 @@ export function makeButtonStyles(c: WheelyPalette) {
       justifyContent: 'center',
       gap: Spacing.two,
       borderRadius: ButtonRadius,
-      borderWidth: 1,
+      borderWidth: 2,
       borderColor: c.border,
       paddingHorizontal: Spacing.three,
       paddingVertical: Spacing.two,
@@ -315,9 +308,9 @@ const sectionHeadingStyles = StyleSheet.create({
   },
   text: {
     alignSelf: 'flex-start',
-    fontFamily: Fonts.heading,
+    fontFamily: Fonts.bold,
     ...Type.heading,
-    fontWeight: FontWeightMedium,
+    fontWeight: '700',
   },
 });
 
@@ -517,6 +510,7 @@ export function Chip({
   children,
   condition,
   primary = false,
+  accent = false,
   ink = false,
   large = false,
   burst = true,
@@ -526,6 +520,7 @@ export function Chip({
   children: ReactNode;
   condition?: Condition;
   primary?: boolean;
+  accent?: boolean;
   ink?: boolean;
   large?: boolean;
   // Condition chips render as a spiky burst badge by default; pass burst={false}
@@ -538,11 +533,13 @@ export function Chip({
   let backgroundColor: string;
   if (condition) backgroundColor = c.condition[condition].bg;
   else if (primary) backgroundColor = c.primary;
+  else if (accent) backgroundColor = c.accent;
   else if (ink) backgroundColor = c.ink;
   else backgroundColor = c.paper;
   let color: string;
   if (condition) color = c.condition[condition].ink;
   else if (primary) color = c.primaryInk;
+  else if (accent) color = c.accentInk;
   else if (ink) color = c.paper;
   else color = c.ink;
 
@@ -600,7 +597,6 @@ export function ConditionPill({
           color: colors.ink,
           fontFamily: Fonts.heading,
           fontSize: Type.micro.fontSize,
-          fontWeight: FontWeightMedium,
         }}
       >
         {children}
@@ -633,7 +629,7 @@ function makeCardStyles(c: WheelyPalette) {
     },
     subtle: {
       backgroundColor: c.paper,
-      borderWidth: 1,
+      borderWidth: 2,
       borderColor: c.border,
       borderRadius: ButtonRadius,
       padding: Spacing.three,
@@ -642,8 +638,10 @@ function makeCardStyles(c: WheelyPalette) {
 }
 
 function useCardStyles() {
-  const c = useWheelyColors();
-  const styles = useMemo(() => makeCardStyles(c), [c]);
+  // Cards use the active scheme's paper surface (native grouped-list style):
+  // white cards on the gray page in light mode, elevated gray on black in dark.
+  const scheme = useColorSchemeName();
+  const styles = useMemo(() => makeCardStyles(WheelyTheme[scheme]), [scheme]);
   return { styles };
 }
 

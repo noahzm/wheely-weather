@@ -26,7 +26,7 @@ import {
 } from '@/utils';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { useTemperatureDisplay } from '@/hooks/use-temperature-display';
-import { Fonts, FontWeightBold, Spacing, Type, type WheelyPalette } from '@/constants/theme';
+import { Fonts, Spacing, Type, type WheelyPalette } from '@/constants/theme';
 import type { Weather } from '@/types/weather';
 import { BrutalCard, ConditionPill, asCondition, PlatformIcon } from './primitives';
 
@@ -153,7 +153,6 @@ function makeStyles(c: WheelyPalette, isCompact: boolean) {
       color: c.ink,
       fontFamily: Fonts.display,
       ...Type.stat,
-      fontWeight: FontWeightBold,
     },
     metricFooter: {
       flexDirection: 'row',

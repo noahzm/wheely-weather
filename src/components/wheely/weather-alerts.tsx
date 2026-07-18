@@ -8,14 +8,7 @@ import Animated, { type SharedValue, useAnimatedStyle } from 'react-native-reani
 import { ThemedText } from '@/components/themed-text';
 import { ExternalLink } from '@/components/external-link';
 import { useWheelyColors } from '@/hooks/use-theme';
-import {
-  Fonts,
-  FontWeightBold,
-  Radius,
-  Spacing,
-  Type,
-  type WheelyPalette,
-} from '@/constants/theme';
+import { Fonts, Radius, Spacing, Type, type WheelyPalette } from '@/constants/theme';
 import { withAlpha } from '@/utils/colors';
 import type { WeatherAlert } from '@/types/weather';
 import { AnimatedExpand, useExpandAnimation } from './animated-expand';
@@ -40,7 +33,6 @@ function makeStyles(c: WheelyPalette) {
     alertTitle: {
       color: c.ink,
       fontFamily: Fonts.display,
-      fontWeight: FontWeightBold,
       ...Type.body,
     },
     muted: {
@@ -78,6 +70,9 @@ function makeStyles(c: WheelyPalette) {
   });
 }
 
+// AlertCard renders the BrutalCard itself, so its styles use the card palette;
+// components rendered inside the card (HazardStripe, SolidAccentBar) keep
+// useWheelyColors, which resolves the same scheme.
 function useStyles() {
   const c = useWheelyColors();
   const styles = useMemo(() => makeStyles(c), [c]);
@@ -205,7 +200,7 @@ function AlertCard({ alert, primary }: Readonly<{ alert: WeatherAlert; primary: 
 
   return (
     <BrutalCard small style={styles.alertCard}>
-      <View style={{ borderRadius: Radius.card - 2, overflow: 'hidden' }}>
+      <View style={{ borderRadius: Radius.card, overflow: 'hidden' }}>
         {primary ? <HazardStripe extreme={extreme} /> : <SolidAccentBar extreme={extreme} />}
         <HapticPressable
           disabled={!hasDetails}

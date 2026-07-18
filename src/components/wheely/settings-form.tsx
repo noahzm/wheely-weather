@@ -58,7 +58,9 @@ export function SettingsForm({
   onSetHome,
   onClearHome,
 }: Readonly<SettingsFormProps>) {
-  const colorScheme = useColorSchemeName();
+  // Segmented controls sit on the card's paper surface, which follows the
+  // active scheme.
+  const cardScheme = useColorSchemeName();
   const insets = useSafeAreaInsets();
   const form = (
     <>
@@ -68,7 +70,7 @@ export function SettingsForm({
           <SegmentedControl
             values={[...GEAR_LABELS]}
             selectedIndex={GEAR_MODES.indexOf(gearMode)}
-            appearance={colorScheme}
+            appearance={cardScheme}
             onChange={(event) => {
               selectionFeedback();
               const index = event.nativeEvent.selectedSegmentIndex;
@@ -85,7 +87,7 @@ export function SettingsForm({
           <SegmentedControl
             values={[...APPEARANCE_LABELS]}
             selectedIndex={APPEARANCE_VALUES.indexOf(appearance)}
-            appearance={colorScheme}
+            appearance={cardScheme}
             onChange={(event) => {
               selectionFeedback();
               const index = event.nativeEvent.selectedSegmentIndex;
@@ -102,7 +104,7 @@ export function SettingsForm({
           <SegmentedControl
             values={[...TEMP_UNIT_LABELS]}
             selectedIndex={TEMP_UNIT_VALUES.indexOf(tempUnit)}
-            appearance={colorScheme}
+            appearance={cardScheme}
             onChange={(event) => {
               selectionFeedback();
               const index = event.nativeEvent.selectedSegmentIndex;

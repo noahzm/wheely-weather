@@ -5,7 +5,15 @@ import Animated, {
   useReducedMotion,
   type SharedValue,
 } from 'react-native-reanimated';
-import Svg, { Defs, Line, LinearGradient, Path, Stop, Text as SvgText } from 'react-native-svg';
+import Svg, {
+  Defs,
+  Line,
+  LinearGradient,
+  Path,
+  Rect,
+  Stop,
+  Text as SvgText,
+} from 'react-native-svg';
 
 import { useWheelyColors } from '@/hooks/use-theme';
 import { Fonts, type WheelyPalette } from '@/constants/theme';
@@ -13,15 +21,17 @@ import {
   chartCenterXFromClampedScroll,
   chartCenterXFromScroll,
   chartClampScrollOffset,
+  chartDotOpacity,
   chartDotRadius,
   chartDotRadiusAtCenter,
   chartNearestSnapOffset,
+  chartScrollOffsetOrInitial,
   chartSmoothYAtSegments,
   chartX,
   chartY,
   type ChartSplineSegment,
 } from '@/utils/hourlyChart';
-import { hourLabel } from '@/utils/timeFormat';
+import { fullHourLabel } from '@/utils/timeFormat';
 
 import { HourlyChartDot } from './hourly-chart-dot';
 import type { ChartHour } from './use-hourly-forecast-chart';
@@ -30,12 +40,28 @@ export const CHART_HEIGHT = 140;
 const SELECTION_RING_SIZE = 32;
 export const SELECTION_RING_RADIUS = SELECTION_RING_SIZE / 2;
 
+const GRIDLINE_CONDITIONS = ['good', 'fair', 'marginal', 'poor', 'bad'] as const;
+const GRIDLINE_INSET = 12;
+const EDGE_FADE_WIDTH = 28;
+
 function makeStyles(c: WheelyPalette) {
   return StyleSheet.create({
     hourChartSvg: {
       position: 'absolute',
       top: 0,
       left: 0,
+    },
+    edgeFadeLeft: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      zIndex: 2,
+    },
+    edgeFadeRight: {
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      zIndex: 2,
     },
     selectionRing: {
       position: 'absolute',
@@ -89,8 +115,10 @@ function dotRadiusForRender(
   return chartDotRadiusAtCenter(idx, isNow, centerX, count);
 }
 
-function hourLabelNode(d: ChartHour, nowIdx: number, count: number, labelColor: string) {
-  if (d.idx !== nowIdx && d.idx % 3 !== 0 && d.idx !== count - 1) return null;
+// Ticks sit on a 3-hour grid anchored at "Now" so spacing stays even in both
+// directions; off-grid hours never get labels (no forced first/last tick).
+function hourLabelNode(d: ChartHour, nowIdx: number, labelColor: string) {
+  if ((d.idx - nowIdx) % 3 !== 0) return null;
   /* eslint-disable @typescript-eslint/no-deprecated */
   return (
     <SvgText
@@ -103,7 +131,7 @@ function hourLabelNode(d: ChartHour, nowIdx: number, count: number, labelColor: 
       textAnchor="middle"
       fill={labelColor}
     >
-      {d.idx === nowIdx ? 'Now' : hourLabel(d.hour)}
+      {d.idx === nowIdx ? 'Now' : fullHourLabel(d.hour)}
     </SvgText>
   );
   /* eslint-enable @typescript-eslint/no-deprecated */
@@ -155,18 +183,6 @@ export function HourlyChartGraphic({
 
   return (
     <Svg width={width} height={height} style={styles.hourChartSvg}>
-      {(['good', 'fair', 'marginal', 'poor', 'bad'] as const).map((condition) => (
-        <Line
-          key={condition}
-          x1={12}
-          x2={width - 12}
-          y1={chartY(condition)}
-          y2={chartY(condition)}
-          stroke={c.border}
-          strokeDasharray="3 5"
-          strokeWidth={1}
-        />
-      ))}
       {nowIdx > 0 && (
         <Line
           x1={chartX(nowIdx)}
@@ -188,7 +204,14 @@ export function HourlyChartGraphic({
         >
           {data.map((d) => {
             const pct = gradTotal > 0 ? (chartX(d.idx) - chartX(firstIdx)) / gradTotal : 0;
-            return <Stop key={d.idx} offset={pct} stopColor={c.condition[d.condition].bg} />;
+            return (
+              <Stop
+                key={d.idx}
+                offset={pct}
+                stopColor={c.condition[d.condition].bg}
+                stopOpacity={chartDotOpacity(d.isPast, d.idx === nowIdx)}
+              />
+            );
           })}
         </LinearGradient>
       </Defs>
@@ -217,8 +240,69 @@ export function HourlyChartGraphic({
           count={data.length}
         />
       ))}
-      {data.map((d) => hourLabelNode(d, nowIdx, data.length, c.ink))}
+      {data.map((d) => hourLabelNode(d, nowIdx, c.ink))}
     </Svg>
+  );
+}
+
+/**
+ * Non-scrolling gridline underlay spanning the full viewport, so the card
+ * reads as a chart edge-to-edge even in the centering padding at either end
+ * of the scroll range.
+ */
+export function HourlyChartGridlines({ width }: Readonly<{ width: number }>) {
+  const { c, styles } = useStyles();
+  if (width <= 0) return null;
+  return (
+    <Svg width={width} height={CHART_HEIGHT} style={styles.hourChartSvg}>
+      {GRIDLINE_CONDITIONS.map((condition) => (
+        <Line
+          key={condition}
+          x1={GRIDLINE_INSET}
+          x2={width - GRIDLINE_INSET}
+          y1={chartY(condition)}
+          y2={chartY(condition)}
+          stroke={c.border}
+          strokeDasharray="3 5"
+          strokeWidth={1}
+        />
+      ))}
+    </Svg>
+  );
+}
+
+/** Paper-colored fades over both viewport edges hinting that the chart scrolls. */
+export function HourlyChartEdgeFades() {
+  const { c, styles } = useStyles();
+  return (
+    <>
+      <Svg
+        width={EDGE_FADE_WIDTH}
+        height={CHART_HEIGHT}
+        style={[styles.edgeFadeLeft, { pointerEvents: 'none' }]}
+      >
+        <Defs>
+          <LinearGradient id="hourlyEdgeFadeL" x1="0" y1="0" x2="1" y2="0">
+            <Stop offset="0" stopColor={c.paper} stopOpacity="1" />
+            <Stop offset="1" stopColor={c.paper} stopOpacity="0" />
+          </LinearGradient>
+        </Defs>
+        <Rect width={EDGE_FADE_WIDTH} height={CHART_HEIGHT} fill="url(#hourlyEdgeFadeL)" />
+      </Svg>
+      <Svg
+        width={EDGE_FADE_WIDTH}
+        height={CHART_HEIGHT}
+        style={[styles.edgeFadeRight, { pointerEvents: 'none' }]}
+      >
+        <Defs>
+          <LinearGradient id="hourlyEdgeFadeR" x1="0" y1="0" x2="1" y2="0">
+            <Stop offset="0" stopColor={c.paper} stopOpacity="0" />
+            <Stop offset="1" stopColor={c.paper} stopOpacity="1" />
+          </LinearGradient>
+        </Defs>
+        <Rect width={EDGE_FADE_WIDTH} height={CHART_HEIGHT} fill="url(#hourlyEdgeFadeR)" />
+      </Svg>
+    </>
   );
 }
 
@@ -243,7 +327,7 @@ function SelectionMarkerAnimated({
     if (reduceMotion || viewportWidth <= 0) {
       return { top: discreteTop };
     }
-    const offsetX = scrollX.value < 0 ? initialScrollX : scrollX.value;
+    const offsetX = chartScrollOffsetOrInitial(scrollX.value, initialScrollX);
     const centerX = chartCenterXFromScroll(offsetX, viewportWidth);
     const y = chartSmoothYAtSegments(segments, centerX);
     return { top: y - SELECTION_RING_RADIUS };

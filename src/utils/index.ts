@@ -13,7 +13,7 @@ export {
   getWindArrowRotation,
   getWindDirectionLabel,
 } from './weatherLabels';
-export { hourLabel, fullHourLabel } from './timeFormat';
+export { fullHourLabel } from './timeFormat';
 export { withAlpha } from './colors';
 export { fahrenheitToCelsius, formatTemperature, type TempUnit } from './temperature';
 export { formatPercent, normalizePercent } from './percent';

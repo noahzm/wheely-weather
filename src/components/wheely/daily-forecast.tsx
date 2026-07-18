@@ -8,14 +8,7 @@ import { CONDITION_DISPLAY } from '@/domain';
 import { dayLabel, getBestDayInfo, getBestDaysBlurb, getDayConditionReason } from '@/utils';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { useTemperatureDisplay } from '@/hooks/use-temperature-display';
-import {
-  Fonts,
-  FontWeightBold,
-  FontWeightMedium,
-  Spacing,
-  Type,
-  type WheelyPalette,
-} from '@/constants/theme';
+import { Fonts, Spacing, Type, type WheelyPalette } from '@/constants/theme';
 import type { DailyWeather } from '@/types/weather';
 import {
   BrutalCard,
@@ -39,7 +32,6 @@ function makeStyles(c: WheelyPalette) {
     weekBlurbLead: {
       color: c.ink,
       fontFamily: Fonts.heading,
-      fontWeight: FontWeightMedium,
     },
     dailyList: { padding: 0, gap: 0, overflow: 'visible' },
     dayRow: {
@@ -53,7 +45,7 @@ function makeStyles(c: WheelyPalette) {
     },
     dayRowBest: {
       borderLeftWidth: 5,
-      borderLeftColor: c.primary,
+      borderLeftColor: c.accent,
       paddingLeft: 11,
     },
     dayRowLast: { borderBottomWidth: 0 },
@@ -67,7 +59,6 @@ function makeStyles(c: WheelyPalette) {
       color: c.ink,
       fontFamily: Fonts.heading,
       fontSize: Type.body.fontSize,
-      fontWeight: FontWeightMedium,
     },
     weatherGlyph: { width: 22, alignItems: 'center' },
     dayTemp: {
@@ -76,7 +67,6 @@ function makeStyles(c: WheelyPalette) {
       flex: 1,
       fontFamily: Fonts.display,
       fontSize: Type.heading.fontSize,
-      fontWeight: FontWeightBold,
       ...(Platform.OS === 'web' ? ({ whiteSpace: 'nowrap' } as object) : null),
     },
     dayLow: { color: c.mutedInk, fontSize: Type.small.fontSize },
@@ -147,7 +137,7 @@ function DayRow({
         <ThemedText style={styles.dayReason}>{getDayConditionReason(day, tempUnit)}</ThemedText>
         {best ? (
           <View accessibilityRole="text" accessibilityLabel="Best bet">
-            <Chip primary>Best bet</Chip>
+            <Chip accent>Best bet</Chip>
           </View>
         ) : null}
       </View>
