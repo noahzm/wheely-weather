@@ -4,25 +4,13 @@ import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { getGearSuggestion } from '@/domain';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { useGearMode, useResolvedTempUnit } from '@/hooks/settings-context';
-import {
-  FontWeightBlack,
-  Fonts,
-  Radius,
-  Spacing,
-  Type,
-  type WheelyPalette,
-} from '@/constants/theme';
-import type { GearTipItem, RideStatus, Weather } from '@/types/weather';
+import { useGearMode } from '@/hooks/settings-context';
+import { FontWeightBlack, Fonts, Spacing, Type, type WheelyPalette } from '@/constants/theme';
+import type { GearTipItem, Weather } from '@/types/weather';
 import { BrutalCard, GameGearIcon } from './primitives';
 
 function makeStyles(c: WheelyPalette) {
   return StyleSheet.create({
-    headline: {
-      color: c.ink,
-      fontFamily: Fonts.heading,
-      ...Type.body,
-    },
     group: {
       gap: Spacing.two,
     },
@@ -44,9 +32,6 @@ function makeStyles(c: WheelyPalette) {
       justifyContent: 'center',
       gap: Spacing.one,
       minHeight: 116,
-      borderWidth: 1,
-      borderColor: c.border,
-      borderRadius: Radius.card,
       paddingHorizontal: Spacing.two,
       paddingVertical: Spacing.two,
     },
@@ -95,17 +80,6 @@ function makeStyles(c: WheelyPalette) {
       ...Type.small,
       flexShrink: 1,
     },
-    muted: {
-      color: c.mutedInk,
-      ...Type.caption,
-      textAlign: 'center',
-      flexShrink: 1,
-    },
-    bringMuted: {
-      color: c.mutedInk,
-      ...Type.caption,
-      flexShrink: 1,
-    },
   });
 }
 
@@ -115,11 +89,10 @@ function useStyles() {
   return { c, styles };
 }
 
-export function KitGuide({ weather, status }: Readonly<{ weather: Weather; status?: RideStatus }>) {
+export function KitGuide({ weather }: Readonly<{ weather: Weather }>) {
   const [mode] = useGearMode();
-  const tempUnit = useResolvedTempUnit();
   const { width } = useWindowDimensions();
-  const gear = getGearSuggestion(weather, mode, status, tempUnit);
+  const gear = getGearSuggestion(weather, mode);
   const { c, styles } = useStyles();
   const isWide = width >= 900;
   const tileWidth = isWide ? '31%' : '47%';
@@ -127,7 +100,6 @@ export function KitGuide({ weather, status }: Readonly<{ weather: Weather; statu
 
   return (
     <BrutalCard>
-      {!!gear.headline && <ThemedText style={styles.headline}>{gear.headline}</ThemedText>}
       <View style={styles.group} accessibilityLiveRegion="polite">
         {hasBring && <ThemedText style={styles.groupLabel}>Wear</ThemedText>}
         <View style={styles.kitGrid}>
@@ -138,7 +110,6 @@ export function KitGuide({ weather, status }: Readonly<{ weather: Weather; statu
               </View>
               <View style={styles.textWrap}>
                 <ThemedText style={styles.bodyStrong}>{item.label}</ThemedText>
-                {!!item.qualifier && <ThemedText style={styles.muted}>{item.qualifier}</ThemedText>}
               </View>
             </View>
           ))}
@@ -154,9 +125,6 @@ export function KitGuide({ weather, status }: Readonly<{ weather: Weather; statu
                   </View>
                   <View style={styles.bringTextWrap}>
                     <ThemedText style={styles.bringLabel}>{item.label}</ThemedText>
-                    {!!item.qualifier && (
-                      <ThemedText style={styles.bringMuted}>{item.qualifier}</ThemedText>
-                    )}
                   </View>
                 </View>
               ))}

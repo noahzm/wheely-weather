@@ -1,7 +1,6 @@
 import { GEAR_TIPS } from './copy';
-import { formatTemperature, type TempUnit } from '../utils/temperature';
 
-import type { GearSuggestion, GearTip, GearTipItem, RideStatus, Weather } from '@/types/weather';
+import type { GearSuggestion, GearTip, GearTipItem, Weather } from '@/types/weather';
 
 interface RideWindow {
   minTemp: number;
@@ -19,16 +18,12 @@ interface GearTipSet {
   MILD_COOL: GearTip;
   HOT: GearTip;
   SCORCHING: GearTip;
-  PERFECT: () => GearTip;
   NEUTRAL: GearTip;
-  TEMP_SWING: (min: string, max: string) => GearTip;
+  TEMP_SWING: GearTip;
   RAIN_HIGH: GearTip;
-  RAIN_COMING: GearTip;
   RAIN_POSSIBLE: GearTip;
-  RAIN_LATER: GearTip;
   WINDY: GearTip;
-  WIND_PICKUP: (speed: number) => GearTip;
-  UV_EXTREME: () => GearTip;
+  UV_EXTREME: GearTip;
   UV_HIGH: GearTip;
   MUGGY: GearTip;
 }
@@ -64,69 +59,33 @@ function getRideWindow(weather: Weather): RideWindow {
   };
 }
 
-const resolveTip = (tip: GearTip | (() => GearTip)): GearTip =>
-  typeof tip === 'function' ? tip() : tip;
-
 function getTemperatureTips(w: RideWindow, tipsSet: GearTipSet): GearTip[] {
   const tips: GearTip[] = [];
 
-  if (w.minTemp < 32) tips.push(resolveTip(tipsSet.FREEZING));
-  else if (w.minTemp < 45) tips.push(resolveTip(tipsSet.COLD));
-  else if (w.minTemp < 55) tips.push(resolveTip(tipsSet.COOL));
-  else if (w.minTemp < 65) tips.push(resolveTip(tipsSet.MILD_COOL));
+  if (w.minTemp < 32) tips.push(tipsSet.FREEZING);
+  else if (w.minTemp < 45) tips.push(tipsSet.COLD);
+  else if (w.minTemp < 55) tips.push(tipsSet.COOL);
+  else if (w.minTemp < 65) tips.push(tipsSet.MILD_COOL);
 
-  if (w.maxTemp > 90) tips.push(resolveTip(tipsSet.SCORCHING));
-  else if (w.maxTemp > 80) tips.push(resolveTip(tipsSet.HOT));
+  if (w.maxTemp > 90) tips.push(tipsSet.SCORCHING);
+  else if (w.maxTemp > 80) tips.push(tipsSet.HOT);
 
   return tips;
 }
 
-/**
- * Builds the weather-driven add-on tips (rain, wind, UV, temp swing, mugginess).
- * `hasAdverse` flags conditions that contradict the ideal-day PERFECT copy.
- */
-function buildSupportingTips(
-  weather: Weather,
-  w: RideWindow,
-  tipsSet: GearTipSet,
-  tempUnit: TempUnit = 'fahrenheit',
-): { tips: GearTip[]; hasAdverse: boolean } {
+/** Builds the weather-driven add-on tips (rain, wind, UV, temp swing, mugginess). */
+function buildSupportingTips(w: RideWindow, tipsSet: GearTipSet): GearTip[] {
   const tips: GearTip[] = [];
-  let hasAdverse = false;
 
-  if (w.maxTemp - w.minTemp >= 15) {
-    tips.push(
-      tipsSet.TEMP_SWING(
-        formatTemperature(w.minTemp, tempUnit),
-        formatTemperature(w.maxTemp, tempUnit),
-      ),
-    );
-  }
+  if (w.maxTemp - w.minTemp >= 15) tips.push(tipsSet.TEMP_SWING);
+  if (w.maxRain > 50) tips.push(tipsSet.RAIN_HIGH);
+  else if (w.maxRain > 30) tips.push(tipsSet.RAIN_POSSIBLE);
+  if (w.maxWind > 15) tips.push(tipsSet.WINDY);
+  if (w.maxUv >= 8) tips.push(tipsSet.UV_EXTREME);
+  else if (w.maxUv >= 6) tips.push(tipsSet.UV_HIGH);
+  if (w.maxDewpoint > 65) tips.push(tipsSet.MUGGY);
 
-  if (w.maxRain > 50) {
-    tips.push(resolveTip(weather.rainChance > 50 ? tipsSet.RAIN_HIGH : tipsSet.RAIN_COMING));
-    hasAdverse = true;
-  } else if (w.maxRain > 30) {
-    tips.push(resolveTip(weather.rainChance > 30 ? tipsSet.RAIN_POSSIBLE : tipsSet.RAIN_LATER));
-    hasAdverse = true;
-  }
-
-  if (w.maxWind > 15) {
-    tips.push(
-      resolveTip(
-        weather.windSpeed > 15 ? tipsSet.WINDY : tipsSet.WIND_PICKUP(Math.round(w.maxWind)),
-      ),
-    );
-    hasAdverse = true;
-  }
-  if (w.maxUv >= 8) tips.push(tipsSet.UV_EXTREME());
-  else if (w.maxUv >= 6) tips.push(resolveTip(tipsSet.UV_HIGH));
-  if (w.maxDewpoint > 65) {
-    tips.push(resolveTip(tipsSet.MUGGY));
-    hasAdverse = true;
-  }
-
-  return { tips, hasAdverse };
+  return tips;
 }
 
 interface MergedTipItem {
@@ -156,38 +115,20 @@ function mergeTipItems(tips: { tip: GearTip; base: boolean }[]): MergedTipItem[]
   return merged;
 }
 
-function getGearTips(
-  weather: Weather,
-  w: RideWindow,
-  tipsSet: GearTipSet,
-  status: RideStatus | undefined,
-  tempUnit: TempUnit = 'fahrenheit',
-): GearSuggestion {
+function getGearTips(w: RideWindow, tipsSet: GearTipSet): GearSuggestion {
   const temperatureTips = getTemperatureTips(w, tipsSet);
-  const { tips: supportingTips, hasAdverse } = buildSupportingTips(weather, w, tipsSet, tempUnit);
+  const supportingTips = buildSupportingTips(w, tipsSet);
 
   // An empty temperature tip means the ride window sits in the ideal band, so
-  // lead with PERFECT unless an adverse add-on contradicts it. NEUTRAL is the
-  // quiet fallback for ideal temps paired with a genuine weather caveat. The
-  // celebratory PERFECT copy only fits a clear "yes" day — on a maybe/no verdict
-  // it contradicts the hero, so fall back to NEUTRAL.
-  let baseTips: GearTip[];
-  if (temperatureTips.length > 0) {
-    baseTips = temperatureTips;
-  } else if (hasAdverse || (status != null && status !== 'yes')) {
-    baseTips = [resolveTip(tipsSet.NEUTRAL)];
-  } else {
-    baseTips = [tipsSet.PERFECT()];
-  }
+  // NEUTRAL supplies the baseline outfit.
+  const baseTips = temperatureTips.length > 0 ? temperatureTips : [tipsSet.NEUTRAL];
 
   const tips = [
     ...baseTips.map((tip) => ({ tip, base: true })),
     ...supportingTips.map((tip) => ({ tip, base: false })),
   ];
-  const headline = tips.find(({ tip }) => tip.headline)?.tip.headline ?? '';
   const merged = mergeTipItems(tips);
   return {
-    headline,
     items: merged.map(({ item }) => item),
     wear: merged.filter(({ group }) => group === 'wear').map(({ item }) => item),
     bring: merged.filter(({ group }) => group === 'bring').map(({ item }) => item),
@@ -197,10 +138,8 @@ function getGearTips(
 export const getGearSuggestion = (
   weather: Weather,
   mode: 'casual' | 'pro' = 'casual',
-  status?: RideStatus,
-  tempUnit: TempUnit = 'fahrenheit',
 ): GearSuggestion => {
   const w = getRideWindow(weather);
   const tipsSet: GearTipSet = mode === 'pro' ? GEAR_TIPS.PRO : GEAR_TIPS.CASUAL;
-  return getGearTips(weather, w, tipsSet, status, tempUnit);
+  return getGearTips(w, tipsSet);
 };

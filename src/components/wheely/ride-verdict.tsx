@@ -12,7 +12,8 @@ import {
   type WheelyPalette,
 } from '@/constants/theme';
 import { verdictFeedback } from '@/utils/haptics';
-import { BrutalCard } from './primitives';
+import type { VerdictMessage } from '@/types/weather';
+import { BrutalCard, Chip } from './primitives';
 
 function makeStyles(c: WheelyPalette) {
   return StyleSheet.create({
@@ -49,9 +50,10 @@ function makeStyles(c: WheelyPalette) {
       ...Type.stat,
       fontWeight: '400',
     },
-    acclimatizationNote: {
-      fontFamily: Fonts.body,
-      ...Type.small,
+    issueRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: Spacing.two,
     },
   });
 }
@@ -66,12 +68,10 @@ export function RideVerdict({
   status,
   message,
   label,
-  acclimatizationNote,
 }: Readonly<{
   status: 'yes' | 'maybe' | 'no';
-  message: string;
+  message: VerdictMessage;
   label?: string;
-  acclimatizationNote?: string | null;
 }>) {
   const { c, styles } = useStyles();
   // Fire a tone-matched haptic when the verdict first appears or changes.
@@ -84,20 +84,27 @@ export function RideVerdict({
     no: { defaultLabel: 'Rest day', ...c.condition.bad },
   }[status];
   const badgeLabel = label ?? meta.defaultLabel;
+  const spokenMessage = [message.lead, message.issues.join(', '), message.timing]
+    .filter(Boolean)
+    .join(' ');
+  const hasChips = message.issues.length > 0 || message.timing != null;
   return (
     <View
       style={styles.verdictWrap}
       accessibilityLiveRegion="polite"
-      accessibilityLabel={`${badgeLabel}. ${message}${
-        acclimatizationNote ? `. ${acclimatizationNote}` : ''
-      }`}
+      accessibilityLabel={`${badgeLabel}. ${spokenMessage}`}
     >
       <BrutalCard variant="featured" style={[styles.verdict, { backgroundColor: meta.bg }]}>
-        <ThemedText style={[styles.verdictText, { color: meta.ink }]}>{message}</ThemedText>
-        {!!acclimatizationNote && (
-          <ThemedText style={[styles.acclimatizationNote, { color: meta.ink }]}>
-            {acclimatizationNote}
-          </ThemedText>
+        <ThemedText style={[styles.verdictText, { color: meta.ink }]}>{message.lead}</ThemedText>
+        {hasChips && (
+          <View style={styles.issueRow}>
+            {message.issues.map((issue) => (
+              <Chip key={issue} burst={false}>
+                {issue}
+              </Chip>
+            ))}
+            {message.timing != null && <Chip ink>{message.timing}</Chip>}
+          </View>
         )}
       </BrutalCard>
       <View style={[styles.verdictBadge, { pointerEvents: 'none' }]}>

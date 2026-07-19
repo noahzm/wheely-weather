@@ -2,6 +2,8 @@ import { useMemo } from 'react';
 
 import { getHourConditionReasons } from '@/utils';
 import { fullHourLabel } from '@/utils/timeFormat';
+import { useResolvedTempUnit } from '@/hooks/settings-context';
+import { THRESHOLDS, type Thresholds } from '@/domain/constants';
 import {
   CHART_X_ORIGIN,
   buildChartSpline,
@@ -18,7 +20,11 @@ import { useHourlyScrollPicker } from './use-hourly-scroll-picker';
 
 export type ChartHour = HourlyWeather & { isPast: boolean; idx: number };
 
-export function useHourlyForecastChart(data: ChartHour[], nowIdx: number) {
+export function useHourlyForecastChart(
+  data: ChartHour[],
+  nowIdx: number,
+  thresholds: Thresholds = THRESHOLDS,
+) {
   const {
     scrollRef,
     scrollX,
@@ -37,8 +43,10 @@ export function useHourlyForecastChart(data: ChartHour[], nowIdx: number) {
     onMomentumScrollEnd,
   } = useHourlyScrollPicker(nowIdx, data.length);
 
+  const tempUnit = useResolvedTempUnit();
   const selected = data[selectedIdx] ?? data[nowIdx];
-  const selectedReasons = selected == null ? [] : getHourConditionReasons(selected);
+  const selectedReasons =
+    selected == null ? [] : getHourConditionReasons(selected, tempUnit, thresholds);
   const selectedReason = selectedReasons.join(' • ') || null;
   const reasonOpen = selectedReason != null;
   const reasonOpenProgress = useExpandAnimation(reasonOpen);

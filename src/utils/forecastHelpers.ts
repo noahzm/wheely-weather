@@ -1,12 +1,11 @@
-import { BEST_DAYS_MESSAGES } from '../domain/copy';
-import { THRESHOLDS } from '../domain/constants';
+import { THRESHOLDS, type Thresholds } from '../domain/constants';
+import { ISSUE_PHRASES } from '../domain/copy';
 import { formatPercent } from './percent';
 import { formatTemperature } from './temperature';
 
 import type { Condition, DailyWeather, HourlyWeather } from '@/types/weather';
 import type { TempUnit } from './temperature';
 
-const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const DAY_NAMES_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const STORM_CODES = new Set([95, 96, 99]);
 const HEAVY_RAIN_CODES = new Set([65, 82]);
@@ -218,21 +217,58 @@ function idealDayReason({ wind, rain, high }: DayMetrics): string {
   return 'Prime riding weather';
 }
 
-function hourMetrics(hour: HourlyWeather): DayMetrics {
-  const temp = hour.temperature;
-  return {
-    wind: Math.round(hour.windSpeed),
-    rain: hour.rainChance,
-    high: null,
-    low: temp,
-    temp,
-    dewpoint: hour.dewpoint ?? null,
-  };
+const HOUR_REASON_FALLBACK: Record<string, string> = {
+  bad: 'Rough day to ride',
+  poor: 'Tough riding',
+  marginal: 'Mixed conditions',
+};
+
+function hourWindReason(windSpeed: number): string | null {
+  const wind = Math.round(windSpeed);
+  if (wind >= 20) return ISSUE_PHRASES.WIND(wind, 'bad');
+  if (wind >= 18) return ISSUE_PHRASES.WIND(wind, 'poor');
+  if (wind >= 15) return ISSUE_PHRASES.WIND(wind, 'marginal');
+  return null;
+}
+
+function hourRainReason(rain: number): string | null {
+  const pct = formatPercent(rain);
+  if (rain >= 60) return ISSUE_PHRASES.RAIN(pct, 'bad');
+  if (rain >= 45) return ISSUE_PHRASES.RAIN(pct, 'poor');
+  if (rain >= 30) return ISSUE_PHRASES.RAIN(pct, 'marginal');
+  return null;
+}
+
+function hourTempReason(temp: number, tempUnit: TempUnit, thresholds: Thresholds): string | null {
+  const t = thresholds.TEMPERATURE;
+  const label = formatTemperature(temp, tempUnit);
+  if (temp > t.BAD_MAX) return ISSUE_PHRASES.HEAT(label, 'bad');
+  if (temp > t.POOR_MAX) return ISSUE_PHRASES.HEAT(label, 'poor');
+  if (temp > t.MARGINAL_MAX) return ISSUE_PHRASES.HEAT(label, 'marginal');
+  if (temp < 32) return ISSUE_PHRASES.COLD(label, 'bad');
+  if (temp < 36) return ISSUE_PHRASES.COLD(label, 'poor');
+  if (temp < 45) return ISSUE_PHRASES.COLD(label, 'marginal');
+  return null;
+}
+
+function hourDewReason(
+  dewpoint: number | null,
+  tempUnit: TempUnit,
+  thresholds: Thresholds,
+): string | null {
+  if (dewpoint == null) return null;
+  const d = thresholds.DEWPOINT;
+  const dewLabel = formatTemperature(dewpoint, tempUnit);
+  if (dewpoint > d.BAD) return ISSUE_PHRASES.HUMIDITY(dewLabel, 'bad');
+  if (dewpoint > d.POOR) return ISSUE_PHRASES.HUMIDITY(dewLabel, 'poor');
+  if (dewpoint > d.MARGINAL) return ISSUE_PHRASES.HUMIDITY(dewLabel, 'marginal');
+  return null;
 }
 
 export function getHourConditionReasons(
   hour: HourlyWeather,
   tempUnit: TempUnit = 'fahrenheit',
+  thresholds: Thresholds = THRESHOLDS,
 ): string[] {
   const reasons: string[] = [];
   const codeReason = weatherCodeReason(hour);
@@ -240,23 +276,20 @@ export function getHourConditionReasons(
 
   if (hour.condition === 'good' || hour.condition === 'fair') return reasons;
 
-  const m = hourMetrics(hour);
-  switch (hour.condition) {
-    case 'bad': {
-      reasons.push(...badConditionReasons(m, tempUnit));
-      if (reasons.length === 0) reasons.push('Rough day to ride');
-      break;
-    }
-    case 'poor': {
-      reasons.push(...poorConditionReasons(m, tempUnit));
-      if (reasons.length === 0) reasons.push('Tough riding');
-      break;
-    }
-    case 'marginal': {
-      reasons.push(...marginalConditionReasons(m, tempUnit));
-      if (reasons.length === 0) reasons.push('Mixed conditions');
-      break;
-    }
+  // Rate each metric on its own (strongest phrasing that applies) rather than
+  // gating every metric behind the hour's overall tier — an hour dragged into
+  // "bad" by one metric still names the others, keeping the drawer consistent
+  // with the verdict hero's per-metric issue chips.
+  const metricReasons = [
+    hourWindReason(hour.windSpeed),
+    hourRainReason(hour.rainChance),
+    hourTempReason(hour.temperature, tempUnit, thresholds),
+    hourDewReason(hour.dewpoint ?? null, tempUnit, thresholds),
+  ].filter((reason): reason is string => reason != null);
+  reasons.push(...metricReasons);
+
+  if (reasons.length === 0) {
+    reasons.push(HOUR_REASON_FALLBACK[hour.condition] ?? 'Mixed conditions');
   }
 
   return reasons;
@@ -289,71 +322,4 @@ export function getDayConditionReason(
       return idealDayReason(m);
     }
   }
-}
-
-function capitalize(value: string): string {
-  return value.charAt(0).toUpperCase() + value.slice(1);
-}
-
-function blurbDayLabel(day: DailyWeather, index: number): string {
-  return index === 0 ? 'today' : (DAY_NAMES[new Date(day.date).getDay()] ?? '');
-}
-
-function joinDayLabels(labels: string[]): string {
-  if (labels.length === 0) return '';
-  if (labels.length === 1) return capitalize(labels[0] ?? '');
-  if (labels.length === 2)
-    return `${capitalize(labels[0] ?? '')} and ${capitalize(labels[1] ?? '')}`;
-  const last = labels.at(-1) ?? '';
-  const leading = labels
-    .slice(0, -1)
-    .map((label) => capitalize(label))
-    .join(', ');
-  return `${leading}, and ${capitalize(last)}`;
-}
-
-/** Builds a sentence listing the best cycling days this week. */
-export function getBestDaysBlurb(
-  daily: DailyWeather[],
-  bestDayIdx: number,
-  rationale: string,
-): string {
-  const rideableDays = daily
-    .map((day, i) => ({ day, i, label: blurbDayLabel(day, i) }))
-    .filter(
-      ({ day }) =>
-        !day.rideWindowUnavailable && (day.condition === 'good' || day.condition === 'fair'),
-    )
-    .map(({ i, label }) => ({ i, label }));
-
-  if (rideableDays.length === 0) {
-    return BEST_DAYS_MESSAGES.NONE();
-  }
-
-  const bestDay = rideableDays.find(({ i }) => i === bestDayIdx) ?? rideableDays[0];
-  if (!bestDay) return BEST_DAYS_MESSAGES.NONE();
-  const otherDays = rideableDays.filter(({ i }) => i !== bestDay.i).map(({ label }) => label);
-  const descriptor = 'solid ride windows';
-
-  const bestSentence =
-    otherDays.length === 0
-      ? `${capitalize(bestDay.label)} is your best ride window.`
-      : `${capitalize(bestDay.label)} is the best bet.`;
-
-  const rationaleSentence = rationale ? ` ${rationale} expected.` : '';
-  if (otherDays.length === 0) {
-    return `${bestSentence}${rationaleSentence}`;
-  }
-
-  // Past a few qualifying days, naming each one stops being scannable.
-  if (otherDays.length >= 4) {
-    return `${bestSentence}${rationaleSentence} Most of the week is rideable too.`;
-  }
-
-  const otherDaysSentence =
-    otherDays.length === 1
-      ? ` ${joinDayLabels(otherDays)} is a ${descriptor.replace(/s$/, '')} too.`
-      : ` ${joinDayLabels(otherDays)} are ${descriptor} too.`;
-
-  return `${bestSentence}${rationaleSentence}${otherDaysSentence}`;
 }

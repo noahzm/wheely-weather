@@ -1,5 +1,5 @@
 import { THRESHOLDS, type Thresholds } from './constants';
-import { STATUS_MESSAGES as MSG, RAIN_MESSAGES, DAYLIGHT_MESSAGES } from './copy';
+import { STATUS_MESSAGES as MSG, ISSUE_PHRASES, RAIN_MESSAGES, DAYLIGHT_MESSAGES } from './copy';
 import { evaluateCondition, evaluateWind, getLaterGoodHour, isGustDriven, RANK } from './scoring';
 import {
   getWeatherCodeCondition,
@@ -18,47 +18,22 @@ import type {
   MetricType,
   RideFactor,
   RideStatus,
+  VerdictMessage,
   Weather,
 } from '@/types/weather';
 
-const buildWindLabel = (weather: Weather, status: RideStatus, gustDriven: boolean): string => {
-  if (gustDriven) {
-    const gusts = Math.round(weather.windGust ?? weather.windSpeed);
-    return `${status === 'no' ? 'strong gusts' : 'gusty'} (${gusts} mph gusts)`;
-  }
-  return `${status === 'no' ? 'heavy wind' : 'gusty'} (${Math.round(weather.windSpeed)} mph)`;
-};
-
-// Keep the verdict hero punchy: list issues inline up to MAX_INLINE, but once a
-// day stacks up more than that, lead with the two most ride-relevant factors
-// (insertion order is temp → wind → rain → weather → dewpoint → AQI) and roll the
-// rest into a "plus N more" tail. "The numbers" section carries the full detail.
-const MAX_INLINE_ISSUES = 3;
-const MIN_RIDEABLE_CONDITION_RANK = RANK.fair;
-
-const hasRideableTomorrowImprovement = (weather: Weather): boolean => {
-  const daily = weather.daily;
-  if (daily.length < 2) return false;
-  const today = daily[0];
-  const tomorrow = daily[1];
-  if (!today || !tomorrow) return false;
-  const todayRank = RANK[today.condition];
-  const tomorrowRank = RANK[tomorrow.condition];
-  return tomorrowRank > todayRank && tomorrowRank >= MIN_RIDEABLE_CONDITION_RANK;
-};
-
-const selectBaseMessage = (status: RideStatus, issues: string[]): string => {
-  const extra = issues.length > MAX_INLINE_ISSUES ? issues.length - 2 : 0;
-  const shown = extra > 0 ? issues.slice(0, 2) : issues;
-  if (status === 'maybe') {
-    return issues.length > 0 ? MSG.MAYBE_ISSUES(shown, extra) : MSG.MAYBE_IDEAL;
-  }
-  return issues.length > 0 ? MSG.NO_ISSUES(shown, extra) : MSG.NO_IDEAL;
+/** Collapses a condition rating to the shared issue-phrase tier. */
+const issueTier = (rating: Condition): 'bad' | 'poor' | 'marginal' => {
+  if (rating === 'bad') return 'bad';
+  if (rating === 'poor') return 'poor';
+  return 'marginal';
 };
 
 /**
  * Collects the limiting-factor labels to mention in the verdict, in insertion
- * order (temp → wind → rain → weather → dewpoint → AQI → UV).
+ * order (temp → wind → rain → weather → dewpoint → AQI). Phrasing comes from
+ * the shared ISSUE_PHRASES table so the hero chips and the hourly chart drawer
+ * describe the same metric with the same words.
  */
 const collectMessageIssues = (
   weather: Weather,
@@ -70,35 +45,33 @@ const collectMessageIssues = (
   const addIssue = (
     val: number | null | undefined,
     type: MetricType,
-    label: string,
+    label: (tier: 'bad' | 'poor' | 'marginal') => string,
     ratingOverride?: Condition,
   ) => {
     const rating = ratingOverride ?? evaluateCondition(val, type, thresholds);
-    if (status === 'maybe' && (rating === 'marginal' || rating === 'fair')) issues.push(label);
-    if (status === 'no' && (rating === 'bad' || rating === 'poor')) issues.push(label);
+    const include =
+      status === 'maybe'
+        ? rating === 'marginal' || rating === 'fair'
+        : rating === 'bad' || rating === 'poor';
+    if (include) issues.push(label(issueTier(rating)));
   };
 
   const temp = formatTemperature(weather.temperature, tempUnit, { withUnitLabel: true });
-  addIssue(
-    weather.temperature,
-    'temperature',
-    weather.temperature < 50 ? `cold (${temp})` : `hot (${temp})`,
+  addIssue(weather.temperature, 'temperature', (tier) =>
+    weather.temperature < 50 ? ISSUE_PHRASES.COLD(temp, tier) : ISSUE_PHRASES.HEAT(temp, tier),
   );
-  if (status === 'no' && issues.length > 0) {
-    issues[0] = weather.temperature < 36 ? `too cold (${temp})` : `too hot (${temp})`;
-  }
   const gustDriven = isGustDriven(weather.windSpeed, weather.windGust);
-  const windLabel = buildWindLabel(weather, status, gustDriven);
   addIssue(
     weather.windSpeed,
     'windSpeed',
-    windLabel,
+    (tier) =>
+      gustDriven
+        ? ISSUE_PHRASES.GUSTS(Math.round(weather.windGust ?? weather.windSpeed), tier)
+        : ISSUE_PHRASES.WIND(Math.round(weather.windSpeed), tier),
     evaluateWind(weather.windSpeed, weather.windGust, thresholds),
   );
-  addIssue(
-    weather.rainChance,
-    'rainChance',
-    `${status === 'no' ? 'rain' : 'rainy'} (${formatPercent(weather.rainChance)} chance)`,
+  addIssue(weather.rainChance, 'rainChance', (tier) =>
+    ISSUE_PHRASES.RAIN(formatPercent(weather.rainChance), tier),
   );
   const weatherCodeIssue = getWeatherCodeIssue(weather.weatherCode, status);
   const precipitationAlreadyExplainsWeather =
@@ -108,17 +81,14 @@ const collectMessageIssues = (
   if (weatherCodeIssue && !precipitationAlreadyExplainsWeather) {
     issues.push(weatherCodeIssue);
   }
-  addIssue(
-    weather.dewpoint,
-    'dewpoint',
-    `${status === 'no' ? 'heavy humidity' : 'sticky'} (dew ${formatTemperature(weather.dewpoint, tempUnit, { withUnitLabel: true })})`,
+  addIssue(weather.dewpoint, 'dewpoint', (tier) =>
+    ISSUE_PHRASES.HUMIDITY(
+      formatTemperature(weather.dewpoint, tempUnit, { withUnitLabel: true }),
+      tier,
+    ),
   );
   if (weather.aqi != null) {
-    addIssue(
-      weather.aqi,
-      'aqi',
-      `${status === 'no' ? 'poor air quality' : 'hazy'} (AQI ${weather.aqi})`,
-    );
+    addIssue(weather.aqi, 'aqi', (tier) => ISSUE_PHRASES.AQI(weather.aqi ?? 0, tier));
   }
   return issues;
 };
@@ -128,25 +98,32 @@ export const getMessage = (
   status: RideStatus,
   thresholds: Thresholds = THRESHOLDS,
   tempUnit: TempUnit = 'fahrenheit',
-): string => {
-  if (weather.hasThunderstorms) return MSG.THUNDERSTORM;
+): VerdictMessage => {
+  if (weather.hasThunderstorms) return { lead: MSG.THUNDERSTORM, issues: [], timing: null };
   if (status === 'yes') {
-    return MSG.GOOD(
-      formatTemperature(weather.feelsLike, tempUnit, { withUnitLabel: true }),
-      weather.condition,
-    );
+    return {
+      lead: MSG.GOOD(
+        formatTemperature(weather.feelsLike, tempUnit, { withUnitLabel: true }),
+        weather.condition,
+      ),
+      issues: [],
+      timing: null,
+    };
   }
 
   const laterGood = getLaterGoodHour(weather.hourly);
   const issues = collectMessageIssues(weather, status, thresholds, tempUnit);
 
-  let msg = selectBaseMessage(status, issues);
+  let lead: string;
+  if (status === 'maybe') lead = issues.length > 0 ? MSG.MAYBE_LEAD : MSG.MAYBE_IDEAL;
+  else lead = issues.length > 0 ? MSG.NO_LEAD : MSG.NO_IDEAL;
 
-  if (laterGood) msg += status === 'maybe' ? MSG.LATER_GOOD(laterGood) : MSG.CLEAR_UP(laterGood);
-  else if (status === 'no')
-    msg += hasRideableTomorrowImprovement(weather) ? MSG.TOMORROW_BETTER : MSG.REST_DAY(msg);
+  let timing: string | null = null;
+  if (laterGood) {
+    timing = status === 'maybe' ? MSG.LATER_GOOD(laterGood) : MSG.CLEAR_UP(laterGood);
+  }
 
-  return msg;
+  return { lead, issues, timing };
 };
 
 /** Returns up to 3 limiting ride factors with label, value, and condition rating. */

@@ -124,7 +124,7 @@ describe('getMessage', () => {
       pastHourly: [],
       daily: [],
     } as unknown as Weather;
-    expect(getMessage(weather, 'no')).toContain('too cold');
+    expect(getMessage(weather, 'no').issues.join(' ')).toContain('Freezing');
   });
 
   it('overrides temperature label to "too hot" for status no', () => {
@@ -141,7 +141,7 @@ describe('getMessage', () => {
       pastHourly: [],
       daily: [],
     } as unknown as Weather;
-    expect(getMessage(weather, 'no')).toContain('too hot');
+    expect(getMessage(weather, 'no').issues.join(' ')).toContain('Dangerous heat');
   });
 
   it('ignores weather code issue if precipitation already explains it', () => {
@@ -158,9 +158,9 @@ describe('getMessage', () => {
       pastHourly: [],
       daily: [],
     } as unknown as Weather;
-    const msg = getMessage(weather, 'no');
+    const msg = getMessage(weather, 'no').issues.join(' ');
     // "Heavy rain" from weather code should be skipped because rain chance is already there.
-    expect(msg).toContain('rain');
+    expect(msg).toContain('Rain');
     // We expect it to NOT list "Heavy rain" separately as a second issue
     // The exact text will just be "It is currently looking like rain..."
   });

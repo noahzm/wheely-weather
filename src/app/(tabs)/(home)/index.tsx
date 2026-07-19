@@ -24,7 +24,6 @@ import { WEB_TITLE_CONTENT_SPACING } from '@/components/wheely/web-screen-header
 import { HapticPressable, SectionTitle } from '@/components/wheely/primitives';
 import { ThemedText } from '@/components/themed-text';
 import {
-  getAcclimatizationNote,
   getDaylightWarning,
   getMessage,
   getOverallStatus,
@@ -64,13 +63,12 @@ function deriveHomeState(
   acclimatization: AcclimatizationContext,
   tempUnit: TempUnit,
 ) {
-  const { thresholds, homeBaseline } = acclimatization;
+  const { thresholds } = acclimatization;
   const status = getOverallStatus(weather, thresholds);
   return {
     status,
     message: getMessage(weather, status, thresholds, tempUnit),
     label: getVerdictLabel(status, location),
-    acclimatizationNote: getAcclimatizationNote(weather, homeBaseline),
     rainTiming: getRainTiming(weather.hourly),
     daylightWarning: getDaylightWarning(weather.hourly, weather.daylight),
     alerts: getWeatherAlerts(weather, tempUnit),
@@ -117,12 +115,7 @@ function HomeSections({
   return (
     <>
       <Stagger order={1}>
-        <RideVerdict
-          status={derived.status}
-          message={derived.message}
-          label={derived.label}
-          acclimatizationNote={derived.acclimatizationNote}
-        />
+        <RideVerdict status={derived.status} message={derived.message} label={derived.label} />
       </Stagger>
       {derived.alerts.length > 0 && (
         <Stagger order={2}>
@@ -138,6 +131,7 @@ function HomeSections({
             pastHourly={weather.pastHourly}
             rainTiming={derived.rainTiming}
             daylightWarning={derived.daylightWarning}
+            thresholds={thresholds}
           />
         </View>
       </Stagger>
@@ -145,7 +139,7 @@ function HomeSections({
       <Stagger order={4}>
         <View style={styles.section}>
           <SectionTitle title="Today’s kit" />
-          <KitGuide weather={weather} status={derived.status} />
+          <KitGuide weather={weather} />
         </View>
       </Stagger>
 

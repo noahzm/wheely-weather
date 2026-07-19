@@ -1,10 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  deriveAcclimatization,
-  applyAcclimatization,
-  resolveThresholds,
-  getAcclimatizationNote,
-} from './acclimatization';
+import { deriveAcclimatization, applyAcclimatization, resolveThresholds } from './acclimatization';
 import { THRESHOLDS } from './constants';
 import { getOverallStatus, evaluateCondition } from './weather';
 
@@ -87,23 +82,5 @@ describe('acclimatization and the verdict', () => {
   it('reproduces the base verdict when there is no home baseline', () => {
     const day = { ...base, temperature: 88, dewpoint: 64 };
     expect(getOverallStatus(day, resolveThresholds(null))).toBe(getOverallStatus(day, THRESHOLDS));
-  });
-});
-
-describe('getAcclimatizationNote', () => {
-  it('flags a day tougher than home', () => {
-    expect(getAcclimatizationNote({ temperature: 92, dewpoint: 60 }, TEMPERATE)).toBe(
-      'Tougher than you’re used to at home',
-    );
-  });
-
-  it('reassures an acclimatized rider on a normal-for-home day', () => {
-    expect(getAcclimatizationNote({ temperature: 100, dewpoint: 58 }, PHOENIX)).toBe(
-      'About normal for your home climate',
-    );
-  });
-
-  it('returns null without a home baseline', () => {
-    expect(getAcclimatizationNote({ temperature: 90, dewpoint: 60 }, null)).toBeNull();
   });
 });

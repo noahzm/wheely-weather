@@ -40,7 +40,7 @@ describe('hourly chart reason integration', () => {
     const reasons = getHourConditionReasons(
       makeHour({ condition: 'marginal', weatherCode: 95, windSpeed: 16, rainChance: 35 }),
     );
-    expect(reasons.join(' • ')).toBe('Storm risk • Breezy (16 mph) • Some rain risk');
+    expect(reasons.join(' • ')).toBe('Storm risk • Breezy (16 mph) • Rain possible (35%)');
   });
 
   it('does not add fallback reasons when a specific reason exists', () => {

@@ -5,9 +5,6 @@
 
 import type { RideStatus } from '@/types/weather';
 
-// Stable pick helper to prevent flickering on re-renders.
-const pick = <T>(arr: readonly [T, ...T[]]): T => arr[new Date().getHours() % arr.length] ?? arr[0];
-
 /** djb2-style hash for deterministic, seed-varied picks. */
 function seededHash(str: string): number {
   let hash = 0;
@@ -19,14 +16,6 @@ function seededHash(str: string): number {
   }
   return Math.abs(hash);
 }
-
-/**
- * Seeded variant of `pick()`: still stable within the hour (no re-render
- * flicker), but different seeds land on different variants so two distinct
- * forecasts don't show identical copy in the same hour.
- */
-const seededPick = <T>(arr: readonly [T, ...T[]], seed: string): T =>
-  arr[seededHash(`${seed}|${new Date().getHours()}`) % arr.length] ?? arr[0];
 
 const VERDICT_LABELS: Record<RideStatus, readonly string[]> = {
   yes: [
@@ -78,17 +67,6 @@ export function getVerdictLabel(status: RideStatus, location = ''): string {
   return pool[seededHash(seed) % pool.length] ?? '';
 }
 
-function formatList(items: readonly string[]): string {
-  if (items.length <= 1) return items[0] ?? '';
-  if (items.length === 2) return `${items[0]} and ${items[1]}`;
-  return `${items.slice(0, -1).join(', ')}, and ${items.at(-1)}`;
-}
-
-/** Tail appended to a verdict sentence when issues were trimmed for brevity. */
-function moreTail(extra: number): string {
-  return extra > 0 ? `, plus ${extra} more` : '';
-}
-
 export const LOCATION_SOURCE_BADGES = {
   manual: {
     label: 'Custom location',
@@ -127,58 +105,65 @@ export const WEATHER_DESCRIPTIONS: Record<number, string> = {
   99: 'Severe thunderstorm',
 };
 
+type IssueTier = 'bad' | 'poor' | 'marginal';
+
+/**
+ * Shared per-metric severity phrasing. Both the verdict hero's issue chips and
+ * the hourly chart's reason drawer build from this table so the same metric is
+ * always described with the same words.
+ */
+export const ISSUE_PHRASES = {
+  WIND: (mph: number, tier: IssueTier): string =>
+    ({
+      bad: `Very windy (${mph} mph)`,
+      poor: `Windy (${mph} mph)`,
+      marginal: `Breezy (${mph} mph)`,
+    })[tier],
+  GUSTS: (mph: number, tier: IssueTier): string =>
+    tier === 'bad' ? `Strong gusts (${mph} mph gusts)` : `Gusty (${mph} mph gusts)`,
+  RAIN: (pct: string, tier: IssueTier): string =>
+    ({
+      bad: `Rain likely (${pct})`,
+      poor: `Rain risk (${pct})`,
+      marginal: `Rain possible (${pct})`,
+    })[tier],
+  HEAT: (tempLabel: string, tier: IssueTier): string =>
+    ({
+      bad: `Dangerous heat (${tempLabel})`,
+      poor: `Very hot (${tempLabel})`,
+      marginal: `Hot (${tempLabel})`,
+    })[tier],
+  COLD: (tempLabel: string, tier: IssueTier): string =>
+    ({
+      bad: `Freezing (${tempLabel})`,
+      poor: `Cold (${tempLabel})`,
+      marginal: `Chilly (${tempLabel})`,
+    })[tier],
+  HUMIDITY: (dewLabel: string, tier: IssueTier): string =>
+    ({
+      bad: `Oppressive humidity (dew ${dewLabel})`,
+      poor: `Very humid (dew ${dewLabel})`,
+      marginal: `Muggy (dew ${dewLabel})`,
+    })[tier],
+  AQI: (aqi: number, tier: IssueTier): string =>
+    tier === 'marginal' ? `Hazy (AQI ${aqi})` : `Poor air (AQI ${aqi})`,
+};
+
 export const STATUS_MESSAGES = {
   THUNDERSTORM: 'Thunderstorms today. Stay off the road.',
   GOOD: (tempLabel: string, cond: string) =>
     `${tempLabel}, ${cond.toLowerCase()}, with light winds.`,
   MAYBE_IDEAL: 'On the edge of comfortable.',
-  MAYBE_ISSUES: (issues: readonly string[], extra = 0) =>
-    `Rideable. But it’s ${formatList(issues)}${moreTail(extra)}.`,
-  LATER_GOOD: (time: string) => ` Conditions improve around ${time}.`,
+  MAYBE_LEAD: 'Rideable, but:',
+  LATER_GOOD: (time: string) => `Improves around ${time}`,
   NO_IDEAL: 'No clear ride window right now.',
-  NO_ISSUES: (issues: readonly string[], extra = 0) =>
-    `Sit this one out: ${formatList(issues)}${moreTail(extra)}.`,
-  CLEAR_UP: (time: string) => ` Clears by ${time}.`,
-  TOMORROW_BETTER: ' Tomorrow should be the better ride window.',
-  // Seeded by the message so different forecasts vary their tails within the
-  // same hour instead of all landing on the same one.
-  REST_DAY: (seed = ''): string =>
-    seededPick(
-      [
-        ' A good day for drivetrain maintenance.',
-        ' A good day to wax the chain.',
-        ' Time well spent on the indoor trainer.',
-        ' Time to plan next weekend’s route.',
-        ' Save the legs for a better window.',
-        ' A fine day to reorganize the parts bin.',
-        ' Read about bikes instead of riding one.',
-        ' Window-shop a bike you don’t need.',
-      ],
-      seed,
-    ),
-};
-
-export const BEST_DAYS_MESSAGES = {
-  NONE: () =>
-    pick([
-      'No standout ride days this week. A good week for maintenance.',
-      'A week of mixed conditions. Short windows, if any.',
-      'Few standout days ahead. Keep plans loose.',
-      'Tough week on the forecast. Watch for short openings.',
-      'Wrench week, not ride week. The bike will thank you.',
-      'Nothing golden ahead. A good week to true a wheel.',
-    ]),
+  NO_LEAD: 'Sit this one out:',
+  CLEAR_UP: (time: string) => `Clears by ${time}`,
 };
 
 /**
  * Gear tips return a structured shape so the UI can render glanceable rows.
- * Each tip yields { headline?, items: [{ icon, label, qualifier? }] }.
- * Temperature tips own the headline (the dominant kit decision); other tips
- * contribute supporting items.
- */
-/**
- * Gear tips return a structured shape so the UI can render glanceable rows.
- * Each tip yields { headline?, items: [{ icon, label, qualifier? }] }.
+ * Each tip yields { items: [{ icon, label }] }.
  * Ride Kit is clothing-only: no hydration, food, or route guidance. Sleeve
  * and leg lengths are made explicit in labels so the rider sees the decision
  * at a glance.
@@ -186,9 +171,8 @@ export const BEST_DAYS_MESSAGES = {
 export const GEAR_TIPS = {
   CASUAL: {
     FREEZING: {
-      headline: 'Heavy winter layers',
       items: [
-        { slot: 'top', icon: 'LongSleeveShirt', label: 'Long-sleeve thermal base layer' },
+        { slot: 'top', icon: 'LongSleeveShirt', label: 'Thermal base layer' },
         { icon: 'Jacket', label: 'Insulated jacket' },
         { slot: 'bottom', icon: 'Pants', label: 'Long pants' },
         { icon: 'Hand', label: 'Insulated gloves' },
@@ -196,7 +180,6 @@ export const GEAR_TIPS = {
       ],
     },
     COLD: {
-      headline: 'Bundle up.',
       items: [
         { slot: 'top', icon: 'LongSleeveShirt', label: 'Long-sleeve top' },
         { icon: 'Jacket', label: 'Jacket' },
@@ -206,142 +189,68 @@ export const GEAR_TIPS = {
       ],
     },
     COOL: {
-      headline: 'Light layers',
       items: [
-        { slot: 'top', icon: 'LongSleeveShirt', label: 'Long-sleeve shirt or hoodie' },
+        { slot: 'top', icon: 'LongSleeveShirt', label: 'Long sleeves or hoodie' },
         { slot: 'bottom', icon: 'Pants', label: 'Pants or heavier shorts' },
       ],
     },
     MILD_COOL: {
-      headline: 'Shirtsleeves, with a backup',
       items: [
         {
           slot: 'top',
           icon: 'Shirt',
-          label: 'Short sleeve or light long sleeve',
+          label: 'Short or light long sleeve',
         },
         { slot: 'bottom', icon: 'CasualShorts', label: 'Shorts or light pants' },
       ],
     },
     HOT: {
-      headline: 'Light and airy',
       items: [
         { slot: 'top', icon: 'Shirt', label: 'Short-sleeve top' },
         { slot: 'bottom', icon: 'CasualShorts', label: 'Shorts' },
       ],
     },
     SCORCHING: {
-      headline: 'Beat the heat.',
       items: [
         { slot: 'top', icon: 'Shirt', label: 'Light short-sleeve top' },
         { slot: 'bottom', icon: 'CasualShorts', label: 'Shorts' },
       ],
     },
-    PERFECT: () => ({
-      headline: pick([
-        'Ideal conditions for taking the long way home.',
-        'Beautiful riding weather. A day for an extra loop or coffee stop.',
-        'Conditions favor extra miles.',
-        'Weather this good demands a coffee stop.',
-        'Perfect out. Ride to nowhere in particular.',
-      ]),
-      items: [
-        { slot: 'top', icon: 'Shirt', label: 'Short-sleeve top' },
-        { slot: 'bottom', icon: 'CasualShorts', label: 'Shorts' },
-      ],
-    }),
     NEUTRAL: {
       items: [
         { slot: 'top', icon: 'Shirt', label: 'Short-sleeve top' },
         { slot: 'bottom', icon: 'CasualShorts', label: 'Shorts' },
       ],
     },
-    TEMP_SWING: (min: string, max: string) => ({
-      items: [
-        {
-          icon: 'Thermometer',
-          label: 'Removable layer',
-          qualifier: `${min} to ${max} across the ride`,
-        },
-      ],
-    }),
-    RAIN_HIGH: {
-      items: [
-        {
-          icon: 'CloudRain',
-          label: 'Rain jacket',
-          qualifier: 'High chance of rain',
-        },
-      ],
+    TEMP_SWING: {
+      items: [{ icon: 'Thermometer', label: 'Removable layer' }],
     },
-    RAIN_COMING: {
-      items: [
-        {
-          icon: 'CloudRain',
-          label: 'Rain jacket',
-          qualifier: 'Rain moves in soon',
-        },
-      ],
+    RAIN_HIGH: {
+      items: [{ icon: 'CloudRain', label: 'Rain jacket' }],
     },
     RAIN_POSSIBLE: {
-      items: [
-        {
-          icon: 'Umbrella',
-          label: 'A layer you can get damp',
-          qualifier: 'Rain possible',
-        },
-      ],
-    },
-    RAIN_LATER: {
-      items: [
-        {
-          icon: 'Umbrella',
-          label: 'Light shell in the bag',
-          qualifier: 'Rain possible later',
-        },
-      ],
+      items: [{ icon: 'Umbrella', label: 'Quick-dry layer' }],
     },
     WINDY: {
-      items: [{ icon: 'Wind', label: 'Windbreaker', qualifier: 'Windy conditions' }],
+      items: [{ icon: 'Wind', label: 'Windbreaker' }],
     },
-    WIND_PICKUP: (speed: number) => ({
+    UV_EXTREME: {
       items: [
-        {
-          icon: 'Wind',
-          label: 'Windbreaker',
-          qualifier: `Wind builds to ${speed} mph`,
-        },
-      ],
-    }),
-    UV_EXTREME: () => ({
-      items: [
-        {
-          icon: 'Sunscreen',
-          label: 'Sunscreen',
-          qualifier: pick(['Very high UV', 'Extreme UV']),
-        },
+        { icon: 'Sunscreen', label: 'Sunscreen' },
         { icon: 'Glasses', label: 'Sunglasses' },
       ],
-    }),
+    },
     UV_HIGH: {
-      items: [{ icon: 'Sunscreen', label: 'Sunscreen', qualifier: 'High UV' }],
+      items: [{ icon: 'Sunscreen', label: 'Sunscreen' }],
     },
     MUGGY: {
-      items: [
-        {
-          slot: 'top',
-          icon: 'Shirt',
-          label: 'Moisture-wicking short-sleeve top',
-          qualifier: 'Muggy conditions',
-        },
-      ],
+      items: [{ slot: 'top', icon: 'Shirt', label: 'Wicking top' }],
     },
   },
   PRO: {
     FREEZING: {
-      headline: 'Full winter kit',
       items: [
-        { icon: 'LongSleeveShirt', label: 'Long-sleeve thermal base layer' },
+        { icon: 'LongSleeveShirt', label: 'Thermal base layer' },
         { icon: 'Jacket', label: 'Insulated jacket' },
         { slot: 'bottom', icon: 'Pants', label: 'Winter bib tights' },
         { icon: 'Footprints', label: 'Shoe covers' },
@@ -350,7 +259,6 @@ export const GEAR_TIPS = {
       ],
     },
     COLD: {
-      headline: 'Cold-weather kit',
       items: [
         { icon: 'LongSleeveShirt', label: 'Long-sleeve base layer' },
         { icon: 'LongSleeveShirt', label: 'Long-sleeve jersey' },
@@ -360,139 +268,65 @@ export const GEAR_TIPS = {
       ],
     },
     COOL: {
-      headline: 'Short sleeve with warmers',
       items: [
         { icon: 'Shirt', label: 'Short-sleeve jersey' },
         { slot: 'bottom', icon: 'BibShorts', label: 'Bib shorts' },
         { icon: 'Thermometer', label: 'Arm warmers' },
         { icon: 'Thermometer', label: 'Knee warmers' },
-        { icon: 'Layers', label: 'Gilet', qualifier: 'for descents' },
+        { icon: 'Layers', label: 'Gilet' },
       ],
     },
     MILD_COOL: {
-      headline: 'Jersey and bibs',
       items: [
         { icon: 'Shirt', label: 'Short-sleeve jersey' },
         { slot: 'bottom', icon: 'BibShorts', label: 'Bib shorts' },
-        {
-          icon: 'Thermometer',
-          label: 'Arm warmers',
-          qualifier: 'for a cool start or long descent',
-        },
+        { icon: 'Thermometer', label: 'Arm warmers' },
       ],
     },
     HOT: {
-      headline: 'Lightweight jersey and bibs',
       items: [
-        { icon: 'Shirt', label: 'Lightweight short-sleeve jersey' },
+        { icon: 'Shirt', label: 'Lightweight jersey' },
         { slot: 'bottom', icon: 'BibShorts', label: 'Bib shorts' },
       ],
     },
     SCORCHING: {
-      headline: 'Ice-sock hot.',
       items: [
-        { icon: 'Shirt', label: 'Lightweight short-sleeve jersey' },
+        { icon: 'Shirt', label: 'Lightweight jersey' },
         { slot: 'bottom', icon: 'BibShorts', label: 'Bib shorts' },
       ],
     },
-    PERFECT: () => ({
-      headline: pick([
-        'Ideal weather for a fast ride.',
-        'Conditions are ideal. A day for a longer route or a hard effort.',
-        'Prime jersey-and-bibs weather.',
-        'Clean roads, good weather, fresh legs. A day worth making count.',
-        'Tailwind-shaped forecast. Make it count.',
-      ]),
-      items: [
-        { icon: 'Shirt', label: 'Short-sleeve jersey' },
-        { slot: 'bottom', icon: 'BibShorts', label: 'Bib shorts' },
-      ],
-    }),
     NEUTRAL: {
       items: [
         { icon: 'Shirt', label: 'Short-sleeve jersey' },
         { slot: 'bottom', icon: 'BibShorts', label: 'Bib shorts' },
       ],
     },
-    TEMP_SWING: (min: string, max: string) => ({
-      items: [
-        {
-          icon: 'Thermometer',
-          label: 'Pocketed gilet or arm warmers',
-          qualifier: `${min} to ${max} across the window`,
-        },
-      ],
-    }),
+    TEMP_SWING: {
+      items: [{ icon: 'Thermometer', label: 'Gilet or arm warmers' }],
+    },
     RAIN_HIGH: {
       items: [
         { icon: 'CloudRain', label: 'Rain jacket' },
-        {
-          icon: 'Footprints',
-          label: 'Shoe covers',
-          qualifier: 'High chance of rain',
-        },
-      ],
-    },
-    RAIN_COMING: {
-      items: [
-        {
-          icon: 'CloudRain',
-          label: 'Rain jacket',
-          qualifier: 'Rain moves in soon',
-        },
+        { icon: 'Footprints', label: 'Shoe covers' },
       ],
     },
     RAIN_POSSIBLE: {
-      items: [
-        {
-          icon: 'Umbrella',
-          label: 'Packable vest or shell',
-          qualifier: 'Rain possible',
-        },
-      ],
-    },
-    RAIN_LATER: {
-      items: [
-        {
-          icon: 'Umbrella',
-          label: 'Light shell for the pocket',
-          qualifier: 'Rain possible later',
-        },
-      ],
+      items: [{ icon: 'Umbrella', label: 'Packable vest or shell' }],
     },
     WINDY: {
-      items: [{ icon: 'Wind', label: 'Wind vest', qualifier: 'Windy conditions' }],
+      items: [{ icon: 'Wind', label: 'Wind vest' }],
     },
-    WIND_PICKUP: (speed: number) => ({
+    UV_EXTREME: {
       items: [
-        {
-          icon: 'Wind',
-          label: 'Wind vest',
-          qualifier: `Wind builds to ${speed} mph`,
-        },
-      ],
-    }),
-    UV_EXTREME: () => ({
-      items: [
-        {
-          icon: 'Sunscreen',
-          label: 'Sunscreen on arms and legs',
-          qualifier: pick(['Very high UV', 'Extreme UV']),
-        },
+        { icon: 'Sunscreen', label: 'Sunscreen' },
         { icon: 'Glasses', label: 'Sunglasses' },
       ],
-    }),
+    },
     UV_HIGH: {
-      items: [{ icon: 'Sunscreen', label: 'Sunscreen', qualifier: 'High UV' }],
+      items: [{ icon: 'Sunscreen', label: 'Sunscreen' }],
     },
     MUGGY: {
-      items: [
-        {
-          icon: 'Shirt',
-          label: 'Mesh base layer',
-          qualifier: 'Muggy conditions',
-        },
-      ],
+      items: [{ icon: 'Shirt', label: 'Mesh base layer' }],
     },
   },
 };
