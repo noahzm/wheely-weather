@@ -26,7 +26,7 @@ import {
 } from '@/utils';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { useTemperatureDisplay } from '@/hooks/use-temperature-display';
-import { Fonts, Spacing, Type, type WheelyPalette } from '@/constants/theme';
+import { FontWeightBlack, Fonts, Spacing, Type, type WheelyPalette } from '@/constants/theme';
 import type { Weather } from '@/types/weather';
 import { BrutalCard, ConditionPill, asCondition, PlatformIcon } from './primitives';
 
@@ -58,7 +58,10 @@ function rideSpecMetrics(
       sf: 'thermometer.medium',
       label: 'Temperature',
       value: formatTemp(weather.temperature),
-      qualifier: `feels ${formatTemp(weather.feelsLike)}`,
+      qualifier:
+        formatTemp(weather.feelsLike) === formatTemp(weather.temperature)
+          ? null
+          : `feels ${formatTemp(weather.feelsLike)}`,
       condition: evaluateCondition(weather.temperature, 'temperature', thresholds),
     },
     {
@@ -151,7 +154,8 @@ function makeStyles(c: WheelyPalette, isCompact: boolean) {
     },
     metricValue: {
       color: c.ink,
-      fontFamily: Fonts.display,
+      fontFamily: Fonts.bold,
+      fontWeight: FontWeightBlack,
       ...Type.stat,
     },
     metricFooter: {

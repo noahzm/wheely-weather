@@ -1,18 +1,13 @@
 import { THRESHOLDS, type Thresholds } from './constants';
 import { STATUS_MESSAGES as MSG, RAIN_MESSAGES, DAYLIGHT_MESSAGES } from './copy';
-import {
-  evaluateCondition,
-  evaluateWind,
-  formatHour,
-  getLaterGoodHour,
-  isGustDriven,
-  RANK,
-} from './scoring';
+import { evaluateCondition, evaluateWind, getLaterGoodHour, isGustDriven, RANK } from './scoring';
 import {
   getWeatherCodeCondition,
   getWeatherCodeIssue,
   getWeatherDescription,
 } from './weather-codes';
+
+import { fullHourLabel } from '../utils/timeFormat';
 import { formatTemperature, type TempUnit } from '../utils/temperature';
 import { formatPercent } from '../utils/percent';
 
@@ -149,7 +144,7 @@ export const getMessage = (
 
   if (laterGood) msg += status === 'maybe' ? MSG.LATER_GOOD(laterGood) : MSG.CLEAR_UP(laterGood);
   else if (status === 'no')
-    msg += hasRideableTomorrowImprovement(weather) ? MSG.TOMORROW_BETTER : MSG.REST_DAY();
+    msg += hasRideableTomorrowImprovement(weather) ? MSG.TOMORROW_BETTER : MSG.REST_DAY(msg);
 
   return msg;
 };
@@ -267,12 +262,12 @@ export const getRainTiming = (hourly: HourlyWeather[] | undefined): string | nul
   const isRainingNow = firstRainIdx === 0;
   const clearsUp = lastRainIdx < hourly.length - 1;
 
-  if (isRainingNow && clearsUp) return RAIN_MESSAGES.CLEARING(formatHour(lastRain.hour + 1));
+  if (isRainingNow && clearsUp) return RAIN_MESSAGES.CLEARING(fullHourLabel(lastRain.hour + 1));
   // THROUGHOUT means rain persists through the entire visible window, not necessarily the whole day.
   if (isRainingNow) return RAIN_MESSAGES.THROUGHOUT;
   if (clearsUp)
-    return RAIN_MESSAGES.WINDOW(formatHour(firstRain.hour), formatHour(lastRain.hour + 1));
-  return RAIN_MESSAGES.LATER(formatHour(firstRain.hour));
+    return RAIN_MESSAGES.WINDOW(fullHourLabel(firstRain.hour), fullHourLabel(lastRain.hour + 1));
+  return RAIN_MESSAGES.LATER(fullHourLabel(firstRain.hour));
 };
 
 export const getDaylightWarning = (

@@ -41,7 +41,7 @@ describe('Rain Timing Logic', () => {
       { hour: 10, rainChance: 50 },
       { hour: 11, rainChance: 10 },
     ];
-    expect(getRainTiming(hourly)).toBe('Clears by 11am');
+    expect(getRainTiming(hourly)).toBe('Clears by 11 AM');
   });
 
   it('handles midnight wraparound in rain timing', () => {
@@ -49,7 +49,7 @@ describe('Rain Timing Logic', () => {
       { hour: 23, rainChance: 50 },
       { hour: 0, rainChance: 10 },
     ];
-    expect(getRainTiming(hourly)).toBe('Clears by 12am');
+    expect(getRainTiming(hourly)).toBe('Clears by 12 AM');
   });
 
   it('handles rain spanning midnight', () => {
@@ -58,7 +58,7 @@ describe('Rain Timing Logic', () => {
       { hour: 0, rainChance: 50 },
       { hour: 1, rainChance: 10 },
     ];
-    expect(getRainTiming(hourly)).toBe('Rain 12am–1am');
+    expect(getRainTiming(hourly)).toBe('Rain 12 AM–1 AM');
   });
 
   it('returns "Rain likely after..." when rain starts later', () => {
@@ -66,7 +66,7 @@ describe('Rain Timing Logic', () => {
       { hour: 10, rainChance: 0 },
       { hour: 11, rainChance: 50 },
     ];
-    expect(getRainTiming(hourly)).toBe('Rain likely after 11am');
+    expect(getRainTiming(hourly)).toBe('Rain likely after 11 AM');
   });
 
   it('returns "Rain throughout" when it rains the entire window', () => {
@@ -86,7 +86,7 @@ describe('Rain Timing Logic', () => {
       { hour: 14, rainChance: 0 },
     ];
 
-    expect(getRainTiming(hourly)).toBe('Rain 11am–12pm');
+    expect(getRainTiming(hourly)).toBe('Rain 11 AM–12 PM');
   });
 
   it('does not call rain throughout when the current shower ends before a later second round', () => {
@@ -96,6 +96,6 @@ describe('Rain Timing Logic', () => {
       { hour: 12, rainChance: 60 },
     ];
 
-    expect(getRainTiming(hourly)).toBe('Clears by 11am');
+    expect(getRainTiming(hourly)).toBe('Clears by 11 AM');
   });
 });

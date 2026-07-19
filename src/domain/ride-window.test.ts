@@ -13,7 +13,7 @@ describe('Best Ride Window', () => {
       { hour: 11, condition: 'bad' },
       { hour: 12, condition: 'fair' },
     ];
-    expect(getBestRideWindow(hourly)).toBe('Improves around 12pm');
+    expect(getBestRideWindow(hourly)).toBe('Improves around 12 PM');
   });
 
   it("returns 'No clear window' when conditions never improve", () => {
@@ -35,6 +35,6 @@ describe('Best Ride Window', () => {
       { hour: 11, condition: 'fair' },
       { hour: 12, condition: 'good' },
     ];
-    expect(getBestRideWindow(hourly)).toBe('Improves around 12pm');
+    expect(getBestRideWindow(hourly)).toBe('Improves around 12 PM');
   });
 });
