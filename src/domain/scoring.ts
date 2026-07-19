@@ -1,6 +1,8 @@
 import { THRESHOLDS, type Thresholds } from './constants';
 import { getWeatherCodeCondition } from './weather-codes';
 
+import { fullHourLabel } from '../utils/timeFormat';
+
 import type { Condition, HourlyWeather, MetricType, RideStatus, Weather } from '@/types/weather';
 
 interface UpperBoundThresholds {
@@ -210,17 +212,9 @@ export function getLaterGoodHour(hourly: HourlyWeather[] | undefined): string | 
     if (!next) continue;
     const nextRank = RANK[next.condition];
     if (nextRank >= RANK.fair && nextRank > currentRank) {
-      return formatHour(next.hour);
+      return fullHourLabel(next.hour);
     }
   }
 
   return null;
-}
-
-export function formatHour(h: number): string {
-  const hour = h % 24;
-  if (hour === 0) return '12am';
-  if (hour === 12) return '12pm';
-  if (hour < 12) return `${hour}am`;
-  return `${hour - 12}pm`;
 }

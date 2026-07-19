@@ -34,7 +34,7 @@ describe('Hourly Message Logic', () => {
       daily: [],
     };
 
-    expect(getMessage(weather, 'no')).toContain('Clears by 11am');
+    expect(getMessage(weather, 'no')).toContain('Clears by 11 AM');
   });
 
   it('does not call mild weather too hot when the real issue is wind', () => {

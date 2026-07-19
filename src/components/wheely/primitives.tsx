@@ -120,6 +120,15 @@ export function brutalShadow(color: string, width: number, height = width) {
 
 export const ButtonRadius = Radius.card;
 
+export const CardBorderWidth = 2;
+
+/**
+ * Concentric radius for edge-to-edge children that clip themselves inside a
+ * BrutalCard: the card's radius minus its border width, so clipped content
+ * follows the border's inner curve instead of poking past it at the corners.
+ */
+export const CardInnerRadius = Radius.card - CardBorderWidth;
+
 /** Shared pressed-state feedback opacity for every Pressable in the app. */
 export const PressedOpacity = 0.85;
 
@@ -307,7 +316,11 @@ const sectionHeadingStyles = StyleSheet.create({
     alignItems: 'center',
   },
   text: {
-    alignSelf: 'flex-start',
+    // Full-width box with room to wrap: iOS measures the text box with the
+    // unscaled font, so a self-sized box clips mid-word at large Dynamic Type.
+    alignSelf: 'stretch',
+    flexGrow: 1,
+    flexShrink: 1,
     fontFamily: Fonts.bold,
     ...Type.heading,
     fontWeight: '700',
@@ -611,7 +624,7 @@ function makeCardStyles(c: WheelyPalette) {
   return StyleSheet.create({
     featured: {
       backgroundColor: c.paper,
-      borderWidth: 2,
+      borderWidth: CardBorderWidth,
       borderColor: c.shadow,
       borderRadius: ButtonRadius,
       padding: Spacing.three,
@@ -620,7 +633,7 @@ function makeCardStyles(c: WheelyPalette) {
     },
     standard: {
       backgroundColor: c.paper,
-      borderWidth: 2,
+      borderWidth: CardBorderWidth,
       borderColor: c.shadow,
       borderRadius: ButtonRadius,
       padding: Spacing.three,
@@ -629,7 +642,7 @@ function makeCardStyles(c: WheelyPalette) {
     },
     subtle: {
       backgroundColor: c.paper,
-      borderWidth: 2,
+      borderWidth: CardBorderWidth,
       borderColor: c.border,
       borderRadius: ButtonRadius,
       padding: Spacing.three,

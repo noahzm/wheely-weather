@@ -8,10 +8,11 @@ import { CONDITION_DISPLAY } from '@/domain';
 import { dayLabel, getBestDayInfo, getBestDaysBlurb, getDayConditionReason } from '@/utils';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { useTemperatureDisplay } from '@/hooks/use-temperature-display';
-import { Fonts, Spacing, Type, type WheelyPalette } from '@/constants/theme';
+import { FontWeightBlack, Fonts, Spacing, Type, type WheelyPalette } from '@/constants/theme';
 import type { DailyWeather } from '@/types/weather';
 import {
   BrutalCard,
+  CardInnerRadius,
   Chip,
   ConditionPill,
   PlatformIcon,
@@ -31,9 +32,13 @@ function makeStyles(c: WheelyPalette) {
     },
     weekBlurbLead: {
       color: c.ink,
-      fontFamily: Fonts.heading,
+      fontFamily: Fonts.bold,
+      fontWeight: FontWeightBlack,
     },
     dailyList: { padding: 0, gap: 0, overflow: 'visible' },
+    // Clips the best-bet row's accent border at the card's corners; concentric
+    // radius so the clip follows the inside of the card border.
+    dailyClip: { borderRadius: CardInnerRadius, overflow: 'hidden' },
     dayRow: {
       position: 'relative',
       flexDirection: 'column',
@@ -65,7 +70,8 @@ function makeStyles(c: WheelyPalette) {
       color: c.ink,
       minWidth: 82,
       flex: 1,
-      fontFamily: Fonts.display,
+      fontFamily: Fonts.bold,
+      fontWeight: FontWeightBlack,
       fontSize: Type.heading.fontSize,
       ...(Platform.OS === 'web' ? ({ whiteSpace: 'nowrap' } as object) : null),
     },
@@ -172,16 +178,18 @@ export function DailyForecast({ daily }: Readonly<{ daily: DailyWeather[] }>) {
         </ThemedText>
       </BrutalCard>
       <BrutalCard style={styles.dailyList}>
-        {daily.map((day, index) => (
-          <DayRow
-            key={`${String(day.date)}-${index}`}
-            day={day}
-            index={index}
-            best={index === bestDayIdx}
-            last={index === daily.length - 1}
-            icon={weatherIconFor(day.weatherCode)}
-          />
-        ))}
+        <View style={styles.dailyClip}>
+          {daily.map((day, index) => (
+            <DayRow
+              key={`${String(day.date)}-${index}`}
+              day={day}
+              index={index}
+              best={index === bestDayIdx}
+              last={index === daily.length - 1}
+              icon={weatherIconFor(day.weatherCode)}
+            />
+          ))}
+        </View>
       </BrutalCard>
     </View>
   );
