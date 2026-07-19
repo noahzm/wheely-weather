@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { getMessage } from './weather';
 
+// Flattens the structured verdict for substring assertions.
+const spoken = (message: ReturnType<typeof getMessage>) =>
+  [message.lead, ...message.issues, message.timing ?? ''].join(' ');
+
 describe('Hourly Message Logic', () => {
   it('uses a natural weather phrase in the good-ride summary', () => {
     const weather = {
@@ -15,7 +19,10 @@ describe('Hourly Message Logic', () => {
       daily: [],
     };
 
-    expect(getMessage(weather, 'yes')).toBe('68°F, clear skies, with light winds.');
+    const message = getMessage(weather, 'yes');
+    expect(message.lead).toBe('68°F, clear skies, with light winds.');
+    expect(message.issues).toEqual([]);
+    expect(message.timing).toBeNull();
   });
 
   it('mentions when conditions become fair later even if they never reach fully good', () => {
@@ -34,7 +41,7 @@ describe('Hourly Message Logic', () => {
       daily: [],
     };
 
-    expect(getMessage(weather, 'no')).toContain('Clears by 11 AM');
+    expect(getMessage(weather, 'no').timing).toBe('Clears by 11 AM');
   });
 
   it('does not call mild weather too hot when the real issue is wind', () => {
@@ -51,11 +58,11 @@ describe('Hourly Message Logic', () => {
 
     const message = getMessage(weather, 'no');
 
-    expect(message).toContain('heavy wind');
-    expect(message).not.toContain('too hot (70°F)');
+    expect(spoken(message)).toContain('Windy (26 mph)');
+    expect(spoken(message)).not.toContain('Hot (70°F)');
   });
 
-  it('lists up to three issues inline as a readable sentence', () => {
+  it('lists each issue as its own chip label with an issues lead', () => {
     const weather = {
       hasThunderstorms: false,
       temperature: 48,
@@ -67,12 +74,12 @@ describe('Hourly Message Logic', () => {
       daily: [],
     };
 
-    expect(getMessage(weather, 'maybe')).toBe(
-      'Rideable. But it\u2019s cold (48°F), gusty (13 mph), and rainy (35% chance).',
-    );
+    const message = getMessage(weather, 'maybe');
+    expect(message.lead).toBe('Rideable, but:');
+    expect(message.issues).toEqual(['Chilly (48°F)', 'Breezy (13 mph)', 'Rain possible (35%)']);
   });
 
-  it('caps a wall of issues to the two most relevant with a "plus N more" tail', () => {
+  it('keeps every issue when a day stacks up many of them', () => {
     const weather = {
       hasThunderstorms: false,
       temperature: 48,
@@ -84,10 +91,8 @@ describe('Hourly Message Logic', () => {
       daily: [],
     };
 
-    // cold, gusty, rainy, sticky, hazy => 5 issues, collapsed to 2 + "plus 3 more"
-    expect(getMessage(weather, 'maybe')).toBe(
-      'Rideable. But it\u2019s cold (48°F) and gusty (13 mph), plus 3 more.',
-    );
+    // cold, gusty, rainy, sticky, hazy => 5 chips, no "plus N more" collapse
+    expect(getMessage(weather, 'maybe').issues).toHaveLength(5);
   });
 
   it('phrases a single rain issue naturally', () => {
@@ -102,7 +107,7 @@ describe('Hourly Message Logic', () => {
       daily: [],
     };
 
-    expect(getMessage(weather, 'maybe')).toBe('Rideable. But it\u2019s rainy (32% chance).');
+    expect(getMessage(weather, 'maybe').issues).toEqual(['Rain possible (32%)']);
   });
 
   it('rounds rain chance in rider-facing copy', () => {
@@ -117,7 +122,7 @@ describe('Hourly Message Logic', () => {
       daily: [],
     };
 
-    expect(getMessage(weather, 'maybe')).toBe('Rideable. But it\u2019s rainy (32% chance).');
+    expect(getMessage(weather, 'maybe').issues).toEqual(['Rain possible (32%)']);
   });
 
   it('names heavy rain codes when rain percentage alone looks low', () => {
@@ -133,7 +138,7 @@ describe('Hourly Message Logic', () => {
       daily: [],
     };
 
-    expect(getMessage(weather, 'no')).toContain('heavy rain');
+    expect(spoken(getMessage(weather, 'no'))).toContain('heavy rain');
   });
 
   it('names snow codes when raw metrics do not explain the downgrade', () => {
@@ -149,7 +154,7 @@ describe('Hourly Message Logic', () => {
       daily: [],
     };
 
-    expect(getMessage(weather, 'maybe')).toContain('snow');
+    expect(spoken(getMessage(weather, 'maybe'))).toContain('snow');
   });
 
   it('names fog codes when raw metrics do not explain the downgrade', () => {
@@ -165,7 +170,7 @@ describe('Hourly Message Logic', () => {
       daily: [],
     };
 
-    expect(getMessage(weather, 'maybe')).toContain('fog');
+    expect(spoken(getMessage(weather, 'maybe'))).toContain('fog');
   });
 
   it('describes gusts when they are the worse wind factor', () => {
@@ -181,80 +186,6 @@ describe('Hourly Message Logic', () => {
       daily: [],
     };
 
-    expect(getMessage(weather, 'no')).toContain('strong gusts (34 mph gusts)');
-  });
-
-  it('mentions tomorrow only when tomorrow is at least fair and better than today', () => {
-    const weather = {
-      hasThunderstorms: false,
-      temperature: 30,
-      feelsLike: 27,
-      windSpeed: 5,
-      rainChance: 10,
-      dewpoint: 50,
-      aqi: 20,
-      hourly: [{ hour: 10, condition: 'bad' }],
-      daily: [
-        {
-          date: '2026-07-12',
-          high: 35,
-          low: 25,
-          windSpeed: 8,
-          windGust: 10,
-          rainChance: 10,
-          weatherCode: 1,
-          condition: 'bad',
-        },
-        {
-          date: '2026-07-13',
-          high: 62,
-          low: 51,
-          windSpeed: 7,
-          windGust: 9,
-          rainChance: 5,
-          weatherCode: 1,
-          condition: 'fair',
-        },
-      ],
-    };
-
-    expect(getMessage(weather, 'no')).toContain('Tomorrow should be the better ride window.');
-  });
-
-  it('does not mention tomorrow when tomorrow improves but is still not rideable', () => {
-    const weather = {
-      hasThunderstorms: false,
-      temperature: 30,
-      feelsLike: 27,
-      windSpeed: 5,
-      rainChance: 10,
-      dewpoint: 50,
-      aqi: 20,
-      hourly: [{ hour: 10, condition: 'bad' }],
-      daily: [
-        {
-          date: '2026-07-12',
-          high: 35,
-          low: 25,
-          windSpeed: 8,
-          windGust: 10,
-          rainChance: 10,
-          weatherCode: 1,
-          condition: 'bad',
-        },
-        {
-          date: '2026-07-13',
-          high: 45,
-          low: 33,
-          windSpeed: 12,
-          windGust: 15,
-          rainChance: 20,
-          weatherCode: 3,
-          condition: 'marginal',
-        },
-      ],
-    };
-
-    expect(getMessage(weather, 'no')).not.toContain('Tomorrow should be the better ride window.');
+    expect(spoken(getMessage(weather, 'no'))).toContain('Gusty (34 mph gusts)');
   });
 });

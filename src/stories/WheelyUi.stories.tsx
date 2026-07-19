@@ -125,14 +125,13 @@ export const Header: StoryObj<typeof WeatherHeader> = {
 export const Verdict: StoryObj<typeof RideVerdict> = {
   args: {
     status: 'yes',
-    message: 'Smooth miles are on deck.',
+    message: { lead: 'Smooth miles are on deck.', issues: [], timing: null },
   },
   argTypes: {
     status: {
       control: 'inline-radio',
       options: ['yes', 'maybe', 'no'],
     },
-    message: { control: 'text' },
   },
   render: (args) => <RideVerdict {...args} />,
 };

@@ -10,29 +10,22 @@ describe('Gear Suggestions', () => {
     hourly: [],
   };
 
-  const isPerfectHeadline = (text: string) =>
-    /long way|extra loop|extra miles|ideal|prime|beautiful riding|favor extra|clean roads|worth making count|coffee stop|nowhere in particular|tailwind-shaped/i.test(
-      text,
-    );
-
   const matchesItem = (gear: ReturnType<typeof getGearSuggestion>, pattern: RegExp) =>
-    gear.items.some((item) => pattern.test(item.label) || pattern.test(item.qualifier ?? ''));
+    gear.items.some((item) => pattern.test(item.label));
 
-  it('shows PERFECT when all conditions are genuinely good', () => {
+  it('shows the casual baseline outfit when all conditions are genuinely good', () => {
     const gear = getGearSuggestion(base, 'casual');
-    expect(isPerfectHeadline(gear.headline)).toBe(true);
     expect(matchesItem(gear, /short-sleeve top/i)).toBe(true);
     expect(matchesItem(gear, /^shorts$/i)).toBe(true);
   });
 
-  it('shows baseline performance kit when all conditions are genuinely good', () => {
+  it('shows the performance baseline outfit when all conditions are genuinely good', () => {
     const gear = getGearSuggestion(base, 'pro');
-    expect(isPerfectHeadline(gear.headline)).toBe(true);
     expect(matchesItem(gear, /short-sleeve jersey/i)).toBe(true);
     expect(matchesItem(gear, /bib shorts/i)).toBe(true);
   });
 
-  it('does not show PERFECT when rain is high, even on a warm day', () => {
+  it('adds rain gear on a warm rainy day', () => {
     const gear = getGearSuggestion(
       {
         ...base,
@@ -41,13 +34,12 @@ describe('Gear Suggestions', () => {
       },
       'casual',
     );
-    expect(isPerfectHeadline(gear.headline)).toBe(false);
     expect(matchesItem(gear, /short-sleeve top/i)).toBe(true);
     expect(matchesItem(gear, /^shorts$/i)).toBe(true);
     expect(matchesItem(gear, /rain/i)).toBe(true);
   });
 
-  it('does not show PERFECT when wind is high, even on a warm day', () => {
+  it('adds wind gear on a warm windy day', () => {
     const gear = getGearSuggestion(
       {
         ...base,
@@ -56,13 +48,12 @@ describe('Gear Suggestions', () => {
       },
       'casual',
     );
-    expect(isPerfectHeadline(gear.headline)).toBe(false);
     expect(matchesItem(gear, /short-sleeve top/i)).toBe(true);
     expect(matchesItem(gear, /^shorts$/i)).toBe(true);
     expect(matchesItem(gear, /wind/i)).toBe(true);
   });
 
-  it('still shows PERFECT on an ideal day when only benign UV items are added', () => {
+  it('adds UV items on an otherwise ideal day', () => {
     const gear = getGearSuggestion(
       {
         ...base,
@@ -71,42 +62,10 @@ describe('Gear Suggestions', () => {
       'casual',
     );
 
-    expect(isPerfectHeadline(gear.headline)).toBe(true);
     expect(matchesItem(gear, /short-sleeve top/i)).toBe(true);
     expect(matchesItem(gear, /^shorts$/i)).toBe(true);
     expect(matchesItem(gear, /sunscreen/i)).toBe(true);
     expect(matchesItem(gear, /sunglasses/i)).toBe(true);
-  });
-
-  it('suppresses celebratory PERFECT copy when the verdict is only maybe', () => {
-    const gear = getGearSuggestion(base, 'casual', 'maybe');
-    expect(isPerfectHeadline(gear.headline)).toBe(false);
-    expect(matchesItem(gear, /short-sleeve top/i)).toBe(true);
-    expect(matchesItem(gear, /^shorts$/i)).toBe(true);
-  });
-
-  it('suppresses celebratory PERFECT copy when the verdict is no', () => {
-    const gear = getGearSuggestion(base, 'pro', 'no');
-    expect(isPerfectHeadline(gear.headline)).toBe(false);
-  });
-
-  it('still shows PERFECT when the verdict is an unambiguous yes', () => {
-    const gear = getGearSuggestion(base, 'casual', 'yes');
-    expect(isPerfectHeadline(gear.headline)).toBe(true);
-  });
-
-  it('falls back to a quiet NEUTRAL base on an ideal day with a real caveat', () => {
-    const gear = getGearSuggestion(
-      {
-        ...base,
-        dewpoint: 70,
-        hourly: [{ feelsLike: 72, windSpeed: 5, rainChance: 0, dewpoint: 70, uv: 0 }],
-      },
-      'casual',
-    );
-
-    expect(isPerfectHeadline(gear.headline)).toBe(false);
-    expect(matchesItem(gear, /muggy/i)).toBe(true);
   });
 
   it('picks one consistent bottom across a changing three-hour window', () => {
@@ -143,8 +102,7 @@ describe('Gear Suggestions', () => {
       'casual',
     );
 
-    expect(isPerfectHeadline(gear.headline)).toBe(false);
-    expect(matchesItem(gear, /moisture-wicking short-sleeve top/i)).toBe(true);
+    expect(matchesItem(gear, /wicking top/i)).toBe(true);
     expect(matchesItem(gear, /^shorts$/i)).toBe(true);
   });
 
@@ -158,7 +116,6 @@ describe('Gear Suggestions', () => {
       'pro',
     );
 
-    expect(isPerfectHeadline(gear.headline)).toBe(false);
     expect(matchesItem(gear, /short-sleeve jersey/i)).toBe(true);
     expect(matchesItem(gear, /bib shorts/i)).toBe(true);
     expect(matchesItem(gear, /wind vest/i)).toBe(true);
@@ -195,8 +152,8 @@ describe('Gear Suggestions', () => {
       'casual',
     );
 
-    expect(gear.wear.some((item) => /moisture-wicking/i.test(item.label))).toBe(true);
-    expect(gear.bring.some((item) => /moisture-wicking/i.test(item.label))).toBe(false);
+    expect(gear.wear.some((item) => /wicking/i.test(item.label))).toBe(true);
+    expect(gear.bring.some((item) => /wicking/i.test(item.label))).toBe(false);
   });
 
   it('puts the temp-swing removable layer in bring', () => {

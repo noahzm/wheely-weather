@@ -5,7 +5,7 @@ import type { LucideIcon } from 'lucide-react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { CONDITION_DISPLAY } from '@/domain';
-import { dayLabel, getBestDayInfo, getBestDaysBlurb, getDayConditionReason } from '@/utils';
+import { dayLabel, getBestDayInfo } from '@/utils';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { useTemperatureDisplay } from '@/hooks/use-temperature-display';
 import { FontWeightBlack, Fonts, Spacing, Type, type WheelyPalette } from '@/constants/theme';
@@ -24,17 +24,6 @@ import {
 function makeStyles(c: WheelyPalette) {
   return StyleSheet.create({
     weekSection: { gap: Spacing.three },
-    weekBlurb: {
-      color: c.mutedInk,
-      fontFamily: Fonts.body,
-      fontWeight: '400',
-      ...Type.small,
-    },
-    weekBlurbLead: {
-      color: c.ink,
-      fontFamily: Fonts.bold,
-      fontWeight: FontWeightBlack,
-    },
     dailyList: { padding: 0, gap: 0, overflow: 'visible' },
     // Clips the best-bet row's accent border at the card's corners; concentric
     // radius so the clip follows the inside of the card border.
@@ -76,17 +65,6 @@ function makeStyles(c: WheelyPalette) {
       ...(Platform.OS === 'web' ? ({ whiteSpace: 'nowrap' } as object) : null),
     },
     dayLow: { color: c.mutedInk, fontSize: Type.small.fontSize },
-    dayMetaRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: Spacing.two,
-    },
-    dayReason: {
-      color: c.mutedInk,
-      flex: 1,
-      ...Type.small,
-    },
     muted: {
       color: c.mutedInk,
       ...Type.small,
@@ -114,7 +92,7 @@ function DayRow({
   icon: LucideIcon;
 }>) {
   const { c, styles } = useStyles();
-  const { unit: tempUnit, format: formatTemp } = useTemperatureDisplay();
+  const { format: formatTemp } = useTemperatureDisplay();
   const condition = asCondition(day.condition);
   return (
     <View style={[styles.dayRow, best && styles.dayRowBest, last && styles.dayRowLast]}>
@@ -139,25 +117,18 @@ function DayRow({
         </ThemedText>
         <ConditionPill condition={condition}>{CONDITION_DISPLAY[condition]}</ConditionPill>
       </View>
-      <View style={styles.dayMetaRow}>
-        <ThemedText style={styles.dayReason}>{getDayConditionReason(day, tempUnit)}</ThemedText>
-        {best ? (
-          <View accessibilityRole="text" accessibilityLabel="Best bet">
-            <Chip accent>Best bet</Chip>
-          </View>
-        ) : null}
-      </View>
+      {best ? (
+        <View accessibilityRole="text" accessibilityLabel="Best bet">
+          <Chip accent>Best bet</Chip>
+        </View>
+      ) : null}
     </View>
   );
 }
 
 export function DailyForecast({ daily }: Readonly<{ daily: DailyWeather[] }>) {
   const { styles } = useStyles();
-  const { index: bestDayIdx, rationale } = getBestDayInfo(daily);
-  const blurb = getBestDaysBlurb(daily, bestDayIdx, rationale);
-  const firstSentenceEnd = blurb.indexOf('.');
-  const blurbLead = firstSentenceEnd === -1 ? blurb : blurb.slice(0, firstSentenceEnd + 1);
-  const blurbRest = firstSentenceEnd === -1 ? '' : blurb.slice(firstSentenceEnd + 1);
+  const { index: bestDayIdx } = getBestDayInfo(daily);
 
   if (daily.length === 0) {
     return (
@@ -171,12 +142,6 @@ export function DailyForecast({ daily }: Readonly<{ daily: DailyWeather[] }>) {
 
   return (
     <View style={styles.weekSection}>
-      <BrutalCard small>
-        <ThemedText style={styles.weekBlurb}>
-          <ThemedText style={styles.weekBlurbLead}>{blurbLead}</ThemedText>
-          {blurbRest}
-        </ThemedText>
-      </BrutalCard>
       <BrutalCard style={styles.dailyList}>
         <View style={styles.dailyClip}>
           {daily.map((day, index) => (

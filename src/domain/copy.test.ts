@@ -1,43 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  ALERT_MESSAGES,
-  BEST_DAYS_MESSAGES,
-  GEAR_TIPS,
-  STATUS_MESSAGES,
-  getVerdictLabel,
-} from './copy';
-
-// `pick()` is intentionally `arr[new Date().getHours() % arr.length]` — stable
-// within an hour, NOT random (see the inline warning in copy.js).
-// We exercise it through BEST_DAYS_MESSAGES.NONE(), which has 6 variants.
-describe('copy pick() variant selection', () => {
-  const atHour = (h: number) => vi.setSystemTime(new Date(2026, 5, 22, h, 30, 0));
-
-  beforeEach(() => vi.useFakeTimers());
-  afterEach(() => vi.useRealTimers());
-
-  it('is deterministic within the same hour (not random)', () => {
-    atHour(9);
-    const first = BEST_DAYS_MESSAGES.NONE();
-    for (let i = 0; i < 10; i++) {
-      expect(BEST_DAYS_MESSAGES.NONE()).toBe(first);
-    }
-  });
-
-  it('cycles with a period equal to the number of variants (6)', () => {
-    const results = Array.from({ length: 12 }, (_, h) => {
-      atHour(h);
-      return BEST_DAYS_MESSAGES.NONE();
-    });
-
-    // Period of 6: hour h and hour h+6 select the same variant.
-    for (let h = 0; h < 6; h++) {
-      expect(results[h]).toBe(results[h + 6]);
-    }
-    // And the first six hours cover six distinct variants.
-    expect(new Set(results.slice(0, 6)).size).toBe(6);
-  });
-});
+import { ALERT_MESSAGES, ISSUE_PHRASES, STATUS_MESSAGES, getVerdictLabel } from './copy';
 
 describe('verdict labels', () => {
   beforeEach(() => vi.useFakeTimers());
@@ -80,34 +42,7 @@ describe('verdict labels', () => {
   });
 });
 
-describe('rest-day tails', () => {
-  beforeEach(() => vi.useFakeTimers());
-  afterEach(() => vi.useRealTimers());
-
-  it('is stable for the same seed within the same hour', () => {
-    vi.setSystemTime(new Date(2026, 6, 2, 9, 0, 0));
-    const seed = 'Sit this one out: heavy humidity (dew 66°F).';
-    expect(STATUS_MESSAGES.REST_DAY(seed)).toBe(STATUS_MESSAGES.REST_DAY(seed));
-  });
-
-  it('varies across different seeds within the same hour', () => {
-    vi.setSystemTime(new Date(2026, 6, 2, 9, 0, 0));
-    const seeds = ['too hot', 'heavy humidity', 'rain likely', 'strong wind', 'poor air quality'];
-    const tails = new Set(seeds.map((seed) => STATUS_MESSAGES.REST_DAY(seed)));
-    expect(tails.size).toBeGreaterThan(1);
-  });
-});
-
 describe('status messaging helpers', () => {
-  it('formats issue lists and extra issue tails', () => {
-    expect(STATUS_MESSAGES.MAYBE_ISSUES(['wind'])).toContain('wind');
-    expect(STATUS_MESSAGES.MAYBE_ISSUES(['wind', 'rain'])).toContain('wind and rain');
-
-    const message = STATUS_MESSAGES.NO_ISSUES(['wind', 'rain', 'heat'], 2);
-    expect(message).toContain('wind, rain, and heat');
-    expect(message).toContain('plus 2 more');
-  });
-
   it('formats rain and alert copy with dynamic values', () => {
     expect(STATUS_MESSAGES.LATER_GOOD('6 PM')).toContain('6 PM');
     expect(STATUS_MESSAGES.CLEAR_UP('7 PM')).toContain('7 PM');
@@ -116,27 +51,16 @@ describe('status messaging helpers', () => {
   });
 });
 
-describe('gear tip variants', () => {
-  beforeEach(() => vi.useFakeTimers());
-  afterEach(() => vi.useRealTimers());
-
-  it('formats pro swing and wind pickup qualifiers', () => {
-    const tempSwing = GEAR_TIPS.PRO.TEMP_SWING('55°F', '72°F');
-    const windPickup = GEAR_TIPS.PRO.WIND_PICKUP(24);
-
-    expect(tempSwing.items[0]?.qualifier).toBe('55°F to 72°F across the window');
-    expect(windPickup.items[0]?.qualifier).toBe('Wind builds to 24 mph');
-  });
-
-  it('alternates UV extreme qualifier by hour and includes support item', () => {
-    vi.setSystemTime(new Date(2026, 6, 2, 8, 0, 0));
-    const early = GEAR_TIPS.CASUAL.UV_EXTREME();
-    vi.setSystemTime(new Date(2026, 6, 2, 9, 0, 0));
-    const later = GEAR_TIPS.CASUAL.UV_EXTREME();
-
-    expect(['Very high UV', 'Extreme UV']).toContain(early.items[0]?.qualifier);
-    expect(['Very high UV', 'Extreme UV']).toContain(later.items[0]?.qualifier);
-    expect(early.items[0]?.qualifier).not.toBe(later.items[0]?.qualifier);
-    expect(early.items[1]).toEqual({ icon: 'Glasses', label: 'Sunglasses' });
+describe('shared issue phrases', () => {
+  it('varies phrasing by severity tier', () => {
+    expect(ISSUE_PHRASES.WIND(24, 'bad')).toBe('Very windy (24 mph)');
+    expect(ISSUE_PHRASES.WIND(16, 'marginal')).toBe('Breezy (16 mph)');
+    expect(ISSUE_PHRASES.RAIN('65%', 'bad')).toBe('Rain likely (65%)');
+    expect(ISSUE_PHRASES.HEAT('97°F', 'bad')).toBe('Dangerous heat (97°F)');
+    expect(ISSUE_PHRASES.COLD('30°F', 'bad')).toBe('Freezing (30°F)');
+    expect(ISSUE_PHRASES.HUMIDITY('76°F', 'bad')).toBe('Oppressive humidity (dew 76°F)');
+    expect(ISSUE_PHRASES.HUMIDITY('62°F', 'marginal')).toBe('Muggy (dew 62°F)');
+    expect(ISSUE_PHRASES.AQI(160, 'poor')).toBe('Poor air (AQI 160)');
+    expect(ISSUE_PHRASES.AQI(80, 'marginal')).toBe('Hazy (AQI 80)');
   });
 });

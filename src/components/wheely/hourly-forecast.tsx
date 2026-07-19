@@ -7,6 +7,7 @@ import { CONDITION_DISPLAY } from '@/domain';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { Fonts, Spacing, Type, type WheelyPalette } from '@/constants/theme';
 import type { HourlyWeather } from '@/types/weather';
+import type { Thresholds } from '@/domain/constants';
 import {
   AnimatedConditionChip,
   ConditionChipWidthProbe,
@@ -206,15 +207,17 @@ function HourlyForecastBody({
   nowIdx,
   rainTiming,
   daylightWarning,
+  thresholds,
 }: Readonly<{
   data: ChartHour[];
   nowIdx: number;
   rainTiming?: string | null;
   daylightWarning?: string | null;
+  thresholds?: Thresholds;
 }>) {
   const { styles } = useStyles();
   const c = useWheelyColors();
-  const chart = useHourlyForecastChart(data, nowIdx);
+  const chart = useHourlyForecastChart(data, nowIdx, thresholds);
   const maxIndex = Math.max(0, data.length - 1);
 
   // Shared by the sticker chip and the chart's selection marker so both blend
@@ -368,11 +371,13 @@ export function HourlyForecast({
   pastHourly,
   rainTiming,
   daylightWarning,
+  thresholds,
 }: Readonly<{
   hourly: HourlyWeather[];
   pastHourly: HourlyWeather[];
   rainTiming?: string | null;
   daylightWarning?: string | null;
+  thresholds?: Thresholds;
 }>) {
   const { styles } = useStyles();
   const data = useMemo(() => {
@@ -400,6 +405,7 @@ export function HourlyForecast({
         nowIdx={nowIdx}
         rainTiming={rainTiming}
         daylightWarning={daylightWarning}
+        thresholds={thresholds}
       />
     </BrutalCard>
   );

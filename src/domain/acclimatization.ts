@@ -76,26 +76,3 @@ export const resolveThresholds = (
   homeBaseline: HomeBaseline | null | undefined,
   base: Thresholds = THRESHOLDS,
 ): Thresholds => applyAcclimatization(base, deriveAcclimatization(homeBaseline));
-
-/**
- * A short, honest relative-context note: how today's heat/humidity compares to
- * what the rider is used to at home. Keeps the absolute verdict honest while
- * adding the personal read. Returns null when there's nothing useful to say.
- */
-export const getAcclimatizationNote = (
-  weather: { temperature: number; dewpoint?: number | null } | null | undefined,
-  homeBaseline: HomeBaseline | null | undefined,
-): string | null => {
-  if (!homeBaseline || weather?.temperature == null) return null;
-  const { tempShift, dewShift } = deriveAcclimatization(homeBaseline);
-  const acclimatized = tempShift > 0 || dewShift > 0;
-
-  const tempDelta = weather.temperature - homeBaseline.warmTemp;
-  const dewDelta = (weather.dewpoint ?? weather.temperature) - homeBaseline.warmDewpoint;
-  const hotter = Math.max(tempDelta, dewDelta);
-
-  if (hotter >= 6) return 'Tougher than you’re used to at home';
-  if (acclimatized && hotter >= -6) return 'About normal for your home climate';
-  if (hotter <= -18) return 'Mild compared to home';
-  return null;
-};

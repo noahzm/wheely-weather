@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { getDailyCondition } from './weather';
-import { getBestDayInfo, getBestDaysBlurb, getDayConditionReason } from '../utils/forecastHelpers';
+import { getBestDayInfo, getDayConditionReason } from '../utils/forecastHelpers';
 
 describe('Daily Forecast Logic', () => {
   it('marks thunderstorm days as bad even if other daily metrics look okay', () => {
@@ -87,66 +87,6 @@ describe('Weekly Forecast Logic', () => {
     ];
 
     expect(getBestDayInfo(daily).index).toBe(1);
-  });
-
-  it('keeps fair days visible as solid alternatives to the best good day', () => {
-    const daily = [
-      { date: new Date('2026-04-19T12:00:00'), condition: 'fair' },
-      { date: new Date('2026-04-20T12:00:00'), condition: 'good' },
-      { date: new Date('2026-04-21T12:00:00'), condition: 'fair' },
-    ];
-
-    expect(getBestDaysBlurb(daily, 1, '')).toBe(
-      'Monday is the best bet. Today and Tuesday are solid ride windows too.',
-    );
-  });
-
-  it('keeps the blurb aligned with the single Best Bet badge when several good days exist', () => {
-    const daily = [
-      {
-        date: new Date('2026-04-19T12:00:00'),
-        condition: 'good',
-        high: 82,
-        low: 63,
-        windSpeed: 14,
-        rainChance: 20,
-      },
-      {
-        date: new Date('2026-04-20T12:00:00'),
-        condition: 'good',
-        high: 72,
-        low: 56,
-        windSpeed: 6,
-        rainChance: 5,
-      },
-      {
-        date: new Date('2026-04-21T12:00:00'),
-        condition: 'good',
-        high: 69,
-        low: 52,
-        windSpeed: 8,
-        rainChance: 10,
-      },
-    ];
-
-    expect(getBestDaysBlurb(daily, 1, 'Low wind and dry roads')).toBe(
-      'Monday is the best bet. Low wind and dry roads expected. Today and Tuesday are solid ride windows too.',
-    );
-  });
-
-  it('summarizes instead of naming every day when most of the week is good', () => {
-    const daily = Array.from({ length: 8 }, (_, i) => ({
-      date: new Date(`2026-04-${19 + i}T12:00:00`),
-      condition: 'good',
-      high: 72,
-      low: 56,
-      windSpeed: 6,
-      rainChance: 5,
-    }));
-
-    expect(getBestDaysBlurb(daily, 1, 'Low wind and dry roads')).toBe(
-      'Monday is the best bet. Low wind and dry roads expected. Most of the week is rideable too.',
-    );
   });
 
   it('explains when a day looks nice but rates badly because of wind', () => {

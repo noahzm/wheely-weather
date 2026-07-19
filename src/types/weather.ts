@@ -77,6 +77,14 @@ export interface Weather {
   nwsAlerts?: WeatherAlert[];
 }
 
+/** Structured verdict copy: a short lead line plus issue labels rendered as chips. */
+export interface VerdictMessage {
+  lead: string;
+  issues: string[];
+  /** Improvement timing (e.g. "Clears by 3 PM"), shown as a chip when present. */
+  timing: string | null;
+}
+
 export interface RideFactor {
   type: MetricType | 'weatherCode';
   label: string;
@@ -88,16 +96,13 @@ export interface GearTipItem {
   slot?: string;
   icon: string;
   label: string;
-  qualifier?: string;
 }
 
 export interface GearTip {
-  headline?: string;
   items: GearTipItem[];
 }
 
 export interface GearSuggestion {
-  headline: string;
   items: GearTipItem[];
   /** Core outfit: slotted items plus base temperature-tip accessories. */
   wear: GearTipItem[];

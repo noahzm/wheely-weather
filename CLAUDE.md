@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-Run from the repository root. CI (`.github/workflows/ci.yml`) runs these in order — always match this order when validating changes:
+Run from the repository root. CI (`.github/workflows/ci.yml`, Node 24) runs these in order — always match this order when validating changes:
 
 ```bash
 npm run format:check   # Prettier check
@@ -29,6 +29,7 @@ npm run ios:start:tunnel        # relaunch dev build, tunnel host
 npm run ios:clean               # clean native iOS regen + build/install + launch
 npm run storybook:web           # component workshop at http://localhost:6006
 npm run deploy:web              # build then deploy web build via Wrangler (Cloudflare)
+npm run eas:build:ios-dev / ios-prod / android-dev / android-prod   # EAS cloud builds
 ```
 
 `npm run test:e2e` (Playwright vs Storybook) and `npm run test:e2e:app` (Playwright vs exported web app) are not part of CI and are run manually.

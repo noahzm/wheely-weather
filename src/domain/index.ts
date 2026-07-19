@@ -1,10 +1,5 @@
 export { CONDITION_DISPLAY, THRESHOLDS } from './constants';
-export {
-  deriveAcclimatization,
-  applyAcclimatization,
-  resolveThresholds,
-  getAcclimatizationNote,
-} from './acclimatization';
+export { deriveAcclimatization, applyAcclimatization, resolveThresholds } from './acclimatization';
 export { getVerdictLabel } from './copy';
 export {
   evaluateCondition,

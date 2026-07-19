@@ -4,12 +4,9 @@ import {
   getBestDayInfo,
   getDayConditionReason,
   getHourConditionReasons,
-  getBestDaysBlurb,
 } from './forecastHelpers';
 
 // Local-constructed dates keep getDay()/getDate() stable regardless of the runner's TZ.
-// June 1 2026 is a Monday, so WEEK[0..6] runs Mon→Sun.
-const WEEK = Array.from({ length: 7 }, (_, i) => new Date(2026, 5, 1 + i));
 const JUN_22 = new Date(2026, 5, 22); // Monday
 const JUN_24 = new Date(2026, 5, 24); // Wednesday
 
@@ -166,77 +163,19 @@ describe('getHourConditionReasons', () => {
       getHourConditionReasons(
         hour({ condition: 'marginal', weatherCode: 95, windSpeed: 16, rainChance: 35 }),
       ),
-    ).toEqual(['Storm risk', 'Breezy (16 mph)', 'Some rain risk']);
+    ).toEqual(['Storm risk', 'Breezy (16 mph)', 'Rain possible (35%)']);
+  });
+
+  it('still names lower-tier metrics in an hour dragged bad by a single metric', () => {
+    // Dew 76 makes the hour bad; 88° heat is only poor-tier but must not vanish.
+    expect(
+      getHourConditionReasons(hour({ condition: 'bad', temperature: 88, dewpoint: 76 })),
+    ).toEqual(['Very hot (88°)', 'Oppressive humidity (dew 76°)']);
   });
 
   it('does not add fallback reasons when hazardous weather is the only specific reason', () => {
     expect(getHourConditionReasons(hour({ condition: 'bad', weatherCode: 65 }))).toEqual([
       'Heavy rain risk',
     ]);
-  });
-});
-
-describe('getBestDaysBlurb', () => {
-  // Builds a week where the given indices are "good", the rest "marginal".
-  const weekWith = (condByIndex: Record<number, string>) =>
-    WEEK.map((date, i) => day({ date, condition: condByIndex[i] ?? 'marginal' }));
-
-  it('names a single good day as the best ride window', () => {
-    const daily = [day({ condition: 'good' })];
-    expect(getBestDaysBlurb(daily, 0, 'Calm and steady')).toBe(
-      'Today is your best ride window. Calm and steady expected.',
-    );
-  });
-
-  it('lists two or three additional good days by name', () => {
-    const daily = weekWith({ 0: 'good', 2: 'good', 4: 'good' });
-    const blurb = getBestDaysBlurb(daily, 0, 'Warm and dry');
-    expect(blurb).toContain('Today is the best bet.');
-    expect(blurb).toContain('Warm and dry expected.');
-    expect(blurb).toContain('Wednesday and Friday are solid ride windows too.');
-  });
-
-  it('summarizes instead of listing once four or more days qualify', () => {
-    const daily = weekWith({
-      0: 'good',
-      1: 'good',
-      2: 'good',
-      3: 'good',
-      4: 'good',
-    });
-    const blurb = getBestDaysBlurb(daily, 0, '');
-    expect(blurb).toContain('Today is the best bet.');
-    expect(blurb).toContain('Most of the week is rideable too.');
-  });
-
-  it('treats fair days as solid ride windows when no day is good', () => {
-    const daily = WEEK.slice(0, 3).map((date, i) =>
-      day({ date, condition: i === 2 ? 'fair' : i === 0 ? 'fair' : 'poor' }),
-    );
-    const blurb = getBestDaysBlurb(daily, 0, 'Comfortable');
-    expect(blurb).toContain('Today is the best bet.');
-    expect(blurb).toContain('Wednesday is a solid ride window too.');
-  });
-
-  it('summarizes a mostly-rideable fair week', () => {
-    const daily = WEEK.map((date) => day({ date, condition: 'fair' }));
-    const blurb = getBestDaysBlurb(daily, 0, '');
-    expect(blurb).toContain('Most of the week is rideable too.');
-  });
-
-  it('falls back to a no-standout-days message when nothing qualifies', () => {
-    const daily = [day({ condition: 'poor' }), day({ condition: 'bad' })];
-    const blurb = getBestDaysBlurb(daily, -1, '');
-    expect(typeof blurb).toBe('string');
-    expect(blurb.length).toBeGreaterThan(0);
-  });
-
-  it('does not describe a day without an upcoming ride window as rideable', () => {
-    const daily = [
-      day({ condition: 'good', rideWindowUnavailable: true }),
-      day({ condition: 'fair' }),
-    ];
-    const blurb = getBestDaysBlurb(daily, 1, 'Fair window');
-    expect(blurb).toBe('Monday is your best ride window. Fair window expected.');
   });
 });
