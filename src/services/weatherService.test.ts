@@ -368,6 +368,57 @@ describe('buildWeatherFromData — daily parsing', () => {
   });
 });
 
+describe('buildWeatherFromData — sparse optional fields', () => {
+  it('tolerates missing optional arrays and null per-hour readings', () => {
+    const hours = Array.from({ length: 24 }, (_, h) => hourTime('2024-01-20', h));
+    // Descending daytime temps also exercise the running min/max range tracking.
+    const temps = hours.map((_, h) => 75 - h);
+    const data = makeOpenMeteoData({
+      current: { time: hours[0] },
+      hourly: {
+        time: hours,
+        temperature_2m: temps,
+        weather_code: hours.map(() => null) as unknown as number[],
+        dewpoint_2m: hours.map(() => null) as unknown as number[],
+        // Null rain only pre-dawn: daylight hours must keep readings so a ride
+        // window can still be selected.
+        precipitation_probability: hours.map((_, h) => (h === 0 ? null : 5)) as unknown as number[],
+      },
+      daily: {
+        time: ['2024-01-20'],
+        sunrise: [hourTime('2024-01-20', 7)],
+        sunset: [hourTime('2024-01-20', 18)],
+      },
+    });
+    delete data.hourly.wind_gusts_10m;
+    delete data.hourly.uv_index;
+
+    const weather = buildWeatherFromData(data, THRESHOLDS);
+
+    expect(weather.hourly).toHaveLength(24);
+    expect(weather.hourly[0]).toMatchObject({
+      windGust: null,
+      dewpoint: null,
+      weatherCode: null,
+      rainChance: 0,
+      uv: 0,
+    });
+    expect(weather.daily[0]?.rideWindow).toBeDefined();
+  });
+
+  it('derives the current hour from the payload UTC offset when current.time is absent', () => {
+    const data = makeOpenMeteoData({
+      current: { time: undefined as unknown as string },
+    });
+    delete data.utc_offset_seconds;
+
+    const weather = buildWeatherFromData(data, THRESHOLDS);
+
+    expect(weather.temperature).toBe(60);
+    expect(Array.isArray(weather.hourly)).toBe(true);
+  });
+});
+
 describe('buildWeatherFromData — daylight (sunrise/sunset) extraction', () => {
   it('reads sunrise/sunset hours from day 0', () => {
     const data = makeOpenMeteoData({

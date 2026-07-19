@@ -180,6 +180,49 @@ describe('Gear Suggestions', () => {
     expect(gear.wear.length).toBeGreaterThan(0);
   });
 
+  it('covers freezing-to-scorching extremes with possible rain and null sensor readings', () => {
+    const gear = getGearSuggestion(
+      {
+        feelsLike: 25,
+        windSpeed: 5,
+        rainChance: 40,
+        dewpoint: null,
+        hourly: [
+          { feelsLike: 25, windSpeed: 5, rainChance: 40, dewpoint: null, uv: null },
+          { feelsLike: 95, windSpeed: 5, rainChance: 40, dewpoint: null, uv: null },
+        ],
+      },
+      'casual',
+    );
+
+    expect(matchesItem(gear, /insulated gloves/i)).toBe(true);
+    expect(matchesItem(gear, /quick-dry layer/i)).toBe(true);
+    expect(matchesItem(gear, /removable layer/i)).toBe(true);
+  });
+
+  it('suggests light layers in the mild-cool band', () => {
+    const gear = getGearSuggestion(
+      {
+        ...base,
+        feelsLike: 60,
+        hourly: [{ feelsLike: 60, windSpeed: 5, rainChance: 0, dewpoint: 50, uv: 0 }],
+      },
+      'casual',
+    );
+
+    expect(matchesItem(gear, /short or light long sleeve/i)).toBe(true);
+  });
+
+  it('falls back to current conditions (with null dewpoint) when hourly data is empty', () => {
+    const gear = getGearSuggestion(
+      { feelsLike: 72, windSpeed: 5, rainChance: 0, dewpoint: null, uvIndex: 7, hourly: [] },
+      'casual',
+    );
+
+    expect(matchesItem(gear, /sunscreen/i)).toBe(true);
+    expect(matchesItem(gear, /short-sleeve top/i)).toBe(true);
+  });
+
   it('partitions items exactly into wear and bring', () => {
     const gear = getGearSuggestion(
       {
