@@ -34,6 +34,12 @@ updates:
       - dependency-name: 'typescript'
       - dependency-name: 'eslint-config-expo'
       - dependency-name: '@sentry/react-native'
+      # Pinned below react-native-reanimated@4.5.1/react-native-safe-area-context@5.8.0
+      # peer requirements (10.5.2+); those aren't the versions Expo SDK 57 pins.
+      # Package.json pins alone don't stop Dependabot from proposing bumps in a
+      # grouped PR, so these need an explicit ignore too.
+      - dependency-name: '@storybook/react-native'
+      - dependency-name: '@storybook/react-native-ui-lite'
       # Majors held back until the Expo toolchain supports them
       # (babel-preset-expo/Metro are on Babel 7; eslint-config-expo targets ESLint 9).
       - dependency-name: '@babel/core'
