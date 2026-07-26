@@ -12,6 +12,14 @@ updates:
       - dependencies
     commit-message:
       prefix: 'deps'
+    groups:
+      # Update as one PR so peer-dependency requirements across the family
+      # (e.g. react-native-reanimated/react-native-safe-area-context pins)
+      # stay in sync instead of drifting apart across separately-merged PRs.
+      storybook:
+        patterns:
+          - '@storybook/*'
+          - 'storybook'
     ignore:
       # Expo manages these package families through the SDK release train.
       - dependency-name: 'expo'
@@ -31,6 +39,8 @@ updates:
       - dependency-name: '@babel/core'
         update-types: ['version-update:semver-major']
       - dependency-name: 'eslint'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'eslint-plugin-unicorn'
         update-types: ['version-update:semver-major']
 
   - package-ecosystem: github-actions
