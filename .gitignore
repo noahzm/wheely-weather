@@ -77,3 +77,6 @@ coverage/
 # Generated Lighthouse reports
 lighthouse-report.json
 *.lighthouseci/
+
+# Claude Code local overrides
+.claude/settings.local.json
