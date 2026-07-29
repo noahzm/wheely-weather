@@ -14,9 +14,9 @@ export const THRESHOLDS = {
     BAD_MIN: 32,
     BAD_MAX: 95,
     POOR_MIN: 32,
-    POOR_MAX: 85,
+    POOR_MAX: 90,
     MARGINAL_MIN: 40,
-    MARGINAL_MAX: 85,
+    MARGINAL_MAX: 90,
     FAIR_MIN: 50,
     FAIR_MAX: 68,
   },
@@ -32,19 +32,19 @@ export const THRESHOLDS = {
   // gust table (it folds gusts into "30+ or gusting"); this scale is an app
   // safety enhancement consistent with the sustained-wind bands above.
   WIND_GUST: {
-    BAD: 38,
-    POOR: 32,
-    MARGINAL: 26,
-    FAIR: 20,
+    BAD: 40,
+    POOR: 35,
+    MARGINAL: 28,
+    FAIR: 22,
   },
   // Probability of precipitation (%). The reference rates precipitation
   // intensity/surface (handled via weather codes), not probability, so these
   // bands are app-specific rather than adopted from the reference.
   RAIN_CHANCE: {
-    BAD: 60,
-    POOR: 45,
-    MARGINAL: 30,
-    FAIR: 15,
+    BAD: 75,
+    POOR: 65,
+    MARGINAL: 40,
+    FAIR: 20,
   },
   // US EPA AQI, 0–500.
   AQI: {
@@ -56,9 +56,9 @@ export const THRESHOLDS = {
   // Dew point, °F. The honest read on stickiness; rated independently of temp.
   DEWPOINT: {
     BAD: 75,
-    POOR: 65,
-    MARGINAL: 60,
-    FAIR: 55,
+    POOR: 72,
+    MARGINAL: 66,
+    FAIR: 58,
   },
   // UV index, 0–11+.
   UV_INDEX: {
@@ -79,6 +79,18 @@ export const THRESHOLDS = {
 };
 
 export type Thresholds = typeof THRESHOLDS;
+
+// Thresholds for combined cold + rain hazard (hypothermia risk on a bike).
+export const COLD_RAIN_HAZARD = {
+  MAX_TEMP: 45,
+  SEVERE_TEMP: 40,
+  MIN_RAIN_CHANCE: 30,
+};
+
+// Thresholds for post-rain wet road spray detection.
+export const WET_ROADS_THRESHOLD = {
+  RECENT_RAIN_CHANCE: 30,
+};
 
 // Labels map 1:1 to the rating's real meaning. "Fair" remains distinct from
 // "Good" in metric details even though both are comfortably rideable overall.

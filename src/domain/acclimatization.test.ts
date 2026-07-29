@@ -30,7 +30,7 @@ describe('applyAcclimatization', () => {
     const adjusted = applyAcclimatization(THRESHOLDS, { tempShift: 6, dewShift: 7 });
     // Comfort thresholds move up.
     expect(adjusted.TEMPERATURE.FAIR_MAX).toBe(THRESHOLDS.TEMPERATURE.FAIR_MAX + 6);
-    expect(adjusted.DEWPOINT.POOR).toBe(THRESHOLDS.DEWPOINT.POOR + 7);
+    expect(adjusted.DEWPOINT.POOR).toBe(Math.min(THRESHOLDS.DEWPOINT.POOR + 7, THRESHOLDS.DEWPOINT.BAD - 1));
     // The avoid line is fixed.
     expect(adjusted.TEMPERATURE.BAD_MAX).toBe(THRESHOLDS.TEMPERATURE.BAD_MAX);
     expect(adjusted.DEWPOINT.BAD).toBe(THRESHOLDS.DEWPOINT.BAD);
@@ -57,8 +57,8 @@ describe('acclimatization and the verdict', () => {
   };
 
   it('eases a borderline-hot day for an acclimatized rider', () => {
-    const day = { ...base, temperature: 88, dewpoint: 64 };
-    // Temperate rider: 88°F air temp is "hard" -> no.
+    const day = { ...base, temperature: 92, dewpoint: 68 };
+    // Temperate rider: 92°F air temp is "hard" -> no.
     expect(getOverallStatus(day, THRESHOLDS)).toBe('no');
     // Phoenix-acclimatized rider: eased to a "maybe".
     expect(getOverallStatus(day, resolveThresholds(PHOENIX))).toBe('maybe');

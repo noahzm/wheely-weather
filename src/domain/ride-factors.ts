@@ -1,6 +1,13 @@
 import { THRESHOLDS, type Thresholds } from './constants';
 import { STATUS_MESSAGES as MSG, ISSUE_PHRASES, RAIN_MESSAGES, DAYLIGHT_MESSAGES } from './copy';
-import { evaluateCondition, evaluateWind, getLaterGoodHour, isGustDriven, RANK } from './scoring';
+import {
+  evaluateCondition,
+  evaluateWind,
+  evaluateColdRainHazard,
+  getLaterGoodHour,
+  isGustDriven,
+  RANK,
+} from './scoring';
 import {
   getWeatherCodeCondition,
   getWeatherCodeIssue,
@@ -57,8 +64,12 @@ const collectMessageIssues = (
   };
 
   const temp = formatTemperature(weather.temperature, tempUnit, { withUnitLabel: true });
-  addIssue(weather.temperature, 'temperature', (tier) =>
-    weather.temperature < 50 ? ISSUE_PHRASES.COLD(temp, tier) : ISSUE_PHRASES.HEAT(temp, tier),
+  addIssue(
+    weather.temperature,
+    'temperature',
+    (tier) =>
+      weather.temperature < 50 ? ISSUE_PHRASES.COLD(temp, tier) : ISSUE_PHRASES.HEAT(temp, tier),
+    evaluateCondition(weather.temperature, 'temperature', thresholds, weather.feelsLike),
   );
   const gustDriven = isGustDriven(weather.windSpeed, weather.windGust);
   addIssue(
@@ -70,9 +81,19 @@ const collectMessageIssues = (
         : ISSUE_PHRASES.WIND(Math.round(weather.windSpeed), tier),
     evaluateWind(weather.windSpeed, weather.windGust, thresholds),
   );
-  addIssue(weather.rainChance, 'rainChance', (tier) =>
-    ISSUE_PHRASES.RAIN(formatPercent(weather.rainChance), tier),
+  const coldRainCondition = evaluateColdRainHazard(
+    weather.temperature,
+    weather.rainChance,
+    weather.weatherCode,
   );
+  if (coldRainCondition) {
+    const tier = issueTier(coldRainCondition);
+    issues.push(ISSUE_PHRASES.COLD_RAIN(temp, formatPercent(weather.rainChance), tier));
+  } else {
+    addIssue(weather.rainChance, 'rainChance', (tier) =>
+      ISSUE_PHRASES.RAIN(formatPercent(weather.rainChance), tier),
+    );
+  }
   const weatherCodeIssue = getWeatherCodeIssue(weather.weatherCode, status);
   const precipitationAlreadyExplainsWeather =
     weatherCodeIssue &&

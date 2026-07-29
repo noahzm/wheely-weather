@@ -103,16 +103,16 @@ describe('getDayConditionReason', () => {
     ['Rough day to ride', { condition: 'bad' }],
     // poor
     ['Windy (19 mph)', { condition: 'poor', windSpeed: 19 }],
-    ['Wet roads likely', { condition: 'poor', rainChance: 50 }],
+    ['Wet roads likely', { condition: 'poor', rainChance: 65 }],
     ['Very hot (94°)', { condition: 'poor', high: 94 }],
-    ['Very humid (dew 69°)', { condition: 'poor', dewpoint: 69 }],
+    ['Very humid (dew 73°)', { condition: 'poor', dewpoint: 73 }],
     ['Cold start', { condition: 'poor', low: 35 }],
     ['Tough riding', { condition: 'poor' }],
     // marginal
     ['Breezy (16 mph)', { condition: 'marginal', windSpeed: 16 }],
-    ['Some rain risk', { condition: 'marginal', rainChance: 35 }],
+    ['Some rain risk', { condition: 'marginal', rainChance: 45 }],
     ['Warm (86°)', { condition: 'marginal', high: 86 }],
-    ['Muggy (dew 66°)', { condition: 'marginal', dewpoint: 66 }],
+    ['Muggy (dew 69°)', { condition: 'marginal', dewpoint: 69 }],
     ['Cool start', { condition: 'marginal', low: 40 }],
     ['Mixed conditions', { condition: 'marginal' }],
     // fair
@@ -155,7 +155,7 @@ describe('getHourConditionReasons', () => {
   it('includes heat and humidity reasons together', () => {
     expect(
       getHourConditionReasons(hour({ condition: 'poor', temperature: 94, dewpoint: 69 })),
-    ).toEqual(['Very hot (94°)', 'Very humid (dew 69°)']);
+    ).toEqual(['Very hot (94°)', 'Muggy (dew 69°)']);
   });
 
   it('includes hazardous weather code reasons plus limiting metric reasons', () => {
@@ -169,8 +169,8 @@ describe('getHourConditionReasons', () => {
   it('still names lower-tier metrics in an hour dragged bad by a single metric', () => {
     // Dew 76 makes the hour bad; 88° heat is only poor-tier but must not vanish.
     expect(
-      getHourConditionReasons(hour({ condition: 'bad', temperature: 88, dewpoint: 76 })),
-    ).toEqual(['Very hot (88°)', 'Oppressive humidity (dew 76°)']);
+      getHourConditionReasons(hour({ condition: 'bad', temperature: 94, dewpoint: 76 })),
+    ).toEqual(['Very hot (94°)', 'Oppressive humidity (dew 76°)']);
   });
 
   it('does not add fallback reasons when hazardous weather is the only specific reason', () => {
