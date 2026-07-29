@@ -177,11 +177,11 @@ export function RideVerdict({
   }[status];
 
   const statusIcon =
-    weatherCode != null ? weatherIconFor(weatherCode) : getFallbackStatusIcon(status);
+    weatherCode == null ? getFallbackStatusIcon(status) : weatherIconFor(weatherCode);
   const statusSfSymbol =
-    weatherCode != null
-      ? (weatherSfSymbol(weatherCode) as SFSymbol)
-      : getFallbackStatusSfSymbol(status);
+    weatherCode == null
+      ? getFallbackStatusSfSymbol(status)
+      : (weatherSfSymbol(weatherCode) as SFSymbol);
   const headlineText = (label ?? message.lead).replace(/(, but|:)$/i, '').trim();
   const issuesSentence = formatIssuesAsSentence(message.issues);
   const hasBottomBadge = message.timing != null;
@@ -192,7 +192,7 @@ export function RideVerdict({
   const spokenMessage = [
     meta.defaultLabel,
     headlineText,
-    score != null ? `Ride score ${score} out of 10.` : '',
+    score == null ? '' : `Ride score ${score} out of 10.`,
     issuesSentence,
     message.timing,
   ]
