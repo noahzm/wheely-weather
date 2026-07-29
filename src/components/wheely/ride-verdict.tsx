@@ -138,25 +138,15 @@ function useStyles() {
 }
 
 function getFallbackStatusIcon(status: 'yes' | 'maybe' | 'no'): LucideIcon {
-  switch (status) {
-    case 'yes':
-      return Sun;
-    case 'maybe':
-      return Wind;
-    case 'no':
-      return CloudRain;
-  }
+  if (status === 'yes') return Sun;
+  if (status === 'maybe') return Wind;
+  return CloudRain;
 }
 
 function getFallbackStatusSfSymbol(status: 'yes' | 'maybe' | 'no'): SFSymbol {
-  switch (status) {
-    case 'yes':
-      return 'sun.max.fill';
-    case 'maybe':
-      return 'wind';
-    case 'no':
-      return 'cloud.rain.fill';
-  }
+  if (status === 'yes') return 'sun.max.fill';
+  if (status === 'maybe') return 'wind';
+  return 'cloud.rain.fill';
 }
 
 export function RideVerdict({
@@ -184,12 +174,12 @@ export function RideVerdict({
     no: { defaultLabel: 'Rest day', ...c.condition.bad },
   }[status];
 
-  const StatusIcon =
-    weatherCode != null ? weatherIconFor(weatherCode) : getFallbackStatusIcon(status);
+  const statusIcon =
+    weatherCode == null ? getFallbackStatusIcon(status) : weatherIconFor(weatherCode);
   const statusSfSymbol =
-    weatherCode != null
-      ? (weatherSfSymbol(weatherCode) as SFSymbol)
-      : getFallbackStatusSfSymbol(status);
+    weatherCode == null
+      ? getFallbackStatusSfSymbol(status)
+      : (weatherSfSymbol(weatherCode) as SFSymbol);
   const headlineText = (label ?? message.lead).replace(/(, but|:)$/i, '').trim();
   const issuesSentence = formatIssuesAsSentence(message.issues);
   const hasBottomBadge = message.timing != null;
@@ -237,7 +227,8 @@ export function RideVerdict({
               style={hasDetails ? { marginTop: 1 } : undefined}
             />
           ) : (
-            <StatusIcon
+            <PlatformIcon
+              icon={statusIcon}
               size={30}
               color={meta.ink}
               strokeWidth={2.5}
