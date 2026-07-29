@@ -267,13 +267,15 @@ const CONDITION_SCORES: Record<Condition, number> = {
  * Calculates a quantitative Ride Quality Index (0–100) based on weather metrics.
  * Bounded by overall status so the score never contradicts the plain-language verdict.
  */
-export function calculateRideScore(
-  weather: Weather,
-  thresholds: Thresholds = THRESHOLDS,
-): number {
+export function calculateRideScore(weather: Weather, thresholds: Thresholds = THRESHOLDS): number {
   if (weather.hasThunderstorms) return 1;
 
-  const tempCond = evaluateCondition(weather.temperature, 'temperature', thresholds, weather.feelsLike);
+  const tempCond = evaluateCondition(
+    weather.temperature,
+    'temperature',
+    thresholds,
+    weather.feelsLike,
+  );
   const windCond = evaluateWind(weather.windSpeed, weather.windGust, thresholds);
   const rainCond = evaluateCondition(weather.rainChance, 'rainChance', thresholds);
   const dewCond = evaluateCondition(weather.dewpoint, 'dewpoint', thresholds);
@@ -301,9 +303,9 @@ export function calculateRideScore(
   const weighted =
     CONDITION_SCORES[tempCond] * 0.25 +
     CONDITION_SCORES[windCond] * 0.25 +
-    CONDITION_SCORES[rainCond] * 0.30 +
-    ((CONDITION_SCORES[dewCond] + CONDITION_SCORES[aqiCond]) / 2) * 0.10 +
-    CONDITION_SCORES[codeCond] * 0.10;
+    CONDITION_SCORES[rainCond] * 0.3 +
+    ((CONDITION_SCORES[dewCond] + CONDITION_SCORES[aqiCond]) / 2) * 0.1 +
+    CONDITION_SCORES[codeCond] * 0.1;
 
   const minConditionScore = Math.min(...allConditions.map((c) => CONDITION_SCORES[c]));
   let score100 = Math.round(weighted * 0.6 + minConditionScore * 0.4);
@@ -324,5 +326,3 @@ export function calculateRideScore(
   // Scale 0–100 down to a clean 0–10 integer score
   return Math.max(0, Math.min(10, Math.round(score100 / 10)));
 }
-
-

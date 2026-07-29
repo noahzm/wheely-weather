@@ -2,13 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
 import { SymbolView, type SFSymbol } from 'expo-symbols';
-import {
-  Clock,
-  CloudRain,
-  Sun,
-  Wind,
-  type LucideIcon,
-} from 'lucide-react-native';
+import { Clock, CloudRain, Sun, Wind, type LucideIcon } from 'lucide-react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
@@ -190,8 +184,12 @@ export function RideVerdict({
     no: { defaultLabel: 'Rest day', ...c.condition.bad },
   }[status];
 
-  const StatusIcon = weatherCode != null ? weatherIconFor(weatherCode) : getFallbackStatusIcon(status);
-  const statusSfSymbol = weatherCode != null ? (weatherSfSymbol(weatherCode) as SFSymbol) : getFallbackStatusSfSymbol(status);
+  const StatusIcon =
+    weatherCode != null ? weatherIconFor(weatherCode) : getFallbackStatusIcon(status);
+  const statusSfSymbol =
+    weatherCode != null
+      ? (weatherSfSymbol(weatherCode) as SFSymbol)
+      : getFallbackStatusSfSymbol(status);
   const headlineText = (label ?? message.lead).replace(/(, but|:)$/i, '').trim();
   const issuesSentence = formatIssuesAsSentence(message.issues);
   const hasBottomBadge = message.timing != null;
@@ -227,10 +225,7 @@ export function RideVerdict({
 
       <BrutalCard
         variant="featured"
-        style={[
-          styles.verdictCard,
-          { backgroundColor: meta.bg, paddingBottom: cardPaddingBottom },
-        ]}
+        style={[styles.verdictCard, { backgroundColor: meta.bg, paddingBottom: cardPaddingBottom }]}
       >
         {/* Weather Icon + Aligned Text Column */}
         <View style={[styles.contentRow, { alignItems: rowAlignment }]}>
@@ -251,9 +246,7 @@ export function RideVerdict({
           )}
 
           <View style={styles.textColumn}>
-            <ThemedText style={[styles.leadText, { color: meta.ink }]}>
-              {headlineText}
-            </ThemedText>
+            <ThemedText style={[styles.leadText, { color: meta.ink }]}>{headlineText}</ThemedText>
 
             {issuesSentence.length > 0 && (
               <ThemedText style={[styles.issueSentenceText, { color: meta.ink }]}>
@@ -273,9 +266,7 @@ export function RideVerdict({
             ) : (
               <Clock size={14} color={c.background} strokeWidth={2.5} />
             )}
-            <ThemedText style={styles.timingBadgeText}>
-              {message.timing}
-            </ThemedText>
+            <ThemedText style={styles.timingBadgeText}>{message.timing}</ThemedText>
           </Animated.View>
         </View>
       )}
