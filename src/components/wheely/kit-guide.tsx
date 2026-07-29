@@ -15,8 +15,9 @@ function makeStyles(c: WheelyPalette) {
       gap: Spacing.two,
     },
     groupLabel: {
-      color: c.mutedInk,
-      fontFamily: Fonts.heading,
+      color: c.ink,
+      fontFamily: Fonts.bold,
+      fontWeight: FontWeightBlack,
       ...Type.caption,
       textTransform: 'uppercase',
       letterSpacing: 1,

@@ -7,7 +7,7 @@
 }
 
 @font-face {
-  font-family: 'AlteHaasGroteskBold';
+  font-family: 'AlteHaasGrotesk_Bold';
   src: url('/fonts/AlteHaasGroteskBold.woff2') format('woff2');
   font-weight: 700;
   font-style: normal;
@@ -19,8 +19,8 @@
   --font-display: 'AlteHaasGrotesk', 'Helvetica Neue', Arial, sans-serif;
   --font-heading: 'AlteHaasGrotesk', 'Helvetica Neue', Arial, sans-serif;
   --font-body: 'AlteHaasGrotesk', 'Helvetica Neue', Arial, sans-serif;
-  --font-city: 'AlteHaasGroteskBold', 'Helvetica Neue', Arial, sans-serif;
-  --font-bold: 'AlteHaasGroteskBold', 'Helvetica Neue', Arial, sans-serif;
+  --font-city: 'AlteHaasGrotesk_Bold', 'Helvetica Neue', Arial, sans-serif;
+  --font-bold: 'AlteHaasGrotesk_Bold', 'Helvetica Neue', Arial, sans-serif;
 }
 
 html,

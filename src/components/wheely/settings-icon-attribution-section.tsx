@@ -8,7 +8,7 @@ import { BrutalCard, HapticPressable, SectionTitle } from './primitives';
 
 function makeStyles(c: WheelyPalette) {
   return StyleSheet.create({
-    group: { gap: Spacing.two },
+    group: { gap: Spacing.three },
     card: { gap: Spacing.two },
     link: {
       color: c.ink,

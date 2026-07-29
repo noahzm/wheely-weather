@@ -44,7 +44,7 @@ export const WheelyTheme: { light: WheelyPalette; dark: WheelyPalette } = {
     background: '#F4F4F6',
     paper: '#FFFFFF',
     ink: '#000000',
-    mutedInk: '#555555',
+    mutedInk: '#3A3A3C',
     border: '#000000',
     shadow: '#000000',
     primary: '#000000',
@@ -67,7 +67,7 @@ export const WheelyTheme: { light: WheelyPalette; dark: WheelyPalette } = {
     background: '#000000',
     paper: '#141416',
     ink: '#FFFFFF',
-    mutedInk: '#A0A0A5',
+    mutedInk: '#E5E5EA',
     border: '#FFFFFF',
     shadow: '#FFFFFF',
     primary: '#FFFFFF',
@@ -150,7 +150,7 @@ export const Type = {
   heading: { fontSize: 24, lineHeight: 30 },
   /** big numerics (verdict, metric values) */
   stat: { fontSize: 30, lineHeight: 34 },
-  subtitle: { fontSize: 34, lineHeight: 46 },
+  subtitle: { fontSize: 34, lineHeight: 40 },
   display: { fontSize: 50, lineHeight: 54 },
 } as const;
 

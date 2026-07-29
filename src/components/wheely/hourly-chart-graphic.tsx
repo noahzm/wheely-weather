@@ -16,7 +16,7 @@ import Svg, {
 } from 'react-native-svg';
 
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Fonts, type WheelyPalette } from '@/constants/theme';
+import { Fonts, Type, type WheelyPalette } from '@/constants/theme';
 import {
   chartCenterXFromClampedScroll,
   chartCenterXFromScroll,
@@ -130,7 +130,7 @@ function hourLabelNode(d: ChartHour, nowIdx: number, labelColor: string) {
       x={chartX(d.idx)}
       y={132}
       fontFamily={Fonts.body}
-      fontSize={11}
+      fontSize={Type.micro.fontSize}
       fontWeight="400"
       textAnchor="middle"
       fill={labelColor}

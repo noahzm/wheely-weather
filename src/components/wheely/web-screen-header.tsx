@@ -24,10 +24,8 @@ export function WebScreenTitle({ children }: Readonly<{ children: string }>) {
       style={{
         color: c.ink,
         fontFamily: Fonts.city,
-        // Web large-title analog: subtitle size with a tighter, header-like leading.
-        fontSize: Type.subtitle.fontSize,
-        lineHeight: 36,
         fontWeight: FontWeightBlack,
+        ...Type.subtitle,
       }}
     >
       {children}

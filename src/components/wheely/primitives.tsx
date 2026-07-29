@@ -26,7 +26,15 @@ import {
 
 import { ThemedText } from '@/components/themed-text';
 import { useColorSchemeName, useWheelyColors } from '@/hooks/use-theme';
-import { Fonts, Radius, Spacing, Type, WheelyTheme, type WheelyPalette } from '@/constants/theme';
+import {
+  FontWeightBlack,
+  Fonts,
+  Radius,
+  Spacing,
+  Type,
+  WheelyTheme,
+  type WheelyPalette,
+} from '@/constants/theme';
 import type { Condition } from '@/types/weather';
 import { selectionFeedback } from '@/utils/haptics';
 
@@ -323,7 +331,7 @@ const sectionHeadingStyles = StyleSheet.create({
     flexShrink: 1,
     fontFamily: Fonts.bold,
     ...Type.heading,
-    fontWeight: '700',
+    fontWeight: FontWeightBlack,
   },
 });
 
@@ -606,10 +614,9 @@ export function ConditionPill({
       }}
     >
       <ThemedText
+        type="micro"
         style={{
           color: colors.ink,
-          fontFamily: Fonts.heading,
-          fontSize: Type.micro.fontSize,
         }}
       >
         {children}
