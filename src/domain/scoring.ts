@@ -312,11 +312,8 @@ export function calculateRideScore(weather: Weather, thresholds: Thresholds = TH
 
   // Strict caps aligned with overall status so score NEVER contradicts the verdict
   if (overallStatus === 'no') {
-    if (allConditions.includes('bad') || coldRainCond === 'bad') {
-      score100 = Math.min(score100, 20);
-    } else {
-      score100 = Math.min(score100, 35);
-    }
+    const noCap = allConditions.includes('bad') || coldRainCond === 'bad' ? 20 : 35;
+    score100 = Math.min(score100, noCap);
   } else if (overallStatus === 'maybe') {
     score100 = Math.max(45, Math.min(74, score100));
   } else {
