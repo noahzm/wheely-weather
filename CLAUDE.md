@@ -9,9 +9,11 @@ Run from the repository root. CI (`.github/workflows/ci.yml`, Node 24) runs thes
 ```bash
 npm run format:check   # Prettier check
 npm run lint           # ESLint, --max-warnings 0
-npx tsc --noEmit       # TypeScript typecheck
+npm run typecheck      # TypeScript typecheck (tsc --noEmit)
 npm test               # vitest run --project unit
 npm run build:web      # expo export --platform web
+
+npm run check          # Run full CI suite locally (all 5 steps above)
 ```
 
 Single test file: `npx vitest run --project unit src/domain/weather-codes.test.ts`
@@ -22,12 +24,9 @@ Other useful commands:
 
 ```bash
 npm run web / ios / android     # run the app (ios builds/installs + starts dev server)
-npm run ios:install             # build/install iOS dev app without starting Metro
-npm run ios:start               # launch an already-installed iOS dev build
-npm run ios:start:localhost     # relaunch dev build, localhost host (fixes flaky Metro connectivity)
-npm run ios:start:tunnel        # relaunch dev build, tunnel host
 npm run ios:clean               # clean native iOS regen + build/install + launch
 npm run storybook:web           # component workshop at http://localhost:6006
+npm run storybook:build         # build Storybook static site (alias: npm run build-storybook)
 npm run deploy:web              # build then deploy web build via Wrangler (Cloudflare)
 npm run eas:build:ios-dev / ios-prod / android-dev / android-prod   # EAS cloud builds
 ```
