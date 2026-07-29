@@ -16,10 +16,12 @@ import {
 } from '@/constants/theme';
 import { verdictFeedback } from '@/utils/haptics';
 import type { VerdictMessage } from '@/types/weather';
-import { BrutalCard, weatherIconFor, weatherSfSymbol } from './primitives';
+import { BrutalCard, PlatformIcon, weatherIconFor, weatherSfSymbol } from './primitives';
+
+type VerdictStatus = 'yes' | 'maybe' | 'no';
 
 export function formatIssuesAsSentence(issues: readonly string[]): string {
-  if (!issues || issues.length === 0) return '';
+  if (issues.length === 0) return '';
   if (issues.length === 1) {
     return `${issues[0]}.`;
   }
@@ -30,7 +32,7 @@ export function formatIssuesAsSentence(issues: readonly string[]): string {
   if (formatted.length === 2) {
     return `${formatted[0]} and ${formatted[1]}.`;
   }
-  const last = formatted[formatted.length - 1];
+  const last = formatted.at(-1);
   const rest = formatted.slice(0, -1).join(', ');
   return `${rest}, and ${last}.`;
 }
@@ -137,13 +139,13 @@ function useStyles() {
   return { c, styles };
 }
 
-function getFallbackStatusIcon(status: 'yes' | 'maybe' | 'no'): LucideIcon {
+function getFallbackStatusIcon(status: VerdictStatus): LucideIcon {
   if (status === 'yes') return Sun;
   if (status === 'maybe') return Wind;
   return CloudRain;
 }
 
-function getFallbackStatusSfSymbol(status: 'yes' | 'maybe' | 'no'): SFSymbol {
+function getFallbackStatusSfSymbol(status: VerdictStatus): SFSymbol {
   if (status === 'yes') return 'sun.max.fill';
   if (status === 'maybe') return 'wind';
   return 'cloud.rain.fill';
@@ -156,7 +158,7 @@ export function RideVerdict({
   score,
   weatherCode,
 }: Readonly<{
-  status: 'yes' | 'maybe' | 'no';
+  status: VerdictStatus;
   message: VerdictMessage;
   label?: string;
   score?: number;
@@ -175,11 +177,11 @@ export function RideVerdict({
   }[status];
 
   const statusIcon =
-    weatherCode == null ? getFallbackStatusIcon(status) : weatherIconFor(weatherCode);
+    weatherCode != null ? weatherIconFor(weatherCode) : getFallbackStatusIcon(status);
   const statusSfSymbol =
-    weatherCode == null
-      ? getFallbackStatusSfSymbol(status)
-      : (weatherSfSymbol(weatherCode) as SFSymbol);
+    weatherCode != null
+      ? (weatherSfSymbol(weatherCode) as SFSymbol)
+      : getFallbackStatusSfSymbol(status);
   const headlineText = (label ?? message.lead).replace(/(, but|:)$/i, '').trim();
   const issuesSentence = formatIssuesAsSentence(message.issues);
   const hasBottomBadge = message.timing != null;
