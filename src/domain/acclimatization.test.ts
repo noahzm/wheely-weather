@@ -30,7 +30,9 @@ describe('applyAcclimatization', () => {
     const adjusted = applyAcclimatization(THRESHOLDS, { tempShift: 6, dewShift: 7 });
     // Comfort thresholds move up.
     expect(adjusted.TEMPERATURE.FAIR_MAX).toBe(THRESHOLDS.TEMPERATURE.FAIR_MAX + 6);
-    expect(adjusted.DEWPOINT.POOR).toBe(Math.min(THRESHOLDS.DEWPOINT.POOR + 7, THRESHOLDS.DEWPOINT.BAD - 1));
+    expect(adjusted.DEWPOINT.POOR).toBe(
+      Math.min(THRESHOLDS.DEWPOINT.POOR + 7, THRESHOLDS.DEWPOINT.BAD - 1),
+    );
     // The avoid line is fixed.
     expect(adjusted.TEMPERATURE.BAD_MAX).toBe(THRESHOLDS.TEMPERATURE.BAD_MAX);
     expect(adjusted.DEWPOINT.BAD).toBe(THRESHOLDS.DEWPOINT.BAD);

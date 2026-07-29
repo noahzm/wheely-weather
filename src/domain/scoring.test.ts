@@ -202,15 +202,13 @@ describe('calculateRideScore', () => {
     const weatherWithOneDealbreaker = {
       hasThunderstorms: false,
       temperature: 65, // ideal
-      windSpeed: 35,   // bad! (gusts/wind severe)
-      rainChance: 0,   // ideal
-      dewpoint: 50,    // ideal
-      aqi: 15,         // ideal
+      windSpeed: 35, // bad! (gusts/wind severe)
+      rainChance: 0, // ideal
+      dewpoint: 50, // ideal
+      aqi: 15, // ideal
       weatherCode: 0,
     };
     const score = calculateRideScore(weatherWithOneDealbreaker);
     expect(score).toBeLessThanOrEqual(3);
   });
 });
-
-
