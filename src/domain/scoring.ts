@@ -1,4 +1,4 @@
-import { THRESHOLDS, type Thresholds } from './constants';
+import { THRESHOLDS, COLD_RAIN_HAZARD, type Thresholds } from './constants';
 import { getWeatherCodeCondition } from './weather-codes';
 
 import { fullHourLabel } from '../utils/timeFormat';
@@ -57,17 +57,20 @@ const rateComfortBand = (value: number, t: ComfortBandThresholds): Condition => 
  * Returns "good", "fair", "marginal", "poor", or "bad" to indicate ride-ability.
  * `thresholds` defaults to the base set; pass an acclimatization-adjusted set to
  * shift the comfort dials for a rider's home climate.
+ * `feelsLike` is factored in for cold temperatures (<= 50°F) to reflect wind chill.
  */
 export const evaluateCondition = (
   value: number | null | undefined,
   type: MetricType,
   thresholds: Thresholds = THRESHOLDS,
+  feelsLike?: number | null,
 ): Condition => {
   if (value == null) return 'good';
   const T = thresholds;
   switch (type) {
     case 'temperature': {
-      return rateComfortBand(value, T.TEMPERATURE);
+      const effectiveTemp = value <= 50 && feelsLike != null ? Math.min(value, feelsLike) : value;
+      return rateComfortBand(effectiveTemp, T.TEMPERATURE);
     }
     case 'windSpeed': {
       return rateUpperBound(value, T.WIND_SPEED);
@@ -119,19 +122,46 @@ export const isGustDriven = (windSpeed: number, windGust: number | null | undefi
   windGust != null &&
   RANK[evaluateCondition(windGust, 'windGust')] < RANK[evaluateCondition(windSpeed, 'windSpeed')];
 
+/**
+ * Evaluates the combined cold + rain hypothermia hazard.
+ * Cold exposure under 45°F combined with rain is disproportionately dangerous for cyclists.
+ */
+export const evaluateColdRainHazard = (
+  temp: number | null | undefined,
+  rainChance: number | null | undefined,
+  code?: number | null,
+): Condition | null => {
+  if (temp == null) return null;
+  const isRainCode =
+    code != null && [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(code);
+  const isRainLikely = (rainChance ?? 0) >= COLD_RAIN_HAZARD.MIN_RAIN_CHANCE || isRainCode;
+
+  if (temp <= COLD_RAIN_HAZARD.MAX_TEMP && isRainLikely) {
+    if (temp <= COLD_RAIN_HAZARD.SEVERE_TEMP) return 'bad';
+    return 'poor';
+  }
+  return null;
+};
+
 /** Determines the overall cycling verdict. */
 export const getOverallStatus = (
   weather: Weather,
   thresholds: Thresholds = THRESHOLDS,
 ): RideStatus => {
   if (weather.hasThunderstorms) return 'no';
+  const coldRainCondition = evaluateColdRainHazard(
+    weather.temperature,
+    weather.rainChance,
+    weather.weatherCode,
+  );
   const conditions = [
-    evaluateCondition(weather.temperature, 'temperature', thresholds),
+    evaluateCondition(weather.temperature, 'temperature', thresholds, weather.feelsLike),
     evaluateWind(weather.windSpeed, weather.windGust, thresholds),
     evaluateCondition(weather.rainChance, 'rainChance', thresholds),
     evaluateCondition(weather.dewpoint, 'dewpoint', thresholds),
     getWeatherCodeCondition(weather.weatherCode),
     ...(weather.aqi == null ? [] : [evaluateCondition(weather.aqi, 'aqi', thresholds)]),
+    ...(coldRainCondition ? [coldRainCondition] : []),
   ];
   if (conditions.some((c) => c === 'bad' || c === 'poor')) return 'no';
   if (conditions.includes('marginal')) return 'maybe';
@@ -148,6 +178,7 @@ const getCyclingCondition = (conditions: Condition[]): Condition => {
 
 interface HourlyConditionInput {
   temperature: number;
+  feelsLike?: number | null;
   wind: number;
   gust?: number | null;
   rain: number;
@@ -157,15 +188,17 @@ interface HourlyConditionInput {
 
 /** UV is intentionally excluded — it drives sunscreen/kit advice, not ride-ability. */
 export const getHourlyCondition = (
-  { temperature, wind, gust, rain, code, dewpoint }: HourlyConditionInput,
+  { temperature, feelsLike, wind, gust, rain, code, dewpoint }: HourlyConditionInput,
   thresholds: Thresholds = THRESHOLDS,
 ): Condition => {
+  const coldRainCondition = evaluateColdRainHazard(temperature, rain, code);
   return getCyclingCondition([
-    evaluateCondition(temperature, 'temperature', thresholds),
+    evaluateCondition(temperature, 'temperature', thresholds, feelsLike),
     evaluateWind(wind, gust, thresholds),
     evaluateCondition(rain, 'rainChance', thresholds),
     evaluateCondition(dewpoint, 'dewpoint', thresholds),
     getWeatherCodeCondition(code),
+    ...(coldRainCondition ? [coldRainCondition] : []),
   ]);
 };
 
@@ -189,6 +222,8 @@ export const getDailyCondition = (
   { tempLow = null, tempHigh, wind, gust = null, rain, code, dewpoint = null }: DailyConditionInput,
   thresholds: Thresholds = THRESHOLDS,
 ): Condition => {
+  const effectiveColdTemp = tempLow ?? tempHigh;
+  const coldRainCondition = evaluateColdRainHazard(effectiveColdTemp, rain, code);
   return getCyclingCondition([
     ...(tempLow == null ? [] : [evaluateCondition(tempLow, 'temperature', thresholds)]),
     ...(tempHigh == null ? [] : [evaluateCondition(tempHigh, 'temperature', thresholds)]),
@@ -196,6 +231,7 @@ export const getDailyCondition = (
     evaluateCondition(rain, 'rainChance', thresholds),
     getWeatherCodeCondition(code),
     ...(dewpoint == null ? [] : [evaluateCondition(dewpoint, 'dewpoint', thresholds)]),
+    ...(coldRainCondition ? [coldRainCondition] : []),
   ]);
 };
 
@@ -218,3 +254,75 @@ export function getLaterGoodHour(hourly: HourlyWeather[] | undefined): string | 
 
   return null;
 }
+
+const CONDITION_SCORES: Record<Condition, number> = {
+  good: 100,
+  fair: 82,
+  marginal: 60,
+  poor: 35,
+  bad: 10,
+};
+
+/**
+ * Calculates a quantitative Ride Quality Index (0–100) based on weather metrics.
+ * Bounded by overall status so the score never contradicts the plain-language verdict.
+ */
+export function calculateRideScore(
+  weather: Weather,
+  thresholds: Thresholds = THRESHOLDS,
+): number {
+  if (weather.hasThunderstorms) return 1;
+
+  const tempCond = evaluateCondition(weather.temperature, 'temperature', thresholds, weather.feelsLike);
+  const windCond = evaluateWind(weather.windSpeed, weather.windGust, thresholds);
+  const rainCond = evaluateCondition(weather.rainChance, 'rainChance', thresholds);
+  const dewCond = evaluateCondition(weather.dewpoint, 'dewpoint', thresholds);
+  const codeCond = getWeatherCodeCondition(weather.weatherCode);
+  const aqiCond = weather.aqi == null ? 'good' : evaluateCondition(weather.aqi, 'aqi', thresholds);
+
+  const coldRainCond = evaluateColdRainHazard(
+    weather.temperature,
+    weather.rainChance,
+    weather.weatherCode,
+  );
+
+  const allConditions = [
+    tempCond,
+    windCond,
+    rainCond,
+    dewCond,
+    codeCond,
+    aqiCond,
+    ...(coldRainCond ? [coldRainCond] : []),
+  ];
+
+  const overallStatus = getOverallStatus(weather, thresholds);
+
+  const weighted =
+    CONDITION_SCORES[tempCond] * 0.25 +
+    CONDITION_SCORES[windCond] * 0.25 +
+    CONDITION_SCORES[rainCond] * 0.30 +
+    ((CONDITION_SCORES[dewCond] + CONDITION_SCORES[aqiCond]) / 2) * 0.10 +
+    CONDITION_SCORES[codeCond] * 0.10;
+
+  const minConditionScore = Math.min(...allConditions.map((c) => CONDITION_SCORES[c]));
+  let score100 = Math.round(weighted * 0.6 + minConditionScore * 0.4);
+
+  // Strict caps aligned with overall status so score NEVER contradicts the verdict
+  if (overallStatus === 'no') {
+    if (allConditions.includes('bad') || coldRainCond === 'bad') {
+      score100 = Math.min(score100, 20);
+    } else {
+      score100 = Math.min(score100, 35);
+    }
+  } else if (overallStatus === 'maybe') {
+    score100 = Math.max(45, Math.min(74, score100));
+  } else {
+    score100 = Math.max(75, Math.min(100, score100));
+  }
+
+  // Scale 0–100 down to a clean 0–10 integer score
+  return Math.max(0, Math.min(10, Math.round(score100 / 10)));
+}
+
+

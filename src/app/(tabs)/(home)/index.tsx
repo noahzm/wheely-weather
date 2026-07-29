@@ -24,6 +24,7 @@ import { WEB_TITLE_CONTENT_SPACING } from '@/components/wheely/web-screen-header
 import { HapticPressable, SectionTitle } from '@/components/wheely/primitives';
 import { ThemedText } from '@/components/themed-text';
 import {
+  calculateRideScore,
   getDaylightWarning,
   getMessage,
   getOverallStatus,
@@ -65,8 +66,10 @@ function deriveHomeState(
 ) {
   const { thresholds } = acclimatization;
   const status = getOverallStatus(weather, thresholds);
+  const score = calculateRideScore(weather, thresholds);
   return {
     status,
+    score,
     message: getMessage(weather, status, thresholds, tempUnit),
     label: getVerdictLabel(status, location),
     rainTiming: getRainTiming(weather.hourly),
@@ -115,7 +118,13 @@ function HomeSections({
   return (
     <>
       <Stagger order={1}>
-        <RideVerdict status={derived.status} message={derived.message} label={derived.label} />
+        <RideVerdict
+          status={derived.status}
+          score={derived.score}
+          message={derived.message}
+          label={derived.label}
+          weatherCode={weather.weatherCode}
+        />
       </Stagger>
       {derived.alerts.length > 0 && (
         <Stagger order={2}>

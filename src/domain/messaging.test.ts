@@ -178,7 +178,7 @@ describe('Hourly Message Logic', () => {
       hasThunderstorms: false,
       temperature: 60,
       windSpeed: 8, // good sustained
-      windGust: 34, // poor gusts
+      windGust: 36, // poor gusts
       rainChance: 0,
       dewpoint: 50,
       aqi: 20,
@@ -186,6 +186,6 @@ describe('Hourly Message Logic', () => {
       daily: [],
     };
 
-    expect(spoken(getMessage(weather, 'no'))).toContain('Gusty (34 mph gusts)');
+    expect(spoken(getMessage(weather, 'no'))).toContain('Gusty (36 mph gusts)');
   });
 });

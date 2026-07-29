@@ -79,7 +79,7 @@ describe('Ride Factors', () => {
     const weather = {
       temperature: 60,
       windSpeed: 8, // good sustained
-      windGust: 34, // poor gusts
+      windGust: 36, // poor gusts
       rainChance: 0,
       dewpoint: 50,
       aqi: 20,
@@ -88,7 +88,7 @@ describe('Ride Factors', () => {
     const factors = getRideFactors(weather, 'no');
     const wind = factors.find((f) => f.type === 'windSpeed');
     expect(wind).toBeDefined();
-    expect(wind?.value).toBe('34 mph gusts');
+    expect(wind?.value).toBe('36 mph gusts');
     expect(wind?.condition).toBe('poor');
   });
 
@@ -163,6 +163,24 @@ describe('getMessage', () => {
     expect(msg).toContain('Rain');
     // We expect it to NOT list "Heavy rain" separately as a second issue
     // The exact text will just be "It is currently looking like rain..."
+  });
+
+  it('formats cold rain hazard issue phrase when temp <= 45°F and rain is likely', () => {
+    const weather = {
+      temperature: 40,
+      feelsLike: 38,
+      windSpeed: 10,
+      windGust: 10,
+      rainChance: 40,
+      dewpoint: 35,
+      weatherCode: 61,
+      hasThunderstorms: false,
+      hourly: [],
+      pastHourly: [],
+      daily: [],
+    } as unknown as Weather;
+    const msg = getMessage(weather, 'no').issues.join(' ');
+    expect(msg).toMatch(/Freezing rain risk|Cold rain risk/i);
   });
 });
 

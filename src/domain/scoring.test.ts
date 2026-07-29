@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { evaluateCondition, evaluateWind, getOverallStatus } from './weather';
+import { calculateRideScore, evaluateCondition, evaluateWind, getOverallStatus } from './weather';
 
 describe('Weather Condition Evaluation', () => {
   // Reproduces the cycling-weather reference zone tables, mapped zone->condition:
@@ -7,18 +7,18 @@ describe('Weather Condition Evaluation', () => {
   it('rates air temperature against the reference table', () => {
     expect(evaluateCondition(60, 'temperature')).toBe('good'); // 50-68 ideal
     expect(evaluateCondition(45, 'temperature')).toBe('fair'); // 40-50 good
-    expect(evaluateCondition(75, 'temperature')).toBe('fair'); // 68-85 good
+    expect(evaluateCondition(75, 'temperature')).toBe('fair'); // 68-90 good/fair
     expect(evaluateCondition(35, 'temperature')).toBe('marginal'); // 32-40 caution
-    expect(evaluateCondition(90, 'temperature')).toBe('poor'); // 85-95 hard
+    expect(evaluateCondition(92, 'temperature')).toBe('poor'); // 90-95 hard
     expect(evaluateCondition(98, 'temperature')).toBe('bad'); // 95+ avoid
     expect(evaluateCondition(28, 'temperature')).toBe('bad'); // icy avoid
   });
 
   it('rates dew point against the reference table', () => {
-    expect(evaluateCondition(50, 'dewpoint')).toBe('good'); // <55 ideal
-    expect(evaluateCondition(57, 'dewpoint')).toBe('fair'); // 55-60 good
-    expect(evaluateCondition(62, 'dewpoint')).toBe('marginal'); // 60-65 caution
-    expect(evaluateCondition(68, 'dewpoint')).toBe('poor'); // 65-75 hard
+    expect(evaluateCondition(50, 'dewpoint')).toBe('good'); // <58 ideal
+    expect(evaluateCondition(60, 'dewpoint')).toBe('fair'); // 58-66 good
+    expect(evaluateCondition(68, 'dewpoint')).toBe('marginal'); // 66-72 caution
+    expect(evaluateCondition(73, 'dewpoint')).toBe('poor'); // 72-75 hard
     expect(evaluateCondition(78, 'dewpoint')).toBe('bad'); // 75+ avoid
   });
 
@@ -47,16 +47,16 @@ describe('Weather Condition Evaluation', () => {
   });
 
   it('evaluates windGust on its own (higher) thresholds', () => {
-    expect(evaluateCondition(18, 'windGust')).toBe('good');
-    expect(evaluateCondition(22, 'windGust')).toBe('fair');
-    expect(evaluateCondition(28, 'windGust')).toBe('marginal');
-    expect(evaluateCondition(34, 'windGust')).toBe('poor');
-    expect(evaluateCondition(40, 'windGust')).toBe('bad');
+    expect(evaluateCondition(20, 'windGust')).toBe('good');
+    expect(evaluateCondition(24, 'windGust')).toBe('fair');
+    expect(evaluateCondition(30, 'windGust')).toBe('marginal');
+    expect(evaluateCondition(36, 'windGust')).toBe('poor');
+    expect(evaluateCondition(42, 'windGust')).toBe('bad');
   });
 
   it('rates wind on the worse of sustained speed and gusts', () => {
     // Calm sustained wind but strong gusts is still flagged.
-    expect(evaluateWind(8, 34)).toBe('poor');
+    expect(evaluateWind(8, 36)).toBe('poor');
     // Gusts absent -> falls back to sustained-only.
     expect(evaluateWind(20, null)).toBe('marginal');
     // Sustained worse than gusts -> sustained wins.
@@ -65,10 +65,10 @@ describe('Weather Condition Evaluation', () => {
 
   it('evaluates rainChance correctly', () => {
     expect(evaluateCondition(0, 'rainChance')).toBe('good');
-    expect(evaluateCondition(20, 'rainChance')).toBe('fair');
-    expect(evaluateCondition(35, 'rainChance')).toBe('marginal');
-    expect(evaluateCondition(50, 'rainChance')).toBe('poor');
-    expect(evaluateCondition(70, 'rainChance')).toBe('bad');
+    expect(evaluateCondition(25, 'rainChance')).toBe('fair');
+    expect(evaluateCondition(45, 'rainChance')).toBe('marginal');
+    expect(evaluateCondition(70, 'rainChance')).toBe('poor');
+    expect(evaluateCondition(80, 'rainChance')).toBe('bad');
   });
 });
 
@@ -152,4 +152,65 @@ describe('Overall Status Determination', () => {
     };
     expect(getOverallStatus(weather)).toBe('yes');
   });
+
+  it('rates cold temperature on wind chill when feelsLike is lower', () => {
+    // Air temp 45°F (fair) with feelsLike 34°F due to wind chill yields marginal temperature rating.
+    expect(evaluateCondition(45, 'temperature', undefined, 34)).toBe('marginal');
+  });
+
+  it('returns "no" for cold rain hypothermia hazard (temp <= 45°F and rain >= 30%)', () => {
+    const weather = {
+      hasThunderstorms: false,
+      temperature: 42,
+      feelsLike: 40,
+      windSpeed: 10,
+      rainChance: 35,
+      dewpoint: 38,
+      aqi: 20,
+    };
+    expect(getOverallStatus(weather)).toBe('no');
+  });
 });
+
+describe('calculateRideScore', () => {
+  it('returns high score (9 or 10 out of 10) for ideal riding weather', () => {
+    const weather = {
+      hasThunderstorms: false,
+      temperature: 65,
+      windSpeed: 5,
+      windGust: 8,
+      rainChance: 0,
+      dewpoint: 48,
+      aqi: 15,
+      weatherCode: 0,
+    };
+    const score = calculateRideScore(weather);
+    expect(score).toBeGreaterThanOrEqual(9);
+  });
+
+  it('returns very low score (1/10) for thunderstorms', () => {
+    const weather = {
+      hasThunderstorms: true,
+      temperature: 70,
+      windSpeed: 10,
+      rainChance: 50,
+    };
+    expect(calculateRideScore(weather)).toBe(1);
+  });
+
+  it('never returns a high score when status is "no"', () => {
+    const weatherWithOneDealbreaker = {
+      hasThunderstorms: false,
+      temperature: 65, // ideal
+      windSpeed: 35,   // bad! (gusts/wind severe)
+      rainChance: 0,   // ideal
+      dewpoint: 50,    // ideal
+      aqi: 15,         // ideal
+      weatherCode: 0,
+    };
+    const score = calculateRideScore(weatherWithOneDealbreaker);
+    expect(score).toBeLessThanOrEqual(3);
+  });
+});
+
+

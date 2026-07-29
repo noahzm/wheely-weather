@@ -238,4 +238,17 @@ describe('Gear Suggestions', () => {
     expect(gear.wear.length + gear.bring.length).toBe(gear.items.length);
     expect([...gear.wear, ...gear.bring].every((item) => gear.items.includes(item))).toBe(true);
   });
+
+  it('recommends wet road spray gear when wet weather code is present but rain chance is low', () => {
+    const gear = getGearSuggestion(
+      {
+        ...base,
+        rainChance: 10,
+        weatherCode: 61,
+        hourly: [{ feelsLike: 65, windSpeed: 5, rainChance: 10, dewpoint: 50, uv: 0 }],
+      },
+      'pro',
+    );
+    expect(matchesItem(gear, /shoe covers or fenders|wet road shell/i)).toBe(true);
+  });
 });

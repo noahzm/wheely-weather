@@ -34,7 +34,8 @@ const VERDICT_LABELS: Record<RideStatus, readonly string[]> = {
     'Borderline',
     'Could go either way',
     'Rideable, barely',
-    'Proceed with caution',
+    'Your call',
+    'Rider’s choice',
     'Sketchy but doable',
     'Character building',
     'Flip a coin',
@@ -139,6 +140,10 @@ export const ISSUE_PHRASES = {
       poor: `Cold (${tempLabel})`,
       marginal: `Chilly (${tempLabel})`,
     })[tier],
+  COLD_RAIN: (tempLabel: string, pct: string, tier: IssueTier): string =>
+    tier === 'bad'
+      ? `Freezing rain risk (${tempLabel}, ${pct})`
+      : `Cold rain risk (${tempLabel}, ${pct})`,
   HUMIDITY: (dewLabel: string, tier: IssueTier): string =>
     ({
       bad: `Oppressive humidity (dew ${dewLabel})`,
@@ -231,6 +236,9 @@ export const GEAR_TIPS = {
     RAIN_POSSIBLE: {
       items: [{ icon: 'Umbrella', label: 'Quick-dry layer' }],
     },
+    WET_ROADS: {
+      items: [{ icon: 'CloudRain', label: 'Fenders or splash jacket' }],
+    },
     WINDY: {
       items: [{ icon: 'Wind', label: 'Windbreaker' }],
     },
@@ -312,6 +320,12 @@ export const GEAR_TIPS = {
     },
     RAIN_POSSIBLE: {
       items: [{ icon: 'Umbrella', label: 'Packable vest or shell' }],
+    },
+    WET_ROADS: {
+      items: [
+        { icon: 'Footprints', label: 'Shoe covers or fenders' },
+        { icon: 'CloudRain', label: 'Wet road shell' },
+      ],
     },
     WINDY: {
       items: [{ icon: 'Wind', label: 'Wind vest' }],

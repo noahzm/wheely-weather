@@ -49,7 +49,7 @@ describe('Daily Forecast Logic', () => {
       getDailyCondition({
         tempHigh: 65,
         wind: 8,
-        gust: 34,
+        gust: 36,
         rain: 10,
         code: 1,
       }),

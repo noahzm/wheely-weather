@@ -1,3 +1,4 @@
+import { WET_ROADS_THRESHOLD } from './constants';
 import { GEAR_TIPS } from './copy';
 
 import type { GearSuggestion, GearTip, GearTipItem, Weather } from '@/types/weather';
@@ -22,6 +23,7 @@ interface GearTipSet {
   TEMP_SWING: GearTip;
   RAIN_HIGH: GearTip;
   RAIN_POSSIBLE: GearTip;
+  WET_ROADS?: GearTip;
   WINDY: GearTip;
   UV_EXTREME: GearTip;
   UV_HIGH: GearTip;
@@ -73,13 +75,26 @@ function getTemperatureTips(w: RideWindow, tipsSet: GearTipSet): GearTip[] {
   return tips;
 }
 
-/** Builds the weather-driven add-on tips (rain, wind, UV, temp swing, mugginess). */
-function buildSupportingTips(w: RideWindow, tipsSet: GearTipSet): GearTip[] {
+function hasWetRoads(weather: Weather, w: RideWindow): boolean {
+  if (w.maxRain > 30) return false;
+  const code = weather.weatherCode;
+  const isWetCode = code != null && [51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code);
+  const hourly = weather.hourly;
+  const recentRain = hourly
+    .slice(0, 2)
+    .some((h) => h.rainChance >= WET_ROADS_THRESHOLD.RECENT_RAIN_CHANCE);
+  return isWetCode || (recentRain && w.maxRain <= 30);
+}
+
+/** Builds the weather-driven add-on tips (rain, wet roads, wind, UV, temp swing, mugginess). */
+function buildSupportingTips(w: RideWindow, tipsSet: GearTipSet, weather: Weather): GearTip[] {
   const tips: GearTip[] = [];
 
   if (w.maxTemp - w.minTemp >= 15) tips.push(tipsSet.TEMP_SWING);
   if (w.maxRain > 50) tips.push(tipsSet.RAIN_HIGH);
   else if (w.maxRain > 30) tips.push(tipsSet.RAIN_POSSIBLE);
+  else if (hasWetRoads(weather, w) && tipsSet.WET_ROADS) tips.push(tipsSet.WET_ROADS);
+
   if (w.maxWind > 15) tips.push(tipsSet.WINDY);
   if (w.maxUv >= 8) tips.push(tipsSet.UV_EXTREME);
   else if (w.maxUv >= 6) tips.push(tipsSet.UV_HIGH);
@@ -115,9 +130,9 @@ function mergeTipItems(tips: { tip: GearTip; base: boolean }[]): MergedTipItem[]
   return merged;
 }
 
-function getGearTips(w: RideWindow, tipsSet: GearTipSet): GearSuggestion {
+function getGearTips(w: RideWindow, tipsSet: GearTipSet, weather: Weather): GearSuggestion {
   const temperatureTips = getTemperatureTips(w, tipsSet);
-  const supportingTips = buildSupportingTips(w, tipsSet);
+  const supportingTips = buildSupportingTips(w, tipsSet, weather);
 
   // An empty temperature tip means the ride window sits in the ideal band, so
   // NEUTRAL supplies the baseline outfit.
@@ -141,5 +156,5 @@ export const getGearSuggestion = (
 ): GearSuggestion => {
   const w = getRideWindow(weather);
   const tipsSet: GearTipSet = mode === 'pro' ? GEAR_TIPS.PRO : GEAR_TIPS.CASUAL;
-  return getGearTips(w, tipsSet);
+  return getGearTips(w, tipsSet, weather);
 };

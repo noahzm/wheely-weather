@@ -1,4 +1,5 @@
 export {
+  calculateRideScore,
   evaluateCondition,
   evaluateWind,
   getDailyCondition,

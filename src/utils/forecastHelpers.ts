@@ -143,7 +143,7 @@ function poorConditionReasons(
 ): string[] {
   const reasons: string[] = [];
   if (wind >= 18) reasons.push(`Windy (${wind} mph)`);
-  if (rain >= 45) reasons.push('Wet roads likely');
+  if (rain >= 65) reasons.push('Wet roads likely');
   if (temp != null && temp > THRESHOLDS.TEMPERATURE.POOR_MAX) {
     reasons.push(`Very hot (${formatTemperature(temp, tempUnit)})`);
   }
@@ -160,8 +160,8 @@ function marginalConditionReasons(
 ): string[] {
   const reasons: string[] = [];
   if (wind >= 15) reasons.push(`Breezy (${wind} mph)`);
-  if (rain >= 30) reasons.push('Some rain risk');
-  if (temp != null && temp > THRESHOLDS.TEMPERATURE.MARGINAL_MAX) {
+  if (rain >= 40) reasons.push('Some rain risk');
+  if (temp != null && temp > 82) {
     reasons.push(`Warm (${formatTemperature(temp, tempUnit)})`);
   }
   if (dewpoint != null && dewpoint > THRESHOLDS.DEWPOINT.MARGINAL) {
