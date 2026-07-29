@@ -10,7 +10,7 @@ import { BrutalCard, SectionTitle } from './primitives';
 
 function makeStyles(c: WheelyPalette) {
   return StyleSheet.create({
-    group: { gap: Spacing.two },
+    group: { gap: Spacing.three },
     card: { gap: Spacing.two },
     toggleRow: {
       flexDirection: 'row',

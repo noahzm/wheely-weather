@@ -39,7 +39,7 @@ const styles = StyleSheet.create({
     gap: Spacing.four,
   },
   group: {
-    gap: Spacing.two,
+    gap: Spacing.three,
   },
   control: {
     alignSelf: 'stretch',

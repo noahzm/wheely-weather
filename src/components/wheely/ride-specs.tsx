@@ -147,7 +147,7 @@ function makeStyles(c: WheelyPalette, isCompact: boolean) {
       justifyContent: 'center',
     },
     metricLabel: {
-      color: c.mutedInk,
+      color: c.ink,
       fontFamily: Fonts.body,
       fontSize: Type.small.fontSize,
       fontWeight: '400',
@@ -212,9 +212,9 @@ export function RideSpecs({
                 ]}
               >
                 {Platform.OS === 'ios' ? (
-                  <SymbolView name={sf as SFSymbol} size={18} tintColor={c.mutedInk} />
+                  <SymbolView name={sf as SFSymbol} size={18} tintColor={c.ink} />
                 ) : (
-                  <PlatformIcon icon={Icon} size={18} color={c.mutedInk} strokeWidth={2} />
+                  <PlatformIcon icon={Icon} size={18} color={c.ink} strokeWidth={2} />
                 )}
               </View>
               <ThemedText style={styles.metricLabel}>{label}</ThemedText>

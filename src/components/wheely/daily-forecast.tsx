@@ -51,8 +51,9 @@ function makeStyles(c: WheelyPalette) {
     dayLabelCell: { width: 72 },
     dayLabel: {
       color: c.ink,
-      fontFamily: Fonts.heading,
-      fontSize: Type.body.fontSize,
+      fontFamily: Fonts.bold,
+      fontWeight: FontWeightBlack,
+      ...Type.body,
     },
     weatherGlyph: { width: 22, alignItems: 'center' },
     dayTemp: {
@@ -61,7 +62,7 @@ function makeStyles(c: WheelyPalette) {
       flex: 1,
       fontFamily: Fonts.bold,
       fontWeight: FontWeightBlack,
-      fontSize: Type.heading.fontSize,
+      ...Type.heading,
       ...(Platform.OS === 'web' ? ({ whiteSpace: 'nowrap' } as object) : null),
     },
     dayLow: { color: c.mutedInk, fontSize: Type.small.fontSize },

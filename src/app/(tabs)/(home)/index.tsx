@@ -345,7 +345,7 @@ function makeStyles(c: WheelyPalette) {
       gap: 36,
     },
     section: {
-      gap: Spacing.two,
+      gap: Spacing.three,
     },
     statusMessage: {
       color: c.mutedInk,

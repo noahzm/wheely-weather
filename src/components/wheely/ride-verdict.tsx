@@ -125,16 +125,14 @@ function makeStyles(c: WheelyPalette) {
       gap: Spacing.one,
     },
     leadText: {
-      fontFamily: Fonts.heading,
-      fontSize: 24,
-      lineHeight: 28,
-      fontWeight: '700',
+      fontFamily: Fonts.bold,
+      ...Type.heading,
+      fontWeight: FontWeightBlack,
     },
     issueSentenceText: {
       fontFamily: Fonts.bold,
-      fontSize: 16,
-      lineHeight: 22,
-      fontWeight: '700',
+      ...Type.body,
+      fontWeight: FontWeightBlack,
     },
   });
 }
