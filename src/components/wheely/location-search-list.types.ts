@@ -39,10 +39,6 @@ export function homeAccessibilityLabel(home: boolean): string {
   return home ? 'Clear home location' : 'Set as home location';
 }
 
-export function homeActionLabel(home: boolean): string {
-  return home ? 'Clear home' : 'Set home';
-}
-
 export function placeKey(item: RowItem): string {
   return item._kind ?? `${item.lat}-${item.lon}`;
 }
