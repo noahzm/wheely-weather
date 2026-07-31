@@ -8,7 +8,7 @@ import {
   type ExposureLevel,
   type GearMode,
   type TempUnitPreference,
-} from '../types/settings';
+} from '@/types/settings';
 
 export type LocationSource = 'manual' | 'device';
 

@@ -1,6 +1,6 @@
 import { resolveThresholds } from '../domain/acclimatization';
 
-import type { ExposureLevel } from '../types/settings';
+import type { ExposureLevel } from '@/types/settings';
 import type { HomeBaseline, Weather } from '@/types/weather';
 
 import type { ForecastSnapshot } from './forecastSnapshot';

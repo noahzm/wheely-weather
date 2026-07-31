@@ -1,4 +1,4 @@
-import { DEFAULT_EXPOSURE_LEVEL, type ExposureLevel } from '../types/settings';
+import { DEFAULT_EXPOSURE_LEVEL, type ExposureLevel } from '@/types/settings';
 import type { HomeBaseline } from '@/types/weather';
 import { THRESHOLDS, type Thresholds } from './constants';
 

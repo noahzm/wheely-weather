@@ -28,6 +28,10 @@ export default defineConfig({
     },
     projects: [
       {
+        // `extends: true` pulls in the root `resolve.alias`, without which `@/`
+        // resolves only for type-only imports (they are erased) and crashes the
+        // whole suite the moment one becomes a value import.
+        extends: true,
         test: {
           name: 'unit',
           environment: 'node',
