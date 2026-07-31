@@ -1,5 +1,6 @@
-import { THRESHOLDS, type Thresholds } from './constants';
+import { DEFAULT_EXPOSURE_LEVEL, type ExposureLevel } from '../types/settings';
 import type { HomeBaseline } from '@/types/weather';
+import { THRESHOLDS, type Thresholds } from './constants';
 
 export interface Acclimatization {
   tempShift: number;
@@ -11,11 +12,6 @@ export interface Acclimatization {
 // shift; only genuinely hotter/more-humid homes move the comfort dials.
 const REF_TEMP = 80;
 const REF_DEW = 60;
-// Acclimatization is partial, not magic — take half the climate delta...
-const DAMP = 0.5;
-// ...and cap it so even a desert/tropical home can't relax the dials without limit.
-const MAX_TEMP_SHIFT = 6;
-const MAX_DEW_SHIFT = 7;
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
@@ -26,11 +22,16 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
  */
 export const deriveAcclimatization = (
   homeBaseline: HomeBaseline | null | undefined,
+  exposureLevel: ExposureLevel = DEFAULT_EXPOSURE_LEVEL,
 ): Acclimatization => {
-  if (!homeBaseline) return { tempShift: 0, dewShift: 0 };
+  if (!homeBaseline || exposureLevel === 'indoor') return { tempShift: 0, dewShift: 0 };
+  const factor = exposureLevel === 'high' ? 0.65 : 0.35;
+  const maxTempShift = exposureLevel === 'high' ? 7 : 4;
+  const maxDewShift = exposureLevel === 'high' ? 8 : 5;
+
   return {
-    tempShift: clamp((homeBaseline.warmTemp - REF_TEMP) * DAMP, 0, MAX_TEMP_SHIFT),
-    dewShift: clamp((homeBaseline.warmDewpoint - REF_DEW) * DAMP, 0, MAX_DEW_SHIFT),
+    tempShift: Math.round(clamp((homeBaseline.warmTemp - REF_TEMP) * factor, 0, maxTempShift)),
+    dewShift: Math.round(clamp((homeBaseline.warmDewpoint - REF_DEW) * factor, 0, maxDewShift)),
   };
 };
 
@@ -75,4 +76,5 @@ export const applyAcclimatization = (
 export const resolveThresholds = (
   homeBaseline: HomeBaseline | null | undefined,
   base: Thresholds = THRESHOLDS,
-): Thresholds => applyAcclimatization(base, deriveAcclimatization(homeBaseline));
+  exposureLevel: ExposureLevel = DEFAULT_EXPOSURE_LEVEL,
+): Thresholds => applyAcclimatization(base, deriveAcclimatization(homeBaseline, exposureLevel));

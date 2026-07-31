@@ -21,8 +21,8 @@ export default function TabsLayout() {
       tabBarRespectsIMEInsets
     >
       <NativeTabs.Trigger name="(home)" disableTransparentOnScrollEdge>
-        <NativeTabs.Trigger.Icon sf="house.fill" md="home_filled" />
-        <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="cloud.sun.fill" md="partly_cloudy_day" />
+        <NativeTabs.Trigger.Label>Weather</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="location" role="search">
         <NativeTabs.Trigger.Icon md="search" />

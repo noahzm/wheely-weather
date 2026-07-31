@@ -27,7 +27,7 @@ function buildSnapshot(overrides: Partial<ForecastSnapshot> = {}): ForecastSnaps
     isDeviceLocation: false,
     mockScenario: null,
     source: 'manual',
-    acclimatization: { homeBaseline: null, thresholds: THRESHOLDS },
+    acclimatization: { homeBaseline: null, thresholds: THRESHOLDS, exposureLevel: 'moderate' },
     ...overrides,
   };
 }
@@ -76,6 +76,7 @@ describe('decodeForecastCache', () => {
       acclimatization: {
         homeBaseline: GULF_BASELINE,
         thresholds: resolveThresholds(GULF_BASELINE),
+        exposureLevel: 'moderate',
       },
     });
     const decoded = decodeForecastCache(
@@ -94,6 +95,49 @@ describe('decodeForecastCache', () => {
     );
     expect(withoutBaseline?.snapshot.acclimatization.thresholds).toEqual(THRESHOLDS);
     expect(withoutBaseline?.snapshot.acclimatization.thresholds.HUMIDITY.BAD).toBe(Infinity);
+  });
+
+  // Regression: decode used to drop the exposure level and rebuild thresholds on
+  // the 'moderate' default, pairing correctly-rated weather with dials up to 7°F
+  // off for anyone who had picked 'indoor' or 'high'.
+  it.each(['indoor', 'high'] as const)(
+    'rebuilds thresholds with the cached %s exposure level, not the default',
+    (exposureLevel) => {
+      const snapshot = buildSnapshot({
+        acclimatization: {
+          homeBaseline: GULF_BASELINE,
+          thresholds: resolveThresholds(GULF_BASELINE, undefined, exposureLevel),
+          exposureLevel,
+        },
+      });
+      const decoded = decodeForecastCache(
+        encodeForecastCache(snapshot, LOCATION),
+        LOCATION,
+        NOW + 1000,
+      );
+      expect(decoded?.snapshot.acclimatization.exposureLevel).toBe(exposureLevel);
+      expect(decoded?.snapshot.acclimatization.thresholds).toEqual(
+        resolveThresholds(GULF_BASELINE, undefined, exposureLevel),
+      );
+      expect(decoded?.snapshot.acclimatization.thresholds).not.toEqual(
+        resolveThresholds(GULF_BASELINE),
+      );
+    },
+  );
+
+  it('rejects a payload with a missing or unknown exposure level', () => {
+    const encoded = encodeForecastCache(buildSnapshot(), LOCATION) ?? '';
+    const parsed = JSON.parse(encoded) as Record<string, unknown>;
+    const missing: Record<string, unknown> = { ...parsed };
+    delete missing.exposureLevel;
+    expect(decodeForecastCache(JSON.stringify(missing), LOCATION, NOW + 1000)).toBeNull();
+    expect(
+      decodeForecastCache(
+        JSON.stringify({ ...parsed, exposureLevel: 'sweltering' }),
+        LOCATION,
+        NOW + 1000,
+      ),
+    ).toBeNull();
   });
 
   it('rejects entries older than the TTL or from the future', () => {

@@ -11,6 +11,7 @@ import {
   type SavedLocation,
 } from '@/services/locationStorage';
 import { getForecastSnapshot, type ForecastSnapshot } from '@/services/forecastSnapshot';
+import { DEFAULT_EXPOSURE_LEVEL, type ExposureLevel } from '@/types/settings';
 import type { ForecastExtras } from '@/types/weather';
 
 import { resolveDeviceLocation } from './device-location';
@@ -54,6 +55,7 @@ export async function loadForecastData(
   locationOverride: SavedLocation | null | undefined,
   mockScenario: string | null,
   homeLocation: SavedLocation | null,
+  exposureLevel: ExposureLevel = DEFAULT_EXPOSURE_LEVEL,
 ): Promise<ForecastLoadResult> {
   const [storedLocation, recentLocations, pinnedLocations] = await Promise.all([
     locationOverride === undefined ? loadSavedLocation() : Promise.resolve(locationOverride),
@@ -75,6 +77,7 @@ export async function loadForecastData(
   const { snapshot, extras } = await getForecastSnapshot({
     savedLocation,
     homeLocation,
+    exposureLevel,
     mockScenario,
   });
   return { kind: 'loaded', snapshot, extras, savedLocation, recentLocations, pinnedLocations };

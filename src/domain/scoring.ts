@@ -53,11 +53,31 @@ const rateComfortBand = (value: number, t: ComfortBandThresholds): Condition => 
 };
 
 /**
+ * Resolves the temperature a rating is actually taken on: wind chill governs the
+ * cold end (<= 50°F) and heat index the warm end (>= 70°F), while the temperate
+ * middle rates on air temperature alone. Callers that *label* a temperature issue
+ * must format this value rather than the raw air temperature, or the chip names a
+ * number that didn't drive its own severity ("Freezing (48°)" for 48°F air at a
+ * 30°F wind chill).
+ */
+export const effectiveRideTemp = (temp: number, feelsLike?: number | null): number => {
+  if (feelsLike == null) return temp;
+  if (temp <= 50) return Math.min(temp, feelsLike);
+  if (temp >= 70) return Math.max(temp, feelsLike);
+  return temp;
+};
+
+/** True when a temperature issue should be phrased as cold rather than heat. */
+export const isColdTemp = (temp: number, feelsLike?: number | null): boolean =>
+  effectiveRideTemp(temp, feelsLike) < 50;
+
+/**
  * Evaluates a single weather metric against cycling-friendly thresholds.
  * Returns "good", "fair", "marginal", "poor", or "bad" to indicate ride-ability.
  * `thresholds` defaults to the base set; pass an acclimatization-adjusted set to
  * shift the comfort dials for a rider's home climate.
- * `feelsLike` is factored in for cold temperatures (<= 50°F) to reflect wind chill.
+ * `feelsLike` is factored in for cold temperatures (<= 50°F) to reflect wind chill,
+ * and for warm temperatures (>= 70°F) to reflect heat index / apparent temperature.
  */
 export const evaluateCondition = (
   value: number | null | undefined,
@@ -69,8 +89,7 @@ export const evaluateCondition = (
   const T = thresholds;
   switch (type) {
     case 'temperature': {
-      const effectiveTemp = value <= 50 && feelsLike != null ? Math.min(value, feelsLike) : value;
-      return rateComfortBand(effectiveTemp, T.TEMPERATURE);
+      return rateComfortBand(effectiveRideTemp(value, feelsLike), T.TEMPERATURE);
     }
     case 'windSpeed': {
       return rateUpperBound(value, T.WIND_SPEED);
@@ -312,14 +331,14 @@ export function calculateRideScore(weather: Weather, thresholds: Thresholds = TH
 
   // Strict caps aligned with overall status so score NEVER contradicts the verdict
   if (overallStatus === 'no') {
-    const noCap = allConditions.includes('bad') || coldRainCond === 'bad' ? 20 : 35;
+    const noCap = allConditions.includes('bad') || coldRainCond === 'bad' ? 19 : 39;
     score100 = Math.min(score100, noCap);
   } else if (overallStatus === 'maybe') {
-    score100 = Math.max(45, Math.min(74, score100));
+    score100 = Math.max(40, Math.min(69, score100));
   } else {
-    score100 = Math.max(75, Math.min(100, score100));
+    score100 = Math.max(70, Math.min(100, score100));
   }
 
   // Scale 0–100 down to a clean 0–10 integer score
-  return Math.max(0, Math.min(10, Math.round(score100 / 10)));
+  return Math.max(0, Math.min(10, Math.floor(score100 / 10)));
 }

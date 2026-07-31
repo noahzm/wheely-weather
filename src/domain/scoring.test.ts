@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { calculateRideScore, evaluateCondition, evaluateWind, getOverallStatus } from './weather';
+import {
+  calculateRideScore,
+  effectiveRideTemp,
+  evaluateCondition,
+  evaluateWind,
+  getOverallStatus,
+  isColdTemp,
+} from './weather';
 
 describe('Weather Condition Evaluation', () => {
   // Reproduces the cycling-weather reference zone tables, mapped zone->condition:
@@ -7,11 +14,34 @@ describe('Weather Condition Evaluation', () => {
   it('rates air temperature against the reference table', () => {
     expect(evaluateCondition(60, 'temperature')).toBe('good'); // 50-68 ideal
     expect(evaluateCondition(45, 'temperature')).toBe('fair'); // 40-50 good
-    expect(evaluateCondition(75, 'temperature')).toBe('fair'); // 68-90 good/fair
+    expect(evaluateCondition(75, 'temperature')).toBe('fair'); // 68-82 good/fair
+    expect(evaluateCondition(85, 'temperature')).toBe('marginal'); // 82-90 caution
     expect(evaluateCondition(35, 'temperature')).toBe('marginal'); // 32-40 caution
     expect(evaluateCondition(92, 'temperature')).toBe('poor'); // 90-95 hard
     expect(evaluateCondition(98, 'temperature')).toBe('bad'); // 95+ avoid
     expect(evaluateCondition(28, 'temperature')).toBe('bad'); // icy avoid
+  });
+
+  it('resolves the temperature a rating is actually taken on', () => {
+    expect(effectiveRideTemp(48, 30)).toBe(30); // cold end: wind chill governs
+    expect(effectiveRideTemp(71, 95)).toBe(95); // warm end: heat index governs
+    expect(effectiveRideTemp(65, 95)).toBe(65); // temperate middle: air temp only
+    expect(effectiveRideTemp(48, 55)).toBe(48); // feels-like never softens the cold end
+    expect(effectiveRideTemp(88, 80)).toBe(88); // ...nor the warm end
+    expect(effectiveRideTemp(48, null)).toBe(48);
+    expect(effectiveRideTemp(48)).toBe(48);
+  });
+
+  it('phrases a temperature issue as cold based on the effective temperature', () => {
+    expect(isColdTemp(48, 30)).toBe(true);
+    expect(isColdTemp(71, 95)).toBe(false);
+    // 52°F air is above the cold cutoff and the middle band ignores feels-like.
+    expect(isColdTemp(52, 38)).toBe(false);
+  });
+
+  it('rates warm temperature on heat index when feelsLike is higher', () => {
+    // Air temp 80°F (fair) with feelsLike 88°F due to heat index yields marginal temperature rating.
+    expect(evaluateCondition(80, 'temperature', undefined, 88)).toBe('marginal');
   });
 
   it('rates dew point against the reference table', () => {
@@ -158,6 +188,19 @@ describe('Overall Status Determination', () => {
     expect(evaluateCondition(45, 'temperature', undefined, 34)).toBe('marginal');
   });
 
+  it('returns "maybe" for high heat index weather (e.g. 85°F air temp or 88°F feelsLike)', () => {
+    const weather = {
+      hasThunderstorms: false,
+      temperature: 85,
+      feelsLike: 88,
+      windSpeed: 5,
+      rainChance: 0,
+      dewpoint: 63,
+      aqi: 20,
+    };
+    expect(getOverallStatus(weather)).toBe('maybe');
+  });
+
   it('returns "no" for cold rain hypothermia hazard (temp <= 45°F and rain >= 30%)', () => {
     const weather = {
       hasThunderstorms: false,
@@ -210,5 +253,35 @@ describe('calculateRideScore', () => {
     };
     const score = calculateRideScore(weatherWithOneDealbreaker);
     expect(score).toBeLessThanOrEqual(3);
+  });
+
+  it('returns score 8 for a fair rideable day', () => {
+    const fairWeather = {
+      hasThunderstorms: false,
+      temperature: 75, // fair warm
+      windSpeed: 14, // fair wind
+      rainChance: 25, // fair rain
+      dewpoint: 62, // fair dew
+      aqi: 15,
+      weatherCode: 0,
+    };
+    const score = calculateRideScore(fairWeather);
+    expect(score).toBe(8);
+  });
+
+  it('returns score between 4 and 6 for a maybe day', () => {
+    const maybeWeather = {
+      hasThunderstorms: false,
+      temperature: 85, // marginal heat
+      feelsLike: 88,
+      windSpeed: 5,
+      rainChance: 0,
+      dewpoint: 63,
+      aqi: 15,
+      weatherCode: 0,
+    };
+    const score = calculateRideScore(maybeWeather);
+    expect(score).toBeGreaterThanOrEqual(4);
+    expect(score).toBeLessThanOrEqual(6);
   });
 });

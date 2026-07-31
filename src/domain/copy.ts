@@ -3,7 +3,7 @@
  * Separates human-readable strings from core weather logic.
  */
 
-import type { RideStatus } from '@/types/weather';
+import type { Condition, RideStatus } from '@/types/weather';
 
 /** djb2-style hash for deterministic, seed-varied picks. */
 function seededHash(str: string): number {
@@ -106,7 +106,24 @@ export const WEATHER_DESCRIPTIONS: Record<number, string> = {
   99: 'Severe thunderstorm',
 };
 
-type IssueTier = 'bad' | 'poor' | 'marginal';
+/**
+ * Phrase tiers are the condition ratings minus `good` — a good metric is not an
+ * issue and has nothing to phrase. Deriving this from `Condition` rather than
+ * restating it means a new rating cannot be added without the phrase tables
+ * failing to compile.
+ */
+export type IssueTier = Exclude<Condition, 'good'>;
+
+/**
+ * The single rating -> phrase-tier mapping. Both issue-phrase call sites (the
+ * verdict hero's chips in `ride-factors.ts` and the hourly drawer's reasons in
+ * `forecastHelpers.ts`) must route through this, or the same rating ends up
+ * described with different words in the two places — `fair` humidity reading
+ * "Muggy" in the hero and "Humid" in the drawer. Returns null for `good`, which
+ * callers use as the "no issue to report" signal.
+ */
+export const issuePhraseTier = (rating: Condition): IssueTier | null =>
+  rating === 'good' ? null : rating;
 
 /**
  * Shared per-metric severity phrasing. Both the verdict hero's issue chips and
@@ -114,31 +131,43 @@ type IssueTier = 'bad' | 'poor' | 'marginal';
  * always described with the same words.
  */
 export const ISSUE_PHRASES = {
+  // Each tier's wording is calibrated to the numeric band that produces it (see
+  // THRESHOLDS): the marginal band is the "caution" zone, so it must not share a
+  // word with fair, or 24 mph sustained wind reads as "Breezy".
   WIND: (mph: number, tier: IssueTier): string =>
     ({
-      bad: `Very windy (${mph} mph)`,
-      poor: `Windy (${mph} mph)`,
-      marginal: `Breezy (${mph} mph)`,
+      bad: `Dangerous wind (${mph} mph)`,
+      poor: `Very windy (${mph} mph)`,
+      marginal: `Windy (${mph} mph)`,
+      fair: `Breezy (${mph} mph)`,
     })[tier],
   GUSTS: (mph: number, tier: IssueTier): string =>
-    tier === 'bad' ? `Strong gusts (${mph} mph gusts)` : `Gusty (${mph} mph gusts)`,
+    ({
+      bad: `Dangerous gusts (${mph} mph gusts)`,
+      poor: `Strong gusts (${mph} mph gusts)`,
+      marginal: `Gusty (${mph} mph gusts)`,
+      fair: `Gusty (${mph} mph gusts)`,
+    })[tier],
   RAIN: (pct: string, tier: IssueTier): string =>
     ({
-      bad: `Rain likely (${pct})`,
-      poor: `Rain risk (${pct})`,
-      marginal: `Rain possible (${pct})`,
+      bad: `Rain expected (${pct})`,
+      poor: `Rain very likely (${pct})`,
+      marginal: `Rain likely (${pct})`,
+      fair: `Rain possible (${pct})`,
     })[tier],
   HEAT: (tempLabel: string, tier: IssueTier): string =>
     ({
       bad: `Dangerous heat (${tempLabel})`,
       poor: `Very hot (${tempLabel})`,
       marginal: `Hot (${tempLabel})`,
+      fair: `Warm (${tempLabel})`,
     })[tier],
   COLD: (tempLabel: string, tier: IssueTier): string =>
     ({
       bad: `Freezing (${tempLabel})`,
       poor: `Cold (${tempLabel})`,
       marginal: `Chilly (${tempLabel})`,
+      fair: `Cool (${tempLabel})`,
     })[tier],
   COLD_RAIN: (tempLabel: string, pct: string, tier: IssueTier): string =>
     tier === 'bad'
@@ -149,9 +178,15 @@ export const ISSUE_PHRASES = {
       bad: `Oppressive humidity (dew ${dewLabel})`,
       poor: `Very humid (dew ${dewLabel})`,
       marginal: `Muggy (dew ${dewLabel})`,
+      fair: `Humid (dew ${dewLabel})`,
     })[tier],
   AQI: (aqi: number, tier: IssueTier): string =>
-    tier === 'marginal' ? `Hazy (AQI ${aqi})` : `Poor air (AQI ${aqi})`,
+    ({
+      bad: `Hazardous air (AQI ${aqi})`,
+      poor: `Poor air (AQI ${aqi})`,
+      marginal: `Hazy (AQI ${aqi})`,
+      fair: `Hazy (AQI ${aqi})`,
+    })[tier],
 };
 
 export const STATUS_MESSAGES = {

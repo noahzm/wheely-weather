@@ -2,7 +2,13 @@
 // AsyncStorage (and any react-native import) so it runs under the node-env
 // unit test project; locationStorage.ts owns the actual storage I/O.
 
-import type { Appearance, GearMode, TempUnitPreference } from '@/types/settings';
+import {
+  DEFAULT_EXPOSURE_LEVEL,
+  type Appearance,
+  type ExposureLevel,
+  type GearMode,
+  type TempUnitPreference,
+} from '../types/settings';
 
 export type LocationSource = 'manual' | 'device';
 
@@ -51,6 +57,10 @@ export function parseTempUnit(raw: string | null): TempUnitPreference {
   return raw === 'fahrenheit' || raw === 'celsius' ? raw : 'auto';
 }
 
+export function parseExposureLevel(raw: string | null): ExposureLevel {
+  return raw === 'indoor' || raw === 'high' ? raw : DEFAULT_EXPOSURE_LEVEL;
+}
+
 export function parseHomeLocation(raw: string | null): SavedLocation | null {
   try {
     return normalizeLocationRecord(raw ? JSON.parse(raw) : null);
@@ -64,6 +74,7 @@ export interface PersistedSettings {
   appearance: Appearance;
   homeLocation: SavedLocation | null;
   tempUnit: TempUnitPreference;
+  exposureLevel: ExposureLevel;
 }
 
 export const DEFAULT_SETTINGS: PersistedSettings = {
@@ -71,4 +82,5 @@ export const DEFAULT_SETTINGS: PersistedSettings = {
   appearance: 'system',
   homeLocation: null,
   tempUnit: 'auto',
+  exposureLevel: DEFAULT_EXPOSURE_LEVEL,
 };
