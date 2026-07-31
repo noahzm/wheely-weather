@@ -47,10 +47,6 @@ export function pinAccessibilityLabel(pinned: boolean): string {
   return pinned ? 'Unpin location' : 'Pin location';
 }
 
-export function pinActionLabel(pinned: boolean): string {
-  return pinned ? 'Unpin' : 'Pin';
-}
-
 export function buildSections(
   isSearching: boolean,
   results: RecentLocation[],

@@ -32,10 +32,3 @@ export const recentLocations: RecentLocation[] = [
     lon: -78.7811,
   },
 ];
-
-export function mockSearchLocations(query: string) {
-  const normalized = query.toLowerCase();
-  return Promise.resolve(
-    recentLocations.filter((place) => place.label.toLowerCase().includes(normalized)),
-  );
-}

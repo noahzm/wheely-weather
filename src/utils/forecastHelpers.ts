@@ -254,40 +254,6 @@ function idealDayReason({ wind, rain, high }: DayMetrics): string {
   return 'Prime riding weather';
 }
 
-/** Formats a concise, informative summary of an hour's key weather metrics. */
-export function formatHourMetricsSummary(
-  hour: HourlyWeather,
-  tempUnit: TempUnit = 'fahrenheit',
-): string[] {
-  const parts: string[] = [];
-  const tempLabel = formatTemperature(hour.temperature, tempUnit);
-  if (Math.abs(hour.feelsLike - hour.temperature) >= 3) {
-    const feelsLabel = formatTemperature(hour.feelsLike, tempUnit);
-    parts.push(`${tempLabel} (feels ${feelsLabel})`);
-  } else {
-    parts.push(tempLabel);
-  }
-
-  const gust = hour.windGust ?? hour.windSpeed;
-  const windVal = Math.round(hour.windSpeed);
-  const gustVal = Math.round(gust);
-  if (gustVal > windVal && gustVal >= 15) {
-    parts.push(`${gustVal} mph gusts`);
-  } else {
-    parts.push(`${windVal} mph wind`);
-  }
-
-  if (hour.rainChance > 0) {
-    parts.push(`${formatPercent(hour.rainChance)} rain`);
-  }
-
-  if (hour.dewpoint != null) {
-    parts.push(`dew ${formatTemperature(hour.dewpoint, tempUnit)}`);
-  }
-
-  return parts;
-}
-
 interface HourReason {
   text: string;
   tier: IssueTier;

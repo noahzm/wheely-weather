@@ -68,17 +68,6 @@ export function getVerdictLabel(status: RideStatus, location = ''): string {
   return pool[seededHash(seed) % pool.length] ?? '';
 }
 
-export const LOCATION_SOURCE_BADGES = {
-  manual: {
-    label: 'Custom location',
-    title: 'Showing a place you set by search',
-  },
-  device: {
-    label: 'Device location',
-    title: "Showing your device's current location",
-  },
-};
-
 export const WEATHER_DESCRIPTIONS: Record<number, string> = {
   0: 'Clear skies',
   1: 'Mostly clear',

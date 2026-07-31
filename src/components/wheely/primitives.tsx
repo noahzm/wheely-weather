@@ -2,25 +2,13 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { Platform, Pressable, StyleSheet, View, type PressableProps } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import {
-  Bike,
   Cloud,
   CloudFog,
   CloudLightning,
   CloudRain,
   CloudSnow,
   CloudSun,
-  Footprints,
-  Glasses,
-  Hand,
-  Layers,
-  PersonStanding,
-  Shirt,
-  Snowflake,
   Sun,
-  Thermometer,
-  Umbrella,
-  UserRound,
-  Wind,
   type LucideIcon,
 } from 'lucide-react-native';
 
@@ -280,25 +268,6 @@ export function weatherSfSymbol(code: number | null | undefined): string {
 }
 
 /** Gear tip icon lookup keyed by gear item name from domain. */
-export const GEAR_ICONS: Record<string, LucideIcon> = {
-  Shorts: UserRound,
-  CasualShorts: UserRound,
-  BibShorts: Bike,
-  Pants: PersonStanding,
-  Jacket: Layers,
-  Shirt,
-  Layers,
-  Hand,
-  Footprints,
-  Snowflake,
-  CloudRain,
-  Umbrella,
-  Wind,
-  Sun,
-  Glasses,
-  Thermometer,
-};
-
 /** Narrows an unknown value to a valid `Condition`, defaulting to `'fair'`. */
 export function asCondition(value: unknown): Condition {
   return value === 'good' ||
@@ -524,8 +493,6 @@ function BurstConditionChip({
     </View>
   );
 }
-
-export const BurstChip = BurstConditionChip;
 
 export function Chip({
   children,
