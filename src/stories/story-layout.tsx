@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { useWheelyColors } from '@/hooks/use-theme';
 import { SettingsProvider } from '@/hooks/settings-context';
@@ -17,17 +18,19 @@ export function StorySurface({
 }: Readonly<StorySurfaceProps>) {
   const c = useWheelyColors();
   return (
-    <SettingsProvider>
-      <ScrollView
-        contentContainerStyle={[
-          styles.content,
-          centered && styles.centered,
-          { backgroundColor: c.background },
-        ]}
-      >
-        <View style={[styles.inner, { maxWidth }]}>{children}</View>
-      </ScrollView>
-    </SettingsProvider>
+    <SafeAreaProvider>
+      <SettingsProvider>
+        <ScrollView
+          contentContainerStyle={[
+            styles.content,
+            centered && styles.centered,
+            { backgroundColor: c.background },
+          ]}
+        >
+          <View style={[styles.inner, { maxWidth }]}>{children}</View>
+        </ScrollView>
+      </SettingsProvider>
+    </SafeAreaProvider>
   );
 }
 

@@ -11,12 +11,6 @@
         "SHARP_IGNORE_GLOBAL_LIBVIPS": "1"
       }
     },
-    "preview": {
-      "distribution": "internal",
-      "env": {
-        "SHARP_IGNORE_GLOBAL_LIBVIPS": "1"
-      }
-    },
     "production": {
       "autoIncrement": true,
       "env": {
