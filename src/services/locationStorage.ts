@@ -5,6 +5,7 @@ import {
   DEFAULT_SETTINGS,
   normalizeLocationRecord,
   parseAppearance,
+  parseExposureLevel,
   parseGearMode,
   parseHomeLocation,
   parseTempUnit,
@@ -12,7 +13,7 @@ import {
   type SavedLocation,
 } from './settingsCodec';
 
-import type { Appearance, GearMode, TempUnitPreference } from '@/types/settings';
+import type { Appearance, ExposureLevel, GearMode, TempUnitPreference } from '@/types/settings';
 
 export { normalizeLocationRecord, type PersistedSettings } from './settingsCodec';
 export type { LocationSource, SavedLocation } from './settingsCodec';
@@ -112,6 +113,8 @@ export async function saveRecentLocation(place: RecentLocation) {
   return next;
 }
 
+const EXPOSURE_LEVEL_KEY = 'ww_exposure_level';
+
 export async function saveGearMode(mode: GearMode) {
   await AsyncStorage.setItem(GEAR_MODE_KEY, mode);
 }
@@ -122,6 +125,10 @@ export async function saveAppearance(value: Appearance) {
 
 export async function saveTempUnit(value: TempUnitPreference) {
   await AsyncStorage.setItem(TEMP_UNIT_KEY, value);
+}
+
+export async function saveExposureLevel(value: ExposureLevel) {
+  await AsyncStorage.setItem(EXPOSURE_LEVEL_KEY, value);
 }
 
 /**
@@ -136,6 +143,7 @@ export async function loadAllSettings(): Promise<PersistedSettings> {
       APPEARANCE_KEY,
       HOME_LOCATION_KEY,
       TEMP_UNIT_KEY,
+      EXPOSURE_LEVEL_KEY,
     ]);
     const byKey = new Map(entries);
     return {
@@ -143,6 +151,7 @@ export async function loadAllSettings(): Promise<PersistedSettings> {
       appearance: parseAppearance(byKey.get(APPEARANCE_KEY) ?? null),
       homeLocation: parseHomeLocation(byKey.get(HOME_LOCATION_KEY) ?? null),
       tempUnit: parseTempUnit(byKey.get(TEMP_UNIT_KEY) ?? null),
+      exposureLevel: parseExposureLevel(byKey.get(EXPOSURE_LEVEL_KEY) ?? null),
     };
   } catch (error) {
     captureError(error, { where: 'loadAllSettings' });

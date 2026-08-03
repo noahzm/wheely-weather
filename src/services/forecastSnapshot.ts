@@ -9,11 +9,19 @@ import { buildMockWeather, getMockLocationLabel } from '@/services/mockWeather';
 import { getHomeBaseline, type HomeBaseline } from '@/services/homeClimate';
 import type { SavedLocation } from '@/services/locationStorage';
 import { THRESHOLDS, resolveThresholds } from '@/domain';
+import { DEFAULT_EXPOSURE_LEVEL, type ExposureLevel } from '@/types/settings';
 import type { ForecastExtras, Weather } from '@/types/weather';
 
 export interface AcclimatizationContext {
   homeBaseline: HomeBaseline | null;
   thresholds: typeof THRESHOLDS;
+  /**
+   * The exposure level `thresholds` were resolved with. Kept on the snapshot so
+   * anything that rebuilds thresholds from `homeBaseline` — notably the forecast
+   * cache decoder — reproduces the same dials instead of silently falling back
+   * to the 'moderate' default.
+   */
+  exposureLevel: ExposureLevel;
 }
 
 export interface ForecastSnapshot {
@@ -55,10 +63,12 @@ async function fetchSafeExtras(lat: number, lon: number): Promise<ForecastExtras
 export async function getForecastSnapshot({
   savedLocation,
   homeLocation = null,
+  exposureLevel = DEFAULT_EXPOSURE_LEVEL,
   mockScenario = null,
 }: {
   savedLocation: SavedLocation | null;
   homeLocation?: SavedLocation | null;
+  exposureLevel?: ExposureLevel;
   mockScenario?: string | null;
 }): Promise<ForecastSnapshotResult> {
   const lastUpdated = new Date();
@@ -76,7 +86,11 @@ export async function getForecastSnapshot({
         mockScenario,
         source: 'mock',
         // Mocks bypass acclimatization so fixtures rate against the base thresholds.
-        acclimatization: { homeBaseline: null, thresholds: THRESHOLDS },
+        acclimatization: {
+          homeBaseline: null,
+          thresholds: THRESHOLDS,
+          exposureLevel: DEFAULT_EXPOSURE_LEVEL,
+        },
       },
       // Mock fixtures carry their own alerts inside `weather`; nothing to merge.
       extras: Promise.resolve(null),
@@ -98,7 +112,7 @@ export async function getForecastSnapshot({
     getHomeBaseline(homeLocation),
     fetchSafeLocationName(savedLocation),
   ]);
-  const thresholds = resolveThresholds(homeBaseline);
+  const thresholds = resolveThresholds(homeBaseline, THRESHOLDS, exposureLevel);
   const weather = buildWeatherFromData(data, thresholds);
 
   return {
@@ -110,7 +124,7 @@ export async function getForecastSnapshot({
       isDeviceLocation: savedLocation.source === 'device',
       mockScenario,
       source: savedLocation.source,
-      acclimatization: { homeBaseline, thresholds },
+      acclimatization: { homeBaseline, thresholds, exposureLevel },
     },
     extras,
   };

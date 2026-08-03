@@ -92,8 +92,11 @@ export default function LocationSearchScreen() {
     resultsCount,
     sections,
     pinnedLocations,
+    homeLocation,
+    activeLocation,
     handleSelect,
     handleTogglePin,
+    handleToggleHome,
   } = useLocationSearchScreen();
 
   const listProps = {
@@ -104,8 +107,11 @@ export default function LocationSearchScreen() {
     isSearching,
     resultsCount,
     pinnedLocations,
+    homeLocation,
+    activeLocation,
     onSelect: handleSelect,
     onTogglePin: handleTogglePin,
+    onToggleHome: handleToggleHome,
   };
 
   return (

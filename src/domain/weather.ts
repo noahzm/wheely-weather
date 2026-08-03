@@ -1,10 +1,12 @@
 export {
   calculateRideScore,
+  effectiveRideTemp,
   evaluateCondition,
   evaluateWind,
   getDailyCondition,
   getHourlyCondition,
   getOverallStatus,
+  isColdTemp,
 } from './scoring';
 export { getWeatherCodeCondition, getWeatherDescription, isThunderstorm } from './weather-codes';
 export {

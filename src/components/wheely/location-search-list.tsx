@@ -7,7 +7,7 @@ import Animated, {
   LinearTransition,
   useReducedMotion,
 } from 'react-native-reanimated';
-import { ChevronRight, Navigation, Pin } from 'lucide-react-native';
+import { Check, ChevronRight, House, Navigation, Pin } from 'lucide-react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
@@ -21,6 +21,9 @@ import {
   SectionTitle,
 } from './primitives';
 import {
+  homeAccessibilityLabel,
+  isActive,
+  isHome,
   isPinned,
   pinAccessibilityLabel,
   type LocationSearchListProps,
@@ -51,6 +54,30 @@ function PinButton({ pinned, onPress }: Readonly<{ pinned: boolean; onPress: () 
   );
 }
 
+function HomeButton({ home, onPress }: Readonly<{ home: boolean; onPress: () => void }>) {
+  const c = useWheelyColors();
+
+  return (
+    <HapticPressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        pinButtonStyles.fallback,
+        { borderColor: c.border },
+        pressed && pinButtonStyles.pressed,
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel={homeAccessibilityLabel(home)}
+    >
+      <PlatformIcon
+        icon={House}
+        size={16}
+        color={home ? c.ink : c.mutedInk}
+        strokeWidth={home ? 2.5 : 2}
+      />
+    </HapticPressable>
+  );
+}
+
 const pinButtonStyles = StyleSheet.create({
   fallback: {
     width: 36,
@@ -70,15 +97,21 @@ function LocationRow({
   isLast,
   busy,
   pinned,
+  home,
+  active,
   onSelect,
   onTogglePin,
+  onToggleHome,
 }: Readonly<{
   item: RowItem;
   isLast: boolean;
   busy: boolean;
   pinned: boolean;
+  home: boolean;
+  active: boolean;
   onSelect: () => void;
   onTogglePin: () => void;
+  onToggleHome: () => void;
 }>) {
   const c = useWheelyColors();
   const isDevice = item._kind === 'device';
@@ -93,6 +126,7 @@ function LocationRow({
         disabled={busy}
         accessibilityRole="button"
         accessibilityLabel={item.label}
+        accessibilityState={{ selected: active }}
       >
         {isDevice && (
           <PlatformIcon
@@ -105,7 +139,12 @@ function LocationRow({
         )}
         <View style={styles.rowContent}>
           <ThemedText
-            style={[styles.rowLabel, isAction && styles.rowLabelAction, { color: c.ink }]}
+            style={[
+              styles.rowLabel,
+              isAction && styles.rowLabelAction,
+              active && styles.rowLabelActive,
+              { color: c.ink },
+            ]}
             numberOfLines={1}
           >
             {item.label}
@@ -118,14 +157,15 @@ function LocationRow({
         </View>
         {!isAction && (
           <PlatformIcon
-            icon={ChevronRight}
+            icon={active ? Check : ChevronRight}
             size={16}
-            color={c.mutedInk}
-            strokeWidth={2.5}
+            color={active ? c.accent : c.mutedInk}
+            strokeWidth={active ? 3 : 2.5}
             style={styles.chevron}
           />
         )}
       </HapticPressable>
+      {!isAction && <HomeButton home={home} onPress={onToggleHome} />}
       {!isAction && <PinButton pinned={pinned} onPress={onTogglePin} />}
     </View>
   );
@@ -139,8 +179,11 @@ export function LocationSearchList({
   isSearching,
   resultsCount: _resultsCount,
   pinnedLocations,
+  homeLocation,
+  activeLocation,
   onSelect,
   onTogglePin,
+  onToggleHome,
 }: Readonly<LocationSearchListProps>) {
   // Styles the message-card contents; rows resolve the card scheme via context.
   const c = useWheelyColors();
@@ -184,11 +227,16 @@ export function LocationSearchList({
                     isLast={idx === section.data.length - 1}
                     busy={busy}
                     pinned={!item._kind && isPinned(item, pinnedLocations)}
+                    home={!item._kind && isHome(item, homeLocation)}
+                    active={!item._kind && isActive(item, activeLocation)}
                     onSelect={() => {
                       onSelect(item);
                     }}
                     onTogglePin={() => {
                       onTogglePin(item);
+                    }}
+                    onToggleHome={() => {
+                      onToggleHome(item);
                     }}
                   />
                 </Animated.View>
@@ -252,6 +300,11 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.body,
   },
   rowLabelAction: {
+    fontFamily: Fonts.heading,
+  },
+  // The location currently on screen; weight carries the state so it still
+  // reads when the accent check is not enough on its own.
+  rowLabelActive: {
     fontFamily: Fonts.heading,
   },
   rowSub: {

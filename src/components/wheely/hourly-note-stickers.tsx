@@ -10,18 +10,24 @@ import { PlatformIcon } from './primitives';
 
 function makeStyles(c: WheelyPalette) {
   return StyleSheet.create({
+    // Straddles the card's top border like the hero verdict's floating badges
+    // (`ride-verdict.tsx`): a fixed negative marginBottom pulls the card up
+    // underneath it by a constant amount, so the overlap depth stays the same
+    // no matter how many lines the message wraps to (unlike a `top` offset,
+    // which would let a two-line message dip further into the chart).
     noteStickers: {
-      position: 'absolute',
-      right: Spacing.one,
-      top: Spacing.one,
-      zIndex: 4,
       alignItems: 'flex-end',
       gap: Spacing.one,
+      paddingHorizontal: Spacing.three,
+      marginBottom: -Spacing.three,
+      zIndex: 10,
+      pointerEvents: 'none',
     },
     noteSticker: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: Spacing.one,
+      maxWidth: '100%',
       borderWidth: 1,
       borderColor: c.border,
       borderRadius: Radius.none,
@@ -33,6 +39,7 @@ function makeStyles(c: WheelyPalette) {
       color: c.ink,
       fontWeight: '400',
       fontSize: Type.caption.fontSize,
+      flexShrink: 1,
     },
   });
 }
@@ -70,7 +77,7 @@ export function HourlyNoteStickers({
   if (!rainTiming && !daylightWarning) return null;
 
   return (
-    <View style={[styles.noteStickers, { pointerEvents: 'none' }]}>
+    <View style={styles.noteStickers}>
       {!!rainTiming && <HourlyNoteSticker icon="umbrella.fill" text={rainTiming} />}
       {!!daylightWarning && <HourlyNoteSticker icon="sunrise.fill" text={daylightWarning} />}
     </View>

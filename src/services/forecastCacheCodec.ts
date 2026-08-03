@@ -1,11 +1,15 @@
 import { resolveThresholds } from '../domain/acclimatization';
 
+import type { ExposureLevel } from '@/types/settings';
 import type { HomeBaseline, Weather } from '@/types/weather';
 
 import type { ForecastSnapshot } from './forecastSnapshot';
 import type { LocationSource, SavedLocation } from './locationStorage';
 
-export const FORECAST_CACHE_VERSION = 1;
+// v2 adds `exposureLevel`. Bumping also discards v1 entries, which were rated
+// under the previous threshold table and would otherwise render for up to
+// FORECAST_CACHE_TTL_MS under semantics the current build no longer uses.
+export const FORECAST_CACHE_VERSION = 2;
 // Cached content is only a bridge until the background refresh lands; when
 // offline, 6h-old data still beats a spinner, but older than that the "Now"
 // marker and hourly window drift too far to trust.
@@ -23,6 +27,7 @@ interface ForecastCachePayload {
   locationName: string;
   source: Exclude<ForecastSnapshot['source'], 'mock'>;
   homeBaseline: HomeBaseline | null;
+  exposureLevel: ExposureLevel;
   weather: Weather;
 }
 
@@ -31,6 +36,9 @@ const isFiniteNumber = (value: unknown): value is number =>
 
 const isLocationSource = (value: unknown): value is LocationSource =>
   value === 'manual' || value === 'device';
+
+const isExposureLevel = (value: unknown): value is ExposureLevel =>
+  value === 'indoor' || value === 'moderate' || value === 'high';
 
 function isSavedLocation(value: unknown): value is SavedLocation {
   if (!value || typeof value !== 'object') return false;
@@ -76,6 +84,7 @@ function isForecastCachePayload(value: unknown): value is ForecastCachePayload {
     typeof record.locationName === 'string' &&
     isLocationSource(record.source) &&
     isHomeBaseline(record.homeBaseline) &&
+    isExposureLevel(record.exposureLevel) &&
     isWeatherShape(record.weather)
   );
 }
@@ -101,6 +110,7 @@ export function encodeForecastCache(
     locationName: snapshot.location,
     source: snapshot.source,
     homeBaseline: snapshot.acclimatization.homeBaseline,
+    exposureLevel: snapshot.acclimatization.exposureLevel,
     weather: snapshot.weather,
   };
   return JSON.stringify(payload);
@@ -130,7 +140,7 @@ export function decodeForecastCache(
   if (age < 0 || age > FORECAST_CACHE_TTL_MS) return null;
   if (!sameLocation(parsed.location, currentLocation)) return null;
 
-  const { homeBaseline } = parsed;
+  const { homeBaseline, exposureLevel } = parsed;
   return {
     savedLocation: parsed.location,
     snapshot: {
@@ -141,7 +151,14 @@ export function decodeForecastCache(
       isDeviceLocation: parsed.source === 'device',
       mockScenario: null,
       source: parsed.source,
-      acclimatization: { homeBaseline, thresholds: resolveThresholds(homeBaseline) },
+      acclimatization: {
+        homeBaseline,
+        // Must use the cached exposure level: the payload's per-hour conditions
+        // were rated with it, so rebuilding on the default would pair correctly
+        // rated weather with thresholds up to 7°F off.
+        thresholds: resolveThresholds(homeBaseline, undefined, exposureLevel),
+        exposureLevel,
+      },
     },
   };
 }

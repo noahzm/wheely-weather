@@ -136,13 +136,6 @@ export function chartY(condition: string): number {
   return 108 - ((score - 1) / 4) * 84;
 }
 
-/**
- * Builds the SVG `points` string for the condition polyline.
- */
-export function chartPolylinePoints(data: { idx: number; condition: string }[]): string {
-  return data.map((d) => `${chartX(d.idx)},${chartY(d.condition)}`).join(' ');
-}
-
 export interface ChartSplineSegment {
   x0: number;
   y0: number;
@@ -184,12 +177,6 @@ function chartSmoothStep(t: number): number {
   'worklet';
   const clamped = Math.min(1, Math.max(0, t));
   return (1 - Math.cos(clamped * Math.PI)) / 2;
-}
-
-/** Inverse of chartY — score 1 (bad) … 5 (good). Worklet-safe. */
-export function chartScoreFromY(y: number): number {
-  'worklet';
-  return 1 + ((146 - y) / 112) * 4;
 }
 
 /** Fractional index blend between adjacent hours at viewport center. Worklet-safe. */
@@ -338,11 +325,6 @@ export function chartSmoothYAtSegments(segments: ChartSplineSegment[], x: number
     }
   }
   return last.y1;
-}
-
-/** Evaluates Y on the smooth condition line at chart-space X. */
-export function chartSmoothYAtX(data: { idx: number; condition: string }[], x: number): number {
-  return chartSmoothYAtSegments(buildChartSpline(data), x);
 }
 
 /**

@@ -4,6 +4,7 @@ import {
   ContentUnavailableView,
   Host,
   HStack,
+  Image,
   Label,
   List,
   ProgressView,
@@ -30,6 +31,9 @@ import { Spacing, TRANSPARENT } from '@/constants/theme';
 import { useWheelyColors } from '@/hooks/use-theme';
 
 import {
+  homeAccessibilityLabel,
+  isActive,
+  isHome,
   isPinned,
   pinAccessibilityLabel,
   placeKey,
@@ -63,14 +67,20 @@ function PinnableRow({
   item,
   busy,
   pinned,
+  home,
+  active,
   onSelect,
   onTogglePin,
+  onToggleHome,
 }: Readonly<{
   item: RowItem;
   busy: boolean;
   pinned: boolean;
+  home: boolean;
+  active: boolean;
   onSelect: () => void;
   onTogglePin: () => void;
+  onToggleHome: () => void;
 }>) {
   const c = useWheelyColors();
   const rowId = placeKey(item);
@@ -82,6 +92,7 @@ function PinnableRow({
     tint(c.accent),
   ];
   const swipePinModifiers = [labelStyle('iconOnly'), tint(c.accent)];
+  const homeSystemImage = home ? 'house.fill' : 'house';
 
   return (
     <SwipeActions modifiers={[tag(rowId)]}>
@@ -89,7 +100,20 @@ function PinnableRow({
         <Button modifiers={[buttonStyle('plain'), disabled(busy)]} onPress={onSelect}>
           <LocationRowTexts item={item} />
           <Spacer />
+          {/* Always rendered so row contents keep a stable width; the checkmark
+              is simply invisible for the locations that are not on screen. */}
+          <Image
+            systemName="checkmark"
+            size={15}
+            modifiers={[foregroundStyle(active ? c.accent : TRANSPARENT)]}
+          />
         </Button>
+        <Button
+          label={homeAccessibilityLabel(home)}
+          systemImage={homeSystemImage}
+          modifiers={pinModifiers}
+          onPress={onToggleHome}
+        />
         <Button
           label={pinAccessibilityLabel(pinned)}
           systemImage={pinned ? 'pin.fill' : 'pin'}
@@ -103,6 +127,12 @@ function PinnableRow({
           label={pinAccessibilityLabel(pinned)}
           modifiers={swipePinModifiers}
           onPress={onTogglePin}
+        />
+        <Button
+          systemImage={homeSystemImage}
+          label={homeAccessibilityLabel(home)}
+          modifiers={swipePinModifiers}
+          onPress={onToggleHome}
         />
       </SwipeActions.Actions>
     </SwipeActions>
@@ -135,14 +165,20 @@ function LocationSectionView({
   section,
   busy,
   pinnedLocations,
+  homeLocation,
+  activeLocation,
   onSelect,
   onTogglePin,
+  onToggleHome,
 }: Readonly<{
   section: LocationSection;
   busy: boolean;
   pinnedLocations: LocationSearchListProps['pinnedLocations'];
+  homeLocation: LocationSearchListProps['homeLocation'];
+  activeLocation: LocationSearchListProps['activeLocation'];
   onSelect: (item: RowItem) => void;
   onTogglePin: (item: RowItem) => void;
+  onToggleHome: (item: RowItem) => void;
 }>) {
   if (section.id === 'options') {
     return (
@@ -163,11 +199,16 @@ function LocationSectionView({
             item={item}
             busy={busy}
             pinned={isPinned(item, pinnedLocations)}
+            home={isHome(item, homeLocation)}
+            active={isActive(item, activeLocation)}
             onSelect={() => {
               onSelect(item);
             }}
             onTogglePin={() => {
               onTogglePin(item);
+            }}
+            onToggleHome={() => {
+              onToggleHome(item);
             }}
           />
         ))}
@@ -187,8 +228,11 @@ export function LocationSearchList({
   isSearching,
   resultsCount,
   pinnedLocations,
+  homeLocation,
+  activeLocation,
   onSelect,
   onTogglePin,
+  onToggleHome,
 }: Readonly<LocationSearchListProps>) {
   const showUnavailable = isSearching && !!message && resultsCount === 0;
 
@@ -210,8 +254,11 @@ export function LocationSearchList({
               section={section}
               busy={busy}
               pinnedLocations={pinnedLocations}
+              homeLocation={homeLocation}
+              activeLocation={activeLocation}
               onSelect={onSelect}
               onTogglePin={onTogglePin}
+              onToggleHome={onToggleHome}
             />
           ))}
         </List>

@@ -58,7 +58,7 @@ describe('Hourly Message Logic', () => {
 
     const message = getMessage(weather, 'no');
 
-    expect(spoken(message)).toContain('Windy (26 mph)');
+    expect(spoken(message)).toContain('Very windy (26 mph)');
     expect(spoken(message)).not.toContain('Hot (70°F)');
   });
 
@@ -76,7 +76,10 @@ describe('Hourly Message Logic', () => {
 
     const message = getMessage(weather, 'maybe');
     expect(message.lead).toBe('Rideable, but:');
-    expect(message.issues).toEqual(['Chilly (48°F)', 'Breezy (13 mph)', 'Rain possible (35%)']);
+    // 48°F rates `fair` (the 40-50 band), so it is phrased "Cool". The hero used
+    // to collapse fair->marginal and overstate it as "Chilly" while the hourly
+    // drawer said "Cool" for the same rating; both now share `issuePhraseTier`.
+    expect(message.issues).toEqual(['Cool (48°F)', 'Breezy (13 mph)', 'Rain possible (35%)']);
   });
 
   it('keeps every issue when a day stacks up many of them', () => {
@@ -186,6 +189,6 @@ describe('Hourly Message Logic', () => {
       daily: [],
     };
 
-    expect(spoken(getMessage(weather, 'no'))).toContain('Gusty (36 mph gusts)');
+    expect(spoken(getMessage(weather, 'no'))).toContain('Strong gusts (36 mph gusts)');
   });
 });

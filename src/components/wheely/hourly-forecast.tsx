@@ -27,6 +27,10 @@ import { useHourlyForecastChart, type ChartHour } from './use-hourly-forecast-ch
 
 function makeStyles(c: WheelyPalette) {
   return StyleSheet.create({
+    hourlyWrap: {
+      position: 'relative',
+      overflow: 'visible',
+    },
     hourlyCard: {
       position: 'relative',
       overflow: 'visible',
@@ -205,14 +209,10 @@ function useHourlyChipScroll({
 function HourlyForecastBody({
   data,
   nowIdx,
-  rainTiming,
-  daylightWarning,
   thresholds,
 }: Readonly<{
   data: ChartHour[];
   nowIdx: number;
-  rainTiming?: string | null;
-  daylightWarning?: string | null;
   thresholds?: Thresholds;
 }>) {
   const { styles } = useStyles();
@@ -240,7 +240,6 @@ function HourlyForecastBody({
 
   return (
     <View style={styles.hourlyBody}>
-      <HourlyNoteStickers rainTiming={rainTiming} daylightWarning={daylightWarning} />
       <ConditionChipWidthProbe labels={conditionLabels} large onLayouts={handleChipLayouts} />
       <HourlyChartShell chart={chart} data={data} nowIdx={nowIdx} maxIndex={maxIndex} />
       <HourlyReasonFooter
@@ -398,15 +397,16 @@ export function HourlyForecast({
   }
 
   return (
-    <BrutalCard style={styles.hourlyCard}>
-      <HourlyForecastBody
-        key={`${nowIdx}-${data.length}`}
-        data={data}
-        nowIdx={nowIdx}
-        rainTiming={rainTiming}
-        daylightWarning={daylightWarning}
-        thresholds={thresholds}
-      />
-    </BrutalCard>
+    <View style={styles.hourlyWrap}>
+      <HourlyNoteStickers rainTiming={rainTiming} daylightWarning={daylightWarning} />
+      <BrutalCard style={styles.hourlyCard}>
+        <HourlyForecastBody
+          key={`${nowIdx}-${data.length}`}
+          data={data}
+          nowIdx={nowIdx}
+          thresholds={thresholds}
+        />
+      </BrutalCard>
+    </View>
   );
 }

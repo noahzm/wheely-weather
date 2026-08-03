@@ -15,9 +15,19 @@ describe('deriveAcclimatization', () => {
     expect(deriveAcclimatization(NORDIC)).toEqual({ tempShift: 0, dewShift: 0 });
   });
 
+  it('returns zero shift when exposureLevel is indoor', () => {
+    expect(deriveAcclimatization(PHOENIX, 'indoor')).toEqual({ tempShift: 0, dewShift: 0 });
+    expect(deriveAcclimatization(GULF, 'indoor')).toEqual({ tempShift: 0, dewShift: 0 });
+  });
+
   it('shifts heat for a hot-dry home and humidity for a hot-humid home, both capped', () => {
-    expect(deriveAcclimatization(PHOENIX)).toEqual({ tempShift: 6, dewShift: 0 });
-    expect(deriveAcclimatization(GULF)).toEqual({ tempShift: 6, dewShift: 7 });
+    expect(deriveAcclimatization(PHOENIX, 'moderate')).toEqual({ tempShift: 4, dewShift: 0 });
+    expect(deriveAcclimatization(PHOENIX, 'high')).toEqual({ tempShift: 7, dewShift: 0 });
+    expect(deriveAcclimatization(GULF, 'moderate')).toEqual({ tempShift: 4, dewShift: 5 });
+    expect(deriveAcclimatization(GULF, 'high')).toEqual({ tempShift: 7, dewShift: 8 });
+    const AUSTIN = { warmTemp: 88, warmDewpoint: 68 };
+    expect(deriveAcclimatization(AUSTIN, 'moderate')).toEqual({ tempShift: 3, dewShift: 3 });
+    expect(deriveAcclimatization(AUSTIN, 'high')).toEqual({ tempShift: 5, dewShift: 5 });
   });
 });
 

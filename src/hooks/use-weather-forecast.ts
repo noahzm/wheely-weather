@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { type RecentLocation, type SavedLocation } from '@/services/locationStorage';
 import { getForecastErrorKind } from '@/services/forecastSnapshot';
-import { useHomeLocation, useSettingsHydrated } from '@/hooks/settings-context';
+import { useExposureLevel, useHomeLocation, useSettingsHydrated } from '@/hooks/settings-context';
 import { captureError } from '@/services/telemetry';
 
 import {
@@ -23,6 +23,7 @@ import { useStaleRefresh } from './forecast/use-stale-refresh';
 export function useWeatherForecast(mockScenario: string | null) {
   const [state, setState] = useState<ForecastState>(INITIAL_FORECAST_STATE);
   const [homeLocation] = useHomeLocation();
+  const [exposureLevel] = useExposureLevel();
   const settingsHydrated = useSettingsHydrated();
   const lastLoadedAt = useRef(0);
   const needsLocationRef = useRef(false);
@@ -37,7 +38,12 @@ export function useWeatherForecast(mockScenario: string | null) {
       }));
 
       try {
-        const result = await loadForecastData(locationOverride, mockScenario, homeLocation);
+        const result = await loadForecastData(
+          locationOverride,
+          mockScenario,
+          homeLocation,
+          exposureLevel,
+        );
         if (result.kind === 'needsLocation') {
           needsLocationRef.current = true;
           setState((current) => ({
@@ -82,7 +88,7 @@ export function useWeatherForecast(mockScenario: string | null) {
         }));
       }
     },
-    [mockScenario, homeLocation],
+    [mockScenario, homeLocation, exposureLevel],
   );
 
   // Wait for settings so the first fetch reads the real home location; without

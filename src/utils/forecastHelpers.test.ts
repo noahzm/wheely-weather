@@ -26,8 +26,8 @@ const day = (overrides = {}) => ({
 const hour = (overrides = {}) => ({
   hour: 10,
   condition: 'fair',
-  temperature: 72,
-  feelsLike: 72,
+  temperature: 65,
+  feelsLike: 65,
   windSpeed: 6,
   windGust: null,
   rainChance: 5,
@@ -94,28 +94,31 @@ describe('getDayConditionReason', () => {
 
   // Exhaustive branch coverage: defaults are calm/dry/mild, each row trips one branch.
   it.each([
-    // bad, in priority order
-    ['Very windy (24 mph)', { condition: 'bad', windSpeed: 24 }],
-    ['Rain likely (65%)', { condition: 'bad', rainChance: 65 }],
+    // bad, in priority order. Values are chosen to actually land in the tier the
+    // row claims — the day reason now rates metrics against the same THRESHOLDS
+    // table that rated the day, so an impossible pairing (a 'bad' day whose only
+    // metric is marginal) correctly falls through to the generic phrasing.
+    ['Dangerous wind (32 mph)', { condition: 'bad', windSpeed: 32 }],
+    ['Rain expected (80%)', { condition: 'bad', rainChance: 80 }],
     ['Dangerous heat (97°)', { condition: 'bad', high: 97 }],
     ['Oppressive humidity (dew 76°)', { condition: 'bad', dewpoint: 76 }],
     ['Freezing temps', { condition: 'bad', low: 30 }],
     ['Rough day to ride', { condition: 'bad' }],
     // poor
-    ['Windy (19 mph)', { condition: 'poor', windSpeed: 19 }],
-    ['Wet roads likely', { condition: 'poor', rainChance: 65 }],
-    ['Very hot (94°)', { condition: 'poor', high: 94 }],
+    ['Very windy (27 mph)', { condition: 'poor', windSpeed: 27 }],
+    ['Rain very likely (70%)', { condition: 'poor', rainChance: 70 }],
+    ['Very hot (92°)', { condition: 'poor', high: 92 }],
     ['Very humid (dew 73°)', { condition: 'poor', dewpoint: 73 }],
     ['Cold start', { condition: 'poor', low: 35 }],
     ['Tough riding', { condition: 'poor' }],
     // marginal
-    ['Breezy (16 mph)', { condition: 'marginal', windSpeed: 16 }],
-    ['Some rain risk', { condition: 'marginal', rainChance: 45 }],
-    ['Warm (86°)', { condition: 'marginal', high: 86 }],
+    ['Windy (16 mph)', { condition: 'marginal', windSpeed: 16 }],
+    ['Rain likely (45%)', { condition: 'marginal', rainChance: 45 }],
+    ['Hot (86°)', { condition: 'marginal', high: 86 }],
     ['Muggy (dew 69°)', { condition: 'marginal', dewpoint: 69 }],
     ['Cool start', { condition: 'marginal', low: 40 }],
     ['Mixed conditions', { condition: 'marginal' }],
-    // fair
+    // fair — its own copy ladder, not the shared ISSUE_PHRASES tiers
     ['Breezy', { condition: 'fair', windSpeed: 12 }],
     ['Chance of rain', { condition: 'fair', rainChance: 20 }],
     ['Cool but clear', { condition: 'fair', high: 45 }],
@@ -134,9 +137,64 @@ describe('getDayConditionReason', () => {
 });
 
 describe('getHourConditionReasons', () => {
-  it('returns an empty list for good and fair hours without hazardous weather codes', () => {
+  it('returns an empty list for good hours without hazardous weather codes', () => {
     expect(getHourConditionReasons(hour({ condition: 'good' }))).toEqual([]);
-    expect(getHourConditionReasons(hour({ condition: 'fair', windSpeed: 12 }))).toEqual([]);
+  });
+
+  it('excludes good metrics (like 6 mph wind or 50° dew) and returns tier reasons for fair metrics', () => {
+    expect(getHourConditionReasons(hour({ condition: 'fair', windSpeed: 12 }))).toEqual([
+      'Breezy (12 mph)',
+    ]);
+    expect(getHourConditionReasons(hour({ condition: 'fair', rainChance: 25 }))).toEqual([
+      'Rain possible (25%)',
+    ]);
+    expect(getHourConditionReasons(hour({ condition: 'fair', temperature: 75 }))).toEqual([
+      'Warm (75°F)',
+    ]);
+  });
+
+  // Regression: the reason borrowed the gust's severity but printed the
+  // sustained speed, yielding "Very windy (8 mph)" for a calm-but-gusty hour.
+  it('names gusts, with the gust speed, when gusts set the rating', () => {
+    expect(getHourConditionReasons(hour({ windSpeed: 8, windGust: 42 }))).toEqual([
+      'Dangerous gusts (42 mph gusts)',
+    ]);
+  });
+
+  it('still names sustained wind when gusts are not the limiter', () => {
+    expect(getHourConditionReasons(hour({ windSpeed: 24, windGust: 26 }))).toEqual([
+      'Windy (24 mph)',
+    ]);
+  });
+
+  // Regression: the chip was rated on wind chill / heat index but labelled with
+  // raw air temperature, producing "Freezing (48°F)" and "Very hot (71°F)".
+  it('labels a temperature reason with the temperature that drove its rating', () => {
+    expect(getHourConditionReasons(hour({ temperature: 48, feelsLike: 30 }))).toEqual([
+      'Freezing (30°F)',
+    ]);
+    expect(getHourConditionReasons(hour({ temperature: 71, feelsLike: 95 }))).toEqual([
+      'Very hot (95°F)',
+    ]);
+  });
+
+  it('rates the temperate middle on air temperature, ignoring feels-like', () => {
+    expect(getHourConditionReasons(hour({ temperature: 65, feelsLike: 95 }))).toEqual([]);
+  });
+
+  // Regression: an hour rated poor purely by the cold+rain hypothermia hazard
+  // reported only "Cool" and "Rain possible", never naming the actual hazard.
+  it('names the cold-rain hazard in place of the plain rain reason', () => {
+    expect(
+      getHourConditionReasons(hour({ temperature: 44, feelsLike: 44, rainChance: 35 })),
+    ).toEqual(['Cold rain risk (44°F, 35%)', 'Cool (44°F)']);
+  });
+
+  it('falls back to a tier phrase when no metric explains a non-good rating', () => {
+    // AQI and other non-hourly metrics can set the rating with every hourly
+    // metric reading fine; the drawer must not render empty.
+    expect(getHourConditionReasons(hour({ condition: 'poor' }))).toEqual(['Tough riding']);
+    expect(getHourConditionReasons(hour({ condition: 'good' }))).toEqual([]);
   });
 
   it('returns every matching metric reason in priority order', () => {
@@ -145,17 +203,17 @@ describe('getHourConditionReasons', () => {
         hour({ condition: 'bad', windSpeed: 24, rainChance: 65, temperature: 97, dewpoint: 76 }),
       ),
     ).toEqual([
-      'Very windy (24 mph)',
+      'Windy (24 mph)',
       'Rain likely (65%)',
-      'Dangerous heat (97°)',
-      'Oppressive humidity (dew 76°)',
+      'Dangerous heat (97°F)',
+      'Oppressive humidity (dew 76°F)',
     ]);
   });
 
   it('includes heat and humidity reasons together', () => {
     expect(
       getHourConditionReasons(hour({ condition: 'poor', temperature: 94, dewpoint: 69 })),
-    ).toEqual(['Very hot (94°)', 'Muggy (dew 69°)']);
+    ).toEqual(['Very hot (94°F)', 'Muggy (dew 69°F)']);
   });
 
   it('includes hazardous weather code reasons plus limiting metric reasons', () => {
@@ -163,14 +221,14 @@ describe('getHourConditionReasons', () => {
       getHourConditionReasons(
         hour({ condition: 'marginal', weatherCode: 95, windSpeed: 16, rainChance: 35 }),
       ),
-    ).toEqual(['Storm risk', 'Breezy (16 mph)', 'Rain possible (35%)']);
+    ).toEqual(['Storm risk', 'Windy (16 mph)', 'Rain possible (35%)']);
   });
 
   it('still names lower-tier metrics in an hour dragged bad by a single metric', () => {
     // Dew 76 makes the hour bad; 88° heat is only poor-tier but must not vanish.
     expect(
       getHourConditionReasons(hour({ condition: 'bad', temperature: 94, dewpoint: 76 })),
-    ).toEqual(['Very hot (94°)', 'Oppressive humidity (dew 76°)']);
+    ).toEqual(['Very hot (94°F)', 'Oppressive humidity (dew 76°F)']);
   });
 
   it('does not add fallback reasons when hazardous weather is the only specific reason', () => {

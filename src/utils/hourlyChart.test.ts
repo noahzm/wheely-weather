@@ -6,7 +6,6 @@ import {
   chartClampScrollOffset,
   chartCenterXFromClampedScroll,
   chartInterpolateAtCenter,
-  chartCenterXFromScroll,
   chartContentPadding,
   chartDotOpacity,
   chartDotRadius,
@@ -16,11 +15,9 @@ import {
   chartNearestSnapOffset,
   chartScrollOffsetForIndex,
   chartScrollOffsetOrInitial,
-  chartSmoothYAtX,
   chartSnapOffsets,
   chartX,
   chartY,
-  chartPolylinePoints,
   chartSmoothYAtSegments,
   chartSmoothPath,
   type ChartSplineSegment,
@@ -131,19 +128,6 @@ describe('chartInterpolateAtCenter', () => {
   });
 });
 
-describe('chartPolylinePoints', () => {
-  it('produces space-separated x,y pairs', () => {
-    const result = chartPolylinePoints([
-      { idx: 0, condition: 'good' },
-      { idx: 1, condition: 'bad' },
-    ]);
-    expect(result).toBe(`${chartX(0)},${chartY('good')} ${chartX(1)},${chartY('bad')}`);
-  });
-  it('returns empty string for empty input', () => {
-    expect(chartPolylinePoints([])).toBe('');
-  });
-});
-
 describe('chartDotRadius', () => {
   it('gives the Now dot a slightly larger radius', () => {
     expect(chartDotRadius(true)).toBe(7);
@@ -179,34 +163,6 @@ describe('chartDotOpacity', () => {
     expect(chartDotOpacity(true, false)).toBeCloseTo(0.58);
     expect(chartDotOpacity(true, true)).toBe(1);
     expect(chartDotOpacity(false, false)).toBe(1);
-  });
-});
-
-describe('chartSmoothYAtX', () => {
-  const data = [
-    { idx: 0, condition: 'good' },
-    { idx: 1, condition: 'fair' },
-    { idx: 2, condition: 'bad' },
-  ];
-
-  it('matches chartY at each hour anchor', () => {
-    for (const point of data) {
-      expect(chartSmoothYAtX(data, chartX(point.idx))).toBeCloseTo(chartY(point.condition), 0);
-    }
-  });
-
-  it('stays between endpoint Y values at mid-segment X', () => {
-    const midX = (chartX(0) + chartX(1)) / 2;
-    const y = chartSmoothYAtX(data, midX);
-    expect(y).toBeGreaterThanOrEqual(Math.min(chartY('good'), chartY('fair')));
-    expect(y).toBeLessThanOrEqual(Math.max(chartY('good'), chartY('fair')));
-  });
-
-  it('maps scroll center X consistently with chartCenterXFromScroll', () => {
-    const viewportWidth = 320;
-    const scrollX = chartScrollOffsetForIndex(1, viewportWidth, 2);
-    const centerX = chartCenterXFromScroll(scrollX, viewportWidth);
-    expect(chartSmoothYAtX(data, centerX)).toBeCloseTo(chartY('fair'), 0);
   });
 });
 

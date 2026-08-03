@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Platform, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeInDown, useReducedMotion } from 'react-native-reanimated';
+import Animated, {
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withDelay,
+  withTiming,
+} from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import Head from 'expo-router/head';
 
@@ -47,15 +53,48 @@ const isWeb = Platform.OS === 'web';
 // the first home mount per session; native tabs keep the screen mounted.
 let hasPlayedWebEntrance = false;
 
+const STAGGER_STEP_MS = 70;
+const STAGGER_DURATION_MS = 380;
+const STAGGER_RISE = 12;
+
+/**
+ * Staggered entrance for each home section.
+ *
+ * Driven by a shared value rather than reanimated's `entering` prop: layout
+ * entering animations are fire-and-forget, so an interruption (a snapshot
+ * re-render as the cache hydrates and the live fetch lands, or a tab
+ * transition) strands the view at a partial opacity. That washes out the whole
+ * card subtree uniformly — border, text, icons, and chart colors alike — and it
+ * hits later sections hardest because their delay is longest. A value that is
+ * always driven toward 1 settles no matter how often the tree re-renders.
+ */
 function Stagger({ order, children }: Readonly<{ order: number; children: ReactNode }>) {
   const reduceMotion = useReducedMotion();
   const [skipEntrance] = useState(() => isWeb && hasPlayedWebEntrance);
+  const animate = !reduceMotion && !skipEntrance;
+  const progress = useSharedValue(animate ? 0 : 1);
+
   useEffect(() => {
     hasPlayedWebEntrance = true;
   }, []);
-  const entering =
-    reduceMotion || skipEntrance ? undefined : FadeInDown.duration(380).delay(order * 70);
-  return <Animated.View entering={entering}>{children}</Animated.View>;
+
+  useEffect(() => {
+    if (!animate) {
+      progress.value = 1;
+      return;
+    }
+    progress.value = withDelay(
+      order * STAGGER_STEP_MS,
+      withTiming(1, { duration: STAGGER_DURATION_MS }),
+    );
+  }, [animate, order, progress]);
+
+  const style = useAnimatedStyle(() => ({
+    opacity: progress.value,
+    transform: [{ translateY: (1 - progress.value) * STAGGER_RISE }],
+  }));
+
+  return <Animated.View style={style}>{children}</Animated.View>;
 }
 
 function deriveHomeState(

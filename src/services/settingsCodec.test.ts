@@ -4,6 +4,7 @@ import {
   DEFAULT_SETTINGS,
   normalizeLocationRecord,
   parseAppearance,
+  parseExposureLevel,
   parseGearMode,
   parseHomeLocation,
   parseTempUnit,
@@ -33,6 +34,7 @@ describe('setting parsers', () => {
       appearance: parseAppearance(null),
       homeLocation: parseHomeLocation(null),
       tempUnit: parseTempUnit(null),
+      exposureLevel: parseExposureLevel(null),
     });
   });
 });

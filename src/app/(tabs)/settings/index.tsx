@@ -3,7 +3,13 @@ import { Platform, View } from 'react-native';
 import Head from 'expo-router/head';
 
 import { SettingsForm, WebScreenHeader, WebScreenTitle } from '@/components/wheely';
-import { useGearMode, useAppearance, useHomeLocation, useTempUnit } from '@/hooks/settings-context';
+import {
+  useAppearance,
+  useExposureLevel,
+  useGearMode,
+  useHomeLocation,
+  useTempUnit,
+} from '@/hooks/settings-context';
 import { useForecast } from '@/hooks/forecast-context';
 import { TRANSPARENT } from '@/constants/theme';
 
@@ -14,9 +20,11 @@ export default function SettingsScreen() {
   const [appearance, setAppearance] = useAppearance();
   const [homeLocation, setHomeLocation] = useHomeLocation();
   const [tempUnit, setTempUnit] = useTempUnit();
+  const [exposureLevel, setExposureLevel] = useExposureLevel();
   const forecast = useForecast();
 
   const active = forecast.savedLocation;
+  const homeBaseline = forecast.snapshot?.acclimatization.homeBaseline ?? null;
   const homeLabel =
     homeLocation?.name ??
     (homeLocation ? `${homeLocation.lat.toFixed(1)}, ${homeLocation.lon.toFixed(1)}` : null);
@@ -55,6 +63,9 @@ export default function SettingsScreen() {
           onAppearanceChange={setAppearance}
           tempUnit={tempUnit}
           onTempUnitChange={setTempUnit}
+          exposureLevel={exposureLevel}
+          onExposureChange={setExposureLevel}
+          homeBaseline={homeBaseline}
           homeLabel={homeLabel}
           canSetHome={!!active}
           onSetHome={onSetHome}

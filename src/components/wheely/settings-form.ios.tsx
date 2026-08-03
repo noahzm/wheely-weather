@@ -30,10 +30,13 @@ import { useWheelyColors } from '@/hooks/use-theme';
 import {
   APPEARANCE_LABELS,
   APPEARANCE_VALUES,
+  EXPOSURE_LABELS,
+  EXPOSURE_VALUES,
   GEAR_LABELS,
   GEAR_MODES,
   TEMP_UNIT_LABELS,
   TEMP_UNIT_VALUES,
+  type ExposureLevel,
   type SettingsFormProps,
 } from './settings-form.types';
 
@@ -104,6 +107,58 @@ function ExternalLinkRow({
   );
 }
 
+function HomeClimateSectionIOS({
+  homeOn,
+  homeLabel,
+  homeHint,
+  canSetHome,
+  exposureLevel,
+  accentColor,
+  onSetHome,
+  onClearHome,
+  onExposureChange,
+}: Readonly<{
+  homeOn: boolean;
+  homeLabel: string | null;
+  homeHint: string;
+  canSetHome: boolean;
+  exposureLevel: ExposureLevel;
+  accentColor: string;
+  onSetHome: () => void;
+  onClearHome: () => void;
+  onExposureChange: (level: ExposureLevel) => void;
+}>) {
+  return (
+    <Section title="Home climate" footer={<Text>{homeHint}</Text>}>
+      <Toggle
+        isOn={homeOn}
+        onIsOnChange={(value: boolean) => {
+          if (value && canSetHome && !homeOn) onSetHome();
+          else if (!value && homeOn) onClearHome();
+        }}
+        modifiers={[disabled(!homeOn && !canSetHome), tint(accentColor)]}
+      >
+        <Text>{homeLabel ?? 'Use current location as home'}</Text>
+      </Toggle>
+      {homeOn && (
+        <Picker
+          selection={exposureLevel}
+          onSelectionChange={(value) => {
+            onExposureChange(value);
+          }}
+          modifiers={[pickerStyle('segmented')]}
+        >
+          {EXPOSURE_VALUES.map((level, index) => (
+            <Text key={level} modifiers={[tag(level)]}>
+              {EXPOSURE_LABELS[index]}
+            </Text>
+          ))}
+        </Picker>
+      )}
+    </Section>
+  );
+}
+
 /**
  * iOS settings body — a native SwiftUI inset-grouped List (matching the
  * location search screen) with segmented pickers, the home-climate toggle,
@@ -116,6 +171,8 @@ export function SettingsForm({
   onAppearanceChange,
   tempUnit,
   onTempUnitChange,
+  exposureLevel,
+  onExposureChange,
   homeLabel,
   canSetHome,
   onSetHome,
@@ -123,11 +180,10 @@ export function SettingsForm({
 }: Readonly<SettingsFormProps>) {
   const c = useWheelyColors();
   const attribution = useWeatherAttribution();
-
   const homeOn = !!homeLabel;
   const homeHint = homeLabel
-    ? 'Heat and humidity are judged against what you’re used to at home.'
-    : 'Set your home to adapt the verdict to your climate. Other cities adjust relative to home.';
+    ? 'Adapts heat and humidity thresholds to your home climate based on your daily outdoor exposure.'
+    : 'Set your home to adapt the verdict to your climate. Requires regular outdoor exposure; if you spend most time in AC, keep this off.';
 
   return (
     <View style={styles.container}>
@@ -181,18 +237,17 @@ export function SettingsForm({
             </Picker>
           </Section>
 
-          <Section title="Home climate" footer={<Text>{homeHint}</Text>}>
-            <Toggle
-              isOn={homeOn}
-              onIsOnChange={(value: boolean) => {
-                if (value && canSetHome && !homeOn) onSetHome();
-                else if (!value && homeOn) onClearHome();
-              }}
-              modifiers={[disabled(!homeOn && !canSetHome), tint(c.accent)]}
-            >
-              <Text>{homeLabel ?? 'Use current location as home'}</Text>
-            </Toggle>
-          </Section>
+          <HomeClimateSectionIOS
+            homeOn={homeOn}
+            homeLabel={homeLabel}
+            homeHint={homeHint}
+            canSetHome={canSetHome}
+            exposureLevel={exposureLevel}
+            accentColor={c.accent}
+            onSetHome={onSetHome}
+            onClearHome={onClearHome}
+            onExposureChange={onExposureChange}
+          />
 
           <Section
             title="Credits"
