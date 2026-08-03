@@ -1,6 +1,5 @@
 # Build / generated output
 dist/
-.wrangler/
 .expo/
 node_modules/
 coverage/
