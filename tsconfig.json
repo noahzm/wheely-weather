@@ -18,9 +18,7 @@
   "exclude": [
     "node_modules",
     "dist",
-    "storybook-static",
     ".expo",
-    ".rnstorybook",
     "scripts",
     "eslint.config.js",
     "**/*.test.js",

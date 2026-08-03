@@ -16,14 +16,12 @@ module.exports = defineConfig([
   {
     ignores: [
       'dist/**',
-      'storybook-static/**',
       '.expo/**',
       'node_modules/**',
       'coverage/**',
       'web-build/**',
       'playwright-report/**',
       'test-results/**',
-      '.rnstorybook/**',
     ],
   },
 
@@ -130,26 +128,12 @@ module.exports = defineConfig([
 
   // ── CommonJS config / scripts / entry ───────────────────────────────────
   // These files are genuinely CommonJS (Metro/ESLint config loaders are CJS,
-  // and the Expo entry uses a conditional require to swap Storybook in/out),
-  // so `require()` is correct here rather than ESM imports.
+  // and the Expo entry uses a require to load the router), so `require()` is
+  // correct here rather than ESM imports.
   {
     files: ['eslint.config.js', 'metro.config.js', '*.config.js', 'scripts/**/*.js', 'index.ts'],
     rules: {
       '@typescript-eslint/no-require-imports': 'off',
-    },
-  },
-
-  // ── Storybook mock modules ──────────────────────────────────────────────
-  // These hand-written stubs replicate native module shapes for the web
-  // Storybook build; empty methods/classes and a pseudo-random uuid are
-  // intentional for a test double, not omissions.
-  {
-    files: ['.storybook/mocks/**/*.{ts,tsx}'],
-    rules: {
-      '@typescript-eslint/no-empty-function': 'off',
-      '@typescript-eslint/no-extraneous-class': 'off',
-      '@typescript-eslint/require-await': 'off',
-      'sonarjs/pseudo-random': 'off',
     },
   },
 

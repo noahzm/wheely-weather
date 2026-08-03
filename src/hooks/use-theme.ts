@@ -11,7 +11,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 export type ColorSchemeName = 'light' | 'dark';
 
 /**
- * Lets a parent (e.g. a Storybook decorator) force a color scheme instead of
+ * Lets a parent (e.g. the root layout) force a color scheme instead of
  * reading the OS preference. `null` means "follow the system".
  */
 export const ColorSchemeOverrideContext = createContext<ColorSchemeName | null>(null);

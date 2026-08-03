@@ -46,10 +46,6 @@ yarn-error.*
 /ios
 /android
 
-*storybook.log
-storybook-static
-.rnstorybook/storybook.requires.ts
-
 # Playwright
 /test-results/
 /playwright-report/

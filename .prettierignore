@@ -1,9 +1,7 @@
 # Build / generated output
 dist/
 .wrangler/
-storybook-static/
 .expo/
-.rnstorybook/
 node_modules/
 coverage/
 web-build/
