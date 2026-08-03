@@ -35,7 +35,6 @@ npm install
 | ------------------------------------------------- | ------------------------------------------------------------------ |
 | `npm run web` / `npm run ios` / `npm run android` | Run the app (`ios` builds/installs and starts dev server via Expo) |
 | `npm run ios:clean`                               | Clean native iOS regeneration + build/install + launch             |
-| `npm run storybook:web`                           | Component workshop at http://localhost:6006                        |
 | `npm run build:web`                               | Export the web build (`expo export --platform web`)                |
 | `npm run deploy:web`                              | Build then deploy the web build via Wrangler (Cloudflare)          |
 
@@ -51,7 +50,7 @@ npm test
 npm run build:web
 ```
 
-`npm run test:e2e` (Playwright against Storybook) and `npm run test:e2e:app` (Playwright against the exported web app) aren't part of CI and are run manually.
+`npm run test:e2e:app` (Playwright against the exported web app) isn't part of CI and is run manually.
 
 ## Architecture
 

@@ -16,8 +16,7 @@ npm run build:web      # expo export --platform web
 
 - `npm run check` runs the full suite locally (all 5 steps).
 - Single unit test: `npx vitest run --project unit src/domain/weather-codes.test.ts`
-- Storybook component tests (NOT in CI): `npx vitest run --project storybook`
-- Manual E2E (NOT in CI): `npm run test:e2e` (Playwright vs Storybook), `npm run test:e2e:app` (vs exported web app).
+- Manual E2E (NOT in CI): `npm run test:e2e:app` (vs exported web app).
 - `npm run deploy:web` = `build:web` then `wrangler deploy` to Cloudflare. Static asset server; SPA fallback and `/api/*` worker-first are set in `wrangler.jsonc`.
 - iOS dev client: `npm run ios` builds/installs/launches; `npm run ios:clean` regenerates native. If Metro won't connect, restart the dev server with `npx expo start --tunnel` (or `--host localhost`).
 

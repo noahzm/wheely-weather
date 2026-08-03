@@ -12,7 +12,6 @@ Run from the repository root.
 | `npm test`                                                       | Unit tests (`vitest run --project unit`)         |
 | `npx vitest run --project unit src/domain/weather-codes.test.ts` | Run one unit test file                           |
 | `npm run build:web`                                              | Expo web export (CI gate)                        |
-| `npm run test:e2e`                                               | Playwright E2E against Storybook (manual)        |
 | `npm run test:e2e:app`                                           | Playwright E2E against exported web app (manual) |
 
 CI order in `.github/workflows/ci.yml`: `npm ci` → `npm run format:check` → `npm run lint` → `npx tsc --noEmit` → `npm test` → `npm run build:web`.
