@@ -1,5 +1,7 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
+  // Hosted schema: wrangler is no longer a local devDependency, so the
+  // node_modules path this used to point at does not resolve.
+  "$schema": "https://cdn.jsdelivr.net/npm/wrangler/config-schema.json",
   "name": "wheely-weather",
   "main": "workers/index.mjs",
   "compatibility_date": "2026-06-01",
