@@ -11,3 +11,4 @@ export { KitGuide } from './kit-guide';
 export { RideSpecs } from './ride-specs';
 export { DailyForecast } from './daily-forecast';
 export { ErrorState, LoadingState, LocationPromptState, StaleDataNotice } from './status';
+export { RNSegmentedPicker } from './rn-segmented-picker';

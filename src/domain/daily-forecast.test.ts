@@ -96,10 +96,10 @@ describe('Weekly Forecast Logic', () => {
         weatherCode: 1,
         high: 72,
         low: 58,
-        windSpeed: 22,
+        windSpeed: 32,
         rainChance: 5,
       }),
-    ).toBe('Very windy (22 mph)');
+    ).toBe('Dangerous wind (32 mph)');
   });
 
   it('explains bad daily ratings caused by dangerous heat', () => {

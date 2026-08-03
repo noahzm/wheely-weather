@@ -7,6 +7,7 @@ import {
   clearHomeLocation,
   loadAllSettings,
   saveAppearance,
+  saveExposureLevel,
   saveGearMode,
   saveHomeLocation,
   saveTempUnit,
@@ -15,7 +16,7 @@ import {
 } from '@/services/locationStorage';
 import { DEFAULT_SETTINGS } from '@/services/settingsCodec';
 import { captureError } from '@/services/telemetry';
-import type { Appearance, GearMode, TempUnitPreference } from '@/types/settings';
+import type { Appearance, ExposureLevel, GearMode, TempUnitPreference } from '@/types/settings';
 import type { TempUnit } from '@/utils/temperature';
 
 type SettingTuple<T> = readonly [T, (next: T) => void];
@@ -31,6 +32,7 @@ interface SettingsValue {
   appearance: SettingTuple<Appearance>;
   homeLocation: SettingTuple<SavedLocation | null>;
   tempUnit: SettingTuple<TempUnitPreference>;
+  exposureLevel: SettingTuple<ExposureLevel>;
   /** True once the persisted values have been read from storage. */
   hydrated: boolean;
 }
@@ -91,6 +93,13 @@ export function SettingsProvider({ children }: Readonly<{ children: ReactNode }>
           saveTempUnit(next).catch(swallowWriteError);
         },
       ],
+      exposureLevel: [
+        settings.exposureLevel,
+        (next: ExposureLevel) => {
+          setSettings((current) => ({ ...current, exposureLevel: next }));
+          saveExposureLevel(next).catch(swallowWriteError);
+        },
+      ],
       hydrated,
     }),
     [settings, hydrated],
@@ -122,6 +131,10 @@ export function useHomeLocation(): SettingTuple<SavedLocation | null> {
 
 export function useTempUnit(): SettingTuple<TempUnitPreference> {
   return useSettings().tempUnit;
+}
+
+export function useExposureLevel(): SettingTuple<ExposureLevel> {
+  return useSettings().exposureLevel;
 }
 
 /**

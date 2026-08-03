@@ -26,3 +26,20 @@ export const TEMP_UNIT_VALUES = [
   'fahrenheit',
   'celsius',
 ] as const satisfies readonly TempUnitPreference[];
+
+export type ExposureLevel = 'indoor' | 'moderate' | 'high';
+
+export const EXPOSURE_LABELS = ['Indoor / AC', 'Moderate', 'High'] as const;
+export const EXPOSURE_VALUES = [
+  'indoor',
+  'moderate',
+  'high',
+] as const satisfies readonly ExposureLevel[];
+
+/**
+ * The exposure level assumed when the rider has not chosen one. Every fallback
+ * — parsing, persisted defaults, service parameters, threshold resolution —
+ * must reference this rather than restating 'moderate', so the assumption can
+ * only ever be changed in one place.
+ */
+export const DEFAULT_EXPOSURE_LEVEL: ExposureLevel = 'moderate';

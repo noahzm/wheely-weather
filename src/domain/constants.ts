@@ -5,18 +5,19 @@ import type { Condition } from '@/types/weather';
 // avoid->bad. The verdict rates raw air temperature (dew point carries humidity
 // separately) rather than feels-like, which would double-count humidity.
 export const THRESHOLDS = {
-  // Air temperature, °F. The reference table is asymmetric and non-contiguous:
-  // the hot side has no "caution" (marginal) zone (68->85 good jumps straight to
-  // 85->95 hard) and the cold side has no "hard" (poor) zone (32->40 caution
-  // jumps to <32 avoid). Those gaps are why MARGINAL_MAX==POOR_MAX==85 and
-  // POOR_MIN==BAD_MIN==32 collapse — the comfort-band rater skips the empty zones.
+  // Air temperature, °F. Asymmetric by design. The hot side runs the full ladder
+  // — 68->82 fair, 82->90 caution (marginal), 90->95 hard (poor), 95+ avoid —
+  // because sustained effort in heat degrades a ride well before it becomes
+  // dangerous. The cold side keeps the reference table's gap: it has no "hard"
+  // (poor) zone, 32->40 caution jumping straight to <32 avoid, which is why
+  // POOR_MIN==BAD_MIN==32 collapse and the comfort-band rater skips that zone.
   TEMPERATURE: {
     BAD_MIN: 32,
     BAD_MAX: 95,
     POOR_MIN: 32,
     POOR_MAX: 90,
     MARGINAL_MIN: 40,
-    MARGINAL_MAX: 90,
+    MARGINAL_MAX: 82,
     FAIR_MIN: 50,
     FAIR_MAX: 68,
   },

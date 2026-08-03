@@ -1,10 +1,19 @@
 import { THRESHOLDS, type Thresholds } from './constants';
-import { STATUS_MESSAGES as MSG, ISSUE_PHRASES, RAIN_MESSAGES, DAYLIGHT_MESSAGES } from './copy';
 import {
+  STATUS_MESSAGES as MSG,
+  ISSUE_PHRASES,
+  RAIN_MESSAGES,
+  DAYLIGHT_MESSAGES,
+  issuePhraseTier,
+  type IssueTier,
+} from './copy';
+import {
+  effectiveRideTemp,
   evaluateCondition,
   evaluateWind,
   evaluateColdRainHazard,
   getLaterGoodHour,
+  isColdTemp,
   isGustDriven,
   RANK,
 } from './scoring';
@@ -29,13 +38,6 @@ import type {
   Weather,
 } from '@/types/weather';
 
-/** Collapses a condition rating to the shared issue-phrase tier. */
-const issueTier = (rating: Condition): 'bad' | 'poor' | 'marginal' => {
-  if (rating === 'bad') return 'bad';
-  if (rating === 'poor') return 'poor';
-  return 'marginal';
-};
-
 /**
  * Collects the limiting-factor labels to mention in the verdict, in insertion
  * order (temp → wind → rain → weather → dewpoint → AQI). Phrasing comes from
@@ -52,7 +54,7 @@ const collectMessageIssues = (
   const addIssue = (
     val: number | null | undefined,
     type: MetricType,
-    label: (tier: 'bad' | 'poor' | 'marginal') => string,
+    label: (tier: IssueTier) => string,
     ratingOverride?: Condition,
   ) => {
     const rating = ratingOverride ?? evaluateCondition(val, type, thresholds);
@@ -60,15 +62,27 @@ const collectMessageIssues = (
       status === 'maybe'
         ? rating === 'marginal' || rating === 'fair'
         : rating === 'bad' || rating === 'poor';
-    if (include) issues.push(label(issueTier(rating)));
+    const tier = issuePhraseTier(rating);
+    if (include && tier) issues.push(label(tier));
   };
 
   const temp = formatTemperature(weather.temperature, tempUnit, { withUnitLabel: true });
+  // The temperature issue is rated on wind chill / heat index, so it must be
+  // labelled with that same value — otherwise the chip names a number that
+  // didn't drive its own severity. The cold-rain hazard below stays on raw air
+  // temperature, which is what its threshold is defined against.
+  const effectiveTemp = formatTemperature(
+    effectiveRideTemp(weather.temperature, weather.feelsLike),
+    tempUnit,
+    { withUnitLabel: true },
+  );
   addIssue(
     weather.temperature,
     'temperature',
     (tier) =>
-      weather.temperature < 50 ? ISSUE_PHRASES.COLD(temp, tier) : ISSUE_PHRASES.HEAT(temp, tier),
+      isColdTemp(weather.temperature, weather.feelsLike)
+        ? ISSUE_PHRASES.COLD(effectiveTemp, tier)
+        : ISSUE_PHRASES.HEAT(effectiveTemp, tier),
     evaluateCondition(weather.temperature, 'temperature', thresholds, weather.feelsLike),
   );
   const gustDriven = isGustDriven(weather.windSpeed, weather.windGust);
@@ -86,9 +100,9 @@ const collectMessageIssues = (
     weather.rainChance,
     weather.weatherCode,
   );
-  if (coldRainCondition) {
-    const tier = issueTier(coldRainCondition);
-    issues.push(ISSUE_PHRASES.COLD_RAIN(temp, formatPercent(weather.rainChance), tier));
+  const coldRainTier = coldRainCondition ? issuePhraseTier(coldRainCondition) : null;
+  if (coldRainTier) {
+    issues.push(ISSUE_PHRASES.COLD_RAIN(temp, formatPercent(weather.rainChance), coldRainTier));
   } else {
     addIssue(weather.rainChance, 'rainChance', (tier) =>
       ISSUE_PHRASES.RAIN(formatPercent(weather.rainChance), tier),

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
-import { Home, Search, Settings, type LucideIcon } from 'lucide-react-native';
+import { CloudSun, Search, Settings, type LucideIcon } from 'lucide-react-native';
 import { usePathname, useRouter, useSegments } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -143,8 +143,8 @@ export function BottomNavBar() {
     <GlassChrome style={[styles.bar, { paddingBottom: insets.bottom + Spacing.two }]}>
       <View style={styles.tabsRow} accessibilityRole="tablist">
         <NavTab
-          label="Home"
-          icon={Home}
+          label="Weather"
+          icon={CloudSun}
           active={isHome}
           onPress={() => {
             if (!isHome) router.dismissTo('/');
