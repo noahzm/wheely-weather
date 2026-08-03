@@ -17,7 +17,7 @@ npm run build:web      # expo export --platform web
 - `npm run check` runs the full suite locally (all 5 steps).
 - Single unit test: `npx vitest run --project unit src/domain/weather-codes.test.ts`
 - Manual E2E (NOT in CI): `npm run test:e2e:app` (vs exported web app).
-- `npm run deploy:web` = `build:web` then `wrangler deploy` to Cloudflare. Static asset server; SPA fallback and `/api/*` worker-first are set in `wrangler.jsonc`.
+- Deploys to Cloudflare happen automatically on every push to `main` (dashboard-managed Workers Builds). Deploy config — static asset server, SPA fallback, `/api/*` worker-first — lives in `wrangler.jsonc`, read by Cloudflare on its side.
 - iOS dev client: `npm run ios` builds/installs/launches; `npm run ios:clean` regenerates native. If Metro won't connect, restart the dev server with `npx expo start --tunnel` (or `--host localhost`).
 
 ## Architecture
