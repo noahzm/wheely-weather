@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
 
-import { AnimatedIcon, AnimatedSplashOverlay } from '@/components/animated-icon';
+import { AnimatedSplashOverlay } from '@/components/animated-icon';
 
 import { StorySurface } from './story-layout';
 
@@ -18,10 +18,6 @@ const meta = {
 export default meta;
 
 type Story = StoryObj<typeof meta>;
-
-export const Icon: Story = {
-  render: () => <AnimatedIcon />,
-};
 
 export const SplashOverlay: Story = {
   render: () => <AnimatedSplashOverlay />,

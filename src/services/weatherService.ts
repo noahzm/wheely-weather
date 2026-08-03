@@ -1,14 +1,13 @@
-import { THRESHOLDS, type Thresholds } from '../domain/constants';
+import { type Thresholds } from '../domain/constants';
 import { fetchWithTimeout } from './http';
 import {
-  buildWeatherFromData,
   fetchAqi,
   fetchNwsAlerts,
   FORECAST_FETCH_TIMEOUT_MS,
   type OpenMeteoData,
 } from './weatherParsing';
 
-import type { ForecastExtras, Weather } from '@/types/weather';
+import type { ForecastExtras } from '@/types/weather';
 
 export {
   buildWeatherFromData,
@@ -53,17 +52,4 @@ export async function fetchWeatherExtras(
 ): Promise<ForecastExtras> {
   const [aqi, nwsAlerts] = await Promise.all([fetchAqi(lat, lon), fetchNwsAlerts(lat, lon)]);
   return { aqi, nwsAlerts };
-}
-
-/**
- * Fetches current, hourly, and daily weather from Open-Meteo and assembles the
- * unified weather object used by the UI.
- */
-export async function fetchWeatherData(
-  lat: number,
-  lon: number,
-  options: WeatherRequestOptions = {},
-): Promise<Weather> {
-  const data = await fetchOpenMeteoData(lat, lon);
-  return buildWeatherFromData(data, options.thresholds ?? THRESHOLDS);
 }

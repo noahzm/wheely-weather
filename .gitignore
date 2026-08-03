@@ -48,6 +48,7 @@ yarn-error.*
 
 *storybook.log
 storybook-static
+.rnstorybook/storybook.requires.ts
 
 # Playwright
 /test-results/

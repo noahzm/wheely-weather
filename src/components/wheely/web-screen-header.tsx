@@ -12,10 +12,6 @@ import { HapticPressable, PlatformIcon } from './primitives';
 const HEADER_SIDE = 36;
 export const WEB_TITLE_CONTENT_SPACING = Spacing.three;
 
-export function webHeaderHeight(insetsTop: number) {
-  return insetsTop + Spacing.two + HEADER_SIDE;
-}
-
 export function WebScreenTitle({ children }: Readonly<{ children: string }>) {
   const c = useWheelyColors();
   return (

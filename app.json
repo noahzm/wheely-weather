@@ -96,7 +96,6 @@
           "motionUsagePermission": "Wheely Weather does not use motion or fitness data. This permission string is required by a location library dependency."
         }
       ],
-      "@react-native-community/datetimepicker",
       "expo-image",
       "expo-status-bar",
       "expo-web-browser",

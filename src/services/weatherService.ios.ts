@@ -10,20 +10,19 @@
 // unavailable in that state (no Open-Meteo fallback), matching how
 // locationSearch.ios.ts treats MapKit search.
 import AppleWeatherKitModule from '../../modules/apple-weatherkit/src/AppleWeatherKitModule';
-import { THRESHOLDS, type Thresholds } from '../domain/constants';
+import { type Thresholds } from '../domain/constants';
 import { weatherKitConditionToWmoCode } from '../domain/weatherkit-codes';
 import { withTimeout } from './http';
 import { captureError } from './telemetry';
 import { mapWeatherKitAlert } from './weatherkitAlertMapping';
 import {
-  buildWeatherFromData,
   fetchAqi,
   FORECAST_FETCH_TIMEOUT_MS,
   SECONDARY_FETCH_TIMEOUT_MS,
   type OpenMeteoData,
 } from './weatherParsing';
 
-import type { ForecastExtras, Weather, WeatherAlert } from '@/types/weather';
+import type { ForecastExtras, WeatherAlert } from '@/types/weather';
 
 import type { WeatherKitForecastResult } from '../../modules/apple-weatherkit/src/AppleWeatherKit.types';
 
@@ -115,17 +114,4 @@ export async function fetchWeatherExtras(
 ): Promise<ForecastExtras> {
   const [aqi, nwsAlerts] = await Promise.all([fetchAqi(lat, lon), fetchWeatherKitAlerts(lat, lon)]);
   return { aqi, nwsAlerts };
-}
-
-/**
- * Fetches WeatherKit current/hourly/daily data and assembles the unified
- * weather object used by the UI.
- */
-export async function fetchWeatherData(
-  lat: number,
-  lon: number,
-  options: { thresholds?: Thresholds } = {},
-): Promise<Weather> {
-  const data = await fetchOpenMeteoData(lat, lon);
-  return buildWeatherFromData(data, options.thresholds ?? THRESHOLDS);
 }

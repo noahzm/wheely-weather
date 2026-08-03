@@ -31,17 +31,13 @@ Wheely Weather scores how good conditions are for a bike ride, live at [wheelywe
 npm install
 ```
 
-| Command                                           | Description                                                          |
-| ------------------------------------------------- | -------------------------------------------------------------------- |
-| `npm run web` / `npm run ios` / `npm run android` | Run the app (`ios` builds/installs and starts dev server via Expo)   |
-| `npm run ios:install`                             | Build/install the iOS development app without starting Metro         |
-| `npm run ios:start`                               | Launch an already installed iOS development build (default LAN host) |
-| `npm run ios:start:localhost`                     | Relaunch dev build with localhost host mode                          |
-| `npm run ios:start:tunnel`                        | Relaunch dev build with tunnel host mode                             |
-| `npm run ios:clean`                               | Clean native iOS regeneration + build/install + launch               |
-| `npm run storybook:web`                           | Component workshop at http://localhost:6006                          |
-| `npm run build:web`                               | Export the web build (`expo export --platform web`)                  |
-| `npm run deploy:web`                              | Build then deploy the web build via Wrangler (Cloudflare)            |
+| Command                                           | Description                                                        |
+| ------------------------------------------------- | ------------------------------------------------------------------ |
+| `npm run web` / `npm run ios` / `npm run android` | Run the app (`ios` builds/installs and starts dev server via Expo) |
+| `npm run ios:clean`                               | Clean native iOS regeneration + build/install + launch             |
+| `npm run storybook:web`                           | Component workshop at http://localhost:6006                        |
+| `npm run build:web`                               | Export the web build (`expo export --platform web`)                |
+| `npm run deploy:web`                              | Build then deploy the web build via Wrangler (Cloudflare)          |
 
 ## Quality gates
 
@@ -50,20 +46,12 @@ Mirrors CI (`.github/workflows/ci.yml`), run in this order:
 ```bash
 npm run format:check
 npm run lint
-npx tsc --noEmit
+npm run typecheck
 npm test
 npm run build:web
 ```
 
 `npm run test:e2e` (Playwright against Storybook) and `npm run test:e2e:app` (Playwright against the exported web app) aren't part of CI and are run manually.
-
-If iOS dev client cannot connect to Metro, retry with:
-
-```bash
-npm run ios:start:localhost
-# or
-npm run ios:start:tunnel
-```
 
 ## Architecture
 
@@ -79,7 +67,7 @@ For architecture, conventions, and toolchain constraints used in this repo, see 
 - Start with [`.github/copilot-instructions.md`](./.github/copilot-instructions.md) for architecture, conventions, and task playbooks.
 - Copilot cloud agent sessions should use [`.github/copilot-setup-steps.yml`](./.github/copilot-setup-steps.yml) to install dependencies and pre-run baseline checks.
 - Keep edits narrow and scoped, then run quality gates in CI order:
-  `npm run format:check` → `npm run lint` → `npx tsc --noEmit` → `npm test` → `npm run build:web`.
+  `npm run format:check` → `npm run lint` → `npm run typecheck` → `npm test` → `npm run build:web`.
 
 ## License
 
