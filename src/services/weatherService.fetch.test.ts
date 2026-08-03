@@ -4,7 +4,6 @@ import {
   fetchAqi,
   fetchNwsAlerts,
   fetchOpenMeteoData,
-  fetchWeatherData,
   fetchWeatherExtras,
   type OpenMeteoData,
 } from './weatherService';
@@ -88,18 +87,6 @@ describe('fetchOpenMeteoData', () => {
   it('throws when the payload has no current block', async () => {
     stubFetchJson({ hourly: {}, daily: {} });
     await expect(fetchOpenMeteoData(40.7, -74)).rejects.toThrow('Weather API missing current data');
-  });
-});
-
-describe('fetchWeatherData', () => {
-  it('fetches and parses into the unified weather object with default thresholds', async () => {
-    stubFetchJson(makePayload());
-
-    const weather = await fetchWeatherData(40.7, -74);
-
-    expect(weather.temperature).toBe(60);
-    expect(weather.hourly[0]?.hour).toBe(1);
-    expect(weather.daily).toHaveLength(1);
   });
 });
 

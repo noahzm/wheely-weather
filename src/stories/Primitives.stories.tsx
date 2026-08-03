@@ -1,10 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
-import { Pressable, View } from 'react-native';
+import { Pressable } from 'react-native';
 
 import { ExternalLink } from '@/components/external-link';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
 
 import { StorySurface } from './story-layout';
 
@@ -62,22 +60,6 @@ export const TextVariants: Story = {
       <ThemedText type="linkPrimary">Primary link text</ThemedText>
       <ThemedText type="code">src/components/themed-text.tsx</ThemedText>
     </>
-  ),
-};
-
-export const ThemedViewVariants: Story = {
-  render: () => (
-    <View style={{ gap: Spacing.three }}>
-      {(['background', 'paper', 'border'] as const).map((type) => (
-        <ThemedView
-          key={type}
-          type={type}
-          style={{ padding: Spacing.four, borderRadius: Spacing.two }}
-        >
-          <ThemedText type="smallBold">{type}</ThemedText>
-        </ThemedView>
-      ))}
-    </View>
   ),
 };
 

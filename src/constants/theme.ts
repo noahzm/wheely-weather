@@ -91,7 +91,7 @@ export const WheelyTheme: { light: WheelyPalette; dark: WheelyPalette } = {
 /**
  * Keys of WheelyPalette that resolve to a single color string (excludes the
  * nested `condition` map). Use this as the prop type for components that accept
- * a palette color by name (e.g. ThemedText, ThemedView).
+ * a palette color by name (e.g. ThemedText).
  */
 export type ThemeColor = keyof Omit<WheelyPalette, 'condition'>;
 
