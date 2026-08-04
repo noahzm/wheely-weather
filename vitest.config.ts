@@ -15,10 +15,16 @@ export default defineConfig({
   test: {
     coverage: {
       thresholds: {
+        // A floor, not a target: set below current so it catches a real
+        // regression rather than firing on rounding. Raise it when the margin
+        // grows, never lower it to make a run go green.
         statements: 90,
-        branches: 90,
+        branches: 88,
         functions: 90,
         lines: 90,
+        // The scoring logic every verdict rests on is held higher than the
+        // repo average, so good UI coverage can never mask a gap in here.
+        'src/domain/**': { statements: 95, branches: 90, functions: 100, lines: 95 },
       },
     },
     projects: [

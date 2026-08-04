@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 
-import { buildSections, type RowItem } from '@/components/wheely/location-search-list.types';
+import { buildSections, type RowItem } from '@/utils/locationRows';
 import { useForecast } from '@/hooks/forecast-context';
 import { useHomeLocation } from '@/hooks/settings-context';
 import { MIN_SEARCH_QUERY_LENGTH, useLocationSearch } from '@/hooks/use-location-search';
