@@ -38,6 +38,7 @@
   "devDependencies": {
     "@babel/core": "^7.29.7",
     "@types/react": "~19.2.2",
+    "@vitest/coverage-v8": "^4.1.10",
     "cross-env": "^10.1.0",
     "eslint": "^9.39.5",
     "eslint-config-expo": "~57.0.1",
@@ -69,6 +70,7 @@
     "format:check": "prettier --check .",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build:web",
     "test": "vitest run --project unit",
+    "test:coverage": "vitest run --project unit --coverage",
     "test:e2e:app": "playwright test --config playwright.app.config.ts",
     "eas:build:ios-dev": "eas build --platform ios --profile development",
     "eas:build:ios-prod": "eas build --platform ios --profile production",
