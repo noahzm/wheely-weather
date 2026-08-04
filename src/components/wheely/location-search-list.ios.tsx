@@ -37,10 +37,11 @@ import {
   isPinned,
   pinAccessibilityLabel,
   placeKey,
-  type LocationSearchListProps,
   type LocationSection,
   type RowItem,
-} from './location-search-list.types';
+} from '@/utils/locationRows';
+
+import { type LocationSearchListProps } from './location-search-list.types';
 
 function hasSubtitle(item: RowItem): boolean {
   return !!item.displayName && !item.displayName.startsWith(item.label);

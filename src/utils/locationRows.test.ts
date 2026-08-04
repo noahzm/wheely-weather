@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildSections, isActive, isHome, sameCoords } from './location-search-list.types';
+import {
+  buildSections,
+  homeAccessibilityLabel,
+  isActive,
+  isHome,
+  isPinned,
+  pinAccessibilityLabel,
+  placeKey,
+  sameCoords,
+} from './locationRows';
 
 const PORTLAND = { lat: 45.5, lon: -122.6, label: 'Portland' };
 const AUSTIN = { lat: 30.3, lon: -97.7, label: 'Austin' };
@@ -24,6 +33,43 @@ describe('sameCoords', () => {
     expect(isHome(PORTLAND, null)).toBe(false);
     expect(isActive(PORTLAND, { lat: 45.5, lon: -122.6 })).toBe(true);
     expect(isActive(PORTLAND, null)).toBe(false);
+  });
+});
+
+describe('isPinned', () => {
+  it('matches on coordinates, not on label', () => {
+    expect(isPinned(PORTLAND, [AUSTIN, PORTLAND])).toBe(true);
+    expect(isPinned(PORTLAND, [AUSTIN])).toBe(false);
+    expect(isPinned(PORTLAND, [])).toBe(false);
+    // A renamed pin is still the same place.
+    expect(isPinned(PORTLAND, [{ lat: 45.5, lon: -122.6, label: 'PDX' }])).toBe(true);
+  });
+
+  it('does not treat a half-match as pinned', () => {
+    expect(isPinned(PORTLAND, [{ lat: 45.5, lon: -97.7, label: 'Neither' }])).toBe(false);
+  });
+});
+
+describe('placeKey', () => {
+  it('keys real places by coordinate pair', () => {
+    expect(placeKey(PORTLAND)).toBe('45.5--122.6');
+    // Distinct places must not collide.
+    expect(placeKey(PORTLAND)).not.toBe(placeKey(AUSTIN));
+  });
+
+  it('keys the synthetic device row by its kind', () => {
+    expect(placeKey({ lat: 0, lon: 0, label: 'Use Current Location', _kind: 'device' })).toBe(
+      'device',
+    );
+  });
+});
+
+describe('accessibility labels', () => {
+  it('describes the action the press performs, not the current state', () => {
+    expect(homeAccessibilityLabel(true)).toBe('Clear home location');
+    expect(homeAccessibilityLabel(false)).toBe('Set as home location');
+    expect(pinAccessibilityLabel(true)).toBe('Unpin location');
+    expect(pinAccessibilityLabel(false)).toBe('Pin location');
   });
 });
 
@@ -51,9 +97,19 @@ describe('buildSections', () => {
     expect(ids(sections)).toEqual(['pinned', 'recent', 'options']);
   });
 
+  it('defaults to no home when the argument is omitted entirely', () => {
+    const sections = buildSections(false, [], [AUSTIN], [DENVER]);
+    expect(ids(sections)).toEqual(['pinned', 'recent', 'options']);
+  });
+
   it('shows only results while searching, never Home', () => {
     const sections = buildSections(true, [AUSTIN], [AUSTIN], [DENVER], PORTLAND);
     expect(ids(sections)).toEqual(['results']);
+  });
+
+  it('shows nothing at all while searching with no results', () => {
+    // Options is deliberately withheld mid-search: the list is a result set then.
+    expect(buildSections(true, [], [AUSTIN], [DENVER], PORTLAND)).toEqual([]);
   });
 
   it('still excludes pinned entries from Recent', () => {

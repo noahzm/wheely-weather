@@ -26,9 +26,10 @@ import {
   isHome,
   isPinned,
   pinAccessibilityLabel,
-  type LocationSearchListProps,
   type RowItem,
-} from './location-search-list.types';
+} from '@/utils/locationRows';
+
+import { type LocationSearchListProps } from './location-search-list.types';
 
 function PinButton({ pinned, onPress }: Readonly<{ pinned: boolean; onPress: () => void }>) {
   const c = useWheelyColors();
