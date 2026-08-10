@@ -10,13 +10,13 @@ import {
   ProgressView,
   Section,
   Spacer,
-  SwipeActions,
   Text,
   VStack,
 } from '@expo/ui/swift-ui';
 import {
   Animation,
   animation,
+  bold,
   buttonStyle,
   controlSize,
   disabled,
@@ -24,16 +24,13 @@ import {
   labelStyle,
   listStyle,
   tag,
-  tint,
 } from '@expo/ui/swift-ui/modifiers';
 
 import { Spacing, TRANSPARENT } from '@/constants/theme';
 import { useWheelyColors } from '@/hooks/use-theme';
 
 import {
-  homeAccessibilityLabel,
   isActive,
-  isHome,
   isPinned,
   pinAccessibilityLabel,
   placeKey,
@@ -47,13 +44,27 @@ function hasSubtitle(item: RowItem): boolean {
   return !!item.displayName && !item.displayName.startsWith(item.label);
 }
 
-function LocationRowTexts({ item }: Readonly<{ item: RowItem }>) {
-  const showSub = hasSubtitle(item);
+function LocationRowTexts({
+  item,
+  active = false,
+  withSubtitle = false,
+}: Readonly<{
+  item: RowItem;
+  /** The location the forecast is showing; carried by weight as well as colour. */
+  active?: boolean;
+  /**
+   * Only search results show the subtitle. It disambiguates two same-named
+   * cities while you are choosing between them; once a place is saved you
+   * picked it deliberately, and "United States" under every US row is noise.
+   */
+  withSubtitle?: boolean;
+}>) {
+  const labelModifiers = active ? [bold()] : [];
 
-  if (showSub) {
+  if (withSubtitle && hasSubtitle(item)) {
     return (
       <VStack alignment="leading" spacing={2}>
-        <Text>{item.label}</Text>
+        <Text modifiers={labelModifiers}>{item.label}</Text>
         <Text modifiers={[foregroundStyle({ type: 'hierarchical', style: 'secondary' })]}>
           {item.displayName}
         </Text>
@@ -61,82 +72,67 @@ function LocationRowTexts({ item }: Readonly<{ item: RowItem }>) {
     );
   }
 
-  return <Text>{item.label}</Text>;
+  return <Text modifiers={labelModifiers}>{item.label}</Text>;
 }
 
+/**
+ * A saved place: tap to show its forecast, pin button to keep it in the list.
+ *
+ * Setting home lives in Settings › Home climate rather than on every row — it
+ * is one global choice, not a per-row one, and duplicating it here cost a second
+ * control on the trailing edge. Pin stays inline rather than behind a swipe
+ * because a swipe action's glyph is forced white by SwiftUI, and white cannot
+ * sit on the accent (1.6:1); on the row itself the accent reads at ~11.8:1.
+ */
 function PinnableRow({
   item,
   busy,
   pinned,
-  home,
   active,
   onSelect,
   onTogglePin,
-  onToggleHome,
 }: Readonly<{
   item: RowItem;
   busy: boolean;
   pinned: boolean;
-  home: boolean;
   active: boolean;
   onSelect: () => void;
   onTogglePin: () => void;
-  onToggleHome: () => void;
 }>) {
   const c = useWheelyColors();
-  const rowId = placeKey(item);
-  const pinModifiers = [
-    labelStyle('iconOnly'),
-    buttonStyle('plain'),
-    controlSize('small'),
-    disabled(busy),
-    tint(c.accent),
-  ];
-  const swipePinModifiers = [labelStyle('iconOnly'), tint(c.accent)];
-  const homeSystemImage = home ? 'house.fill' : 'house';
 
   return (
-    <SwipeActions modifiers={[tag(rowId)]}>
-      <HStack alignment="center">
-        <Button modifiers={[buttonStyle('plain'), disabled(busy)]} onPress={onSelect}>
-          <LocationRowTexts item={item} />
-          <Spacer />
-          {/* Always rendered so row contents keep a stable width; the checkmark
-              is simply invisible for the locations that are not on screen. */}
-          <Image
-            systemName="checkmark"
-            size={15}
-            modifiers={[foregroundStyle(active ? c.accent : TRANSPARENT)]}
-          />
-        </Button>
-        <Button
-          label={homeAccessibilityLabel(home)}
-          systemImage={homeSystemImage}
-          modifiers={pinModifiers}
-          onPress={onToggleHome}
+    <HStack alignment="center">
+      <Button modifiers={[buttonStyle('plain'), disabled(busy)]} onPress={onSelect}>
+        <LocationRowTexts item={item} active={active} />
+        <Spacer />
+        {/* A checkmark is the native idiom for the selected row, and it does not
+            fight the group's own rounding or separators the way a stroked
+            outline does. Always rendered so rows keep a stable width; it is
+            simply invisible for the locations that are not on screen. */}
+        <Image
+          systemName="checkmark"
+          size={15}
+          modifiers={[foregroundStyle(active ? c.accent : TRANSPARENT)]}
         />
-        <Button
-          label={pinAccessibilityLabel(pinned)}
-          systemImage={pinned ? 'pin.fill' : 'pin'}
-          modifiers={pinModifiers}
-          onPress={onTogglePin}
-        />
-      </HStack>
-      <SwipeActions.Actions edge="trailing" allowsFullSwipe>
-        <Button
-          systemImage={pinned ? 'pin.fill' : 'pin'}
-          label={pinAccessibilityLabel(pinned)}
-          modifiers={swipePinModifiers}
-          onPress={onTogglePin}
-        />
-        <Button
-          systemImage={homeSystemImage}
-          label={homeAccessibilityLabel(home)}
-          modifiers={swipePinModifiers}
-          onPress={onToggleHome}
-        />
-      </SwipeActions.Actions>
-    </SwipeActions>
+      </Button>
+      {/* No controlSize('small') here: at the default size this clears the 44pt
+          minimum, which the previous 15pt icon buttons did not. Colour carries
+          the state alongside the fill, since fill alone was near-invisible. */}
+      <Button
+        label={pinAccessibilityLabel(pinned)}
+        systemImage={pinned ? 'pin.fill' : 'pin'}
+        modifiers={[
+          labelStyle('iconOnly'),
+          buttonStyle('plain'),
+          disabled(busy),
+          foregroundStyle(
+            pinned ? c.accent : { type: 'hierarchical' as const, style: 'secondary' as const },
+          ),
+        ]}
+        onPress={onTogglePin}
+      />
+    </HStack>
   );
 }
 
@@ -161,7 +157,7 @@ function ResultRow({
         onSelect(item);
       }}
     >
-      <LocationRowTexts item={item} />
+      <LocationRowTexts item={item} withSubtitle />
       <Spacer />
     </Button>
   );
@@ -193,20 +189,16 @@ function LocationSectionView({
   section,
   busy,
   pinnedLocations,
-  homeLocation,
   activeLocation,
   onSelect,
   onTogglePin,
-  onToggleHome,
 }: Readonly<{
   section: LocationSection;
   busy: boolean;
   pinnedLocations: LocationSearchListProps['pinnedLocations'];
-  homeLocation: LocationSearchListProps['homeLocation'];
   activeLocation: LocationSearchListProps['activeLocation'];
   onSelect: (item: RowItem) => void;
   onTogglePin: (item: RowItem) => void;
-  onToggleHome: (item: RowItem) => void;
 }>) {
   if (section.id === 'options') {
     return (
@@ -237,16 +229,12 @@ function LocationSectionView({
             item={item}
             busy={busy}
             pinned={isPinned(item, pinnedLocations)}
-            home={isHome(item, homeLocation)}
             active={isActive(item, activeLocation)}
             onSelect={() => {
               onSelect(item);
             }}
             onTogglePin={() => {
               onTogglePin(item);
-            }}
-            onToggleHome={() => {
-              onToggleHome(item);
             }}
           />
         ))}
@@ -266,11 +254,9 @@ export function LocationSearchList({
   isSearching,
   resultsCount,
   pinnedLocations,
-  homeLocation,
   activeLocation,
   onSelect,
   onTogglePin,
-  onToggleHome,
 }: Readonly<LocationSearchListProps>) {
   const showProgress = isSearching && isLoading;
   // ContentUnavailableView is for "nothing to show" — no matches, or a failed
@@ -306,11 +292,9 @@ export function LocationSearchList({
               section={section}
               busy={busy}
               pinnedLocations={pinnedLocations}
-              homeLocation={homeLocation}
               activeLocation={activeLocation}
               onSelect={onSelect}
               onTogglePin={onTogglePin}
-              onToggleHome={onToggleHome}
             />
           ))}
         </List>
