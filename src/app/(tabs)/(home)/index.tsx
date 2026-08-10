@@ -10,8 +10,10 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import Head from 'expo-router/head';
+import { Navigation } from 'lucide-react-native';
 
 import {
+  CurrentLocationBadge,
   DailyForecast,
   ErrorState,
   HourlyForecast,
@@ -27,7 +29,7 @@ import {
   bottomNavBarHeight,
 } from '@/components/wheely';
 import { WEB_TITLE_CONTENT_SPACING } from '@/components/wheely/web-screen-header';
-import { HapticPressable, SectionTitle } from '@/components/wheely/primitives';
+import { HapticPressable, PlatformIcon, SectionTitle } from '@/components/wheely/primitives';
 import { ThemedText } from '@/components/themed-text';
 import {
   calculateRideScore,
@@ -42,6 +44,7 @@ import type { AcclimatizationContext } from '@/services/forecastSnapshot';
 import { useForecast } from '@/hooks/forecast-context';
 import { useResolvedTempUnit } from '@/hooks/settings-context';
 import { useWheelyColors } from '@/hooks/use-theme';
+import { cityFromLocation } from '@/utils/locationTitle';
 import type { TempUnit } from '@/utils/temperature';
 import type { Weather } from '@/types/weather';
 import { contentColumnStyle, screenGutterStyle } from '@/components/wheely/content-column';
@@ -52,6 +55,15 @@ const isWeb = Platform.OS === 'web';
 // Web tab switches remount this screen, so play the entrance stagger only on
 // the first home mount per session; native tabs keep the screen mounted.
 let hasPlayedWebEntrance = false;
+
+// Color-free, so it lives outside the palette-driven `makeStyles`.
+const headingStyles = StyleSheet.create({
+  cityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
+});
 
 const STAGGER_STEP_MS = 70;
 const STAGGER_DURATION_MS = 380;
@@ -119,8 +131,9 @@ function deriveHomeState(
 
 type HomeState = ReturnType<typeof deriveHomeState>;
 
-function WebCityHeading({ city }: Readonly<{ city: string }>) {
+function WebCityHeading({ city, following }: Readonly<{ city: string; following: boolean }>) {
   const router = useRouter();
+  const c = useWheelyColors();
   if (!isWeb || city.length === 0) return null;
   return (
     <WebScreenHeader
@@ -132,9 +145,16 @@ function WebCityHeading({ city }: Readonly<{ city: string }>) {
             router.navigate('/location');
           }}
           accessibilityRole="button"
-          accessibilityLabel={`Location: ${city}. Change location`}
-          style={({ pressed }) => [pressed && { opacity: 0.7 }]}
+          accessibilityLabel={
+            following
+              ? `Location: ${city}, following your current location. Change location`
+              : `Location: ${city}. Change location`
+          }
+          style={({ pressed }) => [headingStyles.cityRow, pressed && { opacity: 0.7 }]}
         >
+          {following && (
+            <PlatformIcon icon={Navigation} size={20} color={c.ink} strokeWidth={2.5} />
+          )}
           <WebScreenTitle>{city}</WebScreenTitle>
         </HapticPressable>
       }
@@ -156,20 +176,25 @@ function HomeSections({
 
   return (
     <>
-      <Stagger order={1}>
-        <RideVerdict
-          status={derived.status}
-          score={derived.score}
-          message={derived.message}
-          label={derived.label}
-          weatherCode={weather.weatherCode}
-        />
-      </Stagger>
-      {derived.alerts.length > 0 && (
-        <Stagger order={2}>
-          <WeatherAlerts alerts={derived.alerts} />
+      {/* Alerts belong to the verdict, so they group with it and skip the 36px
+          rhythm that separates the page's sections. The wrapper carries no gap
+          of its own — `RideVerdict`'s own `marginBottom` is the spacing. */}
+      <View>
+        <Stagger order={1}>
+          <RideVerdict
+            status={derived.status}
+            score={derived.score}
+            message={derived.message}
+            label={derived.label}
+            weatherCode={weather.weatherCode}
+          />
         </Stagger>
-      )}
+        {derived.alerts.length > 0 && (
+          <Stagger order={2}>
+            <WeatherAlerts alerts={derived.alerts} />
+          </Stagger>
+        )}
+      </View>
 
       <Stagger order={3}>
         <View style={styles.section}>
@@ -215,7 +240,8 @@ export default function HomeScreen() {
 
   const weather = forecast.snapshot?.weather ?? null;
   const location = forecast.snapshot?.location ?? '';
-  const city = location.split(',')[0]?.trim() ?? '';
+  const city = cityFromLocation(location);
+  const followingDevice = forecast.snapshot?.isDeviceLocation === true;
   const acclimatization = forecast.snapshot?.acclimatization ?? null;
   const tempUnit = useResolvedTempUnit();
   // Bundle the non-null trio so rendering needs a single presence check.
@@ -253,6 +279,7 @@ export default function HomeScreen() {
         forecast={forecast}
         sections={sections}
         city={city}
+        followingDevice={followingDevice}
         locating={locating}
         setLocating={setLocating}
         router={router}
@@ -267,6 +294,7 @@ function HomeContent({
   forecast,
   sections,
   city,
+  followingDevice,
   locating,
   setLocating,
   router,
@@ -280,6 +308,7 @@ function HomeContent({
     derived: HomeState;
   } | null;
   city: string;
+  followingDevice: boolean;
   locating: boolean;
   setLocating: (val: boolean) => void;
   router: ReturnType<typeof useRouter>;
@@ -335,8 +364,10 @@ function HomeContent({
         ]}
       >
         <View style={styles.safeArea}>
-          <WebCityHeading city={city} />
+          <WebCityHeading city={city} following={followingDevice} />
           <View style={styles.content}>
+            {/* Web shows the arrow inline beside its own heading above. */}
+            {followingDevice && !isWeb && <CurrentLocationBadge />}
             {forecast.errorKind && sections && (
               <StaleDataNotice kind={forecast.errorKind} onRetry={forecast.refresh} />
             )}

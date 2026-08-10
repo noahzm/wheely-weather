@@ -12,7 +12,9 @@ import {
   togglePinnedLocation,
   type ForecastState,
 } from './forecast/load-forecast-data';
+import { refreshFollowedLocation } from './forecast/device-location';
 import { mergeExtrasWhenReady } from './forecast/merge-extras';
+import { useFollowDeviceLocation } from './forecast/use-follow-device-location';
 import { useLocationActions } from './forecast/use-location-actions';
 import {
   useSnapshotCacheHydration,
@@ -27,6 +29,12 @@ export function useWeatherForecast(mockScenario: string | null) {
   const settingsHydrated = useSettingsHydrated();
   const lastLoadedAt = useRef(0);
   const needsLocationRef = useRef(false);
+  // Mirrors state.savedLocation so the AppState/position listeners can read the
+  // active coordinates without re-subscribing on every load.
+  const savedLocationRef = useRef<SavedLocation | null>(null);
+  // One mutex across every path that can adopt a new device fix (foreground
+  // re-check, position watch, pull-to-refresh) so a single move costs one fetch.
+  const relocatingRef = useRef(false);
 
   const loadForecast = useCallback(
     async (locationOverride?: SavedLocation | null, refreshOnly = false) => {
@@ -99,13 +107,33 @@ export function useWeatherForecast(mockScenario: string | null) {
     void loadForecast();
   }, [settingsHydrated, loadForecast]);
 
+  // Kept in an effect rather than written inside `loadForecast` so the cache
+  // hydration path (which also sets `savedLocation`) stays in sync too. Declared
+  // above the listeners so they see the new value in the same commit.
+  useEffect(() => {
+    savedLocationRef.current = state.savedLocation;
+  }, [state.savedLocation]);
+
   useSnapshotCacheHydration(setState, mockScenario);
   useSnapshotCachePersistence(state);
-  useStaleRefresh(loadForecast, lastLoadedAt, needsLocationRef);
+  useStaleRefresh(loadForecast, lastLoadedAt, needsLocationRef, savedLocationRef, relocatingRef);
+  useFollowDeviceLocation(
+    savedLocationRef,
+    relocatingRef,
+    state.savedLocation?.source === 'device',
+    loadForecast,
+  );
 
+  // Pull-to-refresh re-locates first, so a rider following their device gets the
+  // forecast for where they are now, not where they were when they last opened.
   const refresh = useCallback(() => {
-    if (needsLocationRef.current) return;
-    void loadForecast(undefined, true);
+    if (needsLocationRef.current || relocatingRef.current) return;
+    relocatingRef.current = true;
+    void refreshFollowedLocation(savedLocationRef.current)
+      .then((moved) => loadForecast(moved ?? undefined, true))
+      .finally(() => {
+        relocatingRef.current = false;
+      });
   }, [loadForecast]);
 
   const { setManualLocation, useDeviceLocation } = useLocationActions(
