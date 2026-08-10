@@ -140,6 +140,33 @@ function PinnableRow({
   );
 }
 
+/**
+ * Search results are tap-to-select only. Their coordinates are unresolved until
+ * the row is picked, so pinning one would save a placeless entry — and the
+ * home/pin actions only mean anything once a place already matters to you.
+ */
+function ResultRow({
+  item,
+  busy,
+  onSelect,
+}: Readonly<{
+  item: RowItem;
+  busy: boolean;
+  onSelect: (item: RowItem) => void;
+}>) {
+  return (
+    <Button
+      modifiers={[buttonStyle('plain'), disabled(busy)]}
+      onPress={() => {
+        onSelect(item);
+      }}
+    >
+      <LocationRowTexts item={item} />
+      <Spacer />
+    </Button>
+  );
+}
+
 function OptionsRow({
   item,
   busy,
@@ -191,6 +218,16 @@ function LocationSectionView({
     );
   }
 
+  if (section.id === 'results') {
+    return (
+      <Section title={section.title}>
+        {section.data.map((item) => (
+          <ResultRow key={placeKey(item)} item={item} busy={busy} onSelect={onSelect} />
+        ))}
+      </Section>
+    );
+  }
+
   return (
     <Section title={section.title}>
       <List.ForEach>
@@ -225,7 +262,7 @@ export function LocationSearchList({
   sections,
   busy,
   message,
-  isLoading: _isLoading,
+  isLoading,
   isSearching,
   resultsCount,
   pinnedLocations,
@@ -235,7 +272,11 @@ export function LocationSearchList({
   onTogglePin,
   onToggleHome,
 }: Readonly<LocationSearchListProps>) {
-  const showUnavailable = isSearching && !!message && resultsCount === 0;
+  const showProgress = isSearching && isLoading;
+  // ContentUnavailableView is for "nothing to show" — no matches, or a failed
+  // search. Using it for the in-flight state made a heavy placeholder card
+  // flash on every debounce cycle, so loading gets the quiet inline row below.
+  const showUnavailable = isSearching && !!message && resultsCount === 0 && !isLoading;
 
   return (
     <View style={styles.container}>
@@ -246,6 +287,16 @@ export function LocationSearchList({
             animation(Animation.spring({ duration: 0.35 }), pinnedLocations.length),
           ]}
         >
+          {showProgress && (
+            <HStack spacing={Spacing.two}>
+              <Spacer />
+              <ProgressView modifiers={[controlSize('small')]} />
+              <Text modifiers={[foregroundStyle({ type: 'hierarchical', style: 'secondary' })]}>
+                {message}
+              </Text>
+              <Spacer />
+            </HStack>
+          )}
           {showUnavailable && (
             <ContentUnavailableView title={message} systemImage="magnifyingglass" />
           )}
