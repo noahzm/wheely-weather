@@ -2,10 +2,16 @@ import { useCallback, useState } from 'react';
 import { Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 
-import { buildSections, type RowItem } from '@/utils/locationRows';
+import {
+  buildSections,
+  isSavablePlace,
+  resolveSuggestedPlace,
+  type RowItem,
+} from '@/utils/locationRows';
 import { useForecast } from '@/hooks/forecast-context';
 import { useHomeLocation } from '@/hooks/settings-context';
 import { MIN_SEARCH_QUERY_LENGTH, useLocationSearch } from '@/hooks/use-location-search';
+import { resolveSuggestion } from '@/services/locationSearch';
 import type { RecentLocation } from '@/services/locationStorage';
 
 export function useLocationSearchScreen() {
@@ -28,9 +34,14 @@ export function useLocationSearchScreen() {
   }, [router]);
 
   const choosePlace = useCallback(
-    async (place: RecentLocation) => {
+    async (place: RowItem) => {
       setBusy(true);
-      const ok = await forecast.setManualLocation(place);
+      const target = await resolveSuggestedPlace(place, resolveSuggestion);
+      if (!target) {
+        setBusy(false);
+        return;
+      }
+      const ok = await forecast.setManualLocation(target);
       setBusy(false);
       if (ok) goToHome();
     },
@@ -46,7 +57,7 @@ export function useLocationSearchScreen() {
 
   const handleTogglePin = useCallback(
     (item: RowItem) => {
-      if (item._kind) return;
+      if (!isSavablePlace(item)) return;
       void forecast.togglePin(item);
     },
     [forecast],
@@ -73,7 +84,7 @@ export function useLocationSearchScreen() {
 
   const handleToggleHome = useCallback(
     (item: RowItem) => {
-      if (item._kind) return;
+      if (!isSavablePlace(item)) return;
       const alreadyHome = homeLocation?.lat === item.lat && homeLocation.lon === item.lon;
       setHomeLocation(
         alreadyHome ? null : { lat: item.lat, lon: item.lon, name: item.label, source: 'manual' },

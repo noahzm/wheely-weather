@@ -1,13 +1,19 @@
-// iOS: Use Apple MapKit (MKLocalSearch) via the local native module.
+// iOS: Use Apple MapKit (MKLocalSearchCompleter) via the local native module.
 // The module returns null until a native rebuild links it — search is unavailable
 // in that state (no Nominatim fallback).
 import AppleLocationSearchModule from '../../modules/apple-location-search/src/AppleLocationSearchModule';
-import type { RecentLocation } from './locationStorage';
+import type { ResolvedCoordinates } from '../../modules/apple-location-search/src/AppleLocationSearch.types';
+import type { RowItem } from '@/utils/locationRows';
 
+/**
+ * Completer suggestions have no coordinates, so rows come back with placeholder
+ * zeros plus a `_completionId`; `resolveSuggestion` fills in the real position
+ * once the user commits to one.
+ */
 export async function searchLocations(
   query: string,
   { signal }: { signal?: AbortSignal } = {},
-): Promise<RecentLocation[]> {
+): Promise<RowItem[]> {
   const trimmed = query.trim();
   if (!trimmed) return [];
 
@@ -25,9 +31,17 @@ export async function searchLocations(
   ]);
 
   return results.map((r) => ({
-    lat: r.lat,
-    lon: r.lon,
+    lat: 0,
+    lon: 0,
     label: r.label,
     displayName: r.displayName,
+    _completionId: r.id,
   }));
+}
+
+export async function resolveSuggestion(id: string): Promise<ResolvedCoordinates | null> {
+  if (!AppleLocationSearchModule) {
+    throw new Error('MapKit search not available — rebuild the native app.');
+  }
+  return AppleLocationSearchModule.resolve(id);
 }
