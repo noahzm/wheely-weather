@@ -1,7 +1,15 @@
 import type { RecentLocation } from '@/services/locationStorage';
 
 /** A location row, plus the synthetic "use current location" entry. */
-export type RowItem = RecentLocation & { _kind?: 'device' };
+export type RowItem = RecentLocation & {
+  _kind?: 'device';
+  /**
+   * Set on iOS search suggestions, which arrive from MKLocalSearchCompleter
+   * with placeholder coordinates. The row is not a real place until this id is
+   * resolved, so it must not be pinned or saved as-is.
+   */
+  _completionId?: string;
+};
 
 export interface LocationSection {
   id: 'home' | 'pinned' | 'recent' | 'results' | 'options';
@@ -36,12 +44,45 @@ export function isActive(
   return sameCoords(place, active);
 }
 
+/**
+ * True for rows that name a real place and so may be pinned or set as home.
+ * The device row is an action, and a suggestion has placeholder coordinates
+ * until it is resolved — saving either would store a location that is nowhere.
+ */
+export function isSavablePlace(item: RowItem): boolean {
+  return !item._kind && !item._completionId;
+}
+
+/**
+ * Turns a picked row into a place with real coordinates. Suggestions from
+ * MKLocalSearchCompleter carry only an id, so the resolver is injected rather
+ * than imported: that keeps this platform-agnostic and directly testable.
+ * Returns null when the suggestion cannot be placed, so callers leave the
+ * current location alone instead of saving 0,0.
+ */
+export async function resolveSuggestedPlace(
+  place: RowItem,
+  resolve: (id: string) => Promise<{ lat: number; lon: number } | null>,
+): Promise<RecentLocation | null> {
+  if (!place._completionId) return place;
+  const coords = await resolve(place._completionId);
+  if (!coords) return null;
+  return {
+    lat: coords.lat,
+    lon: coords.lon,
+    label: place.label,
+    displayName: place.displayName,
+  };
+}
+
 export function homeAccessibilityLabel(home: boolean): string {
   return home ? 'Clear home location' : 'Set as home location';
 }
 
 export function placeKey(item: RowItem): string {
-  return item._kind ?? `${item.lat}-${item.lon}`;
+  // Suggestions all share placeholder coordinates, so the completion id is the
+  // only thing that keeps their rows distinct.
+  return item._kind ?? item._completionId ?? `${item.lat}-${item.lon}`;
 }
 
 export function pinAccessibilityLabel(pinned: boolean): string {

@@ -6,8 +6,10 @@ import {
   isActive,
   isHome,
   isPinned,
+  isSavablePlace,
   pinAccessibilityLabel,
   placeKey,
+  resolveSuggestedPlace,
   sameCoords,
 } from './locationRows';
 
@@ -61,6 +63,88 @@ describe('placeKey', () => {
     expect(placeKey({ lat: 0, lon: 0, label: 'Use Current Location', _kind: 'device' })).toBe(
       'device',
     );
+  });
+
+  it('keys unresolved suggestions by completion id, not their placeholder coords', () => {
+    // Every iOS suggestion shares 0,0 until it is resolved, so coordinates
+    // cannot tell two of them apart — the ids have to.
+    const springfieldMO = { lat: 0, lon: 0, label: 'Springfield, MO', _completionId: 'a' };
+    const springfieldIL = { lat: 0, lon: 0, label: 'Springfield, IL', _completionId: 'b' };
+    expect(placeKey(springfieldMO)).toBe('a');
+    expect(placeKey(springfieldMO)).not.toBe(placeKey(springfieldIL));
+  });
+
+  it('prefers the device kind when both markers are somehow present', () => {
+    expect(
+      placeKey({
+        lat: 0,
+        lon: 0,
+        label: 'Use Current Location',
+        _kind: 'device',
+        _completionId: 'a',
+      }),
+    ).toBe('device');
+  });
+});
+
+describe('isSavablePlace', () => {
+  it('accepts a real place', () => {
+    expect(isSavablePlace(PORTLAND)).toBe(true);
+  });
+
+  it('rejects the device action row and unresolved suggestions', () => {
+    // Pinning either one would store a location that is nowhere: the device row
+    // is an action, and a suggestion still holds placeholder 0,0 coordinates.
+    expect(isSavablePlace({ lat: 0, lon: 0, label: 'Use Current Location', _kind: 'device' })).toBe(
+      false,
+    );
+    expect(isSavablePlace({ lat: 0, lon: 0, label: 'Springfield, MO', _completionId: 'a' })).toBe(
+      false,
+    );
+  });
+});
+
+describe('resolveSuggestedPlace', () => {
+  const reject = () => Promise.reject(new Error('resolver must not be called'));
+
+  it('passes an already-placed row straight through without resolving', async () => {
+    await expect(resolveSuggestedPlace(PORTLAND, reject)).resolves.toEqual(PORTLAND);
+  });
+
+  it('swaps a suggestion placeholder for the resolved coordinates, keeping its names', async () => {
+    const suggestion = {
+      lat: 0,
+      lon: 0,
+      label: 'Springfield, MO',
+      displayName: 'United States',
+      _completionId: 'a',
+    };
+    await expect(
+      resolveSuggestedPlace(suggestion, () => Promise.resolve({ lat: 37.2, lon: -93.3 })),
+    ).resolves.toEqual({
+      lat: 37.2,
+      lon: -93.3,
+      label: 'Springfield, MO',
+      displayName: 'United States',
+    });
+  });
+
+  it('resolves with the id it was given', async () => {
+    const seen: string[] = [];
+    await resolveSuggestedPlace({ lat: 0, lon: 0, label: 'X', _completionId: 'abc' }, (id) => {
+      seen.push(id);
+      return Promise.resolve({ lat: 1, lon: 2 });
+    });
+    expect(seen).toEqual(['abc']);
+  });
+
+  it('returns null when the suggestion cannot be placed', async () => {
+    // The caller must leave the current location alone rather than save 0,0.
+    await expect(
+      resolveSuggestedPlace({ lat: 0, lon: 0, label: 'X', _completionId: 'a' }, () =>
+        Promise.resolve(null),
+      ),
+    ).resolves.toBeNull();
   });
 });
 
