@@ -260,7 +260,7 @@ export function SettingsForm({
           >
             <ExternalLinkRow
               title="Kit guide icons by game-icons.net"
-              systemImage="paintbrush"
+              systemImage="paintbrush.fill"
               url="https://game-icons.net/"
             />
             {attribution && (
