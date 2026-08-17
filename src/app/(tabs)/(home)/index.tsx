@@ -292,6 +292,15 @@ export default function HomeScreen() {
   );
 }
 
+function getUpdatedLabels(snapshot: { lastUpdated: Date } | null, statusMessage: string) {
+  const updatedText = snapshot ? formatUpdatedAgo(snapshot.lastUpdated) : '';
+  const headerText = statusMessage || (!isIOS && !isWeb ? updatedText : '');
+  const webUpdatedText = isWeb && updatedText ? updatedText : null;
+  const refreshTitle = isIOS && updatedText ? updatedText : undefined;
+
+  return { headerText, webUpdatedText, refreshTitle };
+}
+
 function HomeContent({
   forecast,
   sections,
@@ -347,23 +356,13 @@ function HomeContent({
     );
   }
 
-  // A transient status message always wins the visible slot (it's actionable).
-  // The snapshot's fetch age shows inline on non-iOS platforms; on iOS it rides
-  // the RefreshControl's title, rendered by the system under the spinner.
-  const headerText =
-    forecast.statusMessage ||
-    (!isIOS && forecast.snapshot ? formatUpdatedAgo(forecast.snapshot.lastUpdated) : '');
+  const { headerText, webUpdatedText, refreshTitle } = getUpdatedLabels(
+    forecast.snapshot,
+    forecast.statusMessage,
+  );
   const headerContent: ReactNode = headerText ? (
     <ThemedText style={styles.statusMessage}>{headerText}</ThemedText>
   ) : null;
-
-  // iOS-only RefreshControl `title`: the snapshot's fetch age, attached
-  // whenever a snapshot is present so the label accompanies the spinner in any
-  // of its states. Titled controls reveal their text on any top overscroll, so
-  // a stray scroll-back can flash it briefly — intentionally always-on, since
-  // a deliberate pull must always show it.
-  const refreshTitle =
-    isIOS && forecast.snapshot ? formatUpdatedAgo(forecast.snapshot.lastUpdated) : undefined;
 
   const scrollHostStyle = isWeb ? styles.scrollHost : undefined;
 
@@ -400,6 +399,11 @@ function HomeContent({
                 derived={sections.derived}
                 thresholds={sections.thresholds}
               />
+            )}
+            {webUpdatedText !== null && (
+              <Stagger order={7}>
+                <ThemedText style={styles.statusMessage}>{webUpdatedText}</ThemedText>
+              </Stagger>
             )}
           </View>
         </View>
