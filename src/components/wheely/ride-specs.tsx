@@ -14,7 +14,7 @@ import {
 import { SymbolView, type SFSymbol } from 'expo-symbols';
 
 import { ThemedText } from '@/components/themed-text';
-import { CONDITION_DISPLAY, evaluateCondition, THRESHOLDS } from '@/domain';
+import { CONDITION_DISPLAY, evaluateCondition, evaluateWind, THRESHOLDS } from '@/domain';
 import {
   getAqiLabel,
   getDewpointLabel,
@@ -38,6 +38,21 @@ interface RideSpecMetric {
   qualifier?: string | null;
   condition?: string;
   iconRotation?: number;
+}
+
+// The verdict and hourly drawer name gusts when they set the rating, so the
+// Wind cell surfaces them too — otherwise a gust-driven rating has no number
+// here to explain itself. Gusts only appear when they exceed the sustained
+// reading (rounded, so "8 mph" never pairs with "gusts 8 mph").
+function windQualifier(weather: Weather): string | null {
+  const parts: string[] = [];
+  if (weather.windDirection != null) {
+    parts.push(`from ${getWindDirectionLabel(weather.windDirection)}`);
+  }
+  if (weather.windGust != null && Math.round(weather.windGust) > Math.round(weather.windSpeed)) {
+    parts.push(`gusts ${Math.round(weather.windGust)} mph`);
+  }
+  return parts.length > 0 ? parts.join(' · ') : null;
 }
 
 function rideSpecMetrics(
@@ -69,11 +84,9 @@ function rideSpecMetrics(
       sf: 'wind',
       label: 'Wind',
       value: `${Math.round(weather.windSpeed)} mph`,
-      qualifier:
-        weather.windDirection == null
-          ? null
-          : `from ${getWindDirectionLabel(weather.windDirection)}`,
-      condition: evaluateCondition(weather.windSpeed, 'windSpeed', thresholds),
+      qualifier: windQualifier(weather),
+      // Gust-aware, matching the verdict hero and the hourly drawer's rating.
+      condition: evaluateWind(weather.windSpeed, weather.windGust, thresholds),
       iconRotation:
         weather.windDirection == null
           ? undefined

@@ -198,10 +198,25 @@ public class AppleWeatherKitModule: Module {
   // existing parser (weatherService.ts) relies on for hour/date matching.
   // WeatherKit has no timezone-aware string output, so resolve one via
   // reverse geocoding and format Dates into the same naive convention.
+  // The geocode is a network round trip, so results are cached per ~1 km
+  // coordinate cell — only successful geocodes, never the device-timezone
+  // fallback, so a transient failure can't poison a location forever.
+  private static let timeZoneCache = NSCache<NSString, NSTimeZone>()
+
   private static func resolveTimeZone(for location: CLLocation) async -> TimeZone {
+    let key = String(
+      format: "%.2f,%.2f",
+      location.coordinate.latitude,
+      location.coordinate.longitude
+    ) as NSString
+    if let cached = Self.timeZoneCache.object(forKey: key) {
+      return cached as TimeZone
+    }
     let geocoder = CLGeocoder()
     if let placemarks = try? await geocoder.reverseGeocodeLocation(location),
-      let timeZone = placemarks.first?.timeZone {
+      let timeZone = placemarks.first?.timeZone
+    {
+      Self.timeZoneCache.setObject(timeZone as NSTimeZone, forKey: key)
       return timeZone
     }
     return TimeZone.current

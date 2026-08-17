@@ -45,12 +45,14 @@ import { useForecast } from '@/hooks/forecast-context';
 import { useResolvedTempUnit } from '@/hooks/settings-context';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { cityFromLocation } from '@/utils/locationTitle';
+import { formatUpdatedAgo } from '@/utils/timeFormat';
 import type { TempUnit } from '@/utils/temperature';
 import type { Weather } from '@/types/weather';
 import { contentColumnStyle, screenGutterStyle } from '@/components/wheely/content-column';
 import { Spacing, TRANSPARENT, Type, type WheelyPalette } from '@/constants/theme';
 
 const isWeb = Platform.OS === 'web';
+const isIOS = Platform.OS === 'ios';
 
 // Web tab switches remount this screen, so play the entrance stagger only on
 // the first home mount per session; native tabs keep the screen mounted.
@@ -315,6 +317,7 @@ function HomeContent({
   styles: ReturnType<typeof makeStyles>;
   bottomNavInset?: number;
 }>) {
+  const c = useWheelyColors();
   if (forecast.loading) {
     return <LoadingState />;
   }
@@ -344,9 +347,23 @@ function HomeContent({
     );
   }
 
-  const headerContent: ReactNode = forecast.statusMessage ? (
-    <ThemedText style={styles.statusMessage}>{forecast.statusMessage}</ThemedText>
+  // A transient status message always wins the visible slot (it's actionable).
+  // The snapshot's fetch age shows inline on non-iOS platforms; on iOS it rides
+  // the RefreshControl's title, rendered by the system under the spinner.
+  const headerText =
+    forecast.statusMessage ||
+    (!isIOS && forecast.snapshot ? formatUpdatedAgo(forecast.snapshot.lastUpdated) : '');
+  const headerContent: ReactNode = headerText ? (
+    <ThemedText style={styles.statusMessage}>{headerText}</ThemedText>
   ) : null;
+
+  // iOS-only RefreshControl `title`: the snapshot's fetch age, attached
+  // whenever a snapshot is present so the label accompanies the spinner in any
+  // of its states. Titled controls reveal their text on any top overscroll, so
+  // a stray scroll-back can flash it briefly — intentionally always-on, since
+  // a deliberate pull must always show it.
+  const refreshTitle =
+    isIOS && forecast.snapshot ? formatUpdatedAgo(forecast.snapshot.lastUpdated) : undefined;
 
   const scrollHostStyle = isWeb ? styles.scrollHost : undefined;
 
@@ -356,7 +373,12 @@ function HomeContent({
         style={[styles.scroll, scrollHostStyle]}
         contentInsetAdjustmentBehavior="automatic"
         refreshControl={
-          <RefreshControl refreshing={forecast.refreshing} onRefresh={forecast.refresh} />
+          <RefreshControl
+            refreshing={forecast.refreshing}
+            onRefresh={forecast.refresh}
+            title={refreshTitle}
+            titleColor={c.mutedInk}
+          />
         }
         contentContainerStyle={[
           styles.scrollContent,

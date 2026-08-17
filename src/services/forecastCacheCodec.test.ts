@@ -71,7 +71,7 @@ describe('decodeForecastCache', () => {
     expect(decoded?.snapshot.lastUpdated.getTime()).toBe(NOW);
   });
 
-  it('rebuilds thresholds instead of deserializing them, keeping Infinity intact', () => {
+  it('rebuilds thresholds from the cached baseline instead of deserializing them', () => {
     const withBaseline = buildSnapshot({
       acclimatization: {
         homeBaseline: GULF_BASELINE,
@@ -86,7 +86,6 @@ describe('decodeForecastCache', () => {
     );
     expect(decoded?.snapshot.acclimatization.homeBaseline).toEqual(GULF_BASELINE);
     expect(decoded?.snapshot.acclimatization.thresholds).toEqual(resolveThresholds(GULF_BASELINE));
-    expect(decoded?.snapshot.acclimatization.thresholds.HUMIDITY.BAD).toBe(Infinity);
 
     const withoutBaseline = decodeForecastCache(
       encodeForecastCache(buildSnapshot(), LOCATION),
@@ -94,7 +93,6 @@ describe('decodeForecastCache', () => {
       NOW + 1000,
     );
     expect(withoutBaseline?.snapshot.acclimatization.thresholds).toEqual(THRESHOLDS);
-    expect(withoutBaseline?.snapshot.acclimatization.thresholds.HUMIDITY.BAD).toBe(Infinity);
   });
 
   // Regression: decode used to drop the exposure level and rebuild thresholds on

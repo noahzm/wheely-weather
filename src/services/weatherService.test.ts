@@ -117,6 +117,80 @@ describe('buildWeatherFromData — current-hour alignment', () => {
     expect(weather.uvIndex).toBeNull();
   });
 
+  it('reconciles the Now hour with the current observation so all now surfaces agree', () => {
+    const hourlyTime = Array.from({ length: 6 }, (_, i) => hourTime('2024-01-15', i));
+    const data = makeOpenMeteoData({
+      current: {
+        time: hourTime('2024-01-15', 2),
+        temperature_2m: 71,
+        apparent_temperature: 73,
+        wind_speed_10m: 14,
+        wind_gusts_10m: 22,
+        dewpoint_2m: 58,
+        weather_code: 3,
+      },
+      hourly: {
+        time: hourlyTime,
+        precipitation_probability: [0, 0, 34, 0, 0, 0],
+        uv_index: [0, 0, 6, 0, 0, 0],
+      },
+    });
+
+    const weather = buildWeatherFromData(data, THRESHOLDS);
+
+    // Observed values win for the current hour; rain/UV stay with the hourly
+    // forecast row because the observation carries neither.
+    expect(weather.hourly[0]).toMatchObject({
+      hour: 2,
+      temperature: 71,
+      feelsLike: 73,
+      windSpeed: 14,
+      windGust: 22,
+      dewpoint: 58,
+      weatherCode: 3,
+      rainChance: 34,
+      uv: 6,
+    });
+    // Later hours keep pure forecast values.
+    expect(weather.hourly[1]?.temperature).toBe(60);
+  });
+
+  it('keeps the hourly gust on the Now hour when the observation reports none', () => {
+    const data = makeOpenMeteoData({
+      current: { wind_gusts_10m: null },
+    });
+
+    const weather = buildWeatherFromData(data, THRESHOLDS);
+
+    expect(weather.hourly[0]?.windGust).toBe(8);
+  });
+
+  it('re-rates the Now hour from the observation so its condition matches the verdict inputs', () => {
+    // The forecast row is calm (5 mph), but the observation reports a 35 mph
+    // sustained wind with 45 mph gusts ('bad' tier) — the Now dot must not
+    // read 'good'.
+    const data = makeOpenMeteoData({
+      current: { wind_speed_10m: 35, wind_gusts_10m: 45 },
+    });
+
+    const weather = buildWeatherFromData(data, THRESHOLDS);
+
+    expect(weather.hourly[0]?.condition).toBe('bad');
+    expect(weather.hourly[1]?.condition).toBe('good');
+  });
+
+  it('leaves forecast values in place when the current hour is not in the hourly array', () => {
+    const hourlyTime = Array.from({ length: 3 }, (_, i) => hourTime('2024-01-15', i + 8));
+    const data = makeOpenMeteoData({
+      current: { time: hourTime('2024-01-15', 2), temperature_2m: 71 },
+      hourly: { time: hourlyTime },
+    });
+
+    const weather = buildWeatherFromData(data, THRESHOLDS);
+
+    expect(weather.hourly[0]?.temperature).toBe(60);
+  });
+
   it('normalizes floating-point rain chance values to rounded whole percents', () => {
     const hourlyTime = Array.from({ length: 3 }, (_, i) => hourTime('2024-01-15', i));
     const data = makeOpenMeteoData({
@@ -397,9 +471,11 @@ describe('buildWeatherFromData — sparse optional fields', () => {
 
     expect(weather.hourly).toHaveLength(24);
     expect(weather.hourly[0]).toMatchObject({
-      windGust: null,
-      dewpoint: null,
-      weatherCode: null,
+      // The Now hour adopts the current observation's readings...
+      windGust: 10,
+      dewpoint: 45,
+      weatherCode: 1,
+      // ...while rain/UV stay with the (here null/absent) hourly forecast row.
       rainChance: 0,
       uv: 0,
     });
