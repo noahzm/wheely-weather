@@ -133,7 +133,6 @@ describe('hero and hourly drawer phrasing agree', () => {
       hour: 10,
       condition: getHourlyCondition({
         temperature: weather.temperature,
-        feelsLike: weather.feelsLike,
         wind: weather.windSpeed,
         gust: weather.windGust,
         rain: weather.rainChance,

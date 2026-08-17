@@ -24,6 +24,17 @@ export async function fetchWithTimeout(
   timeoutMs = 2500,
 ): Promise<Response> {
   const controller = new AbortController();
+  // Forward the caller's signal (e.g. search debounce cancellation) to the
+  // internal controller — passing our own signal to fetch would otherwise
+  // silently discard theirs.
+  const callerSignal = options.signal;
+  const onCallerAbort = () => {
+    controller.abort();
+  };
+  if (callerSignal) {
+    if (callerSignal.aborted) controller.abort();
+    else callerSignal.addEventListener('abort', onCallerAbort, { once: true });
+  }
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
   try {
@@ -42,5 +53,6 @@ export async function fetchWithTimeout(
     ]);
   } finally {
     clearTimeout(timeoutId);
+    callerSignal?.removeEventListener('abort', onCallerAbort);
   }
 }

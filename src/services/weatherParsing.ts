@@ -626,7 +626,6 @@ function mergeNowObservation(
     condition: getHourlyCondition(
       {
         temperature: current.temperature_2m,
-        feelsLike: current.apparent_temperature,
         wind: current.wind_speed_10m,
         gust: windGust,
         rain: now.rainChance,

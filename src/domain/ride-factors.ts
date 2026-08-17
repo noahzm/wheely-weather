@@ -8,7 +8,6 @@ import {
   type IssueTier,
 } from './copy';
 import {
-  effectiveRideTemp,
   evaluateCondition,
   evaluateWind,
   evaluateColdRainHazard,
@@ -67,23 +66,10 @@ const collectMessageIssues = (
   };
 
   const temp = formatTemperature(weather.temperature, tempUnit, { withUnitLabel: true });
-  // The temperature issue is rated on wind chill / heat index, so it must be
-  // labelled with that same value — otherwise the chip names a number that
-  // didn't drive its own severity. The cold-rain hazard below stays on raw air
-  // temperature, which is what its threshold is defined against.
-  const effectiveTemp = formatTemperature(
-    effectiveRideTemp(weather.temperature, weather.feelsLike),
-    tempUnit,
-    { withUnitLabel: true },
-  );
-  addIssue(
-    weather.temperature,
-    'temperature',
-    (tier) =>
-      isColdTemp(weather.temperature, weather.feelsLike)
-        ? ISSUE_PHRASES.COLD(effectiveTemp, tier)
-        : ISSUE_PHRASES.HEAT(effectiveTemp, tier),
-    evaluateCondition(weather.temperature, 'temperature', thresholds, weather.feelsLike),
+  addIssue(weather.temperature, 'temperature', (tier) =>
+    isColdTemp(weather.temperature)
+      ? ISSUE_PHRASES.COLD(temp, tier)
+      : ISSUE_PHRASES.HEAT(temp, tier),
   );
   const gustDriven = isGustDriven(weather.windSpeed, weather.windGust);
   addIssue(
@@ -138,7 +124,7 @@ export const getMessage = (
   if (status === 'yes') {
     return {
       lead: MSG.GOOD(
-        formatTemperature(weather.feelsLike, tempUnit, { withUnitLabel: true }),
+        formatTemperature(weather.temperature, tempUnit, { withUnitLabel: true }),
         weather.condition,
       ),
       issues: [],

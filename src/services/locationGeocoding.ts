@@ -76,10 +76,11 @@ export async function searchLocations(
   const url =
     `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}` +
     `&format=json&addressdetails=1&limit=5`;
-  const res = await fetch(url, {
-    headers: nominatimHeaders(),
-    signal,
-  });
+  const res = await fetchWithTimeout(
+    url,
+    { headers: nominatimHeaders(), signal },
+    SEARCH_TIMEOUT_MS,
+  );
   return parseNominatimSearchResponse(res);
 }
 

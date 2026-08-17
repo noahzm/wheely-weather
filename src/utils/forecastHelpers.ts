@@ -1,7 +1,6 @@
 import { THRESHOLDS, type Thresholds } from '../domain/constants';
 import { ISSUE_PHRASES, issuePhraseTier, type IssueTier } from '../domain/copy';
 import {
-  effectiveRideTemp,
   evaluateColdRainHazard,
   evaluateCondition,
   evaluateWind,
@@ -186,9 +185,14 @@ function dayMetricReasons(
   }
 
   if (low != null) {
-    if (low < 32) reasons.push({ text: 'Freezing temps', tier: 'bad' });
-    else if (low < 36) reasons.push({ text: 'Cold start', tier: 'poor' });
-    else if (low < 45) reasons.push({ text: 'Cool start', tier: 'marginal' });
+    // Rate the day's low against the shared temperature band so the phrase tier
+    // always matches the rating the table produced — hardcoded cutoffs here used
+    // to explain a marginal-rated day in poor-tier language ("Cold start").
+    // The cold side has no poor zone (POOR_MIN==BAD_MIN), so only bad and
+    // marginal can occur.
+    const lowTier = issuePhraseTier(evaluateCondition(low, 'temperature', thresholds));
+    if (lowTier === 'bad') reasons.push({ text: 'Freezing temps', tier: 'bad' });
+    else if (lowTier === 'marginal') reasons.push({ text: 'Cool start', tier: 'marginal' });
   }
 
   // Worst first: the day card shows a single reason, and it must be the one that
@@ -285,17 +289,13 @@ function hourTempReason(
   temp: number,
   tempUnit: TempUnit,
   thresholds: Thresholds = THRESHOLDS,
-  feelsLike?: number | null,
 ): HourReason | null {
-  const tier = issuePhraseTier(evaluateCondition(temp, 'temperature', thresholds, feelsLike));
+  const tier = issuePhraseTier(evaluateCondition(temp, 'temperature', thresholds));
   if (!tier) return null;
-  // Label the temperature the rating was taken on, not the raw air temperature.
-  const label = formatTemperature(effectiveRideTemp(temp, feelsLike), tempUnit, {
+  const label = formatTemperature(temp, tempUnit, {
     withUnitLabel: true,
   });
-  const text = isColdTemp(temp, feelsLike)
-    ? ISSUE_PHRASES.COLD(label, tier)
-    : ISSUE_PHRASES.HEAT(label, tier);
+  const text = isColdTemp(temp) ? ISSUE_PHRASES.COLD(label, tier) : ISSUE_PHRASES.HEAT(label, tier);
   return { text, tier };
 }
 
@@ -360,7 +360,7 @@ export function getHourConditionReasons(
   const metricReasons = [
     hourWindReason(hour.windSpeed, hour.windGust, thresholds),
     rainReason,
-    hourTempReason(hour.temperature, tempUnit, thresholds, hour.feelsLike),
+    hourTempReason(hour.temperature, tempUnit, thresholds),
     hourDewReason(hour.dewpoint ?? null, tempUnit, thresholds),
   ].filter((reason): reason is HourReason => reason != null);
   reasons.push(

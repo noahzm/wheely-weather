@@ -1,6 +1,5 @@
 export {
   calculateRideScore,
-  effectiveRideTemp,
   evaluateCondition,
   evaluateWind,
   getDailyCondition,
