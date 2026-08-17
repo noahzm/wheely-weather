@@ -5,7 +5,7 @@ import Animated, { type SharedValue } from 'react-native-reanimated';
 import { ThemedText } from '@/components/themed-text';
 import { CONDITION_DISPLAY } from '@/domain';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Fonts, Spacing, Type, type WheelyPalette } from '@/constants/theme';
+import { Fonts, FontWeightBlack, Spacing, Type, type WheelyPalette } from '@/constants/theme';
 import type { HourlyWeather } from '@/types/weather';
 import type { Thresholds } from '@/domain/constants';
 import {
@@ -86,7 +86,8 @@ function makeStyles(c: WheelyPalette) {
     },
     alertTitle: {
       color: c.ink,
-      fontFamily: Fonts.display,
+      fontFamily: Fonts.bold,
+      fontWeight: FontWeightBlack,
       ...Type.body,
     },
     muted: {

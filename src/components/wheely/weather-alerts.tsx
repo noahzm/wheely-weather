@@ -8,7 +8,7 @@ import Animated, { type SharedValue, useAnimatedStyle } from 'react-native-reani
 import { ThemedText } from '@/components/themed-text';
 import { ExternalLink } from '@/components/external-link';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Fonts, Spacing, Type, type WheelyPalette } from '@/constants/theme';
+import { Fonts, FontWeightBlack, Spacing, Type, type WheelyPalette } from '@/constants/theme';
 import { withAlpha } from '@/utils/colors';
 import type { WeatherAlert } from '@/types/weather';
 import { AnimatedExpand, useExpandAnimation } from './animated-expand';
@@ -47,7 +47,8 @@ function makeStyles(c: WheelyPalette) {
     },
     alertTitle: {
       color: c.ink,
-      fontFamily: Fonts.display,
+      fontFamily: Fonts.bold,
+      fontWeight: FontWeightBlack,
       ...Type.body,
     },
     muted: {
