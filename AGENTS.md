@@ -16,7 +16,7 @@ npm run build:web      # expo export --platform web
 
 - `npm run check` runs the full suite locally (all 5 steps).
 - Single unit test: `npx vitest run --project unit src/domain/weather-codes.test.ts`
-- `npm run test:coverage` enforces the 90% thresholds in `vitest.config.ts`. Not a CI gate, but keep the script — without something invoking it, `@vitest/coverage-v8` reads as an unused dep and gets pruned, silently disarming the thresholds.
+- `npm run test:coverage` enforces the thresholds in `vitest.config.ts`: 90% repo-wide (branches 88), and `src/domain/**` held higher — 95% statements/lines, 100% functions. Not a CI gate, but keep the script — without something invoking it, `@vitest/coverage-v8` reads as an unused dep and gets pruned, silently disarming the thresholds.
 - Manual E2E (NOT in CI): `npm run test:e2e:app` (vs exported web app).
 - `build:web` ends with `Something prevented Expo from exiting, forcefully exiting now.` — that is normal, not a failure.
 - Deploys to Cloudflare happen automatically on every push to `main` (dashboard-managed Workers Builds). Deploy config — static asset server, SPA fallback, `/api/*` worker-first — lives in `wrangler.jsonc`, read by Cloudflare on its side.
