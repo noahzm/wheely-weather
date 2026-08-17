@@ -4,6 +4,7 @@ export { getVerdictLabel } from './copy';
 export {
   calculateRideScore,
   evaluateCondition,
+  evaluateWind,
   getDaylightWarning,
   getGearSuggestion,
   getMessage,

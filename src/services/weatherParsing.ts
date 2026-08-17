@@ -599,6 +599,47 @@ export async function fetchAqi(lat: number, lon: number): Promise<number | null>
 }
 
 /**
+ * Reconciles the "Now" hour with the current observation. The hourly forecast
+ * row for the current hour is model output while `current` is a real
+ * observation (WeatherKit especially), so left unmerged the chart's Now row
+ * can contradict the verdict and Numbers card, which both read `current`.
+ * Rain chance and UV stay with the hourly row — the observation has no
+ * precipitation probability — and the merged hour is re-rated.
+ */
+function mergeNowObservation(
+  hourly: HourlyWeather[],
+  current: NonNullable<OpenMeteoData['current']>,
+  hourIdx: number,
+  thresholds: Thresholds,
+): HourlyWeather[] {
+  const now = hourly[0];
+  if (hourIdx === -1 || !now) return hourly;
+  const windGust = current.wind_gusts_10m ?? now.windGust;
+  const merged: HourlyWeather = {
+    ...now,
+    temperature: current.temperature_2m,
+    feelsLike: current.apparent_temperature,
+    windSpeed: current.wind_speed_10m,
+    windGust,
+    dewpoint: current.dewpoint_2m,
+    weatherCode: current.weather_code,
+    condition: getHourlyCondition(
+      {
+        temperature: current.temperature_2m,
+        feelsLike: current.apparent_temperature,
+        wind: current.wind_speed_10m,
+        gust: windGust,
+        rain: now.rainChance,
+        code: current.weather_code,
+        dewpoint: current.dewpoint_2m,
+      },
+      thresholds,
+    ),
+  };
+  return [merged, ...hourly.slice(1)];
+}
+
+/**
  * Assembles the unified weather object used by the UI from a raw Open-Meteo
  * (or WeatherKit, reshaped by weatherService.ios.ts) payload, rating conditions
  * against the given thresholds. Secondary enrichments (AQI, alerts) arrive later.
@@ -628,7 +669,7 @@ export function buildWeatherFromData(data: OpenMeteoData, thresholds: Thresholds
     aqi: null,
     uvIndex: hourIdx === -1 ? null : (data.hourly.uv_index?.[hourIdx] ?? null),
     uvIndexDailyMax: data.daily.uv_index_max?.[0] ?? null,
-    hourly: hourlyParsed,
+    hourly: mergeNowObservation(hourlyParsed, data.current, hourIdx, thresholds),
     pastHourly: parsePastHourly(data, currentHourStr, 12, thresholds),
     daily: parseDaily(data, thresholds),
     sunrise: parseSunrise(data),

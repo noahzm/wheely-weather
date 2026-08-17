@@ -109,9 +109,6 @@ export const evaluateCondition = (
     case 'uv': {
       return rateUpperBound(value, T.UV_INDEX);
     }
-    case 'humidity': {
-      return rateUpperBound(value, T.HUMIDITY);
-    }
     default: {
       return 'good';
     }

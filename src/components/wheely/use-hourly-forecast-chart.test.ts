@@ -19,10 +19,10 @@ function makeHour(overrides: Record<string, unknown> = {}) {
 describe('hourly chart reason integration', () => {
   it('joins multiple metric reasons in priority order', () => {
     const reasons = getHourConditionReasons(
-      makeHour({ condition: 'bad', windSpeed: 24, rainChance: 65, temperature: 97, dewpoint: 76 }),
+      makeHour({ condition: 'bad', windSpeed: 24, rainChance: 65, temperature: 97, dewpoint: 79 }),
     );
     expect(reasons.join(' • ')).toBe(
-      'Windy (24 mph) • Rain likely (65%) • Dangerous heat (97°F) • Oppressive humidity (dew 76°F)',
+      'Windy (24 mph) • Rain likely (65%) • Dangerous heat (97°F) • Oppressive humidity (dew 79°F)',
     );
   });
 

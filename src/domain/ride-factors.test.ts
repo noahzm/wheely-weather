@@ -24,7 +24,7 @@ describe('Ride Factors', () => {
       temperature: 30, // bad
       windSpeed: 31, // bad
       rainChance: 50, // poor
-      dewpoint: 76, // bad
+      dewpoint: 79, // bad
       aqi: 20, // good
       weatherCode: 1,
     };

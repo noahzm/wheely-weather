@@ -55,9 +55,13 @@ export const THRESHOLDS = {
     FAIR: 50,
   },
   // Dew point, °F. The honest read on stickiness; rated independently of temp.
+  // POOR/BAD sit above the merely-oppressive zone (72–75): poor and bad both
+  // gate the verdict to "no", and a fixed BAD of 75 clamped the acclimatization
+  // ceiling so low that humid-climate riders got rest-day verdicts all summer
+  // from dewpoint alone. 78+ is a genuine heat-index hazard at any warm temp.
   DEWPOINT: {
-    BAD: 75,
-    POOR: 72,
+    BAD: 78,
+    POOR: 74,
     MARGINAL: 66,
     FAIR: 58,
   },
@@ -67,15 +71,6 @@ export const THRESHOLDS = {
     POOR: 7,
     MARGINAL: 5,
     FAIR: 2,
-  },
-  // Relative humidity (%). Used only as a fallback when dew point is unavailable
-  // — both the reference and the design notes call humidity redundant given dew
-  // point. The reference humidity table tops out at "hard", so there is no BAD.
-  HUMIDITY: {
-    BAD: Infinity,
-    POOR: 85,
-    MARGINAL: 70,
-    FAIR: 50,
   },
 };
 

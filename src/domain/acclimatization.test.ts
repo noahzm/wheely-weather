@@ -80,15 +80,24 @@ describe('acclimatization and the verdict', () => {
     const dangerous = {
       ...base,
       temperature: 96, // heat-illness range
-      dewpoint: 76, // oppressive
+      dewpoint: 79, // oppressive
     };
     expect(getOverallStatus(dangerous, resolveThresholds(GULF))).toBe('no');
     // Each hazard gate independently survives acclimatization.
     const t = resolveThresholds(GULF);
     expect(evaluateCondition(96, 'temperature', t)).toBe('bad');
-    expect(evaluateCondition(76, 'dewpoint', t)).toBe('bad');
+    expect(evaluateCondition(79, 'dewpoint', t)).toBe('bad');
     expect(getOverallStatus({ ...base, temperature: 60, hasThunderstorms: true }, t)).toBe('no');
     expect(getOverallStatus({ ...base, temperature: 60, aqi: 250 }, t)).toBe('no');
+  });
+
+  it('eases a typically humid Gulf summer day from "no" to "maybe" for an acclimatized rider', () => {
+    // Dew 76 is routine on the Gulf Coast summer: merely oppressive, not a
+    // hazard. A temperate rider still gets "no" (76 is past the base poor
+    // line), but the acclimatized local's shifted bands land it at marginal.
+    const day = { ...base, temperature: 84, dewpoint: 76 };
+    expect(getOverallStatus(day, THRESHOLDS)).toBe('no');
+    expect(getOverallStatus(day, resolveThresholds(GULF))).toBe('maybe');
   });
 
   it('reproduces the base verdict when there is no home baseline', () => {

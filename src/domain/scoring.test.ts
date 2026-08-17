@@ -47,9 +47,9 @@ describe('Weather Condition Evaluation', () => {
   it('rates dew point against the reference table', () => {
     expect(evaluateCondition(50, 'dewpoint')).toBe('good'); // <58 ideal
     expect(evaluateCondition(60, 'dewpoint')).toBe('fair'); // 58-66 good
-    expect(evaluateCondition(68, 'dewpoint')).toBe('marginal'); // 66-72 caution
-    expect(evaluateCondition(73, 'dewpoint')).toBe('poor'); // 72-75 hard
-    expect(evaluateCondition(78, 'dewpoint')).toBe('bad'); // 75+ avoid
+    expect(evaluateCondition(68, 'dewpoint')).toBe('marginal'); // 66-74 caution
+    expect(evaluateCondition(75, 'dewpoint')).toBe('poor'); // 74-78 hard
+    expect(evaluateCondition(79, 'dewpoint')).toBe('bad'); // 78+ avoid
   });
 
   it('rates sustained wind against the reference table', () => {

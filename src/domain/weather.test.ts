@@ -124,7 +124,7 @@ describe('Daily Forecast Logic', () => {
         wind: 8,
         rain: 10,
         code: 1,
-        dewpoint: 76,
+        dewpoint: 79,
       }),
     ).toBe('bad');
   });
@@ -227,9 +227,9 @@ describe('Weekly Forecast Logic', () => {
         low: 72,
         windSpeed: 5,
         rainChance: 5,
-        dewpoint: 76,
+        dewpoint: 79,
       }),
-    ).toBe('Oppressive humidity (dew 76°)');
+    ).toBe('Oppressive humidity (dew 79°)');
   });
 
   it('surfaces a positive daily reason for strong ride days', () => {
