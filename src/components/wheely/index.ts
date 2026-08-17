@@ -5,6 +5,7 @@ export { SettingsForm } from './settings-form';
 export { WeatherHeader } from './weather-header';
 export { CurrentLocationBadge } from './current-location-badge';
 export { RideVerdict } from './ride-verdict';
+export { StarRating } from './star-rating';
 export { WeatherAlerts } from './weather-alerts';
 export { HourlyForecast } from './hourly-forecast';
 export { KitGuide } from './kit-guide';

@@ -15,8 +15,10 @@ import {
   type WheelyPalette,
 } from '@/constants/theme';
 import { verdictFeedback } from '@/utils/haptics';
+import { scoreToStars } from '@/utils/starRating';
 import type { VerdictMessage } from '@/types/weather';
 import { BrutalCard, PlatformIcon, weatherIconFor, weatherSfSymbol } from './primitives';
+import { StarRating } from './star-rating';
 
 type VerdictStatus = 'yes' | 'maybe' | 'no';
 
@@ -67,18 +69,6 @@ function makeStyles(c: WheelyPalette) {
       borderColor: c.border,
       transform: [{ rotate: '1deg' }],
     },
-    scorePillLabel: {
-      color: c.mutedInk,
-      fontFamily: Fonts.bold,
-      fontWeight: FontWeightBlack,
-      fontSize: Type.micro.fontSize,
-    },
-    scorePillValue: {
-      color: c.ink,
-      fontFamily: Fonts.bold,
-      fontWeight: FontWeightBlack,
-      fontSize: Type.small.fontSize,
-    },
     bottomBadgeGroup: {
       position: 'absolute',
       bottom: -18,
@@ -126,9 +116,8 @@ function makeStyles(c: WheelyPalette) {
       fontWeight: FontWeightBlack,
     },
     issueSentenceText: {
-      fontFamily: Fonts.bold,
+      fontFamily: Fonts.body,
       ...Type.body,
-      fontWeight: FontWeightBlack,
     },
   });
 }
@@ -192,7 +181,7 @@ export function RideVerdict({
   const spokenMessage = [
     meta.defaultLabel,
     headlineText,
-    score == null ? '' : `Ride score ${score} out of 10.`,
+    score == null ? '' : `Ride score ${scoreToStars(score)} out of 5 stars.`,
     issuesSentence,
     message.timing,
   ]
@@ -206,11 +195,10 @@ export function RideVerdict({
       accessibilityLabel={spokenMessage}
     >
       {/* Top Floating Badge (Score) */}
-      {score != null && (
+      {score != null && scoreToStars(score) > 0 && (
         <View style={styles.badgeGroup}>
           <Animated.View entering={ZoomIn.delay(160).springify()} style={styles.scorePill}>
-            <ThemedText style={styles.scorePillLabel}>SCORE</ThemedText>
-            <ThemedText style={styles.scorePillValue}>{score}/10</ThemedText>
+            <StarRating rating={scoreToStars(score)} />
           </Animated.View>
         </View>
       )}
