@@ -11,6 +11,7 @@ import {
   useTempUnit,
 } from '@/hooks/settings-context';
 import { useForecast } from '@/hooks/forecast-context';
+import { abbreviateTrailingUSState } from '@/utils/us-states';
 import { TRANSPARENT } from '@/constants/theme';
 
 const isWeb = Platform.OS === 'web';
@@ -31,10 +32,11 @@ export default function SettingsScreen() {
 
   const onSetHome = useCallback(() => {
     if (!active) return;
+    const name = forecast.snapshot?.location ?? active.name;
     setHomeLocation({
       lat: active.lat,
       lon: active.lon,
-      name: forecast.snapshot?.location ?? active.name,
+      name: name ? abbreviateTrailingUSState(name) : name,
       source: active.source,
     });
   }, [active, forecast.snapshot?.location, setHomeLocation]);
