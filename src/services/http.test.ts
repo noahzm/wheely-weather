@@ -69,6 +69,55 @@ describe('fetchWithTimeout', () => {
     expect(seenSignal?.aborted).toBe(true);
   });
 
+  it('forwards a caller-supplied abort signal to the fetch', async () => {
+    let seenSignal: AbortSignal | undefined;
+    // Realistic abort semantics: reject once the signal passed to fetch fires.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((_url: string, init: RequestInit) => {
+        seenSignal = init.signal ?? undefined;
+        return new Promise<never>((_, reject) => {
+          init.signal?.addEventListener('abort', () => {
+            reject(new Error('The operation was aborted'));
+          });
+        });
+      }),
+    );
+
+    const caller = new AbortController();
+    const pending = fetchWithTimeout('https://example.test', { signal: caller.signal }, 60_000);
+    const assertion = expect(pending).rejects.toThrow('The operation was aborted');
+    caller.abort();
+    await assertion;
+    expect(seenSignal?.aborted).toBe(true);
+  });
+
+  it('honors an already-aborted caller signal', async () => {
+    let seenSignal: AbortSignal | undefined;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((_url: string, init: RequestInit) => {
+        seenSignal = init.signal ?? undefined;
+        return new Promise<never>((_, reject) => {
+          const signal = init.signal;
+          if (signal?.aborted) {
+            reject(new Error('The operation was aborted'));
+            return;
+          }
+          signal?.addEventListener('abort', () => {
+            reject(new Error('The operation was aborted'));
+          });
+        });
+      }),
+    );
+
+    const caller = new AbortController();
+    caller.abort();
+    const pending = fetchWithTimeout('https://example.test', { signal: caller.signal }, 60_000);
+    await expect(pending).rejects.toThrow('The operation was aborted');
+    expect(seenSignal?.aborted).toBe(true);
+  });
+
   it('does not surface an unhandled rejection when fetch fails after the timeout', async () => {
     let rejectFetch: (err: Error) => void = vi.fn();
     vi.stubGlobal(

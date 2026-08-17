@@ -5,6 +5,12 @@ const USER_AGENT = 'WheelyWeather/1.0 (https://wheelyweather.app; contact@wheely
 const SEARCH_CACHE_CONTROL = 'public, max-age=3600';
 const REVERSE_CACHE_CONTROL = 'public, max-age=86400';
 
+// Only the app's own origin may read proxied responses cross-origin. Native
+// clients call Nominatim directly, so the proxy only serves the web app.
+const ALLOWED_ORIGIN = 'https://wheelyweather.app';
+// Nominatim place queries are short; cap input size to blunt proxy abuse.
+const MAX_QUERY_LENGTH = 200;
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -27,12 +33,7 @@ export default {
           statusText: response.statusText,
           headers,
         });
-      } else if (
-        pathname === '/' ||
-        pathname.endsWith('.html') ||
-        pathname.endsWith('robots.txt') ||
-        pathname.endsWith('favicon.ico')
-      ) {
+      } else if (isHtmlShellRequest(pathname)) {
         const headers = new Headers(response.headers);
         headers.set('Cache-Control', 'public, max-age=0, must-revalidate');
         return new Response(response.body, {
@@ -46,10 +47,31 @@ export default {
   },
 };
 
+/**
+ * HTML shell requests must not be heuristically cached, or a returning user can
+ * be served a stale app shell after a deploy. Extensionless paths (/location,
+ * /settings) reach here as SPA-fallback index.html responses, so treat any path
+ * whose last segment has no file extension as a shell request too.
+ * @param {string} pathname
+ */
+function isHtmlShellRequest(pathname) {
+  if (pathname === '/') return true;
+  if (
+    pathname.endsWith('.html') ||
+    pathname.endsWith('robots.txt') ||
+    pathname.endsWith('favicon.ico')
+  ) {
+    return true;
+  }
+  const lastSegment = pathname.slice(pathname.lastIndexOf('/') + 1);
+  return !lastSegment.includes('.');
+}
+
 /** @param {URL} url */
 function buildSearchUrl(url) {
   const q = url.searchParams.get('q')?.trim();
   if (!q) return badRequest('Missing q parameter');
+  if (q.length > MAX_QUERY_LENGTH) return badRequest('Query too long');
   return `${NOMINATIM_SEARCH}?q=${encodeURIComponent(q)}&format=json&addressdetails=1&limit=5`;
 }
 
@@ -106,7 +128,7 @@ function badRequest(message) {
 
 function corsHeaders() {
   return {
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
   };

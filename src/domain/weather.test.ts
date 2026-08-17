@@ -254,6 +254,7 @@ describe('Hourly Message Logic', () => {
   it('uses a natural weather phrase in the good-ride summary', () => {
     const weather = {
       hasThunderstorms: false,
+      temperature: 68,
       feelsLike: 68,
       windSpeed: 6,
       rainChance: 0,

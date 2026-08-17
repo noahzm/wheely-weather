@@ -109,14 +109,18 @@ describe('getDayConditionReason', () => {
     ['Rain very likely (70%)', { condition: 'poor', rainChance: 70 }],
     ['Very hot (92°)', { condition: 'poor', high: 92 }],
     ['Very humid (dew 75°)', { condition: 'poor', dewpoint: 75 }],
-    ['Cold start', { condition: 'poor', low: 35 }],
+    // A 35° low rates marginal on the shared table, so it cannot explain a
+    // poor-rated day — the day falls through to generic poor-tier phrasing.
+    ['Tough riding', { condition: 'poor', low: 35 }],
     ['Tough riding', { condition: 'poor' }],
     // marginal
     ['Windy (16 mph)', { condition: 'marginal', windSpeed: 16 }],
     ['Rain likely (45%)', { condition: 'marginal', rainChance: 45 }],
     ['Hot (86°)', { condition: 'marginal', high: 86 }],
     ['Muggy (dew 69°)', { condition: 'marginal', dewpoint: 69 }],
-    ['Cool start', { condition: 'marginal', low: 40 }],
+    // 32–39°F is the table's marginal cold band; 40+ is only fair.
+    ['Cool start', { condition: 'marginal', low: 35 }],
+    ['Mixed conditions', { condition: 'marginal', low: 40 }],
     ['Mixed conditions', { condition: 'marginal' }],
     // fair — its own copy ladder, not the shared ISSUE_PHRASES tiers
     ['Breezy', { condition: 'fair', windSpeed: 12 }],
@@ -167,14 +171,15 @@ describe('getHourConditionReasons', () => {
     ]);
   });
 
-  // Regression: the chip was rated on wind chill / heat index but labelled with
-  // raw air temperature, producing "Freezing (48°F)" and "Very hot (71°F)".
-  it('labels a temperature reason with the temperature that drove its rating', () => {
+  // Temperature reasons rate and label air temperature only: feels-like is a
+  // provider-specific derived value whose signal is already carried by the wind
+  // and dewpoint metrics.
+  it('labels a temperature reason with the air temperature', () => {
     expect(getHourConditionReasons(hour({ temperature: 48, feelsLike: 30 }))).toEqual([
-      'Freezing (30°F)',
+      'Cool (48°F)',
     ]);
     expect(getHourConditionReasons(hour({ temperature: 71, feelsLike: 95 }))).toEqual([
-      'Very hot (95°F)',
+      'Warm (71°F)',
     ]);
   });
 

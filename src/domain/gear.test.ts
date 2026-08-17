@@ -3,11 +3,13 @@ import { getGearSuggestion } from './weather';
 
 describe('Gear Suggestions', () => {
   const base = {
+    temperature: 72,
     feelsLike: 72,
     windSpeed: 5,
     rainChance: 0,
     dewpoint: 50,
     hourly: [],
+    pastHourly: [],
   };
 
   const matchesItem = (gear: ReturnType<typeof getGearSuggestion>, pattern: RegExp) =>
@@ -30,7 +32,7 @@ describe('Gear Suggestions', () => {
       {
         ...base,
         rainChance: 70,
-        hourly: [{ feelsLike: 72, windSpeed: 5, rainChance: 70, dewpoint: 50, uv: 0 }],
+        hourly: [{ temperature: 72, windSpeed: 5, rainChance: 70, dewpoint: 50, uv: 0 }],
       },
       'casual',
     );
@@ -44,7 +46,7 @@ describe('Gear Suggestions', () => {
       {
         ...base,
         windSpeed: 20,
-        hourly: [{ feelsLike: 72, windSpeed: 20, rainChance: 0, dewpoint: 50, uv: 0 }],
+        hourly: [{ temperature: 72, windSpeed: 20, rainChance: 0, dewpoint: 50, uv: 0 }],
       },
       'casual',
     );
@@ -57,7 +59,7 @@ describe('Gear Suggestions', () => {
     const gear = getGearSuggestion(
       {
         ...base,
-        hourly: [{ feelsLike: 72, windSpeed: 5, rainChance: 0, dewpoint: 50, uv: 8 }],
+        hourly: [{ temperature: 72, windSpeed: 5, rainChance: 0, dewpoint: 50, uv: 8 }],
       },
       'casual',
     );
@@ -71,16 +73,18 @@ describe('Gear Suggestions', () => {
   it('picks one consistent bottom across a changing three-hour window', () => {
     const gear = getGearSuggestion(
       {
+        temperature: 52,
         feelsLike: 52,
         windSpeed: 5,
         rainChance: 0,
         dewpoint: 50,
         hourly: [
-          { feelsLike: 52, windSpeed: 5, rainChance: 0, dewpoint: 50, uv: 3 },
-          { feelsLike: 66, windSpeed: 5, rainChance: 0, dewpoint: 50, uv: 5 },
-          { feelsLike: 84, windSpeed: 5, rainChance: 0, dewpoint: 50, uv: 7 },
-          { feelsLike: 20, windSpeed: 30, rainChance: 80, dewpoint: 50, uv: 0 },
+          { temperature: 52, windSpeed: 5, rainChance: 0, dewpoint: 50, uv: 3 },
+          { temperature: 66, windSpeed: 5, rainChance: 0, dewpoint: 50, uv: 5 },
+          { temperature: 84, windSpeed: 5, rainChance: 0, dewpoint: 50, uv: 7 },
+          { temperature: 20, windSpeed: 30, rainChance: 80, dewpoint: 50, uv: 0 },
         ],
+        pastHourly: [],
       },
       'casual',
     );
@@ -97,7 +101,7 @@ describe('Gear Suggestions', () => {
       {
         ...base,
         dewpoint: 70,
-        hourly: [{ feelsLike: 72, windSpeed: 5, rainChance: 0, dewpoint: 70, uv: 0 }],
+        hourly: [{ temperature: 72, windSpeed: 5, rainChance: 0, dewpoint: 70, uv: 0 }],
       },
       'casual',
     );
@@ -111,7 +115,7 @@ describe('Gear Suggestions', () => {
       {
         ...base,
         windSpeed: 20,
-        hourly: [{ feelsLike: 72, windSpeed: 20, rainChance: 0, dewpoint: 50, uv: 8 }],
+        hourly: [{ temperature: 72, windSpeed: 20, rainChance: 0, dewpoint: 50, uv: 8 }],
       },
       'pro',
     );
@@ -125,11 +129,12 @@ describe('Gear Suggestions', () => {
   it('splits a cold rainy day into wear (outfit) and bring (add-ons)', () => {
     const gear = getGearSuggestion(
       {
+        temperature: 40,
         feelsLike: 40,
         windSpeed: 5,
         rainChance: 70,
         dewpoint: 30,
-        hourly: [{ feelsLike: 40, windSpeed: 5, rainChance: 70, dewpoint: 30, uv: 0 }],
+        hourly: [{ temperature: 40, windSpeed: 5, rainChance: 70, dewpoint: 30, uv: 0 }],
       },
       'casual',
     );
@@ -147,7 +152,7 @@ describe('Gear Suggestions', () => {
       {
         ...base,
         dewpoint: 70,
-        hourly: [{ feelsLike: 72, windSpeed: 5, rainChance: 0, dewpoint: 70, uv: 0 }],
+        hourly: [{ temperature: 72, windSpeed: 5, rainChance: 0, dewpoint: 70, uv: 0 }],
       },
       'casual',
     );
@@ -159,14 +164,16 @@ describe('Gear Suggestions', () => {
   it('puts the temp-swing removable layer in bring', () => {
     const gear = getGearSuggestion(
       {
+        temperature: 50,
         feelsLike: 50,
         windSpeed: 5,
         rainChance: 0,
         dewpoint: 40,
         hourly: [
-          { feelsLike: 50, windSpeed: 5, rainChance: 0, dewpoint: 40, uv: 0 },
-          { feelsLike: 68, windSpeed: 5, rainChance: 0, dewpoint: 40, uv: 0 },
+          { temperature: 50, windSpeed: 5, rainChance: 0, dewpoint: 40, uv: 0 },
+          { temperature: 68, windSpeed: 5, rainChance: 0, dewpoint: 40, uv: 0 },
         ],
+        pastHourly: [],
       },
       'casual',
     );
@@ -183,13 +190,14 @@ describe('Gear Suggestions', () => {
   it('covers freezing-to-scorching extremes with possible rain and null sensor readings', () => {
     const gear = getGearSuggestion(
       {
+        temperature: 25,
         feelsLike: 25,
         windSpeed: 5,
         rainChance: 40,
         dewpoint: null,
         hourly: [
-          { feelsLike: 25, windSpeed: 5, rainChance: 40, dewpoint: null, uv: null },
-          { feelsLike: 95, windSpeed: 5, rainChance: 40, dewpoint: null, uv: null },
+          { temperature: 25, windSpeed: 5, rainChance: 40, dewpoint: null, uv: null },
+          { temperature: 95, windSpeed: 5, rainChance: 40, dewpoint: null, uv: null },
         ],
       },
       'casual',
@@ -204,8 +212,9 @@ describe('Gear Suggestions', () => {
     const gear = getGearSuggestion(
       {
         ...base,
+        temperature: 60,
         feelsLike: 60,
-        hourly: [{ feelsLike: 60, windSpeed: 5, rainChance: 0, dewpoint: 50, uv: 0 }],
+        hourly: [{ temperature: 60, windSpeed: 5, rainChance: 0, dewpoint: 50, uv: 0 }],
       },
       'casual',
     );
@@ -215,7 +224,15 @@ describe('Gear Suggestions', () => {
 
   it('falls back to current conditions (with null dewpoint) when hourly data is empty', () => {
     const gear = getGearSuggestion(
-      { feelsLike: 72, windSpeed: 5, rainChance: 0, dewpoint: null, uvIndex: 7, hourly: [] },
+      {
+        temperature: 72,
+        windSpeed: 5,
+        rainChance: 0,
+        dewpoint: null,
+        uvIndex: 7,
+        hourly: [],
+        pastHourly: [],
+      },
       'casual',
     );
 
@@ -226,11 +243,12 @@ describe('Gear Suggestions', () => {
   it('partitions items exactly into wear and bring', () => {
     const gear = getGearSuggestion(
       {
+        temperature: 40,
         feelsLike: 40,
         windSpeed: 20,
         rainChance: 70,
         dewpoint: 30,
-        hourly: [{ feelsLike: 40, windSpeed: 20, rainChance: 70, dewpoint: 30, uv: 8 }],
+        hourly: [{ temperature: 40, windSpeed: 20, rainChance: 70, dewpoint: 30, uv: 8 }],
       },
       'pro',
     );
@@ -245,10 +263,35 @@ describe('Gear Suggestions', () => {
         ...base,
         rainChance: 10,
         weatherCode: 61,
-        hourly: [{ feelsLike: 65, windSpeed: 5, rainChance: 10, dewpoint: 50, uv: 0 }],
+        hourly: [{ temperature: 65, windSpeed: 5, rainChance: 10, dewpoint: 50, uv: 0 }],
       },
       'pro',
     );
     expect(matchesItem(gear, /shoe covers or fenders|wet road shell/i)).toBe(true);
+  });
+
+  it('recommends wet road spray gear when rain just ended', () => {
+    const gear = getGearSuggestion(
+      {
+        ...base,
+        rainChance: 10,
+        pastHourly: [{ temperature: 65, windSpeed: 5, rainChance: 60, dewpoint: 50, uv: 0 }],
+        hourly: [{ temperature: 65, windSpeed: 5, rainChance: 10, dewpoint: 50, uv: 0 }],
+      },
+      'pro',
+    );
+    expect(matchesItem(gear, /shoe covers or fenders|wet road shell/i)).toBe(true);
+  });
+
+  it('does not treat upcoming rain chance as wet roads', () => {
+    const gear = getGearSuggestion(
+      {
+        ...base,
+        rainChance: 25,
+        hourly: [{ temperature: 65, windSpeed: 5, rainChance: 25, dewpoint: 50, uv: 0 }],
+      },
+      'pro',
+    );
+    expect(matchesItem(gear, /shoe covers or fenders|wet road shell/i)).toBe(false);
   });
 });

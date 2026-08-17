@@ -35,9 +35,12 @@ export function useWeatherForecast(mockScenario: string | null) {
   // One mutex across every path that can adopt a new device fix (foreground
   // re-check, position watch, pull-to-refresh) so a single move costs one fetch.
   const relocatingRef = useRef(false);
+  // Last-initiated-wins sequencing: a slower in-flight load must not overwrite a newer one.
+  const loadGenRef = useRef(0);
 
   const loadForecast = useCallback(
     async (locationOverride?: SavedLocation | null, refreshOnly = false) => {
+      const gen = ++loadGenRef.current;
       setState((current) => ({
         ...current,
         loading: !current.snapshot && !refreshOnly && !current.needsLocation,
@@ -52,6 +55,7 @@ export function useWeatherForecast(mockScenario: string | null) {
           homeLocation,
           exposureLevel,
         );
+        if (gen !== loadGenRef.current) return;
         if (result.kind === 'needsLocation') {
           needsLocationRef.current = true;
           setState((current) => ({
@@ -87,12 +91,14 @@ export function useWeatherForecast(mockScenario: string | null) {
         }));
         mergeExtrasWhenReady(result.snapshot, result.extras, setState);
       } catch (error) {
+        if (gen !== loadGenRef.current) return;
         captureError(error, { where: 'loadForecast' });
         setState((current) => ({
           ...current,
           loading: false,
           refreshing: false,
           errorKind: getForecastErrorKind(error),
+          statusMessage: '', // the error UI speaks for the failure now
         }));
       }
     },
@@ -103,8 +109,7 @@ export function useWeatherForecast(mockScenario: string | null) {
   // the gate, its async hydration changed `loadForecast`'s identity and kicked
   // off a duplicate full fetch right after the first one.
   useEffect(() => {
-    if (!settingsHydrated) return;
-    void loadForecast();
+    if (settingsHydrated) void loadForecast();
   }, [settingsHydrated, loadForecast]);
 
   // Kept in an effect rather than written inside `loadForecast` so the cache
@@ -120,7 +125,8 @@ export function useWeatherForecast(mockScenario: string | null) {
   useFollowDeviceLocation(
     savedLocationRef,
     relocatingRef,
-    state.savedLocation?.source === 'device',
+    // Mock previews must not run GPS or mutate the real persisted device fix.
+    state.savedLocation?.source === 'device' && !mockScenario,
     loadForecast,
   );
 

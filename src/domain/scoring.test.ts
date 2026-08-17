@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   calculateRideScore,
-  effectiveRideTemp,
   evaluateCondition,
   evaluateWind,
   getOverallStatus,
@@ -18,30 +17,23 @@ describe('Weather Condition Evaluation', () => {
     expect(evaluateCondition(85, 'temperature')).toBe('marginal'); // 82-90 caution
     expect(evaluateCondition(35, 'temperature')).toBe('marginal'); // 32-40 caution
     expect(evaluateCondition(92, 'temperature')).toBe('poor'); // 90-95 hard
+    expect(evaluateCondition(95, 'temperature')).toBe('bad'); // 95 is the avoid boundary
     expect(evaluateCondition(98, 'temperature')).toBe('bad'); // 95+ avoid
     expect(evaluateCondition(28, 'temperature')).toBe('bad'); // icy avoid
   });
 
-  it('resolves the temperature a rating is actually taken on', () => {
-    expect(effectiveRideTemp(48, 30)).toBe(30); // cold end: wind chill governs
-    expect(effectiveRideTemp(71, 95)).toBe(95); // warm end: heat index governs
-    expect(effectiveRideTemp(65, 95)).toBe(65); // temperate middle: air temp only
-    expect(effectiveRideTemp(48, 55)).toBe(48); // feels-like never softens the cold end
-    expect(effectiveRideTemp(88, 80)).toBe(88); // ...nor the warm end
-    expect(effectiveRideTemp(48, null)).toBe(48);
-    expect(effectiveRideTemp(48)).toBe(48);
+  it('phrases a temperature issue as cold based on air temperature', () => {
+    expect(isColdTemp(48)).toBe(true);
+    expect(isColdTemp(71)).toBe(false);
+    expect(isColdTemp(52)).toBe(false);
   });
 
-  it('phrases a temperature issue as cold based on the effective temperature', () => {
-    expect(isColdTemp(48, 30)).toBe(true);
-    expect(isColdTemp(71, 95)).toBe(false);
-    // 52°F air is above the cold cutoff and the middle band ignores feels-like.
-    expect(isColdTemp(52, 38)).toBe(false);
-  });
-
-  it('rates warm temperature on heat index when feelsLike is higher', () => {
-    // Air temp 80°F (fair) with feelsLike 88°F due to heat index yields marginal temperature rating.
-    expect(evaluateCondition(80, 'temperature', undefined, 88)).toBe('marginal');
+  it('rates temperature on air temperature alone, ignoring feels-like', () => {
+    // Wind chill / heat index are provider-specific derived values whose signal
+    // is already carried by the wind and dewpoint metrics; 80°F air rates fair
+    // no matter what either API reports as apparent temperature.
+    expect(evaluateCondition(80, 'temperature')).toBe('fair');
+    expect(evaluateCondition(45, 'temperature')).toBe('fair');
   });
 
   it('rates dew point against the reference table', () => {
@@ -183,12 +175,7 @@ describe('Overall Status Determination', () => {
     expect(getOverallStatus(weather)).toBe('yes');
   });
 
-  it('rates cold temperature on wind chill when feelsLike is lower', () => {
-    // Air temp 45°F (fair) with feelsLike 34°F due to wind chill yields marginal temperature rating.
-    expect(evaluateCondition(45, 'temperature', undefined, 34)).toBe('marginal');
-  });
-
-  it('returns "maybe" for high heat index weather (e.g. 85°F air temp or 88°F feelsLike)', () => {
+  it('returns "maybe" for warm weather (85°F air temp)', () => {
     const weather = {
       hasThunderstorms: false,
       temperature: 85,

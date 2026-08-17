@@ -6,6 +6,7 @@ import {
   type RecentLocation,
   type SavedLocation,
 } from '@/services/locationStorage';
+import { captureError } from '@/services/telemetry';
 
 import {
   isWebInsecureContext,
@@ -40,7 +41,13 @@ export function useLocationActions(
           name: place.label,
           source: 'manual',
         });
-        await saveRecentLocation(place);
+        // Recents are best-effort: a failure here must not report "couldn't
+        // save" when the location itself persisted fine.
+        try {
+          await saveRecentLocation(place);
+        } catch (error) {
+          captureError(error, { where: 'saveRecentLocation' });
+        }
         needsLocationRef.current = false;
         setState((current) => ({
           ...current,

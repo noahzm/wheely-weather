@@ -13,6 +13,7 @@ import { useHomeLocation } from '@/hooks/settings-context';
 import { MIN_SEARCH_QUERY_LENGTH, useLocationSearch } from '@/hooks/use-location-search';
 import { resolveSuggestion } from '@/services/locationSearch';
 import type { RecentLocation } from '@/services/locationStorage';
+import { captureError } from '@/services/telemetry';
 
 export function useLocationSearchScreen() {
   const router = useRouter();
@@ -36,14 +37,18 @@ export function useLocationSearchScreen() {
   const choosePlace = useCallback(
     async (place: RowItem) => {
       setBusy(true);
-      const target = await resolveSuggestedPlace(place, resolveSuggestion);
-      if (!target) {
+      try {
+        // resolveSuggestion can reject (MapKit errors) — without a catch the
+        // rejection is unhandled and the screen stays busy-locked forever.
+        const target = await resolveSuggestedPlace(place, resolveSuggestion);
+        if (!target) return;
+        const ok = await forecast.setManualLocation(target);
+        if (ok) goToHome();
+      } catch (error) {
+        captureError(error, { where: 'choosePlace' });
+      } finally {
         setBusy(false);
-        return;
       }
-      const ok = await forecast.setManualLocation(target);
-      setBusy(false);
-      if (ok) goToHome();
     },
     [forecast, goToHome],
   );

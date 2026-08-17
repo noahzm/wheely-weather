@@ -38,12 +38,12 @@ function getRideWindow(weather: Weather): RideWindow {
   return {
     minTemp:
       upcoming.length > 0
-        ? Math.min(...upcoming.map((h) => h.feelsLike))
-        : startConditions.feelsLike,
+        ? Math.min(...upcoming.map((h) => h.temperature))
+        : startConditions.temperature,
     maxTemp:
       upcoming.length > 0
-        ? Math.max(...upcoming.map((h) => h.feelsLike))
-        : startConditions.feelsLike,
+        ? Math.max(...upcoming.map((h) => h.temperature))
+        : startConditions.temperature,
     maxWind:
       upcoming.length > 0
         ? Math.max(...upcoming.map((h) => h.windSpeed))
@@ -79,11 +79,12 @@ function hasWetRoads(weather: Weather, w: RideWindow): boolean {
   if (w.maxRain > 30) return false;
   const code = weather.weatherCode;
   const isWetCode = code != null && [51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code);
-  const hourly = weather.hourly;
-  const recentRain = hourly
-    .slice(0, 2)
-    .some((h) => h.rainChance >= WET_ROADS_THRESHOLD.RECENT_RAIN_CHANCE);
-  return isWetCode || (recentRain && w.maxRain <= 30);
+  // "Recent" rain means rain that already happened, so look at the past hours —
+  // the upcoming forecast can't say whether the road is already wet.
+  const recentRain = weather.pastHourly.some(
+    (h) => h.rainChance >= WET_ROADS_THRESHOLD.RECENT_RAIN_CHANCE,
+  );
+  return isWetCode || recentRain;
 }
 
 /** Builds the weather-driven add-on tips (rain, wet roads, wind, UV, temp swing, mugginess). */

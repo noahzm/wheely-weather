@@ -32,14 +32,13 @@ function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);
 }
 
+// Read failures propagate: swallowing them into `null` was indistinguishable
+// from "no location saved", which flipped the app to the location-prompt screen
+// and latched it there with every automatic recovery path gated off. Callers
+// catch and capture with their own context.
 export async function loadSavedLocation() {
-  try {
-    const raw = await AsyncStorage.getItem(LOCATION_KEY);
-    return normalizeLocationRecord(raw ? JSON.parse(raw) : null);
-  } catch (error) {
-    captureError(error, { where: 'loadSavedLocation' });
-    return null;
-  }
+  const raw = await AsyncStorage.getItem(LOCATION_KEY);
+  return normalizeLocationRecord(raw ? JSON.parse(raw) : null);
 }
 
 export async function saveLocation(location: SavedLocation) {

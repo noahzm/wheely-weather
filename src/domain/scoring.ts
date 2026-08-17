@@ -45,51 +45,36 @@ const rateUpperBound = (value: number, t: UpperBoundThresholds): Condition => {
  * where both too-low and too-high degrade the rating.
  */
 const rateComfortBand = (value: number, t: ComfortBandThresholds): Condition => {
-  if (value < t.BAD_MIN || value > t.BAD_MAX) return 'bad';
+  if (value < t.BAD_MIN || value >= t.BAD_MAX) return 'bad';
   if (value < t.POOR_MIN || value > t.POOR_MAX) return 'poor';
   if (value < t.MARGINAL_MIN || value > t.MARGINAL_MAX) return 'marginal';
   if (value < t.FAIR_MIN || value > t.FAIR_MAX) return 'fair';
   return 'good';
 };
 
-/**
- * Resolves the temperature a rating is actually taken on: wind chill governs the
- * cold end (<= 50°F) and heat index the warm end (>= 70°F), while the temperate
- * middle rates on air temperature alone. Callers that *label* a temperature issue
- * must format this value rather than the raw air temperature, or the chip names a
- * number that didn't drive its own severity ("Freezing (48°)" for 48°F air at a
- * 30°F wind chill).
- */
-export const effectiveRideTemp = (temp: number, feelsLike?: number | null): number => {
-  if (feelsLike == null) return temp;
-  if (temp <= 50) return Math.min(temp, feelsLike);
-  if (temp >= 70) return Math.max(temp, feelsLike);
-  return temp;
-};
-
 /** True when a temperature issue should be phrased as cold rather than heat. */
-export const isColdTemp = (temp: number, feelsLike?: number | null): boolean =>
-  effectiveRideTemp(temp, feelsLike) < 50;
+export const isColdTemp = (temp: number): boolean => temp < 50;
 
 /**
  * Evaluates a single weather metric against cycling-friendly thresholds.
  * Returns "good", "fair", "marginal", "poor", or "bad" to indicate ride-ability.
  * `thresholds` defaults to the base set; pass an acclimatization-adjusted set to
  * shift the comfort dials for a rider's home climate.
- * `feelsLike` is factored in for cold temperatures (<= 50°F) to reflect wind chill,
- * and for warm temperatures (>= 70°F) to reflect heat index / apparent temperature.
+ * Temperature is rated on air temperature only: wind and humidity already carry
+ * their own metrics, and apparent-temperature formulas differ across weather
+ * providers, so rating on feels-like would double-count them and drift per
+ * platform. Feels-like stays a display-only reference in the stats.
  */
 export const evaluateCondition = (
   value: number | null | undefined,
   type: MetricType,
   thresholds: Thresholds = THRESHOLDS,
-  feelsLike?: number | null,
 ): Condition => {
   if (value == null) return 'good';
   const T = thresholds;
   switch (type) {
     case 'temperature': {
-      return rateComfortBand(effectiveRideTemp(value, feelsLike), T.TEMPERATURE);
+      return rateComfortBand(value, T.TEMPERATURE);
     }
     case 'windSpeed': {
       return rateUpperBound(value, T.WIND_SPEED);
@@ -171,7 +156,7 @@ export const getOverallStatus = (
     weather.weatherCode,
   );
   const conditions = [
-    evaluateCondition(weather.temperature, 'temperature', thresholds, weather.feelsLike),
+    evaluateCondition(weather.temperature, 'temperature', thresholds),
     evaluateWind(weather.windSpeed, weather.windGust, thresholds),
     evaluateCondition(weather.rainChance, 'rainChance', thresholds),
     evaluateCondition(weather.dewpoint, 'dewpoint', thresholds),
@@ -194,7 +179,6 @@ const getCyclingCondition = (conditions: Condition[]): Condition => {
 
 interface HourlyConditionInput {
   temperature: number;
-  feelsLike?: number | null;
   wind: number;
   gust?: number | null;
   rain: number;
@@ -204,12 +188,12 @@ interface HourlyConditionInput {
 
 /** UV is intentionally excluded — it drives sunscreen/kit advice, not ride-ability. */
 export const getHourlyCondition = (
-  { temperature, feelsLike, wind, gust, rain, code, dewpoint }: HourlyConditionInput,
+  { temperature, wind, gust, rain, code, dewpoint }: HourlyConditionInput,
   thresholds: Thresholds = THRESHOLDS,
 ): Condition => {
   const coldRainCondition = evaluateColdRainHazard(temperature, rain, code);
   return getCyclingCondition([
-    evaluateCondition(temperature, 'temperature', thresholds, feelsLike),
+    evaluateCondition(temperature, 'temperature', thresholds),
     evaluateWind(wind, gust, thresholds),
     evaluateCondition(rain, 'rainChance', thresholds),
     evaluateCondition(dewpoint, 'dewpoint', thresholds),
@@ -286,12 +270,7 @@ const CONDITION_SCORES: Record<Condition, number> = {
 export function calculateRideScore(weather: Weather, thresholds: Thresholds = THRESHOLDS): number {
   if (weather.hasThunderstorms) return 1;
 
-  const tempCond = evaluateCondition(
-    weather.temperature,
-    'temperature',
-    thresholds,
-    weather.feelsLike,
-  );
+  const tempCond = evaluateCondition(weather.temperature, 'temperature', thresholds);
   const windCond = evaluateWind(weather.windSpeed, weather.windGust, thresholds);
   const rainCond = evaluateCondition(weather.rainChance, 'rainChance', thresholds);
   const dewCond = evaluateCondition(weather.dewpoint, 'dewpoint', thresholds);
