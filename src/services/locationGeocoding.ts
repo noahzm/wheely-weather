@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 
 import { fetchWithTimeout } from './http';
 
+import { abbreviateUSState } from '@/utils/us-states';
 import type { LocationSearchResult } from '@/types/weather';
 
 interface NominatimResult {
@@ -82,7 +83,11 @@ export async function searchLocations(
   return parseNominatimSearchResponse(res);
 }
 
-/** Reverse-geocodes coordinates into a "City, State" string via Nominatim. */
+/**
+ * Reverse-geocodes coordinates into a "City, ST" string via Nominatim. US
+ * states are abbreviated so device-follow labels match the MapKit search
+ * style ("San Francisco, CA", not "San Francisco, California").
+ */
 export async function fetchLocationName(lat: number, lon: number): Promise<string | null> {
   try {
     const reverseUrl = isWebProduction()
@@ -95,7 +100,8 @@ export async function fetchLocationName(lat: number, lon: number): Promise<strin
       const city =
         data.address.city ?? data.address.town ?? data.address.village ?? data.address.county;
       const state = data.address.state;
-      return city && state ? `${city}, ${state}` : (city ?? 'Your Location');
+      const region = data.address.country_code === 'us' && state ? abbreviateUSState(state) : state;
+      return city && region ? `${city}, ${region}` : (city ?? 'Your Location');
     }
   } catch {
     /* empty */
