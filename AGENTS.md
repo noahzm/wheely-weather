@@ -18,8 +18,8 @@ npm run build:web      # expo export --platform web
 
 - `npm run check` runs the full suite locally (all 5 steps).
 - Single unit test: `npx vitest run --project unit src/domain/weather-codes.test.ts`
-- `npm run test:coverage` enforces the thresholds in `vitest.config.ts`: 90% repo-wide (branches 88), and `src/domain/**` held higher — 95% statements/lines, 100% functions. Not a CI gate, but keep the script — without something invoking it, `@vitest/coverage-v8` reads as an unused dep and gets pruned, silently disarming the thresholds.
-- Manual E2E (NOT in CI): `npm run test:e2e:app` (vs exported web app).
+- `npm run test:coverage` enforces the thresholds in `vitest.config.ts`: 90% repo-wide (branches 88), and `src/domain/**` held higher — 95% statements/lines, 100% functions, branches 90. Not a CI gate, but keep the script — without something invoking it, `@vitest/coverage-v8` reads as an unused dep and gets pruned, silently disarming the thresholds.
+- Manual E2E (NOT in CI): `npm run test:e2e:app` (requires prior `npm run build:web`; serves exported app from `dist/`).
 - `build:web` ends with `Something prevented Expo from exiting, forcefully exiting now.` — that is normal, not a failure.
 - Deploys to Cloudflare happen automatically on every push to `main` (dashboard-managed Workers Builds). Deploy config — static asset server, SPA fallback, `/api/*` worker-first — lives in `wrangler.jsonc`, read by Cloudflare on its side.
   - The dashboard runs `npm run build:web` then `npx wrangler deploy`. Wrangler is deliberately **not** a dependency here — `npx` resolves it remotely, so there is no local `wrangler` to run and nothing to bump.
@@ -46,6 +46,7 @@ npm run build:web      # expo export --platform web
 - Get user approval before structural or logic changes to `src/domain/scoring.ts`.
 - Sentry is DSN-gated (`EXPO_PUBLIC_SENTRY_DSN`); native builds set `SENTRY_DISABLE_AUTO_UPLOAD=true` (already in the npm scripts).
 - In `vitest.config.ts`, the `unit` project must keep `extends: true` so the `@/` alias resolves for value imports (without it the whole suite crashes the moment a type-only import becomes a value import).
+- ESLint type-aware linting uses `tsconfig.eslint.json` (includes test files), while `tsc --noEmit` uses `tsconfig.json` (excludes them). A test file may pass typecheck but fail lint, or vice versa.
 
 ## Task playbooks
 
