@@ -2,6 +2,8 @@
 
 Expo Router app (iOS, Android, web) with a liquid-glass, neobrutalist look, live at wheelyweather.app.
 
+This is the single source of truth for AI assistants working in this repo. There are no other agent config files (no `CLAUDE.md`, `.claude/`, `.cursor/`, or Copilot instructions) — everything lives here.
+
 ## Commands
 
 CI (`.github/workflows/ci.yml`, Node 24) runs these in order — match this order when validating:
@@ -44,4 +46,35 @@ npm run build:web      # expo export --platform web
 - Get user approval before structural or logic changes to `src/domain/scoring.ts`.
 - Sentry is DSN-gated (`EXPO_PUBLIC_SENTRY_DSN`); native builds set `SENTRY_DISABLE_AUTO_UPLOAD=true` (already in the npm scripts).
 - In `vitest.config.ts`, the `unit` project must keep `extends: true` so the `@/` alias resolves for value imports (without it the whole suite crashes the moment a type-only import becomes a value import).
-- Full playbooks for UI / domain / platform-service changes: `.claude/rules/*.md` and `.github/copilot-instructions.md`.
+
+## Task playbooks
+
+Match the playbook to the files you are about to touch. Keep edits surgical and run the specified validation afterward. The general safe-completion checklist for any change is: `npm run format:check` → `npm run lint` → `npx tsc --noEmit` → `npm test` → `npm run build:web`.
+
+### 1) UI change — `src/components/**` or `src/app/**`
+
+- Locate the exact component/screen and its adjacent primitives first.
+- Enforce theme-token usage (`useWheelyColors`, `src/constants/theme.ts`); no inline color literals.
+- List touched files before editing, then apply surgical edits only.
+- Validate with `npm run lint` plus the smallest relevant tests.
+
+### 2) Domain or utility logic change — `src/domain/**` or `src/utils/**`
+
+- Identify all call sites for the function or constant before editing.
+- Keep logic framework-agnostic in `src/domain` / `src/utils`.
+- Add/update colocated unit tests for new pure functions.
+- After any domain edit, run `npm test`.
+
+### 3) Platform-specific service change — `**\/*.ios.ts*`, `**\/*.web.ts*`
+
+- Inspect both the default and platform-specific files (`*.ios.ts*`, `*.web.ts*`, shared file) together.
+- Preserve the no-fallback rule for iOS weather/location native modules (they fail with rebuild-required errors, not web fallbacks).
+- For `weatherService.ios.ts`, import shared parsing from `weatherParsing.ts` only — never `weatherService.ts`.
+- Validate with `npx tsc --noEmit` plus targeted tests.
+
+### 4) State / service change — `src/hooks/**` or `src/services/**` (non-platform)
+
+- These are high-blast-radius files: `ForecastProvider` (`src/hooks/forecast-context.tsx`) and the forecast services drive the whole app.
+- Identify all call sites before editing (for hooks, find consumers of the hook/context; for services, find callers in `src/hooks` and `src/services/forecastSnapshot.ts`).
+- Keep logic framework-agnostic where possible; never introduce web API fallbacks for iOS native modules.
+- Add or update unit tests for new pure logic; run `npm test` afterward.
