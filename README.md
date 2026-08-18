@@ -53,17 +53,16 @@ npm run build:web
 
 ## Architecture
 
-For architecture, conventions, and toolchain constraints used in this repo, see [`.github/copilot-instructions.md`](./.github/copilot-instructions.md).
+For architecture, conventions, and toolchain constraints used in this repo, see [`AGENTS.md`](./AGENTS.md).
 
 ## Contributing and security
 
 - Contribution guide: [`CONTRIBUTING.md`](./CONTRIBUTING.md)
 - Security policy: [`SECURITY.md`](./SECURITY.md)
 
-## Using GitHub Copilot in this repo
+## AI assistant setup
 
-- Start with [`.github/copilot-instructions.md`](./.github/copilot-instructions.md) for architecture, conventions, and task playbooks.
-- Copilot cloud agent sessions should use [`.github/copilot-setup-steps.yml`](./.github/copilot-setup-steps.yml) to install dependencies and pre-run baseline checks.
+- Architecture, conventions, and per-area task playbooks live in [`AGENTS.md`](./AGENTS.md).
 - Keep edits narrow and scoped, then run quality gates in CI order:
   `npm run format:check` → `npm run lint` → `npm run typecheck` → `npm test` → `npm run build:web`.
 

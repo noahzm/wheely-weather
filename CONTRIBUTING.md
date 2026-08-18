@@ -30,7 +30,7 @@ npm run build:web
 ## Pull request expectations
 
 - Keep changes focused and scoped.
-- Follow conventions in `.github/copilot-instructions.md` (theme tokens, platform-specific service rules, and testing expectations).
+- Follow conventions in `AGENTS.md` (theme tokens, platform-specific service rules, and testing expectations).
 - Add or update tests when behavior changes.
 - If changing files in `src/domain`, run `npm test`.
 - If proposing structural or logic changes to `src/domain/scoring.ts`, get maintainer approval before merging.
