@@ -17,3 +17,10 @@ declare module '*.otf' {
   const source: string;
   export default source;
 }
+
+declare namespace NodeJS {
+  interface ProcessEnv {
+    EXPO_PUBLIC_SENTRY_DSN?: string;
+    EXPO_OS?: string;
+  }
+}

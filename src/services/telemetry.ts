@@ -2,8 +2,11 @@ import * as Sentry from '@sentry/react-native';
 
 // Set via EXPO_PUBLIC_SENTRY_DSN (see .env.example). Unset in local dev by
 // default, so `initSentry` is a no-op until a DSN is configured — nothing
-// here should ever throw or block app startup.
-const dsn = process.env.EXPO_PUBLIC_SENTRY_DSN;
+const dsn: string | undefined =
+  typeof process.env.EXPO_PUBLIC_SENTRY_DSN === 'string' &&
+  process.env.EXPO_PUBLIC_SENTRY_DSN.length > 0
+    ? process.env.EXPO_PUBLIC_SENTRY_DSN
+    : undefined;
 
 /**
  * Whether Sentry has a DSN to report to. `Sentry.wrap` should only be applied

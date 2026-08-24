@@ -37,6 +37,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.29.7",
+    "@types/node": "^26.2.0",
     "@types/react": "~19.2.2",
     "@vitest/coverage-v8": "^4.1.11",
     "cross-env": "^10.1.0",
