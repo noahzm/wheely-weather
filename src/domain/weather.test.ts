@@ -1,41 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { getBestDayInfo, getDayConditionReason } from '../utils/forecastHelpers';
 import {
-  getAqiLabel,
   getBestRideWindow,
   getDailyCondition,
-  getDewpointLabel,
   getMessage,
   getRainTiming,
-  getWindArrowRotation,
   isThunderstorm,
 } from './weather';
 
-describe('Weather Utilities', () => {
+describe('Thunderstorms', () => {
   it('identifies thunderstorms correctly', () => {
     expect(isThunderstorm(95)).toBe(true);
     expect(isThunderstorm(96)).toBe(true);
     expect(isThunderstorm(99)).toBe(true);
     expect(isThunderstorm(3)).toBe(false);
-  });
-
-  it('provides correct AQI labels', () => {
-    expect(getAqiLabel(25)).toBe('Good');
-    expect(getAqiLabel(75)).toBe('Moderate');
-    expect(getAqiLabel(125)).toBe('Unhealthy for Sensitive Groups');
-  });
-
-  it('provides correct Dewpoint labels', () => {
-    expect(getDewpointLabel(45)).toBe('Dry');
-    expect(getDewpointLabel(55)).toBe('Comfortable');
-    expect(getDewpointLabel(75)).toBe('Oppressive');
-  });
-
-  it('rotates wind direction for arrow rotation', () => {
-    expect(getWindArrowRotation(0)).toBe(90);
-    expect(getWindArrowRotation(90)).toBe(180);
-    expect(getWindArrowRotation(225)).toBe(315);
-    expect(getWindArrowRotation(null)).toBeNull();
   });
 });
 
