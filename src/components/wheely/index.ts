@@ -2,7 +2,6 @@ export { WebContentColumn } from './content-column';
 export { BottomNavBar, bottomNavBarHeight } from './bottom-nav-chrome';
 export { WebScreenHeader, WebScreenTitle } from './web-screen-header';
 export { SettingsForm } from './settings-form';
-export { WeatherHeader } from './weather-header';
 export { CurrentLocationBadge } from './current-location-badge';
 export { RideVerdict } from './ride-verdict';
 export { StarRating } from './star-rating';

@@ -17,10 +17,3 @@ export {
 } from './ride-factors';
 export { getGearSuggestion } from './gear';
 export { getWeatherAlerts } from './alerts';
-export {
-  getAqiLabel,
-  getDewpointLabel,
-  getWindArrowRotation,
-  getWindDirectionLabel,
-  getUvLabel,
-} from '../utils/weatherLabels';
