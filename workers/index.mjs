@@ -77,12 +77,24 @@ function buildSearchUrl(url) {
 
 /** @param {URL} url */
 function buildReverseUrl(url) {
-  const lat = url.searchParams.get('lat');
-  const lon = url.searchParams.get('lon');
-  if (!lat || !lon) return badRequest('Missing lat or lon parameter');
+  const latStr = url.searchParams.get('lat');
+  const lonStr = url.searchParams.get('lon');
+  if (!latStr || !lonStr) return badRequest('Missing lat or lon parameter');
+  const lat = Number(latStr);
+  const lon = Number(lonStr);
+  if (
+    !Number.isFinite(lat) ||
+    !Number.isFinite(lon) ||
+    lat < -90 ||
+    lat > 90 ||
+    lon < -180 ||
+    lon > 180
+  ) {
+    return badRequest('Invalid coordinates');
+  }
   return (
-    `${NOMINATIM_REVERSE}?lat=${encodeURIComponent(lat)}` +
-    `&lon=${encodeURIComponent(lon)}&format=json`
+    `${NOMINATIM_REVERSE}?lat=${encodeURIComponent(latStr)}` +
+    `&lon=${encodeURIComponent(lonStr)}&format=json`
   );
 }
 
@@ -97,25 +109,38 @@ async function handleGeocode(request, nominatimUrl, cacheControl) {
   }
   if (nominatimUrl instanceof Response) return nominatimUrl;
 
-  const res = await fetch(nominatimUrl, {
-    headers: { 'User-Agent': USER_AGENT },
-  });
+  try {
+    const res = await fetch(nominatimUrl, {
+      headers: { 'User-Agent': USER_AGENT },
+    });
 
-  if (res.status === 429) {
-    return new Response(JSON.stringify({ error: 'Rate limited. Try again shortly.' }), {
-      status: 429,
-      headers: jsonHeaders(),
+    if (res.status === 429) {
+      return new Response(JSON.stringify({ error: 'Rate limited. Try again shortly.' }), {
+        status: 429,
+        headers: {
+          ...jsonHeaders(),
+          'Cache-Control': 'no-store',
+        },
+      });
+    }
+
+    const body = await res.text();
+    return new Response(body, {
+      status: res.status,
+      headers: {
+        ...jsonHeaders(),
+        'Cache-Control': res.ok ? cacheControl : 'no-store',
+      },
+    });
+  } catch {
+    return new Response(JSON.stringify({ error: 'Geocoding service unavailable' }), {
+      status: 502,
+      headers: {
+        ...jsonHeaders(),
+        'Cache-Control': 'no-store',
+      },
     });
   }
-
-  const body = await res.text();
-  return new Response(body, {
-    status: res.status,
-    headers: {
-      ...jsonHeaders(),
-      'Cache-Control': cacheControl,
-    },
-  });
 }
 
 /** @param {string} message */

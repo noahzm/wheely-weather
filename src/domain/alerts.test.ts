@@ -41,4 +41,17 @@ describe('Weather Alerts', () => {
     );
     expect(alerts[0]?.message).toContain('100°F');
   });
+
+  it('does not add a heat alert when feels like is 95F or below', () => {
+    const alerts = getWeatherAlerts({ feelsLike: 95 });
+    expect(alerts.filter((alert) => alert.type === 'heat')).toHaveLength(0);
+  });
+
+  it('handles alerts with undefined event safely', () => {
+    const alerts = getWeatherAlerts({
+      feelsLike: 100,
+      nwsAlerts: [{ type: 'nws', headline: 'Some Notice' }],
+    });
+    expect(alerts.some((alert) => alert.type === 'heat')).toBe(true);
+  });
 });

@@ -20,6 +20,7 @@ import {
   chartY,
   chartSmoothYAtSegments,
   chartSmoothPath,
+  buildChartSpline,
   type ChartSplineSegment,
 } from './hourlyChart';
 
@@ -173,9 +174,50 @@ describe('chartContentPadding', () => {
   });
 });
 
+describe('chartMaxScrollOffset', () => {
+  it('calculates maximum scroll offset based on maxIndex and viewportWidth', () => {
+    // chartX(10) = 24 + 10*44 = 464. viewportWidth = 400. padding = 400/2 - 24 = 176.
+    // padding + chartX(10) - viewportWidth / 2 = 176 + 464 - 200 = 440.
+    expect(chartMaxScrollOffset(10, 400)).toBe(440);
+  });
+
+  it('returns 0 when viewport is wider than content', () => {
+    expect(chartMaxScrollOffset(0, 1000)).toBe(0);
+  });
+});
+
 describe('chartSmoothYAtSegments', () => {
   it('returns 90 for empty segments', () => {
     expect(chartSmoothYAtSegments([], 100)).toBe(90);
+  });
+
+  it('clamps to first.y0 when x <= first.x0', () => {
+    const segments: ChartSplineSegment[] = [
+      { x0: 10, y0: 20, cp1x: 15, cp1y: 20, cp2x: 15, cp2y: 30, x1: 20, y1: 30 },
+    ];
+    expect(chartSmoothYAtSegments(segments, 5)).toBe(20);
+    expect(chartSmoothYAtSegments(segments, 10)).toBe(20);
+  });
+
+  it('clamps to last.y1 when x >= last.x1', () => {
+    const segments: ChartSplineSegment[] = [
+      { x0: 10, y0: 20, cp1x: 15, cp1y: 20, cp2x: 15, cp2y: 30, x1: 20, y1: 30 },
+    ];
+    expect(chartSmoothYAtSegments(segments, 25)).toBe(30);
+    expect(chartSmoothYAtSegments(segments, 20)).toBe(30);
+  });
+
+  it('evaluates cubic bezier curve smoothly within segment range', () => {
+    const data = [
+      { idx: 0, condition: 'good' }, // y = 24
+      { idx: 1, condition: 'bad' }, // y = 120
+    ];
+    const segments = buildChartSpline(data);
+    expect(segments).toHaveLength(1);
+    const midX = (segments[0].x0 + segments[0].x1) / 2;
+    const midY = chartSmoothYAtSegments(segments, midX);
+    expect(midY).toBeGreaterThan(24);
+    expect(midY).toBeLessThan(120);
   });
 
   it('returns last y1 if x falls in a gap between segments', () => {

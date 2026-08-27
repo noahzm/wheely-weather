@@ -110,7 +110,7 @@ export function RNSegmentedPicker<T extends string>({
   }, [containerWidth, count]);
 
   return (
-    <View style={styles.container} onLayout={handleLayout}>
+    <View style={styles.container} onLayout={handleLayout} accessibilityRole="radiogroup">
       <Animated.View style={[styles.indicator, indicatorStyle]} />
       {values.map((val, idx) => {
         const active = selectedValue === val;
@@ -118,6 +118,9 @@ export function RNSegmentedPicker<T extends string>({
           <Pressable
             key={val}
             style={styles.segment}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: active }}
+            accessibilityLabel={labels[idx]}
             onPress={() => {
               selectionFeedback();
               onSelect(val);

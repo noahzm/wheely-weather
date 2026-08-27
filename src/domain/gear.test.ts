@@ -294,4 +294,18 @@ describe('Gear Suggestions', () => {
     );
     expect(matchesItem(gear, /shoe covers or fenders|wet road shell/i)).toBe(false);
   });
+
+  it('suppresses wet road tip when active rain is already expected (>30%)', () => {
+    const gear = getGearSuggestion(
+      {
+        ...base,
+        rainChance: 40,
+        pastHourly: [{ temperature: 65, windSpeed: 5, rainChance: 60, dewpoint: 50, uv: 0 }],
+        hourly: [{ temperature: 65, windSpeed: 5, rainChance: 40, dewpoint: 50, uv: 0 }],
+      },
+      'pro',
+    );
+    expect(matchesItem(gear, /rain jacket|vest/i)).toBe(true);
+    expect(matchesItem(gear, /wet road shell/i)).toBe(false);
+  });
 });

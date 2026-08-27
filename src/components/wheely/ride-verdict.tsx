@@ -173,8 +173,12 @@ export function RideVerdict({
       : (weatherSfSymbol(weatherCode) as SFSymbol);
   const headlineText = (label ?? message.lead).replace(/(, but|:)$/i, '').trim();
   const issuesSentence = formatIssuesAsSentence(message.issues);
+  const detailSentence =
+    status === 'yes' && label && message.lead && label !== message.lead
+      ? message.lead
+      : issuesSentence;
   const hasBottomBadge = message.timing != null;
-  const hasDetails = issuesSentence.length > 0;
+  const hasDetails = detailSentence.length > 0;
   const cardPaddingBottom = hasBottomBadge ? Spacing.four + Spacing.two : Spacing.four;
   const rowAlignment = hasDetails ? 'flex-start' : 'center';
 
@@ -182,7 +186,7 @@ export function RideVerdict({
     meta.defaultLabel,
     headlineText,
     score == null ? '' : `Ride score ${scoreToStars(score)} out of 5 stars.`,
-    issuesSentence,
+    detailSentence,
     message.timing,
   ]
     .filter(Boolean)
@@ -229,9 +233,9 @@ export function RideVerdict({
           <View style={styles.textColumn}>
             <ThemedText style={[styles.leadText, { color: meta.ink }]}>{headlineText}</ThemedText>
 
-            {issuesSentence.length > 0 && (
+            {detailSentence.length > 0 && (
               <ThemedText style={[styles.issueSentenceText, { color: meta.ink }]}>
-                {issuesSentence}
+                {detailSentence}
               </ThemedText>
             )}
           </View>

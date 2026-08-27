@@ -105,7 +105,12 @@ export function KitGuide({ weather }: Readonly<{ weather: Weather }>) {
         {hasBring && <ThemedText style={styles.groupLabel}>Wear</ThemedText>}
         <View style={styles.kitGrid}>
           {gear.wear.map((item: GearTipItem, index: number) => (
-            <View key={`${item.label}-${index}`} style={[styles.kitTile, { flexBasis: tileWidth }]}>
+            <View
+              key={`${item.label}-${index}`}
+              accessible={true}
+              accessibilityLabel={item.label}
+              style={[styles.kitTile, { flexBasis: tileWidth }]}
+            >
               <View style={styles.kitIconWrap}>
                 <GameGearIcon iconKey={item.icon} size={42} color={c.mutedInk} />
               </View>
@@ -120,7 +125,12 @@ export function KitGuide({ weather }: Readonly<{ weather: Weather }>) {
             <ThemedText style={styles.groupLabel}>Bring</ThemedText>
             <View style={styles.bringList}>
               {gear.bring.map((item: GearTipItem, index: number) => (
-                <View key={`${item.label}-${index}`} style={styles.bringRow}>
+                <View
+                  key={`${item.label}-${index}`}
+                  accessible={true}
+                  accessibilityLabel={item.label}
+                  style={styles.bringRow}
+                >
                   <View style={styles.bringIconWrap}>
                     <GameGearIcon iconKey={item.icon} size={28} color={c.mutedInk} />
                   </View>

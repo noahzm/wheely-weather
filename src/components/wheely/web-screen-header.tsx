@@ -84,6 +84,7 @@ export function WebScreenHeader({
             }}
             accessibilityRole="button"
             accessibilityLabel={isClose ? 'Close' : 'Back'}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             style={{
               width: HEADER_SIDE,
               height: HEADER_SIDE,

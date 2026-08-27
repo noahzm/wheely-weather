@@ -132,10 +132,10 @@ export const ISSUE_PHRASES = {
     })[tier],
   GUSTS: (mph: number, tier: IssueTier): string =>
     ({
-      bad: `Dangerous gusts (${mph} mph gusts)`,
-      poor: `Strong gusts (${mph} mph gusts)`,
-      marginal: `Gusty (${mph} mph gusts)`,
-      fair: `Gusty (${mph} mph gusts)`,
+      bad: `Dangerous gusts (${mph} mph)`,
+      poor: `Strong gusts (${mph} mph)`,
+      marginal: `Gusty (${mph} mph)`,
+      fair: `Gusty (${mph} mph)`,
     })[tier],
   RAIN: (pct: string, tier: IssueTier): string =>
     ({

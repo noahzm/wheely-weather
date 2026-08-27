@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, type RefObject } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import Animated, { type SharedValue } from 'react-native-reanimated';
 
@@ -22,6 +22,7 @@ import {
   HourlyChartGridlines,
   SelectionMarker,
 } from './hourly-chart-graphic';
+import { chartScrollOffsetForIndex } from '@/utils/hourlyChart';
 import { HourlyNoteStickers } from './hourly-note-stickers';
 import { useHourlyForecastChart, type ChartHour } from './use-hourly-forecast-chart';
 
@@ -255,6 +256,40 @@ function HourlyForecastBody({
   );
 }
 
+function nextTargetIndex(actionName: string, selectedIdx: number, maxIndex: number): number {
+  if (actionName === 'increment') return Math.min(selectedIdx + 1, maxIndex);
+  if (actionName === 'decrement') return Math.max(selectedIdx - 1, 0);
+  return selectedIdx;
+}
+
+function useChartAccessibilityAction(
+  scrollRef: RefObject<Animated.ScrollView | null>,
+  selectedIdx: number,
+  maxIndex: number,
+  viewportWidth: number,
+) {
+  return useCallback(
+    (event: { nativeEvent: { actionName: string } }) => {
+      const targetIdx = nextTargetIndex(event.nativeEvent.actionName, selectedIdx, maxIndex);
+      if (targetIdx !== selectedIdx && viewportWidth > 0) {
+        const offset = chartScrollOffsetForIndex(targetIdx, viewportWidth, maxIndex);
+        scrollRef.current?.scrollTo({ x: offset, animated: true });
+      }
+    },
+    [maxIndex, scrollRef, selectedIdx, viewportWidth],
+  );
+}
+
+function chartAccessibilityText(
+  hourLabelText: string,
+  conditionLabel: string,
+  selectedReason: string | null,
+): string {
+  return selectedReason
+    ? `${hourLabelText}, ${conditionLabel}, ${selectedReason}`
+    : `${hourLabelText}, ${conditionLabel}`;
+}
+
 function HourlyChartShell({
   chart,
   data,
@@ -290,12 +325,18 @@ function HourlyChartShell({
     hourLabelText,
     conditionLabel,
     initialScrollX,
+    selectedIdx,
   } = chart;
   const isWeb = Platform.OS === 'web';
   const snapToOffsets = isWeb || snapOffsets.length === 0 ? undefined : snapOffsets;
-  const accessibilityText = selectedReason
-    ? `${hourLabelText}, ${conditionLabel}, ${selectedReason}`
-    : `${hourLabelText}, ${conditionLabel}`;
+  const accessibilityText = chartAccessibilityText(hourLabelText, conditionLabel, selectedReason);
+
+  const handleAccessibilityAction = useChartAccessibilityAction(
+    scrollRef,
+    selectedIdx,
+    maxIndex,
+    viewportWidth,
+  );
 
   return (
     <View
@@ -320,6 +361,11 @@ function HourlyChartShell({
         accessibilityRole="adjustable"
         accessibilityLabel="Hourly ride-condition chart"
         accessibilityValue={{ text: accessibilityText }}
+        accessibilityActions={[
+          { name: 'increment', label: 'Next hour' },
+          { name: 'decrement', label: 'Previous hour' },
+        ]}
+        onAccessibilityAction={handleAccessibilityAction}
       >
         <View
           style={[
