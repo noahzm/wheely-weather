@@ -413,7 +413,7 @@ describe('Hourly Message Logic', () => {
       daily: [],
     };
 
-    expect(spoken(getMessage(weather, 'no'))).toContain('Strong gusts (36 mph gusts)');
+    expect(spoken(getMessage(weather, 'no'))).toContain('Strong gusts (36 mph)');
   });
 });
 

@@ -206,9 +206,16 @@ export function RideSpecs({
         const isLastColumn = (index + 1) % columns === 0;
         const isLastRow =
           Math.floor(index / columns) === Math.floor((metrics.length - 1) / columns);
+        const conditionText =
+          condition && condition !== 'good' ? CONDITION_DISPLAY[asCondition(condition)] : null;
+        const cellA11yLabel = [`${label}: ${value}`, qualifier, conditionText]
+          .filter(Boolean)
+          .join(', ');
         return (
           <View
             key={label}
+            accessible={true}
+            accessibilityLabel={cellA11yLabel}
             style={[
               styles.metricCell,
               {

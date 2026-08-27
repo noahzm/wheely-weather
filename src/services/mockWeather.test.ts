@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   isMockScenario,
   getMockScenarioFromParams,
+  getMockScenario,
+  isMockMode,
   getMockLocationLabel,
   buildMockWeather,
 } from './mockWeather';
@@ -56,5 +58,30 @@ describe('mockWeather', () => {
 
     const unknown = buildMockWeather('unknown');
     expect(unknown).toBeNull();
+  });
+
+  it('getMockScenario and isMockMode read location search when available', () => {
+    const hasLocation = 'location' in globalThis;
+    const originalLocation = hasLocation ? globalThis.location : undefined;
+    try {
+      Reflect.deleteProperty(globalThis, 'location');
+      expect(getMockScenario()).toBeNull();
+      expect(isMockMode()).toBe(false);
+
+      // @ts-expect-error test override
+      globalThis.location = { search: '?mock=ride' };
+      expect(getMockScenario()).toBe('ride');
+      expect(isMockMode()).toBe(true);
+
+      // @ts-expect-error test override
+      globalThis.location = { search: 123 };
+      expect(getMockScenario()).toBeNull();
+    } finally {
+      if (hasLocation && originalLocation) {
+        globalThis.location = originalLocation;
+      } else {
+        Reflect.deleteProperty(globalThis, 'location');
+      }
+    }
   });
 });

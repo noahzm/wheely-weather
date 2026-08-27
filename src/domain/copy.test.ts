@@ -72,8 +72,8 @@ describe('shared issue phrases', () => {
     expect(ISSUE_PHRASES.RAIN('70%', 'poor')).toBe('Rain very likely (70%)');
     expect(ISSUE_PHRASES.RAIN('45%', 'marginal')).toBe('Rain likely (45%)');
     expect(ISSUE_PHRASES.RAIN('25%', 'fair')).toBe('Rain possible (25%)');
-    expect(ISSUE_PHRASES.GUSTS(42, 'bad')).toBe('Dangerous gusts (42 mph gusts)');
-    expect(ISSUE_PHRASES.GUSTS(36, 'poor')).toBe('Strong gusts (36 mph gusts)');
+    expect(ISSUE_PHRASES.GUSTS(42, 'bad')).toBe('Dangerous gusts (42 mph)');
+    expect(ISSUE_PHRASES.GUSTS(36, 'poor')).toBe('Strong gusts (36 mph)');
     expect(ISSUE_PHRASES.AQI(220, 'bad')).toBe('Hazardous air (AQI 220)');
     expect(ISSUE_PHRASES.HEAT('97°F', 'bad')).toBe('Dangerous heat (97°F)');
     expect(ISSUE_PHRASES.COLD('30°F', 'bad')).toBe('Freezing (30°F)');

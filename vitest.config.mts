@@ -35,7 +35,7 @@ export default defineConfig({
         test: {
           name: 'unit',
           environment: 'node',
-          include: ['src/**/*.{test,spec}.{js,ts,tsx}'],
+          include: ['src/**/*.{test,spec}.{js,ts,tsx}', 'workers/**/*.{test,spec}.{js,ts,tsx,mjs}'],
         },
       },
     ],

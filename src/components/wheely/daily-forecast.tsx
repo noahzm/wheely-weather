@@ -95,8 +95,13 @@ function DayRow({
   const { c, styles } = useStyles();
   const { format: formatTemp } = useTemperatureDisplay();
   const condition = asCondition(day.condition);
+  const rowA11yLabel = `${dayLabel(day.date, index)}: high ${formatTemp(day.high)}, low ${formatTemp(day.low)}, ${CONDITION_DISPLAY[condition]}${best ? ', Best bet' : ''}`;
   return (
-    <View style={[styles.dayRow, best && styles.dayRowBest, last && styles.dayRowLast]}>
+    <View
+      style={[styles.dayRow, best && styles.dayRowBest, last && styles.dayRowLast]}
+      accessible={true}
+      accessibilityLabel={rowA11yLabel}
+    >
       <View style={styles.dayRowMain}>
         <View style={styles.dayLabelCell}>
           <ThemedText style={styles.dayLabel}>{dayLabel(day.date, index)}</ThemedText>

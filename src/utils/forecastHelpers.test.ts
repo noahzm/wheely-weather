@@ -161,7 +161,7 @@ describe('getHourConditionReasons', () => {
   // sustained speed, yielding "Very windy (8 mph)" for a calm-but-gusty hour.
   it('names gusts, with the gust speed, when gusts set the rating', () => {
     expect(getHourConditionReasons(hour({ windSpeed: 8, windGust: 42 }))).toEqual([
-      'Dangerous gusts (42 mph gusts)',
+      'Dangerous gusts (42 mph)',
     ]);
   });
 

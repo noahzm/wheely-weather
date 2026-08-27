@@ -64,7 +64,7 @@ export function StarRating({ rating, size = 24 }: Readonly<{ rating: number; siz
     (fill): fill is Exclude<StarFill, 'empty'> => fill !== 'empty',
   );
   return (
-    <View style={styles.row}>
+    <View style={styles.row} accessible={true} accessibilityLabel={`${rating} out of 5 stars`}>
       {earned.map((fill, i) => (
         <RatingStar key={i} fill={fill} size={size} filledColor={c.warning} />
       ))}

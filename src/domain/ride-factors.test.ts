@@ -61,6 +61,20 @@ describe('Ride Factors', () => {
     expect(factors.some((f) => f.type === 'temperature')).toBe(true);
   });
 
+  it('includes limiting rain chance and AQI factors', () => {
+    const weather = {
+      temperature: 60,
+      windSpeed: 5,
+      rainChance: 70,
+      dewpoint: 50,
+      aqi: 160,
+      weatherCode: 1,
+    };
+    const factors = getRideFactors(weather, 'no');
+    expect(factors.some((f) => f.type === 'rainChance' && f.value === '70% chance')).toBe(true);
+    expect(factors.some((f) => f.type === 'aqi' && f.value === 'AQI 160')).toBe(true);
+  });
+
   it('surfaces thunderstorm as the overriding bad factor', () => {
     const weather = {
       temperature: 60,

@@ -40,5 +40,9 @@ describe('formatUpdatedAgo', () => {
   it('falls back to the absolute fetch time past an hour', () => {
     expect(formatUpdatedAgo(ago(61 * 60_000), NOW)).toBe('Updated 2:03 PM');
     expect(formatUpdatedAgo(ago(12 * 3_600_000), NOW)).toBe('Updated 3:04 AM');
+    const noon = new Date('2024-06-01T12:15:00');
+    const midnight = new Date('2024-06-01T00:15:00');
+    expect(formatUpdatedAgo(noon, NOW)).toBe('Updated 12:15 PM');
+    expect(formatUpdatedAgo(midnight, NOW)).toBe('Updated 12:15 AM');
   });
 });

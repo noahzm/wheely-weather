@@ -118,6 +118,7 @@ function RNSwitch({
         }
       }}
       disabled={disabled}
+      hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
       accessibilityRole="switch"
       accessibilityState={{ checked: value, disabled }}
       accessibilityLabel={accessibilityLabel}

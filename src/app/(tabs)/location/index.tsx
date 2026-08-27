@@ -70,6 +70,7 @@ function WebSearchField({
             }}
             accessibilityRole="button"
             accessibilityLabel="Clear search"
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
             <PlatformIcon icon={X} size={18} color={c.mutedInk} strokeWidth={2.5} />
           </HapticPressable>

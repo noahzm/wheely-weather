@@ -55,6 +55,6 @@ export const getWeatherCodeIssue = (
     status === 'maybe'
       ? rating === 'marginal' || rating === 'fair'
       : rating === 'bad' || rating === 'poor';
-  if (!shouldMention) return null;
-  return code == null ? null : (WEATHER_CODE_ISSUES[code] ?? null);
+  if (!shouldMention || code == null) return null;
+  return WEATHER_CODE_ISSUES[code] ?? null;
 };
