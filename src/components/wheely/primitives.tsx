@@ -11,6 +11,7 @@ import {
   Sun,
   type LucideIcon,
 } from 'lucide-react-native';
+import { SymbolView, type SFSymbol } from 'expo-symbols';
 
 import { ThemedText } from '@/components/themed-text';
 import { useColorSchemeName, useWheelyColors } from '@/hooks/use-theme';
@@ -130,17 +131,22 @@ export const PressedOpacity = 0.85;
 
 export function PlatformIcon({
   icon: Icon,
+  sf,
   size,
   color,
   strokeWidth = 2,
   style,
 }: Readonly<{
   icon: LucideIcon;
+  sf?: SFSymbol;
   size: number;
   color: string;
   strokeWidth?: number;
   style?: object;
 }>) {
+  if (Platform.OS === 'ios' && sf) {
+    return <SymbolView name={sf} size={size} tintColor={color} style={style} />;
+  }
   return <Icon size={size} color={color} strokeWidth={strokeWidth} style={style} />;
 }
 
@@ -291,6 +297,8 @@ const sectionHeadingStyles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.two,
   },
   text: {
     // Full-width box with room to wrap: iOS measures the text box with the
@@ -316,10 +324,14 @@ export function SectionHeading({ children }: Readonly<{ children: string }>) {
   );
 }
 
-export function SectionTitle({ title }: Readonly<{ title: string }>) {
+export function SectionTitle({
+  title,
+  rightAccessory,
+}: Readonly<{ title: string; rightAccessory?: ReactNode }>) {
   return (
     <View style={sectionHeadingStyles.row}>
       <SectionHeading>{title}</SectionHeading>
+      {rightAccessory}
     </View>
   );
 }

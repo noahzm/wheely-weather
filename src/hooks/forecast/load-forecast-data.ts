@@ -1,3 +1,4 @@
+import { type Dispatch, type SetStateAction } from 'react';
 import { Platform } from 'react-native';
 
 import {
@@ -11,10 +12,12 @@ import {
   type SavedLocation,
 } from '@/services/locationStorage';
 import { getForecastSnapshot, type ForecastSnapshot } from '@/services/forecastSnapshot';
+import { setMemoryCachedForecast } from '@/services/forecastCache';
 import { DEFAULT_EXPOSURE_LEVEL, type ExposureLevel } from '@/types/settings';
 import type { ForecastExtras } from '@/types/weather';
 
-import { resolveDeviceLocation } from './device-location';
+import { resolveDeviceLocation, setLastKnownDeviceLocation } from './device-location';
+import { mergeExtrasWhenReady } from './merge-extras';
 
 export interface ForecastState {
   snapshot: ForecastSnapshot | null;
@@ -105,4 +108,54 @@ export async function togglePinnedLocation(
 ): Promise<RecentLocation[]> {
   const pinnedNow = pinned.some((p) => p.lat === place.lat && p.lon === place.lon);
   return pinnedNow ? removePinnedLocation(place.lat, place.lon) : addPinnedLocation(place);
+}
+
+export function applyNeedsLocation(
+  result: Extract<ForecastLoadResult, { kind: 'needsLocation' }>,
+  setState: Dispatch<SetStateAction<ForecastState>>,
+  needsLocationRef: { current: boolean },
+): void {
+  needsLocationRef.current = true;
+  setState((current) => ({
+    ...current,
+    snapshot: null,
+    savedLocation: null,
+    recentLocations: result.recentLocations,
+    pinnedLocations: result.pinnedLocations,
+    loading: false,
+    refreshing: false,
+    needsLocation: true,
+    errorKind: null,
+    statusMessage: '',
+  }));
+}
+
+export function applyForecastSuccess(
+  result: Extract<ForecastLoadResult, { kind: 'loaded' }>,
+  setState: Dispatch<SetStateAction<ForecastState>>,
+  needsLocationRef: { current: boolean },
+  lastLoadedAt: { current: number },
+): void {
+  persistResolvedDeviceName(result);
+  lastLoadedAt.current = Date.now();
+  needsLocationRef.current = false;
+  if (result.savedLocation) {
+    setMemoryCachedForecast(result.savedLocation, result.snapshot);
+    if (result.savedLocation.source === 'device') {
+      setLastKnownDeviceLocation(result.savedLocation);
+    }
+  }
+  setState((current) => ({
+    ...current,
+    snapshot: result.snapshot,
+    savedLocation: result.savedLocation,
+    recentLocations: result.recentLocations,
+    pinnedLocations: result.pinnedLocations,
+    loading: false,
+    refreshing: false,
+    needsLocation: false,
+    errorKind: null,
+    statusMessage: '',
+  }));
+  mergeExtrasWhenReady(result.snapshot, result.extras, setState);
 }

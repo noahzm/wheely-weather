@@ -6,13 +6,16 @@ import {
   type RecentLocation,
   type SavedLocation,
 } from '@/services/locationStorage';
+import { getMemoryCachedForecast } from '@/services/forecastCache';
 import { captureError } from '@/services/telemetry';
 
 import {
+  getLastKnownDeviceLocation,
   isWebInsecureContext,
   LOCATION_DENIED_MESSAGE,
   LOCATION_INSECURE_MESSAGE,
   requestDeviceLocation,
+  setLastKnownDeviceLocation,
 } from './device-location';
 import type { ForecastState } from './load-forecast-data';
 
@@ -34,32 +37,33 @@ export function useLocationActions(
 ) {
   const setManualLocation = useCallback(
     async (place: RecentLocation): Promise<boolean> => {
-      try {
-        const next = await saveLocation({
-          lat: place.lat,
-          lon: place.lon,
-          name: place.label,
-          source: 'manual',
-        });
-        // Recents are best-effort: a failure here must not report "couldn't
-        // save" when the location itself persisted fine.
-        try {
-          await saveRecentLocation(place);
-        } catch (error) {
-          captureError(error, { where: 'saveRecentLocation' });
-        }
-        needsLocationRef.current = false;
-        setState((current) => ({
-          ...current,
-          needsLocation: false,
-          statusMessage: 'Updating forecast...',
-        }));
-        await loadForecast(next, true);
-        return true;
-      } catch {
-        setState((current) => ({ ...current, statusMessage: LOCATION_SAVE_FAILED_MESSAGE }));
-        return false;
-      }
+      const next: SavedLocation = {
+        lat: place.lat,
+        lon: place.lon,
+        name: place.label,
+        source: 'manual',
+      };
+      const cached = getMemoryCachedForecast(next);
+      needsLocationRef.current = false;
+      setState((current) => ({
+        ...current,
+        needsLocation: false,
+        savedLocation: next,
+        snapshot: cached ? cached.snapshot : current.snapshot,
+        refreshing: !cached,
+        statusMessage: '',
+      }));
+
+      // Async best-effort persistence
+      void saveLocation(next).catch((error: unknown) => {
+        captureError(error, { where: 'setManualLocation:save' });
+      });
+      void saveRecentLocation(place).catch((error: unknown) => {
+        captureError(error, { where: 'saveRecentLocation' });
+      });
+
+      await loadForecast(next, true);
+      return true;
     },
     [loadForecast, needsLocationRef, setState],
   );
@@ -69,23 +73,48 @@ export function useLocationActions(
       setState((current) => ({ ...current, statusMessage: LOCATION_INSECURE_MESSAGE }));
       return false;
     }
-    setState((current) => ({ ...current, statusMessage: 'Checking your device location...' }));
+    const fastFix = getLastKnownDeviceLocation();
+    if (fastFix) {
+      const cached = getMemoryCachedForecast(fastFix);
+      needsLocationRef.current = false;
+      setState((current) => ({
+        ...current,
+        needsLocation: false,
+        savedLocation: fastFix,
+        snapshot: cached ? cached.snapshot : current.snapshot,
+        refreshing: !cached,
+        statusMessage: '',
+      }));
+    }
+
     let next: SavedLocation | null;
     try {
       next = await requestDeviceLocation();
     } catch {
-      setState((current) => ({ ...current, statusMessage: LOCATION_DENIED_MESSAGE }));
-      return false;
+      if (!fastFix) {
+        setState((current) => ({ ...current, statusMessage: LOCATION_DENIED_MESSAGE }));
+        return false;
+      }
+      return true;
     }
     if (!next) {
-      setState((current) => ({ ...current, statusMessage: LOCATION_DENIED_MESSAGE }));
-      return false;
+      if (!fastFix) {
+        setState((current) => ({ ...current, statusMessage: LOCATION_DENIED_MESSAGE }));
+        return false;
+      }
+      return true;
     }
+
+    setLastKnownDeviceLocation(next);
+    const cached = getMemoryCachedForecast(next);
     needsLocationRef.current = false;
     setState((current) => ({
       ...current,
       needsLocation: false,
-      statusMessage: 'Location found. Updating forecast...',
+      savedLocation: next,
+      snapshot: cached ? cached.snapshot : current.snapshot,
+      refreshing: !cached,
+      statusMessage: '',
     }));
     await loadForecast(next, true);
     return true;

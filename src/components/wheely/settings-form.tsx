@@ -15,8 +15,6 @@ import { RNSegmentedPicker } from './rn-segmented-picker';
 import {
   APPEARANCE_LABELS,
   APPEARANCE_VALUES,
-  GEAR_LABELS,
-  GEAR_MODES,
   TEMP_UNIT_LABELS,
   TEMP_UNIT_VALUES,
   type SettingsFormProps,
@@ -41,8 +39,6 @@ const styles = StyleSheet.create({
 });
 
 export function SettingsForm({
-  gearMode,
-  onGearChange,
   appearance,
   onAppearanceChange,
   tempUnit,
@@ -58,16 +54,6 @@ export function SettingsForm({
   const insets = useSafeAreaInsets();
   const form = (
     <>
-      <View style={styles.group}>
-        <SectionTitle title="Ride style" />
-        <RNSegmentedPicker
-          values={GEAR_MODES}
-          labels={GEAR_LABELS}
-          selectedValue={gearMode}
-          onSelect={onGearChange}
-        />
-      </View>
-
       <View style={styles.group}>
         <SectionTitle title="Appearance" />
         <RNSegmentedPicker

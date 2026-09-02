@@ -12,7 +12,10 @@ export default function HomeTabLayout() {
   const forecast = useForecast();
   // Plain city only: the native header title is a string, so the "following your
   // device" arrow lives in `CurrentLocationBadge` just below it.
-  const title = cityFromLocation(forecast.snapshot?.location) || 'Set location';
+  const title =
+    cityFromLocation(forecast.savedLocation?.name) ||
+    cityFromLocation(forecast.snapshot?.location) ||
+    'Set location';
 
   if (Platform.OS === 'web') {
     return <Stack screenOptions={{ headerShown: false }} />;

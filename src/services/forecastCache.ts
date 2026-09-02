@@ -9,6 +9,15 @@ import {
 import { loadSavedLocation, type SavedLocation } from './locationStorage';
 import { captureError } from './telemetry';
 
+import { setMemoryCachedForecast, clearMemoryCachedForecasts } from './snapshotMemoryCache';
+
+export {
+  clearMemoryCachedForecasts,
+  getMemoryCachedForecast,
+  getSnapshotLocationKey,
+  setMemoryCachedForecast,
+} from './snapshotMemoryCache';
+
 const FORECAST_CACHE_KEY = 'ww_forecast_snapshot';
 
 /**
@@ -21,7 +30,11 @@ export async function loadCachedForecast(): Promise<CachedForecast | null> {
       AsyncStorage.getItem(FORECAST_CACHE_KEY),
       loadSavedLocation(),
     ]);
-    return decodeForecastCache(raw, currentLocation);
+    const decoded = decodeForecastCache(raw, currentLocation);
+    if (decoded) {
+      setMemoryCachedForecast(decoded.savedLocation, decoded.snapshot);
+    }
+    return decoded;
   } catch (error) {
     captureError(error, { where: 'loadCachedForecast' });
     return null;
@@ -33,6 +46,7 @@ export async function saveCachedForecast(
   snapshot: ForecastSnapshot,
   savedLocation: SavedLocation,
 ): Promise<void> {
+  setMemoryCachedForecast(savedLocation, snapshot);
   try {
     const encoded = encodeForecastCache(snapshot, savedLocation);
     if (encoded) await AsyncStorage.setItem(FORECAST_CACHE_KEY, encoded);
@@ -43,6 +57,7 @@ export async function saveCachedForecast(
 }
 
 export async function clearCachedForecast(): Promise<void> {
+  clearMemoryCachedForecasts();
   try {
     await AsyncStorage.removeItem(FORECAST_CACHE_KEY);
   } catch (error) {

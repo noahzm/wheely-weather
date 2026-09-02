@@ -27,7 +27,6 @@ function easeOutCubic(t: number): number {
   return 1 - (1 - t) ** 3;
 }
 
-/** Tracks the selected hour index and maps scroll offsets onto it. */
 function useScrollSelection(
   nowIdx: number,
   maxIndex: number,
@@ -198,6 +197,7 @@ function useWebMagnetSnap(params: {
     scheduleWheelSnapAfterIdle,
     cancelMagnetAnimation,
     cancelWheelIdleSnap,
+    animateSnapTo,
     isMagnetAnimatingRef,
   };
 }
@@ -367,6 +367,45 @@ function useScrollGestureHandlers(params: {
   return { isScrolling, onScrollBeginDrag, onScrollEndDrag, onMomentumScrollEnd, onWebScroll };
 }
 
+function useScrollToIndex(params: {
+  maxIndex: number;
+  viewportWidth: number;
+  isWeb: boolean;
+  cancelWheelIdleSnap: () => void;
+  liveScrollXRef: RefObject<number>;
+  animateSnapTo: (from: number, to: number) => void;
+  scrollRef: RefObject<Animated.ScrollView | null>;
+}) {
+  const {
+    maxIndex,
+    viewportWidth,
+    isWeb,
+    cancelWheelIdleSnap,
+    liveScrollXRef,
+    animateSnapTo,
+    scrollRef,
+  } = params;
+
+  return useCallback(
+    (targetIdx: number) => {
+      const clamped = Math.min(Math.max(0, targetIdx), maxIndex);
+      if (viewportWidth <= 0) return;
+      const targetOffset = chartScrollOffsetForIndex(clamped, viewportWidth, maxIndex);
+      selectionFeedback();
+      if (isWeb) {
+        cancelWheelIdleSnap();
+        const current = liveScrollXRef.current;
+        if (Math.abs(current - targetOffset) > 1) {
+          animateSnapTo(current, targetOffset);
+        }
+      } else {
+        scrollRef.current?.scrollTo({ x: targetOffset, animated: true });
+      }
+    },
+    [animateSnapTo, cancelWheelIdleSnap, isWeb, liveScrollXRef, maxIndex, scrollRef, viewportWidth],
+  );
+}
+
 export function useHourlyScrollPicker(
   nowIdx: number,
   count: number,
@@ -407,14 +446,7 @@ export function useHourlyScrollPicker(
     [scrollX, syncSelectionFromScroll],
   );
 
-  const {
-    clampScrollOffset,
-    snapToNearestOffset,
-    scheduleWheelSnapAfterIdle,
-    cancelMagnetAnimation,
-    cancelWheelIdleSnap,
-    isMagnetAnimatingRef,
-  } = useWebMagnetSnap({
+  const webMagnetSnap = useWebMagnetSnap({
     isWeb,
     viewportWidth,
     maxIndex,
@@ -423,6 +455,16 @@ export function useHourlyScrollPicker(
     liveScrollXRef,
     publishScrollOffset,
     setIsScrollIdle,
+  });
+
+  const scrollToIndex = useScrollToIndex({
+    maxIndex,
+    viewportWidth,
+    isWeb,
+    cancelWheelIdleSnap: webMagnetSnap.cancelWheelIdleSnap,
+    liveScrollXRef,
+    animateSnapTo: webMagnetSnap.animateSnapTo,
+    scrollRef,
   });
 
   const { onContentSizeChange } = useInitialChartScroll({
@@ -446,20 +488,19 @@ export function useHourlyScrollPicker(
     }
   }, []);
 
-  const { isScrolling, onScrollBeginDrag, onScrollEndDrag, onMomentumScrollEnd, onWebScroll } =
-    useScrollGestureHandlers({
-      isWeb,
-      syncSelectionFromScroll,
-      snapToNearestOffset,
-      clampScrollOffset,
-      publishScrollOffset,
-      scheduleWheelSnapAfterIdle,
-      cancelMagnetAnimation,
-      cancelWheelIdleSnap,
-      setIsScrollIdle,
-      isMagnetAnimatingRef,
-      selectionHapticEnabledRef,
-    });
+  const gestureHandlers = useScrollGestureHandlers({
+    isWeb,
+    syncSelectionFromScroll,
+    snapToNearestOffset: webMagnetSnap.snapToNearestOffset,
+    clampScrollOffset: webMagnetSnap.clampScrollOffset,
+    publishScrollOffset,
+    scheduleWheelSnapAfterIdle: webMagnetSnap.scheduleWheelSnapAfterIdle,
+    cancelMagnetAnimation: webMagnetSnap.cancelMagnetAnimation,
+    cancelWheelIdleSnap: webMagnetSnap.cancelWheelIdleSnap,
+    setIsScrollIdle,
+    isMagnetAnimatingRef: webMagnetSnap.isMagnetAnimatingRef,
+    selectionHapticEnabledRef,
+  });
 
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -481,16 +522,17 @@ export function useHourlyScrollPicker(
     liveScrollX,
     isScrollIdle,
     selectedIdx,
-    isScrolling,
     viewportWidth,
     contentPadding,
     snapOffsets,
     scrollHandler: isWeb ? undefined : scrollHandler,
-    onWebScroll: isWeb ? onWebScroll : undefined,
+    onWebScroll: isWeb ? gestureHandlers.onWebScroll : undefined,
     onViewportLayout,
     onContentSizeChange,
-    onScrollBeginDrag,
-    onScrollEndDrag,
-    onMomentumScrollEnd,
+    scrollToIndex,
+    onScrollBeginDrag: gestureHandlers.onScrollBeginDrag,
+    onScrollEndDrag: gestureHandlers.onScrollEndDrag,
+    onMomentumScrollEnd: gestureHandlers.onMomentumScrollEnd,
+    isScrolling: gestureHandlers.isScrolling,
   };
 }
