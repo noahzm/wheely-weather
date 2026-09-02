@@ -1,22 +1,17 @@
-import type { Appearance, ExposureLevel, GearMode, TempUnitPreference } from '@/types/settings';
+import type { Appearance, ExposureLevel, TempUnitPreference } from '@/types/settings';
 import type { HomeBaseline } from '@/types/weather';
 
 export {
-  GEAR_LABELS,
-  GEAR_MODES,
   APPEARANCE_LABELS,
   APPEARANCE_VALUES,
   TEMP_UNIT_LABELS,
   TEMP_UNIT_VALUES,
   EXPOSURE_LABELS,
   EXPOSURE_VALUES,
-  type GearMode,
   type ExposureLevel,
 } from '@/types/settings';
 
 export interface SettingsFormProps {
-  gearMode: GearMode;
-  onGearChange: (mode: GearMode) => void;
   appearance: Appearance;
   onAppearanceChange: (value: Appearance) => void;
   tempUnit: TempUnitPreference;

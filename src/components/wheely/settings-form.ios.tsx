@@ -32,8 +32,6 @@ import {
   APPEARANCE_VALUES,
   EXPOSURE_LABELS,
   EXPOSURE_VALUES,
-  GEAR_LABELS,
-  GEAR_MODES,
   TEMP_UNIT_LABELS,
   TEMP_UNIT_VALUES,
   type ExposureLevel,
@@ -165,8 +163,6 @@ function HomeClimateSectionIOS({
  * and a combined credits section.
  */
 export function SettingsForm({
-  gearMode,
-  onGearChange,
   appearance,
   onAppearanceChange,
   tempUnit,
@@ -189,22 +185,6 @@ export function SettingsForm({
     <View style={styles.container}>
       <Host style={styles.listHost}>
         <List modifiers={[listStyle('insetGrouped')]}>
-          <Section title="Ride style">
-            <Picker
-              selection={gearMode}
-              onSelectionChange={(value) => {
-                onGearChange(value);
-              }}
-              modifiers={[pickerStyle('segmented')]}
-            >
-              {GEAR_MODES.map((mode, index) => (
-                <Text key={mode} modifiers={[tag(mode)]}>
-                  {GEAR_LABELS[index]}
-                </Text>
-              ))}
-            </Picker>
-          </Section>
-
           <Section title="Appearance">
             <Picker
               selection={appearance}

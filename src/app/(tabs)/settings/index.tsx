@@ -6,7 +6,6 @@ import { SettingsForm, WebScreenHeader, WebScreenTitle } from '@/components/whee
 import {
   useAppearance,
   useExposureLevel,
-  useGearMode,
   useHomeLocation,
   useTempUnit,
 } from '@/hooks/settings-context';
@@ -17,7 +16,6 @@ import { TRANSPARENT } from '@/constants/theme';
 const isWeb = Platform.OS === 'web';
 
 export default function SettingsScreen() {
-  const [gearMode, setGearMode] = useGearMode();
   const [appearance, setAppearance] = useAppearance();
   const [homeLocation, setHomeLocation] = useHomeLocation();
   const [tempUnit, setTempUnit] = useTempUnit();
@@ -51,7 +49,7 @@ export default function SettingsScreen() {
         <title>Settings — Wheely Weather</title>
         <meta
           name="description"
-          content="Configure gear preferences, comfort thresholds, and appearance options for your ride forecast."
+          content="Configure comfort thresholds, units, and appearance options for your ride forecast."
         />
       </Head>
       <View style={{ flex: 1, backgroundColor: TRANSPARENT }} collapsable={false}>
@@ -59,8 +57,6 @@ export default function SettingsScreen() {
           <WebScreenHeader variant="title" title={<WebScreenTitle>Settings</WebScreenTitle>} />
         )}
         <SettingsForm
-          gearMode={gearMode}
-          onGearChange={setGearMode}
           appearance={appearance}
           onAppearanceChange={setAppearance}
           tempUnit={tempUnit}

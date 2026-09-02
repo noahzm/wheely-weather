@@ -10,4 +10,5 @@ export { HourlyForecast } from './hourly-forecast';
 export { KitGuide } from './kit-guide';
 export { RideSpecs } from './ride-specs';
 export { DailyForecast } from './daily-forecast';
+export { PinnedLocationsBar } from './pinned-locations-bar';
 export { ErrorState, LoadingState, LocationPromptState, StaleDataNotice } from './status';

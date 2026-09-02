@@ -20,6 +20,7 @@ import {
   KitGuide,
   LoadingState,
   LocationPromptState,
+  PinnedLocationsBar,
   RideSpecs,
   RideVerdict,
   StaleDataNotice,
@@ -42,8 +43,9 @@ import {
 } from '@/domain';
 import type { AcclimatizationContext } from '@/services/forecastSnapshot';
 import { useForecast } from '@/hooks/forecast-context';
-import { useResolvedTempUnit } from '@/hooks/settings-context';
+import { useGearMode, useResolvedTempUnit } from '@/hooks/settings-context';
 import { useWheelyColors } from '@/hooks/use-theme';
+import { GearStylePicker } from '@/components/wheely/gear-style-picker';
 import { cityFromLocation } from '@/utils/locationTitle';
 import { formatUpdatedAgo } from '@/utils/timeFormat';
 import type { TempUnit } from '@/utils/temperature';
@@ -164,20 +166,55 @@ function WebCityHeading({ city, following }: Readonly<{ city: string; following:
   );
 }
 
+function TodayKitSection({
+  weather,
+  styles,
+}: Readonly<{
+  weather: Weather;
+  styles: ReturnType<typeof makeStyles>;
+}>) {
+  const [mode, setMode] = useGearMode();
+  return (
+    <View style={styles.section}>
+      <SectionTitle
+        title="Today’s kit"
+        rightAccessory={<GearStylePicker mode={mode} onModeChange={setMode} />}
+      />
+      <KitGuide weather={weather} mode={mode} showPicker={false} />
+    </View>
+  );
+}
+
 function HomeSections({
   weather,
   derived,
   thresholds,
+  refreshing = false,
 }: Readonly<{
   weather: Weather;
   derived: HomeState;
   thresholds: AcclimatizationContext['thresholds'];
+  refreshing?: boolean;
 }>) {
   const c = useWheelyColors();
   const styles = useMemo(() => makeStyles(c), [c]);
+  const reduceMotion = useReducedMotion();
+  const sectionsOpacity = useSharedValue(1);
+
+  useEffect(() => {
+    if (reduceMotion) {
+      sectionsOpacity.value = 1;
+      return;
+    }
+    sectionsOpacity.value = withTiming(refreshing ? 0.65 : 1, { duration: 180 });
+  }, [refreshing, reduceMotion, sectionsOpacity]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: sectionsOpacity.value,
+  }));
 
   return (
-    <>
+    <Animated.View style={[styles.sectionsWrap, animatedStyle]}>
       {/* Alerts belong to the verdict, so they group with it and skip the 36px
           rhythm that separates the page's sections. The wrapper carries no gap
           of its own — `RideVerdict`'s own `marginBottom` is the spacing. */}
@@ -212,10 +249,7 @@ function HomeSections({
       </Stagger>
 
       <Stagger order={4}>
-        <View style={styles.section}>
-          <SectionTitle title="Today’s kit" />
-          <KitGuide weather={weather} />
-        </View>
+        <TodayKitSection weather={weather} styles={styles} />
       </Stagger>
 
       <Stagger order={5}>
@@ -231,7 +265,7 @@ function HomeSections({
           <DailyForecast daily={weather.daily} />
         </View>
       </Stagger>
-    </>
+    </Animated.View>
   );
 }
 
@@ -242,8 +276,10 @@ export default function HomeScreen() {
 
   const weather = forecast.snapshot?.weather ?? null;
   const location = forecast.snapshot?.location ?? '';
-  const city = cityFromLocation(location);
-  const followingDevice = forecast.snapshot?.isDeviceLocation === true;
+  const city = cityFromLocation(forecast.savedLocation?.name) || cityFromLocation(location);
+  const followingDevice = forecast.savedLocation
+    ? forecast.savedLocation.source === 'device'
+    : forecast.snapshot?.isDeviceLocation === true;
   const acclimatization = forecast.snapshot?.acclimatization ?? null;
   const tempUnit = useResolvedTempUnit();
   // Bundle the non-null trio so rendering needs a single presence check.
@@ -387,8 +423,23 @@ function HomeContent({
         <View style={styles.safeArea}>
           <WebCityHeading city={city} following={followingDevice} />
           <View style={styles.content}>
-            {/* Web shows the arrow inline beside its own heading above. */}
-            {followingDevice && !isWeb && <CurrentLocationBadge />}
+            {/* Web shows the arrow inline beside its own heading above. Pinned bar already has a Current pill. */}
+            {followingDevice && !isWeb && forecast.pinnedLocations.length === 0 && (
+              <CurrentLocationBadge />
+            )}
+            {forecast.pinnedLocations.length > 0 && (
+              <PinnedLocationsBar
+                pinnedLocations={forecast.pinnedLocations}
+                savedLocation={forecast.savedLocation}
+                followingDevice={followingDevice}
+                onSelectCurrentLocation={() => {
+                  void forecast.useDeviceLocation();
+                }}
+                onSelectPinnedLocation={(place) => {
+                  void forecast.setManualLocation(place);
+                }}
+              />
+            )}
             {forecast.errorKind && sections && (
               <StaleDataNotice kind={forecast.errorKind} onRetry={forecast.refresh} />
             )}
@@ -398,6 +449,7 @@ function HomeContent({
                 weather={sections.weather}
                 derived={sections.derived}
                 thresholds={sections.thresholds}
+                refreshing={forecast.refreshing}
               />
             )}
             {webUpdatedText !== null && (
@@ -438,6 +490,9 @@ function makeStyles(c: WheelyPalette) {
       ...contentColumnStyle,
       // Native: breathing room between the large-title header and the verdict card.
       marginTop: Platform.OS === 'web' ? WEB_TITLE_CONTENT_SPACING : Spacing.three,
+      gap: 36,
+    },
+    sectionsWrap: {
       gap: 36,
     },
     section: {

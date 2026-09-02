@@ -2,20 +2,22 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { type RecentLocation, type SavedLocation } from '@/services/locationStorage';
 import { getForecastErrorKind } from '@/services/forecastSnapshot';
+import { getMemoryCachedForecast } from '@/services/forecastCache';
 import { useExposureLevel, useHomeLocation, useSettingsHydrated } from '@/hooks/settings-context';
 import { captureError } from '@/services/telemetry';
 
 import {
+  applyForecastSuccess,
+  applyNeedsLocation,
   INITIAL_FORECAST_STATE,
   loadForecastData,
-  persistResolvedDeviceName,
   togglePinnedLocation,
   type ForecastState,
 } from './forecast/load-forecast-data';
 import { refreshFollowedLocation } from './forecast/device-location';
-import { mergeExtrasWhenReady } from './forecast/merge-extras';
 import { useFollowDeviceLocation } from './forecast/use-follow-device-location';
 import { useLocationActions } from './forecast/use-location-actions';
+import { usePrefetchPins } from './forecast/use-prefetch-pins';
 import {
   useSnapshotCacheHydration,
   useSnapshotCachePersistence,
@@ -41,10 +43,12 @@ export function useWeatherForecast(mockScenario: string | null) {
   const loadForecast = useCallback(
     async (locationOverride?: SavedLocation | null, refreshOnly = false) => {
       const gen = ++loadGenRef.current;
+      const cached = locationOverride ? getMemoryCachedForecast(locationOverride) : null;
       setState((current) => ({
         ...current,
-        loading: !current.snapshot && !refreshOnly && !current.needsLocation,
-        refreshing: !!current.snapshot || refreshOnly,
+        snapshot: cached ? cached.snapshot : current.snapshot,
+        loading: !current.snapshot && !cached && !refreshOnly && !current.needsLocation,
+        refreshing: !cached && (!!current.snapshot || refreshOnly),
         errorKind: null,
       }));
 
@@ -57,39 +61,10 @@ export function useWeatherForecast(mockScenario: string | null) {
         );
         if (gen !== loadGenRef.current) return;
         if (result.kind === 'needsLocation') {
-          needsLocationRef.current = true;
-          setState((current) => ({
-            ...current,
-            snapshot: null,
-            savedLocation: null,
-            recentLocations: result.recentLocations,
-            pinnedLocations: result.pinnedLocations,
-            loading: false,
-            refreshing: false,
-            needsLocation: true,
-            errorKind: null,
-            statusMessage: '',
-          }));
+          applyNeedsLocation(result, setState, needsLocationRef);
           return;
         }
-
-        persistResolvedDeviceName(result);
-
-        lastLoadedAt.current = Date.now();
-        needsLocationRef.current = false;
-        setState((current) => ({
-          ...current,
-          snapshot: result.snapshot,
-          savedLocation: result.savedLocation,
-          recentLocations: result.recentLocations,
-          pinnedLocations: result.pinnedLocations,
-          loading: false,
-          refreshing: false,
-          needsLocation: false,
-          errorKind: null,
-          statusMessage: '',
-        }));
-        mergeExtrasWhenReady(result.snapshot, result.extras, setState);
+        applyForecastSuccess(result, setState, needsLocationRef, lastLoadedAt);
       } catch (error) {
         if (gen !== loadGenRef.current) return;
         captureError(error, { where: 'loadForecast' });
@@ -121,6 +96,7 @@ export function useWeatherForecast(mockScenario: string | null) {
 
   useSnapshotCacheHydration(setState, mockScenario);
   useSnapshotCachePersistence(state);
+  usePrefetchPins(state.pinnedLocations, homeLocation, exposureLevel, mockScenario);
   useStaleRefresh(loadForecast, lastLoadedAt, needsLocationRef, savedLocationRef, relocatingRef);
   useFollowDeviceLocation(
     savedLocationRef,

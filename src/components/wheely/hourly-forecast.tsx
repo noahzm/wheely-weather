@@ -14,7 +14,7 @@ import {
   type ChipLayoutSize,
 } from './animated-condition-chip';
 import { AnimatedExpand } from './animated-expand';
-import { BrutalCard, asCondition } from './primitives';
+import { BrutalCard, HapticPressable, asCondition } from './primitives';
 import {
   CHART_HEIGHT,
   HourlyChartEdgeFades,
@@ -22,7 +22,8 @@ import {
   HourlyChartGridlines,
   SelectionMarker,
 } from './hourly-chart-graphic';
-import { chartScrollOffsetForIndex } from '@/utils/hourlyChart';
+import { CHART_X_STEP, chartScrollOffsetForIndex, chartX } from '@/utils/hourlyChart';
+import { fullHourLabel } from '@/utils/timeFormat';
 import { HourlyNoteStickers } from './hourly-note-stickers';
 import { useHourlyForecastChart, type ChartHour } from './use-hourly-forecast-chart';
 
@@ -71,6 +72,13 @@ function makeStyles(c: WheelyPalette) {
     },
     hourChart: {
       position: 'relative',
+    },
+    hourTapTarget: {
+      position: 'absolute',
+      top: 0,
+      width: CHART_X_STEP,
+      height: CHART_HEIGHT,
+      ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as object) : null),
     },
     scrollContent: {
       flexDirection: 'row',
@@ -290,18 +298,52 @@ function chartAccessibilityText(
     : `${hourLabelText}, ${conditionLabel}`;
 }
 
-function HourlyChartShell({
+function HourlyChartTapOverlay({
+  data,
+  nowIdx,
+  scrollToIndex,
+  tapTargetStyle,
+}: Readonly<{
+  data: ChartHour[];
+  nowIdx: number;
+  scrollToIndex: (idx: number) => void;
+  tapTargetStyle: object;
+}>) {
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+      {data.map((d) => (
+        <HapticPressable
+          key={`tap-hour-${d.idx}`}
+          onPress={() => {
+            scrollToIndex(d.idx);
+          }}
+          accessibilityRole="button"
+          accessibilityLabel={`Select ${d.idx === nowIdx ? 'Now' : fullHourLabel(d.hour)}, ${d.condition}`}
+          style={[
+            tapTargetStyle,
+            {
+              left: chartX(d.idx) - CHART_X_STEP / 2,
+            },
+          ]}
+        />
+      ))}
+    </View>
+  );
+}
+
+function HourlyChartScroller({
   chart,
   data,
   nowIdx,
   maxIndex,
+  styles,
 }: Readonly<{
   chart: ReturnType<typeof useHourlyForecastChart>;
   data: ChartHour[];
   nowIdx: number;
   maxIndex: number;
+  styles: ReturnType<typeof makeStyles>;
 }>) {
-  const { styles } = useStyles();
   const {
     scrollRef,
     scrollX,
@@ -312,20 +354,18 @@ function HourlyChartShell({
     snapOffsets,
     scrollHandler,
     onWebScroll,
-    onViewportLayout,
     onContentSizeChange,
     onScrollBeginDrag,
     onScrollEndDrag,
     onMomentumScrollEnd,
     chartWidth,
-    splineSegments,
     smoothPath,
-    selected,
-    selectedReason,
     hourLabelText,
     conditionLabel,
+    selectedReason,
     initialScrollX,
     selectedIdx,
+    scrollToIndex,
   } = chart;
   const isWeb = Platform.OS === 'web';
   const snapToOffsets = isWeb || snapOffsets.length === 0 ? undefined : snapOffsets;
@@ -339,6 +379,90 @@ function HourlyChartShell({
   );
 
   return (
+    <Animated.ScrollView
+      ref={scrollRef}
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      decelerationRate="fast"
+      snapToOffsets={snapToOffsets}
+      scrollEventThrottle={16}
+      onScroll={onWebScroll ?? scrollHandler}
+      onContentSizeChange={onContentSizeChange}
+      onScrollBeginDrag={onScrollBeginDrag}
+      onScrollEndDrag={onScrollEndDrag}
+      onMomentumScrollEnd={onMomentumScrollEnd}
+      accessibilityRole="adjustable"
+      accessibilityLabel="Hourly ride-condition chart"
+      accessibilityValue={{ text: accessibilityText }}
+      accessibilityActions={[
+        { name: 'increment', label: 'Next hour' },
+        { name: 'decrement', label: 'Previous hour' },
+      ]}
+      onAccessibilityAction={handleAccessibilityAction}
+    >
+      <View
+        style={[
+          styles.scrollContent,
+          {
+            width: chartWidth + 2 * contentPadding,
+            height: CHART_HEIGHT,
+          },
+        ]}
+      >
+        <View style={{ width: contentPadding }} />
+        <View style={[styles.hourChart, { width: chartWidth, height: CHART_HEIGHT }]}>
+          <HourlyChartGraphic
+            data={data}
+            nowIdx={nowIdx}
+            width={chartWidth}
+            height={CHART_HEIGHT}
+            smoothPath={smoothPath}
+            scrollX={scrollX}
+            liveScrollX={liveScrollX}
+            isScrollIdle={isScrollIdle}
+            snapOffsets={snapOffsets}
+            viewportWidth={viewportWidth}
+            maxIndex={maxIndex}
+            initialScrollX={initialScrollX}
+          />
+          <HourlyChartTapOverlay
+            data={data}
+            nowIdx={nowIdx}
+            scrollToIndex={scrollToIndex}
+            tapTargetStyle={styles.hourTapTarget}
+          />
+        </View>
+        <View style={{ width: contentPadding }} />
+      </View>
+    </Animated.ScrollView>
+  );
+}
+
+function HourlyChartShell({
+  chart,
+  data,
+  nowIdx,
+  maxIndex,
+}: Readonly<{
+  chart: ReturnType<typeof useHourlyForecastChart>;
+  data: ChartHour[];
+  nowIdx: number;
+  maxIndex: number;
+}>) {
+  const { styles } = useStyles();
+  const {
+    scrollX,
+    liveScrollX,
+    isScrollIdle,
+    viewportWidth,
+    snapOffsets,
+    onViewportLayout,
+    splineSegments,
+    selected,
+    initialScrollX,
+  } = chart;
+
+  return (
     <View
       style={styles.chartShell}
       onLayout={(event) => {
@@ -346,56 +470,13 @@ function HourlyChartShell({
       }}
     >
       <HourlyChartGridlines width={viewportWidth} />
-      <Animated.ScrollView
-        ref={scrollRef}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        decelerationRate="fast"
-        snapToOffsets={snapToOffsets}
-        scrollEventThrottle={16}
-        onScroll={onWebScroll ?? scrollHandler}
-        onContentSizeChange={onContentSizeChange}
-        onScrollBeginDrag={onScrollBeginDrag}
-        onScrollEndDrag={onScrollEndDrag}
-        onMomentumScrollEnd={onMomentumScrollEnd}
-        accessibilityRole="adjustable"
-        accessibilityLabel="Hourly ride-condition chart"
-        accessibilityValue={{ text: accessibilityText }}
-        accessibilityActions={[
-          { name: 'increment', label: 'Next hour' },
-          { name: 'decrement', label: 'Previous hour' },
-        ]}
-        onAccessibilityAction={handleAccessibilityAction}
-      >
-        <View
-          style={[
-            styles.scrollContent,
-            {
-              width: chartWidth + 2 * contentPadding,
-              height: CHART_HEIGHT,
-            },
-          ]}
-        >
-          <View style={{ width: contentPadding }} />
-          <View style={[styles.hourChart, { width: chartWidth, height: CHART_HEIGHT }]}>
-            <HourlyChartGraphic
-              data={data}
-              nowIdx={nowIdx}
-              width={chartWidth}
-              height={CHART_HEIGHT}
-              smoothPath={smoothPath}
-              scrollX={scrollX}
-              liveScrollX={liveScrollX}
-              isScrollIdle={isScrollIdle}
-              snapOffsets={snapOffsets}
-              viewportWidth={viewportWidth}
-              maxIndex={maxIndex}
-              initialScrollX={initialScrollX}
-            />
-          </View>
-          <View style={{ width: contentPadding }} />
-        </View>
-      </Animated.ScrollView>
+      <HourlyChartScroller
+        chart={chart}
+        data={data}
+        nowIdx={nowIdx}
+        maxIndex={maxIndex}
+        styles={styles}
+      />
       <HourlyChartEdgeFades />
       <SelectionMarker
         segments={splineSegments}

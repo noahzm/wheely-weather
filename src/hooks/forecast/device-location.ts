@@ -12,6 +12,18 @@ export function isWebInsecureContext(): boolean {
   return Platform.OS === 'web' && !globalThis.isSecureContext;
 }
 
+let lastKnownDeviceFix: SavedLocation | null = null;
+
+export function getLastKnownDeviceLocation(): SavedLocation | null {
+  return lastKnownDeviceFix;
+}
+
+export function setLastKnownDeviceLocation(fix: SavedLocation | null): void {
+  if (fix?.source === 'device') {
+    lastKnownDeviceFix = fix;
+  }
+}
+
 export async function resolveDeviceLocation(
   requestIfUndetermined: boolean,
 ): Promise<SavedLocation | null> {
@@ -22,15 +34,27 @@ export async function resolveDeviceLocation(
   if (permission.status !== Location.PermissionStatus.GRANTED) {
     return null;
   }
-  const position = await Location.getCurrentPositionAsync({
-    accuracy: Location.Accuracy.Balanced,
-  });
-  return saveLocation({
-    lat: position.coords.latitude,
-    lon: position.coords.longitude,
+  let lat: number;
+  let lon: number;
+  const lastKnown = await Location.getLastKnownPositionAsync().catch(() => null);
+  if (lastKnown) {
+    lat = lastKnown.coords.latitude;
+    lon = lastKnown.coords.longitude;
+  } else {
+    const position = await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.Balanced,
+    });
+    lat = position.coords.latitude;
+    lon = position.coords.longitude;
+  }
+  const saved = await saveLocation({
+    lat,
+    lon,
     name: null,
     source: 'device',
   });
+  lastKnownDeviceFix = saved;
+  return saved;
 }
 
 export async function requestDeviceLocation(): Promise<SavedLocation | null> {
@@ -52,7 +76,11 @@ export function isFollowingDevice(current: SavedLocation | null | undefined): bo
  * writes the fresh one back once the forecast lands).
  */
 export function adoptDeviceFix(coords: Coords): Promise<SavedLocation> {
-  return saveLocation({ lat: coords.lat, lon: coords.lon, name: null, source: 'device' });
+  const promise = saveLocation({ lat: coords.lat, lon: coords.lon, name: null, source: 'device' });
+  void promise.then((saved) => {
+    lastKnownDeviceFix = saved;
+  });
+  return promise;
 }
 
 /**

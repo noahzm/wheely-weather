@@ -58,15 +58,20 @@ function RatingStar({
 }
 
 /** Earned stars of a 0–5 rating in half-star steps; empty stars are omitted. */
-export function StarRating({ rating, size = 24 }: Readonly<{ rating: number; size?: number }>) {
+export function StarRating({
+  rating,
+  size = 24,
+  color,
+}: Readonly<{ rating: number; size?: number; color?: string }>) {
   const c = useWheelyColors();
+  const starColor = color ?? c.ink;
   const earned = Array.from({ length: STAR_COUNT }, (_, i) => starFillAt(i, rating)).filter(
     (fill): fill is Exclude<StarFill, 'empty'> => fill !== 'empty',
   );
   return (
     <View style={styles.row} accessible={true} accessibilityLabel={`${rating} out of 5 stars`}>
       {earned.map((fill, i) => (
-        <RatingStar key={i} fill={fill} size={size} filledColor={c.warning} />
+        <RatingStar key={i} fill={fill} size={size} filledColor={starColor} />
       ))}
     </View>
   );

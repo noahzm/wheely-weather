@@ -5,14 +5,25 @@ import { ThemedText } from '@/components/themed-text';
 import { getGearSuggestion } from '@/domain';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { useGearMode } from '@/hooks/settings-context';
+import type { GearMode } from '@/types/settings';
 import { FontWeightBlack, Fonts, Spacing, Type, type WheelyPalette } from '@/constants/theme';
 import type { GearTipItem, Weather } from '@/types/weather';
 import { BrutalCard, GameGearIcon } from './primitives';
+import { GearStylePicker } from './gear-style-picker';
 
 function makeStyles(c: WheelyPalette) {
   return StyleSheet.create({
     group: {
       gap: Spacing.two,
+    },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: Spacing.two,
+    },
+    headerRowCenter: {
+      justifyContent: 'center',
     },
     groupLabel: {
       color: c.ink,
@@ -90,19 +101,34 @@ function useStyles() {
   return { c, styles };
 }
 
-export function KitGuide({ weather }: Readonly<{ weather: Weather }>) {
-  const [mode] = useGearMode();
+export function KitGuide({
+  weather,
+  mode: controlledMode,
+  showPicker = true,
+}: Readonly<{
+  weather: Weather;
+  mode?: GearMode;
+  showPicker?: boolean;
+}>) {
+  const [internalMode, setMode] = useGearMode();
+  const mode = controlledMode ?? internalMode;
   const { width } = useWindowDimensions();
   const gear = getGearSuggestion(weather, mode);
   const { c, styles } = useStyles();
   const isWide = width >= 900;
   const tileWidth = isWide ? '31%' : '47%';
   const hasBring = gear.bring.length > 0;
+  const showHeader = hasBring || showPicker;
 
   return (
     <BrutalCard>
       <View style={styles.group} accessibilityLiveRegion="polite">
-        {hasBring && <ThemedText style={styles.groupLabel}>Wear</ThemedText>}
+        {showHeader && (
+          <View style={[styles.headerRow, !hasBring && styles.headerRowCenter]}>
+            {hasBring && <ThemedText style={styles.groupLabel}>Wear</ThemedText>}
+            {showPicker && <GearStylePicker mode={mode} onModeChange={setMode} />}
+          </View>
+        )}
         <View style={styles.kitGrid}>
           {gear.wear.map((item: GearTipItem, index: number) => (
             <View
@@ -112,7 +138,7 @@ export function KitGuide({ weather }: Readonly<{ weather: Weather }>) {
               style={[styles.kitTile, { flexBasis: tileWidth }]}
             >
               <View style={styles.kitIconWrap}>
-                <GameGearIcon iconKey={item.icon} size={42} color={c.mutedInk} />
+                <GameGearIcon iconKey={item.icon} size={42} color={c.ink} />
               </View>
               <View style={styles.textWrap}>
                 <ThemedText style={styles.bodyStrong}>{item.label}</ThemedText>
@@ -132,7 +158,7 @@ export function KitGuide({ weather }: Readonly<{ weather: Weather }>) {
                   style={styles.bringRow}
                 >
                   <View style={styles.bringIconWrap}>
-                    <GameGearIcon iconKey={item.icon} size={28} color={c.mutedInk} />
+                    <GameGearIcon iconKey={item.icon} size={28} color={c.ink} />
                   </View>
                   <View style={styles.bringTextWrap}>
                     <ThemedText style={styles.bringLabel}>{item.label}</ThemedText>
