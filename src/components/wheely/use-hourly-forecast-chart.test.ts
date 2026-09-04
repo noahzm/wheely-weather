@@ -22,8 +22,18 @@ describe('hourly chart reason integration', () => {
       makeHour({ condition: 'bad', windSpeed: 24, rainChance: 65, temperature: 97, dewpoint: 79 }),
     );
     expect(reasons.join(' • ')).toBe(
-      'Windy (24 mph) • Rain likely (65%) • Dangerous heat (97°F) • Oppressive humidity (dew 79°F)',
+      'Dangerous heat (97°F) • Oppressive humidity (dew 79°F) • Windy (24 mph) • Rain likely (65%)',
     );
+  });
+
+  it('limits to the primary reason when requested by the chart', () => {
+    const reasons = getHourConditionReasons(
+      makeHour({ condition: 'bad', windSpeed: 24, rainChance: 65, temperature: 97, dewpoint: 79 }),
+      'fahrenheit',
+      undefined,
+      { limit: 1 },
+    );
+    expect(reasons).toEqual(['Dangerous heat (97°F)']);
   });
 
   it('opens-equivalent: returns reasons for hazardous weather codes on good hours', () => {

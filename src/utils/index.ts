@@ -1,4 +1,9 @@
-export { dayLabel, getBestDayInfo, getHourConditionReasons } from './forecastHelpers';
+export {
+  dayLabel,
+  getBestDayInfo,
+  getHourConditionReasons,
+  type HourReasonOptions,
+} from './forecastHelpers';
 export {
   getAqiLabel,
   getDewpointLabel,

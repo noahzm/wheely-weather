@@ -32,6 +32,7 @@ import {
   type ChartSplineSegment,
 } from '@/utils/hourlyChart';
 import { fullHourLabel } from '@/utils/timeFormat';
+import { withAlpha } from '@/utils/colors';
 
 import { HourlyChartDot } from './hourly-chart-dot';
 import type { ChartHour } from './use-hourly-forecast-chart';
@@ -76,6 +77,7 @@ function makeStyles(c: WheelyPalette) {
       borderRadius: SELECTION_RING_RADIUS,
       borderWidth: 2,
       borderColor: c.ink,
+      backgroundColor: withAlpha(c.ink, 0.08),
       zIndex: 3,
       alignItems: 'center',
       justifyContent: 'center',

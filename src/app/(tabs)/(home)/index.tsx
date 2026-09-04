@@ -298,7 +298,7 @@ export default function HomeScreen() {
   const c = useWheelyColors();
   const styles = useMemo(() => makeStyles(c), [c]);
   const insets = useSafeAreaInsets();
-  const bottomNavInset = isWeb ? bottomNavBarHeight(insets.bottom) : undefined;
+  const bottomNavInset = isWeb ? bottomNavBarHeight(insets.bottom) : Spacing.five;
 
   const title = city
     ? `${city} Ride Forecast — Wheely Weather`

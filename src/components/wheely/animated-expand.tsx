@@ -56,7 +56,7 @@ export function AnimatedExpand({
   const onMeasureLayout = (height: number) => {
     if (!hasContent) {
       contentHeight.value = 0;
-    } else if (height > contentHeight.value) {
+    } else if (height > 0) {
       contentHeight.value = height;
     }
   };

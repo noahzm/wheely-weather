@@ -32,6 +32,7 @@ import type { Weather } from '@/types/weather';
 import { AnimatedExpand, useExpandAnimation } from './animated-expand';
 import {
   BrutalCard,
+  CardInnerRadius,
   ConditionPill,
   asCondition,
   HapticPressable,
@@ -143,9 +144,12 @@ function rideSpecMetrics(
 function makeStyles(c: WheelyPalette) {
   return StyleSheet.create({
     metricsPanel: {
-      overflow: 'hidden',
       padding: 0,
       gap: 0,
+    },
+    metricsClip: {
+      borderRadius: CardInnerRadius,
+      overflow: 'hidden',
     },
     rowContainer: {
       width: '100%',
@@ -441,19 +445,21 @@ export function RideSpecs({
 
   return (
     <BrutalCard style={styles.metricsPanel}>
-      {rows.map((rowMetrics, rowIndex) => (
-        <MetricRow
-          key={`row-${rowIndex}`}
-          rowMetrics={rowMetrics}
-          rowIndex={rowIndex}
-          totalRows={rows.length}
-          selectedLabel={selectedLabel}
-          onSelectMetric={handleSelectMetric}
-          explainer={explainer}
-          styles={styles}
-          c={c}
-        />
-      ))}
+      <View style={styles.metricsClip}>
+        {rows.map((rowMetrics, rowIndex) => (
+          <MetricRow
+            key={`row-${rowIndex}`}
+            rowMetrics={rowMetrics}
+            rowIndex={rowIndex}
+            totalRows={rows.length}
+            selectedLabel={selectedLabel}
+            onSelectMetric={handleSelectMetric}
+            explainer={explainer}
+            styles={styles}
+            c={c}
+          />
+        ))}
+      </View>
     </BrutalCard>
   );
 }

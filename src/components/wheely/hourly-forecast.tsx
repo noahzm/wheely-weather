@@ -112,6 +112,16 @@ function useStyles() {
   return { c, styles };
 }
 
+function preventOrphans(text: string): string {
+  const glued = text
+    .replaceAll(' mph', '\u00A0mph')
+    .replaceAll(' kph', '\u00A0kph')
+    .replaceAll('• ', '•\u00A0');
+  const lastSpaceIdx = glued.lastIndexOf(' ');
+  if (lastSpaceIdx === -1) return glued;
+  return `${glued.slice(0, lastSpaceIdx)}\u00A0${glued.slice(lastSpaceIdx + 1)}`;
+}
+
 function HourlyReasonFooter({
   reasonOpen,
   selectedReason,
@@ -140,7 +150,7 @@ function HourlyReasonFooter({
 }>) {
   const { styles } = useStyles();
 
-  const footerText = reasonOpen && selectedReason ? selectedReason : null;
+  const footerText = reasonOpen && selectedReason ? preventOrphans(selectedReason) : null;
 
   return (
     <View style={styles.conditionSummary}>

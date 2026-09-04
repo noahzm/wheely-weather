@@ -6,7 +6,7 @@ import { GEAR_LABELS, GEAR_MODES, type GearMode } from '@/types/settings';
 
 const styles = StyleSheet.create({
   container: {
-    width: 148,
+    width: 164,
     height: 32,
     justifyContent: 'center',
   },

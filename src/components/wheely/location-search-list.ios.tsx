@@ -27,7 +27,7 @@ import {
 } from '@expo/ui/swift-ui/modifiers';
 
 import { Spacing, TRANSPARENT } from '@/constants/theme';
-import { useWheelyColors } from '@/hooks/use-theme';
+import { useColorSchemeName, useWheelyColors } from '@/hooks/use-theme';
 
 import {
   isActive,
@@ -100,6 +100,11 @@ function PinnableRow({
   onTogglePin: () => void;
 }>) {
   const c = useWheelyColors();
+  const scheme = useColorSchemeName();
+  // On dark backgrounds, c.accent (#F1BDF2) provides ~13:1 contrast.
+  // On light backgrounds (#FFFFFF), c.accent has only 1.58:1 contrast (fails Apple HIG 3:1+);
+  // c.ink (#000000) provides crisp 21:1 contrast for active checkmark and pinned pin.
+  const activeGlyphColor = scheme === 'dark' ? c.accent : c.ink;
 
   return (
     <HStack alignment="center">
@@ -113,7 +118,7 @@ function PinnableRow({
         <Image
           systemName="checkmark"
           size={15}
-          modifiers={[foregroundStyle(active ? c.accent : TRANSPARENT)]}
+          modifiers={[foregroundStyle(active ? activeGlyphColor : TRANSPARENT)]}
         />
       </Button>
       {/* No controlSize('small') here: at the default size this clears the 44pt
@@ -127,7 +132,9 @@ function PinnableRow({
           buttonStyle('plain'),
           disabled(busy),
           foregroundStyle(
-            pinned ? c.accent : { type: 'hierarchical' as const, style: 'secondary' as const },
+            pinned
+              ? activeGlyphColor
+              : { type: 'hierarchical' as const, style: 'secondary' as const },
           ),
         ]}
         onPress={onTogglePin}
