@@ -118,6 +118,12 @@
         "projectId": "ef6ed602-3db3-4a98-8498-52ad5442e138"
       }
     },
-    "owner": "noahzm"
+    "owner": "noahzm",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/ef6ed602-3db3-4a98-8498-52ad5442e138"
+    }
   }
 }

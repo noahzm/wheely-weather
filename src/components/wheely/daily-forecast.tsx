@@ -8,7 +8,7 @@ import { CONDITION_DISPLAY } from '@/domain';
 import { dayLabel, getBestDayInfo, formatPercent } from '@/utils';
 import { getDayConditionReason } from '@/utils/forecastHelpers';
 import { fullHourLabel } from '@/utils/timeFormat';
-import { useWheelyColors } from '@/hooks/use-theme';
+import { useColorSchemeName, useWheelyColors } from '@/hooks/use-theme';
 import { useTemperatureDisplay } from '@/hooks/use-temperature-display';
 import { useResolvedTempUnit } from '@/hooks/settings-context';
 import {
@@ -33,7 +33,7 @@ import {
   weatherSfSymbol,
 } from './primitives';
 
-function makeStyles(c: WheelyPalette) {
+function makeStyles(c: WheelyPalette, scheme: 'light' | 'dark' = 'light') {
   return StyleSheet.create({
     weekSection: { gap: Spacing.three },
     dailyList: { padding: 0, gap: 0, overflow: 'visible' },
@@ -53,14 +53,14 @@ function makeStyles(c: WheelyPalette) {
     },
     dayRowBest: {
       borderLeftWidth: 5,
-      borderLeftColor: c.accent,
+      borderLeftColor: scheme === 'dark' ? c.accent : c.ink,
       paddingLeft: 11,
     },
     dayRowLast: { borderBottomWidth: 0 },
     dayRowMain: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: Spacing.three,
+      gap: Spacing.two,
     },
     dayLabelCell: { width: 72 },
     dayLabel: {
@@ -128,7 +128,8 @@ function makeStyles(c: WheelyPalette) {
 
 function useStyles() {
   const c = useWheelyColors();
-  const styles = useMemo(() => makeStyles(c), [c]);
+  const scheme = useColorSchemeName();
+  const styles = useMemo(() => makeStyles(c, scheme), [c, scheme]);
   return { c, styles };
 }
 

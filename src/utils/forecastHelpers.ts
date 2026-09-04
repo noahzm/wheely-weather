@@ -122,11 +122,16 @@ function dayMetrics(day: DailyWeather): DayMetrics {
   };
 }
 
-function weatherCodeReason(entry: { weatherCode: number | null }): string | null {
+interface HourReason {
+  text: string;
+  tier: IssueTier;
+}
+
+function weatherCodeReason(entry: { weatherCode: number | null }): HourReason | null {
   if (entry.weatherCode == null) return null;
-  if (STORM_CODES.has(entry.weatherCode)) return 'Storm risk';
-  if (SNOW_CODES.has(entry.weatherCode)) return 'Wintry roads';
-  if (HEAVY_RAIN_CODES.has(entry.weatherCode)) return 'Heavy rain risk';
+  if (STORM_CODES.has(entry.weatherCode)) return { text: 'Storm risk', tier: 'bad' };
+  if (SNOW_CODES.has(entry.weatherCode)) return { text: 'Wintry roads', tier: 'poor' };
+  if (HEAVY_RAIN_CODES.has(entry.weatherCode)) return { text: 'Heavy rain risk', tier: 'poor' };
   return null;
 }
 
@@ -258,11 +263,6 @@ function idealDayReason({ wind, rain, high }: DayMetrics): string {
   return 'Prime riding weather';
 }
 
-interface HourReason {
-  text: string;
-  tier: IssueTier;
-}
-
 function hourWindReason(
   windSpeed: number,
   windGust?: number | null,
@@ -322,18 +322,16 @@ const HOUR_REASON_FALLBACK: Record<string, string> = {
   marginal: 'Mixed conditions',
 };
 
-export function getHourConditionReasons(
+function resolveHourRainReasons(
   hour: HourlyWeather,
-  tempUnit: TempUnit = 'fahrenheit',
-  thresholds: Thresholds = THRESHOLDS,
-): string[] {
-  const reasons: string[] = [];
-  const codeReason = weatherCodeReason(hour);
-  if (codeReason) reasons.push(codeReason);
-
-  // Cold + rain is a hypothermia hazard that outranks either metric alone, so
-  // it replaces the plain rain reason rather than sitting alongside it — same
-  // precedence the verdict hero uses (`ride-factors.ts`).
+  tempUnit: TempUnit,
+  thresholds: Thresholds,
+  codeReason: HourReason | null,
+): {
+  codeReason: HourReason | null;
+  rainReason: HourReason | null;
+  tempReason: HourReason | null;
+} {
   const coldRain = evaluateColdRainHazard(hour.temperature, hour.rainChance, hour.weatherCode);
   const coldRainTier = coldRain ? issuePhraseTier(coldRain) : null;
   const rainReason = coldRainTier
@@ -347,6 +345,42 @@ export function getHourConditionReasons(
       }
     : hourRainReason(hour.rainChance, thresholds);
 
+  const tempReason = coldRainTier ? null : hourTempReason(hour.temperature, tempUnit, thresholds);
+
+  let effectiveCodeReason = codeReason;
+  let effectiveRainReason = rainReason;
+  if (codeReason?.text === 'Heavy rain risk') {
+    if (coldRainTier != null || rainReason?.tier === 'bad' || rainReason?.tier === 'poor') {
+      effectiveCodeReason = null;
+    } else if (rainReason != null) {
+      effectiveRainReason = null;
+    }
+  }
+
+  return {
+    codeReason: effectiveCodeReason,
+    rainReason: effectiveRainReason,
+    tempReason,
+  };
+}
+
+export interface HourReasonOptions {
+  limit?: number;
+}
+
+export function getHourConditionReasons(
+  hour: HourlyWeather,
+  tempUnit: TempUnit = 'fahrenheit',
+  thresholds: Thresholds = THRESHOLDS,
+  options?: HourReasonOptions,
+): string[] {
+  const codeReason = weatherCodeReason(hour);
+  const {
+    codeReason: effectiveCodeReason,
+    rainReason: effectiveRainReason,
+    tempReason,
+  } = resolveHourRainReasons(hour, tempUnit, thresholds, codeReason);
+
   // A fair-rated metric is not what limits an hour that is already marginal or
   // worse, so it is dropped there — otherwise a bad hour trails "Warm" and
   // "Humid" behind the reason it is actually bad. On a fair hour those same
@@ -358,14 +392,24 @@ export function getHourConditionReasons(
   const dropFairTier = hour.condition === 'poor' || hour.condition === 'bad';
 
   const metricReasons = [
+    effectiveCodeReason,
     hourWindReason(hour.windSpeed, hour.windGust, thresholds),
-    rainReason,
-    hourTempReason(hour.temperature, tempUnit, thresholds),
+    effectiveRainReason,
+    tempReason,
     hourDewReason(hour.dewpoint ?? null, tempUnit, thresholds),
   ].filter((reason): reason is HourReason => reason != null);
-  reasons.push(
-    ...metricReasons.filter((r) => !(dropFairTier && r.tier === 'fair')).map((r) => r.text),
-  );
+
+  const filtered = metricReasons.filter((r) => !(dropFairTier && r.tier === 'fair'));
+
+  // Worst first: order by severity so the true limiter is always named first.
+  // Stable sort preserves metric priority for ties within a tier.
+  const sorted = [...filtered].sort((a, b) => RANK[a.tier] - RANK[b.tier]);
+
+  // When a limit is specified, cap to the top reasons (e.g. limit: 1 for
+  // the compact hourly drawer); 0 or unset returns all reasons in severity order.
+  const limit = options?.limit ?? 0;
+  const limited = limit > 0 ? sorted.slice(0, limit) : sorted;
+  const reasons = limited.map((r) => r.text);
 
   if (reasons.length === 0 && hour.condition !== 'good' && hour.condition !== 'fair') {
     reasons.push(HOUR_REASON_FALLBACK[hour.condition] ?? 'Mixed conditions');
@@ -381,7 +425,7 @@ export function getDayConditionReason(
 ): string {
   if (day.rideWindowUnavailable) return 'No three-hour daylight window left';
   const codeReason = weatherCodeReason(day);
-  if (codeReason) return codeReason;
+  if (codeReason) return codeReason.text;
 
   const m = dayMetrics(day);
   switch (day.condition) {

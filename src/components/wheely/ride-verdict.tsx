@@ -99,7 +99,6 @@ function makeStyles(c: WheelyPalette) {
       paddingTop: Spacing.four,
       paddingBottom: Spacing.four + Spacing.two,
       paddingHorizontal: Spacing.four,
-      overflow: 'hidden',
     },
     contentRow: {
       flexDirection: 'row',

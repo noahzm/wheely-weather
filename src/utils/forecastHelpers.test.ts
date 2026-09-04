@@ -5,6 +5,7 @@ import {
   getDayConditionReason,
   getHourConditionReasons,
 } from './forecastHelpers';
+import { THRESHOLDS } from '../domain/constants';
 
 // Local-constructed dates keep getDay()/getDate() stable regardless of the runner's TZ.
 const JUN_22 = new Date(2026, 5, 22); // Monday
@@ -189,10 +190,12 @@ describe('getHourConditionReasons', () => {
 
   // Regression: an hour rated poor purely by the cold+rain hypothermia hazard
   // reported only "Cool" and "Rain possible", never naming the actual hazard.
-  it('names the cold-rain hazard in place of the plain rain reason', () => {
+  // The temperature is embedded in the hazard phrase ("Cold rain risk (44°F, 35%)"),
+  // so a standalone temperature reason is omitted to prevent redundant clauses.
+  it('names the cold-rain hazard in place of the plain rain reason and omits redundant temperature', () => {
     expect(
       getHourConditionReasons(hour({ temperature: 44, feelsLike: 44, rainChance: 35 })),
-    ).toEqual(['Cold rain risk (44°F, 35%)', 'Cool (44°F)']);
+    ).toEqual(['Cold rain risk (44°F, 35%)']);
   });
 
   it('falls back to a tier phrase when no metric explains a non-good rating', () => {
@@ -202,17 +205,39 @@ describe('getHourConditionReasons', () => {
     expect(getHourConditionReasons(hour({ condition: 'good' }))).toEqual([]);
   });
 
-  it('returns every matching metric reason in priority order', () => {
+  it('returns all matching metric reasons sorted worst-first, or top N with limit', () => {
+    // Dangerous heat is bad (worst), while dewpoint is also bad, rain is poor and wind is marginal.
+    // By default, all matching reasons are returned in severity order.
     expect(
       getHourConditionReasons(
         hour({ condition: 'bad', windSpeed: 24, rainChance: 65, temperature: 97, dewpoint: 79 }),
       ),
     ).toEqual([
-      'Windy (24 mph)',
-      'Rain likely (65%)',
       'Dangerous heat (97°F)',
       'Oppressive humidity (dew 79°F)',
+      'Windy (24 mph)',
+      'Rain likely (65%)',
     ]);
+
+    // With limit: 1, primary limiter is returned.
+    expect(
+      getHourConditionReasons(
+        hour({ condition: 'bad', windSpeed: 24, rainChance: 65, temperature: 97, dewpoint: 79 }),
+        'fahrenheit',
+        THRESHOLDS,
+        { limit: 1 },
+      ),
+    ).toEqual(['Dangerous heat (97°F)']);
+
+    // With limit: 2, top 2 are returned.
+    expect(
+      getHourConditionReasons(
+        hour({ condition: 'bad', windSpeed: 24, rainChance: 65, temperature: 97, dewpoint: 79 }),
+        'fahrenheit',
+        THRESHOLDS,
+        { limit: 2 },
+      ),
+    ).toEqual(['Dangerous heat (97°F)', 'Oppressive humidity (dew 79°F)']);
   });
 
   it('includes heat and humidity reasons together', () => {
@@ -227,18 +252,69 @@ describe('getHourConditionReasons', () => {
         hour({ condition: 'marginal', weatherCode: 95, windSpeed: 16, rainChance: 35 }),
       ),
     ).toEqual(['Storm risk', 'Windy (16 mph)', 'Rain possible (35%)']);
+
+    expect(
+      getHourConditionReasons(
+        hour({ condition: 'marginal', weatherCode: 95, windSpeed: 16, rainChance: 35 }),
+        'fahrenheit',
+        THRESHOLDS,
+        { limit: 1 },
+      ),
+    ).toEqual(['Storm risk']);
+
+    expect(
+      getHourConditionReasons(
+        hour({ condition: 'marginal', weatherCode: 95, windSpeed: 16, rainChance: 35 }),
+        'fahrenheit',
+        THRESHOLDS,
+        { limit: 2 },
+      ),
+    ).toEqual(['Storm risk', 'Windy (16 mph)']);
   });
 
-  it('still names lower-tier metrics in an hour dragged bad by a single metric', () => {
-    // Dew 79 makes the hour bad; 94° heat is only poor-tier but must not vanish.
+  it('still names lower-tier metrics in an hour dragged bad by a single metric, sorted by severity', () => {
+    // Dew 79 makes the hour bad; 94° heat is only poor-tier. Both are returned with bad-tier first.
     expect(
       getHourConditionReasons(hour({ condition: 'bad', temperature: 94, dewpoint: 79 })),
-    ).toEqual(['Very hot (94°F)', 'Oppressive humidity (dew 79°F)']);
+    ).toEqual(['Oppressive humidity (dew 79°F)', 'Very hot (94°F)']);
+
+    // With limit: 1, only the bad-tier primary limiter is returned.
+    expect(
+      getHourConditionReasons(
+        hour({ condition: 'bad', temperature: 94, dewpoint: 79 }),
+        'fahrenheit',
+        THRESHOLDS,
+        { limit: 1 },
+      ),
+    ).toEqual(['Oppressive humidity (dew 79°F)']);
   });
 
   it('does not add fallback reasons when hazardous weather is the only specific reason', () => {
     expect(getHourConditionReasons(hour({ condition: 'bad', weatherCode: 65 }))).toEqual([
       'Heavy rain risk',
     ]);
+  });
+
+  it('deduplicates generic heavy rain risk when specific cold rain or severe rain is already present', () => {
+    // When freezing rain hazard is present, generic heavy rain code is suppressed
+    expect(
+      getHourConditionReasons(
+        hour({ condition: 'bad', temperature: 35, rainChance: 80, weatherCode: 65 }),
+      ),
+    ).toEqual(['Freezing rain risk (35°F, 80%)']);
+
+    // When rain expected (80%) is present, generic heavy rain code is suppressed
+    expect(
+      getHourConditionReasons(
+        hour({ condition: 'bad', temperature: 72, rainChance: 80, weatherCode: 65 }),
+      ),
+    ).toEqual(['Rain expected (80%)']);
+
+    // When rain chance is marginal (45%), the heavy rain code (poor) outranks and replaces it
+    expect(
+      getHourConditionReasons(
+        hour({ condition: 'poor', temperature: 72, rainChance: 45, weatherCode: 65 }),
+      ),
+    ).toEqual(['Heavy rain risk']);
   });
 });

@@ -47,7 +47,7 @@ export function useHourlyForecastChart(
   const tempUnit = useResolvedTempUnit();
   const selected = data[selectedIdx] ?? data[nowIdx];
   const selectedReasons =
-    selected == null ? [] : getHourConditionReasons(selected, tempUnit, thresholds);
+    selected == null ? [] : getHourConditionReasons(selected, tempUnit, thresholds, { limit: 1 });
   const selectedReason = selectedReasons.join(' • ') || null;
   const reasonOpen = selectedReason != null;
   const reasonOpenProgress = useExpandAnimation(reasonOpen);

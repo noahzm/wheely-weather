@@ -6,7 +6,14 @@ import { getGearSuggestion } from '@/domain';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { useGearMode } from '@/hooks/settings-context';
 import type { GearMode } from '@/types/settings';
-import { FontWeightBlack, Fonts, Spacing, Type, type WheelyPalette } from '@/constants/theme';
+import {
+  FontWeightBlack,
+  Fonts,
+  Radius,
+  Spacing,
+  Type,
+  type WheelyPalette,
+} from '@/constants/theme';
 import type { GearTipItem, Weather } from '@/types/weather';
 import { BrutalCard, GameGearIcon } from './primitives';
 import { GearStylePicker } from './gear-style-picker';
@@ -46,6 +53,10 @@ function makeStyles(c: WheelyPalette) {
       minHeight: 116,
       paddingHorizontal: Spacing.two,
       paddingVertical: Spacing.two,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: Radius.small,
+      backgroundColor: c.background,
     },
     kitIconWrap: {
       flexDirection: 'row',
@@ -66,6 +77,12 @@ function makeStyles(c: WheelyPalette) {
       flexDirection: 'row',
       alignItems: 'center',
       gap: Spacing.two,
+      paddingHorizontal: Spacing.three,
+      paddingVertical: Spacing.two,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: Radius.small,
+      backgroundColor: c.background,
     },
     bringIconWrap: {
       alignItems: 'center',
