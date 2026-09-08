@@ -1,6 +1,6 @@
 export { CONDITION_DISPLAY, THRESHOLDS } from './constants';
 export { resolveThresholds } from './acclimatization';
-export { getVerdictLabel } from './copy';
+export { formatIssuesAsSentence, getVerdictLabel } from './copy';
 export {
   calculateRideScore,
   evaluateCondition,

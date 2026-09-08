@@ -3,6 +3,7 @@ import {
   ALERT_MESSAGES,
   ISSUE_PHRASES,
   STATUS_MESSAGES,
+  formatIssuesAsSentence,
   getVerdictLabel,
   issuePhraseTier,
 } from './copy';
@@ -147,5 +148,32 @@ describe('hero and hourly drawer phrasing agree', () => {
     for (const word of severityWords(heroIssues)) {
       expect(severityWords(drawerReasons)).toContain(word);
     }
+  });
+});
+
+describe('formatIssuesAsSentence', () => {
+  it('returns an empty string when issues list is empty', () => {
+    expect(formatIssuesAsSentence([])).toBe('');
+  });
+
+  it('formats single issue and capitalizes first character', () => {
+    expect(formatIssuesAsSentence(['Dangerous heat (95°F)'])).toBe('Dangerous heat (95°F).');
+    expect(formatIssuesAsSentence(['fog'])).toBe('Fog.');
+    expect(formatIssuesAsSentence(['light drizzle'])).toBe('Light drizzle.');
+  });
+
+  it('formats two issues with "and" and proper capitalization', () => {
+    expect(formatIssuesAsSentence(['Dangerous heat (95°F)', 'Rain very likely (80%)'])).toBe(
+      'Dangerous heat (95°F) and rain very likely (80%).',
+    );
+    expect(formatIssuesAsSentence(['fog', 'Rain very likely (80%)'])).toBe(
+      'Fog and rain very likely (80%).',
+    );
+  });
+
+  it('formats three or more issues as Oxford comma list with proper capitalization', () => {
+    expect(formatIssuesAsSentence(['fog', 'Windy (22 mph)', 'Rain likely (60%)'])).toBe(
+      'Fog, windy (22 mph), and rain likely (60%).',
+    );
   });
 });
