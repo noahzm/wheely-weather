@@ -12,6 +12,11 @@ updates:
       - dependencies
     commit-message:
       prefix: 'deps'
+    groups:
+      vitest:
+        patterns:
+          - 'vitest*'
+          - '@vitest/*'
     ignore:
       # Expo manages these package families through the SDK release train.
       - dependency-name: 'expo'
