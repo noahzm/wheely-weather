@@ -2,13 +2,19 @@ import { WEATHER_DESCRIPTIONS } from './copy';
 
 import type { Condition, RideStatus } from '@/types/weather';
 
+/** Returns the human-readable description for a WMO weather interpretation code. */
 export const getWeatherDescription = (code: number | null | undefined): string =>
   code == null ? 'Unknown' : (WEATHER_DESCRIPTIONS[code] ?? 'Unknown');
 
+/** True when the WMO code indicates thunderstorm activity (95, 96, 99). */
 export const isThunderstorm = (code: number | null | undefined): boolean =>
   code != null && [95, 96, 99].includes(code);
 
-// Weather codes add context that raw rain percentages can miss, especially for storms and snow.
+/**
+ * Maps a WMO weather interpretation code to cycling ride-ability conditions.
+ * Weather codes add context that raw rain percentages can miss, especially for
+ * thunderstorms, ice, freezing rain, and snow.
+ */
 export const getWeatherCodeCondition = (code: number | null | undefined): Condition => {
   if (code == null) return 'good';
   if (isThunderstorm(code)) return 'bad';
@@ -46,6 +52,10 @@ const WEATHER_CODE_ISSUES: Record<number, string> = {
   86: 'snow showers',
 };
 
+/**
+ * Resolves a weather code to an issue phrase (e.g. 'fog', 'heavy rain') if the code
+ * warrants highlighting for the given ride verdict status ('maybe' vs 'no').
+ */
 export const getWeatherCodeIssue = (
   code: number | null | undefined,
   status: RideStatus,

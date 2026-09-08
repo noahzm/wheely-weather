@@ -60,6 +60,13 @@ async function fetchSafeExtras(lat: number, lon: number): Promise<ForecastExtras
   }
 }
 
+/**
+ * Loads a complete forecast snapshot for a location, querying weather data,
+ * home-climate baseline, and location reverse geocoding in parallel.
+ *
+ * Slower enrichments (AQI and NWS/WeatherKit alerts) are returned as an un-awaited
+ * promise inside `extras` so they can resolve and merge after initial render.
+ */
 export async function getForecastSnapshot({
   savedLocation,
   homeLocation = null,
@@ -130,6 +137,10 @@ export async function getForecastSnapshot({
   };
 }
 
+/**
+ * Classifies an error into a user-facing error kind ('network' or 'default')
+ * so the error state card can present appropriate recovery actions.
+ */
 export function getForecastErrorKind(err: unknown) {
   const maybeError = err as { message?: string } | undefined;
   const isNetworkError = err instanceof TypeError || maybeError?.message === REQUEST_TIMEOUT_ERROR;

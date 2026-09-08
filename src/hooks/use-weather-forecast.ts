@@ -24,6 +24,15 @@ import {
 } from './forecast/use-snapshot-cache';
 import { useStaleRefresh } from './forecast/use-stale-refresh';
 
+/**
+ * Primary forecast hook driving loading, periodic/stale refresh, GPS following,
+ * snapshot caching, and manual/device location actions.
+ *
+ * @param mockScenario - Optional mock scenario key ('ride' | 'maybe' | 'rest' | 'alert')
+ *                       used for testing or previews.
+ * @returns Combined forecast state and mutator callbacks (`refresh`, `setManualLocation`,
+ *          `useDeviceLocation`, `togglePin`).
+ */
 export function useWeatherForecast(mockScenario: string | null) {
   const [state, setState] = useState<ForecastState>(INITIAL_FORECAST_STATE);
   const [homeLocation] = useHomeLocation();

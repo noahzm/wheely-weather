@@ -1,6 +1,8 @@
 import type { Condition } from '@/types/weather';
 
-/** Human-friendly labels for weather metrics used in the UI. */
+// Human-friendly labels for weather metrics used in the UI.
+
+/** Returns human-readable US EPA Air Quality Index descriptor. */
 export const getAqiLabel = (aqi: number | null | undefined): string => {
   if (aqi == null) return '–';
   if (aqi <= 50) return 'Good';
@@ -11,6 +13,7 @@ export const getAqiLabel = (aqi: number | null | undefined): string => {
   return 'Hazardous';
 };
 
+/** Returns comfort description for a dew point temperature (°F). */
 export const getDewpointLabel = (dp: number | null | undefined): string => {
   if (dp == null) return '–';
   if (dp < 50) return 'Dry';
@@ -20,6 +23,7 @@ export const getDewpointLabel = (dp: number | null | undefined): string => {
   return 'Oppressive';
 };
 
+/** Converts compass wind direction degrees (0–360) to 8-point cardinal label (e.g. 'NE'). */
 export const getWindDirectionLabel = (degrees: number | null | undefined): string => {
   if (degrees == null) return '–';
   const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] as const;
@@ -36,6 +40,7 @@ export const getWindArrowRotation = (degrees: number | null | undefined): number
   return (degrees + 90) % 360;
 };
 
+/** Returns standard WHO/EPA UV radiation risk band for a UV index value. */
 export const getUvLabel = (uv: number): string => {
   if (uv <= 2) return 'Low';
   if (uv <= 5) return 'Moderate';

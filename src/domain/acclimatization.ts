@@ -71,7 +71,13 @@ export const applyAcclimatization = (
 };
 
 /**
- * Resolves the thresholds to rate a forecast with, given the rider's home climate.
+ * Resolves the thresholds to rate a forecast with, given the rider's home climate
+ * baseline and outdoor exposure preference level.
+ *
+ * @param homeBaseline - 30-day warm baseline for the user's home location
+ * @param base - Base thresholds to adjust (defaults to THRESHOLDS)
+ * @param exposureLevel - Exposure level setting (defaults to DEFAULT_EXPOSURE_LEVEL)
+ * @returns Acclimatized weather rating thresholds
  */
 export const resolveThresholds = (
   homeBaseline: HomeBaseline | null | undefined,

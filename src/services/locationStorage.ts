@@ -36,11 +36,13 @@ function isFiniteNumber(value: unknown): value is number {
 // from "no location saved", which flipped the app to the location-prompt screen
 // and latched it there with every automatic recovery path gated off. Callers
 // catch and capture with their own context.
+/** Reads the active saved location (device or manual) from storage. */
 export async function loadSavedLocation() {
   const raw = await AsyncStorage.getItem(LOCATION_KEY);
   return normalizeLocationRecord(raw ? JSON.parse(raw) : null);
 }
 
+/** Persists the active location to storage. */
 export async function saveLocation(location: SavedLocation) {
   const normalized = normalizeLocationRecord(location);
   if (!normalized) throw new Error('Invalid location');
@@ -48,10 +50,12 @@ export async function saveLocation(location: SavedLocation) {
   return normalized;
 }
 
+/** Clears the active saved location from storage. */
 export async function clearLocation() {
   await AsyncStorage.removeItem(LOCATION_KEY);
 }
 
+/** Persists the user's home location (used for climate acclimatization). */
 export async function saveHomeLocation(location: SavedLocation) {
   const normalized = normalizeLocationRecord(location);
   if (!normalized) throw new Error('Invalid location');
@@ -59,6 +63,7 @@ export async function saveHomeLocation(location: SavedLocation) {
   return normalized;
 }
 
+/** Clears the persisted home location. */
 export async function clearHomeLocation() {
   await AsyncStorage.removeItem(HOME_LOCATION_KEY);
 }
@@ -85,6 +90,7 @@ export function normalizeRecentLocation(value: unknown): RecentLocation | null {
   };
 }
 
+/** Reads the list of recently picked locations from storage (capped at RECENTS_MAX). */
 export async function loadRecentLocations() {
   try {
     const raw = await AsyncStorage.getItem(RECENTS_KEY);
@@ -100,6 +106,7 @@ export async function loadRecentLocations() {
   }
 }
 
+/** Prepend a place to the recents list, deduplicating coordinates and capping length. */
 export async function saveRecentLocation(place: RecentLocation) {
   const normalized = normalizeRecentLocation(place);
   if (!normalized) return [];
@@ -158,6 +165,7 @@ export async function loadAllSettings(): Promise<PersistedSettings> {
   }
 }
 
+/** Reads the list of pinned locations from storage (capped at PINS_MAX). */
 export async function loadPinnedLocations(): Promise<RecentLocation[]> {
   try {
     const raw = await AsyncStorage.getItem(PINS_KEY);
@@ -173,6 +181,7 @@ export async function loadPinnedLocations(): Promise<RecentLocation[]> {
   }
 }
 
+/** Adds a location to the pinned locations list, moving it to front if already present. */
 export async function addPinnedLocation(place: RecentLocation): Promise<RecentLocation[]> {
   const normalized = normalizeRecentLocation(place);
   if (!normalized) return [];
@@ -185,6 +194,7 @@ export async function addPinnedLocation(place: RecentLocation): Promise<RecentLo
   return next;
 }
 
+/** Removes a location from the pinned locations list by coordinates. */
 export async function removePinnedLocation(lat: number, lon: number): Promise<RecentLocation[]> {
   const current = await loadPinnedLocations();
   const next = current.filter((saved) => saved.lat !== lat || saved.lon !== lon);
