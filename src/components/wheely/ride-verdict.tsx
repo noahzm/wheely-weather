@@ -17,27 +17,11 @@ import {
 import { verdictFeedback } from '@/utils/haptics';
 import { scoreToStars } from '@/utils/starRating';
 import type { VerdictMessage } from '@/types/weather';
+import { formatIssuesAsSentence } from '@/domain';
 import { BrutalCard, PlatformIcon, weatherIconFor, weatherSfSymbol } from './primitives';
 import { StarRating } from './star-rating';
 
 type VerdictStatus = 'yes' | 'maybe' | 'no';
-
-export function formatIssuesAsSentence(issues: readonly string[]): string {
-  if (issues.length === 0) return '';
-  if (issues.length === 1) {
-    return `${issues[0]}.`;
-  }
-  const formatted = issues.map((item, idx) => {
-    if (idx === 0) return item;
-    return item.charAt(0).toLowerCase() + item.slice(1);
-  });
-  if (formatted.length === 2) {
-    return `${formatted[0]} and ${formatted[1]}.`;
-  }
-  const last = formatted.at(-1);
-  const rest = formatted.slice(0, -1).join(', ');
-  return `${rest}, and ${last}.`;
-}
 
 function makeStyles(c: WheelyPalette) {
   return StyleSheet.create({

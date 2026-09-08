@@ -386,3 +386,29 @@ export const ALERT_MESSAGES = {
   HEAT_WARNING: (tempLabel: string) =>
     `Very hot, ${tempLabel} felt. High risk of heat exhaustion. Ride early, or ride indoors.`,
 };
+
+function capitalizeFirst(text: string): string {
+  return text ? text.charAt(0).toUpperCase() + text.slice(1) : '';
+}
+
+/**
+ * Formats a list of verdict issue phrases into a natural-language sentence,
+ * capitalizing the first letter and joining with commas / "and".
+ */
+export function formatIssuesAsSentence(issues: readonly string[]): string {
+  const first = issues[0];
+  if (!first) return '';
+  if (issues.length === 1) {
+    return `${capitalizeFirst(first)}.`;
+  }
+  const formatted = issues.map((item, idx) => {
+    if (idx === 0) return capitalizeFirst(item);
+    return item.charAt(0).toLowerCase() + item.slice(1);
+  });
+  if (formatted.length === 2) {
+    return `${formatted[0]} and ${formatted[1]}.`;
+  }
+  const last = formatted.at(-1);
+  const rest = formatted.slice(0, -1).join(', ');
+  return `${rest}, and ${last}.`;
+}

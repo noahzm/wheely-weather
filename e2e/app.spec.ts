@@ -3,7 +3,7 @@ import { expect, test } from 'playwright/test';
 test.describe('Wheely Weather web app', () => {
   test('loads home with mock forecast', async ({ page }) => {
     await page.goto('/?mock=ride');
-    await expect(page.getByRole('tab', { name: 'Home' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Weather' })).toBeVisible();
     await expect(page.getByText('Hour by hour')).toBeVisible({ timeout: 15_000 });
   });
 
@@ -16,10 +16,10 @@ test.describe('Wheely Weather web app', () => {
     await expect(page.getByText('Search', { exact: true }).first()).toBeVisible();
 
     await page.getByRole('tab', { name: 'Settings' }).click();
-    await expect(page.getByText('Gear')).toBeVisible();
+    await expect(page.getByText('Units')).toBeVisible();
     await expect(page.getByText('Settings', { exact: true }).first()).toBeVisible();
 
-    await page.getByRole('tab', { name: 'Home' }).click();
+    await page.getByRole('tab', { name: 'Weather' }).click();
     await expect(page.getByText('Hour by hour')).toBeVisible();
   });
 
