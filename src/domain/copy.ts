@@ -387,13 +387,20 @@ export const ALERT_MESSAGES = {
     `Very hot, ${tempLabel} felt. High risk of heat exhaustion. Ride early, or ride indoors.`,
 };
 
+/** Capitalizes the first character of a string, preserving the remainder. */
 function capitalizeFirst(text: string): string {
   return text ? text.charAt(0).toUpperCase() + text.slice(1) : '';
 }
 
 /**
  * Formats a list of verdict issue phrases into a natural-language sentence,
- * capitalizing the first letter and joining with commas / "and".
+ * capitalizing the first letter, lowercasing non-initial phrases, and joining
+ * with commas and an Oxford comma before the final "and".
+ *
+ * Examples:
+ * - `['fog']` -> `"Fog."`
+ * - `['fog', 'rain likely']` -> `"Fog and rain likely."`
+ * - `['fog', 'windy', 'rain likely']` -> `"Fog, windy, and rain likely."`
  */
 export function formatIssuesAsSentence(issues: readonly string[]): string {
   const first = issues[0];
@@ -401,6 +408,8 @@ export function formatIssuesAsSentence(issues: readonly string[]): string {
   if (issues.length === 1) {
     return `${capitalizeFirst(first)}.`;
   }
+  // Capitalize the first item for sentence start, and lowercase leading letters
+  // of subsequent items (e.g. "Dangerous heat" -> "dangerous heat").
   const formatted = issues.map((item, idx) => {
     if (idx === 0) return capitalizeFirst(item);
     return item.charAt(0).toLowerCase() + item.slice(1);

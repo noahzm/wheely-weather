@@ -17,6 +17,7 @@ export interface LocationSection {
   data: RowItem[];
 }
 
+/** True if the given coordinates match any pinned location. */
 export function isPinned(place: { lat: number; lon: number }, pins: RecentLocation[]): boolean {
   return pins.some((p) => p.lat === place.lat && p.lon === place.lon);
 }
@@ -29,6 +30,7 @@ export function sameCoords(
   return other?.lat === place.lat && other.lon === place.lon;
 }
 
+/** True if the given coordinates match the saved home location. */
 export function isHome(
   place: { lat: number; lon: number },
   home: { lat: number; lon: number } | null,
@@ -75,20 +77,27 @@ export async function resolveSuggestedPlace(
   };
 }
 
+/** Accessibility label for the home location toggle button. */
 export function homeAccessibilityLabel(home: boolean): string {
   return home ? 'Clear home location' : 'Set as home location';
 }
 
+/** Stable unique key for a location row item in FlashList / FlatList. */
 export function placeKey(item: RowItem): string {
   // Suggestions all share placeholder coordinates, so the completion id is the
   // only thing that keeps their rows distinct.
   return item._kind ?? item._completionId ?? `${item.lat}-${item.lon}`;
 }
 
+/** Accessibility label for the pin/unpin location button. */
 export function pinAccessibilityLabel(pinned: boolean): string {
   return pinned ? 'Unpin location' : 'Pin location';
 }
 
+/**
+ * Organizes raw location lists into section data for the search/locations screen,
+ * prioritizing Home, then Pinned, Recent, and Options.
+ */
 export function buildSections(
   isSearching: boolean,
   results: RecentLocation[],

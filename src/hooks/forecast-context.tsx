@@ -13,6 +13,10 @@ const ForecastContext = createContext<ForecastContextValue | null>(null);
 // ---------- provider ----------
 const MOCK_SCENARIOS = new Set(['ride', 'maybe', 'rest', 'alert']);
 
+/**
+ * Provides centralized forecast state and actions to the component tree,
+ * latching any mock scenario in query parameters across tab navigations.
+ */
 export function ForecastProvider({ children }: Readonly<{ children: ReactNode }>) {
   const params = useGlobalSearchParams<{ mock?: string }>();
   const paramMock = MOCK_SCENARIOS.has(String(params.mock)) ? String(params.mock) : null;
@@ -24,6 +28,10 @@ export function ForecastProvider({ children }: Readonly<{ children: ReactNode }>
 }
 
 // ---------- consumer ----------
+/**
+ * Hook to consume the current forecast state and mutators from `ForecastProvider`.
+ * Must be called within a `<ForecastProvider>`.
+ */
 export function useForecast(): ForecastContextValue {
   const ctx = useContext(ForecastContext);
   if (!ctx) throw new Error('useForecast must be used inside <ForecastProvider>');

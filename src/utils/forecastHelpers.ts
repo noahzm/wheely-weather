@@ -368,6 +368,11 @@ export interface HourReasonOptions {
   limit?: number;
 }
 
+/**
+ * Returns prioritized, human-readable reason strings for an hour's condition rating,
+ * ordered from most severe issue to least severe (e.g. ['Very windy (24 mph)', 'Rain likely (60%)']).
+ * Drops fair-tier metrics when the hour is already poor or bad to keep focus on the true limiter.
+ */
 export function getHourConditionReasons(
   hour: HourlyWeather,
   tempUnit: TempUnit = 'fahrenheit',
