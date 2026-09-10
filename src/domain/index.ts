@@ -7,6 +7,7 @@ export {
   evaluateWind,
   getDaylightWarning,
   getGearSuggestion,
+  getWearRows,
   getMessage,
   getOverallStatus,
   getRainTiming,

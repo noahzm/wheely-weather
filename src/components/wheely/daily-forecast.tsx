@@ -72,14 +72,14 @@ function makeStyles(c: WheelyPalette, scheme: 'light' | 'dark' = 'light') {
     weatherGlyph: { width: 22, alignItems: 'center' },
     dayTemp: {
       color: c.ink,
-      minWidth: 82,
-      flex: 1,
+      width: 82,
       fontFamily: Fonts.bold,
       fontWeight: FontWeightBlack,
       ...Type.heading,
       ...(Platform.OS === 'web' ? ({ whiteSpace: 'nowrap' } as object) : null),
     },
     dayLow: { color: c.mutedInk, fontSize: Type.small.fontSize },
+    daySpacer: { flex: 1 },
     chevronWrap: {
       width: 16,
       alignItems: 'center',
@@ -254,6 +254,7 @@ function DayRow({
             <ThemedText style={styles.dayLow}>/{formatTemp(day.low)}</ThemedText>
           </ThemedText>
           <ConditionPill condition={condition}>{CONDITION_DISPLAY[condition]}</ConditionPill>
+          <View style={styles.daySpacer} />
           {best ? (
             <View accessibilityRole="text" accessibilityLabel="Best bet">
               <Chip accent>Best</Chip>

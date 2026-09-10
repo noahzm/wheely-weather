@@ -66,6 +66,7 @@ const headingStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.two,
+    maxWidth: '100%',
   },
 });
 

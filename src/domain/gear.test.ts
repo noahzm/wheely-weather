@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { getGearSuggestion } from './weather';
+import { getGearSuggestion, getWearRows } from './weather';
+import type { GearTipItem } from '@/types/weather';
 
 describe('Gear Suggestions', () => {
   const base = {
@@ -307,5 +308,120 @@ describe('Gear Suggestions', () => {
     );
     expect(matchesItem(gear, /rain jacket|vest/i)).toBe(true);
     expect(matchesItem(gear, /wet road shell/i)).toBe(false);
+  });
+
+  it('assigns cycling-specific icon keys in pro mode', () => {
+    const coolGear = getGearSuggestion(
+      {
+        ...base,
+        temperature: 52,
+        hourly: [{ temperature: 52, windSpeed: 5, rainChance: 0, dewpoint: 40, uv: 0 }],
+      },
+      'pro',
+    );
+    const armWarmers = coolGear.wear.find((item) => item.label === 'Arm warmers');
+    const gilet = coolGear.wear.find((item) => item.label === 'Gilet');
+    expect(armWarmers?.icon).toBe('ArmWarmers');
+    expect(gilet?.icon).toBe('Gilet');
+
+    const rainGear = getGearSuggestion(
+      {
+        ...base,
+        rainChance: 60,
+        hourly: [{ temperature: 65, windSpeed: 5, rainChance: 60, dewpoint: 50, uv: 0 }],
+      },
+      'pro',
+    );
+    const shoeCovers = rainGear.bring.find((item) => item.label === 'Shoe covers');
+    const rainJacket = rainGear.bring.find((item) => item.label === 'Rain jacket');
+    expect(shoeCovers?.icon).toBe('ShoeCovers');
+    expect(rainJacket?.icon).toBe('Jacket');
+
+    const windyGear = getGearSuggestion(
+      {
+        ...base,
+        windSpeed: 25,
+        hourly: [{ temperature: 65, windSpeed: 25, rainChance: 0, dewpoint: 50, uv: 0 }],
+      },
+      'pro',
+    );
+    const windVest = windyGear.bring.find((item) => item.label === 'Wind vest');
+    expect(windVest?.icon).toBe('Gilet');
+  });
+});
+
+describe('getWearRows', () => {
+  const mockItem = (label: string): GearTipItem => ({ label, icon: 'Shirt' });
+
+  it('handles empty input gracefully', () => {
+    expect(getWearRows([], false)).toEqual([]);
+    expect(getWearRows([], true)).toEqual([]);
+  });
+
+  describe('mobile (!isWide)', () => {
+    it('chunks 2 items into 1 row of 2', () => {
+      const items = [mockItem('1'), mockItem('2')];
+      const rows = getWearRows(items, false);
+      expect(rows).toEqual([[items[0], items[1]]]);
+    });
+
+    it('chunks 3 items into 2 rows (2 + 1)', () => {
+      const items = [mockItem('1'), mockItem('2'), mockItem('3')];
+      const rows = getWearRows(items, false);
+      expect(rows).toEqual([[items[0], items[1]], [items[2]]]);
+    });
+
+    it('chunks 4 items into 2 rows (2 + 2)', () => {
+      const items = [mockItem('1'), mockItem('2'), mockItem('3'), mockItem('4')];
+      const rows = getWearRows(items, false);
+      expect(rows).toEqual([
+        [items[0], items[1]],
+        [items[2], items[3]],
+      ]);
+    });
+
+    it('chunks 5 items into 3 rows (2 + 2 + 1)', () => {
+      const items = [mockItem('1'), mockItem('2'), mockItem('3'), mockItem('4'), mockItem('5')];
+      const rows = getWearRows(items, false);
+      expect(rows).toEqual([[items[0], items[1]], [items[2], items[3]], [items[4]]]);
+    });
+  });
+
+  describe('desktop (isWide)', () => {
+    it('keeps 1 to 4 items on a single full-width row', () => {
+      const two = [mockItem('1'), mockItem('2')];
+      expect(getWearRows(two, true)).toEqual([[two[0], two[1]]]);
+
+      const three = [mockItem('1'), mockItem('2'), mockItem('3')];
+      expect(getWearRows(three, true)).toEqual([[three[0], three[1], three[2]]]);
+
+      const four = [mockItem('1'), mockItem('2'), mockItem('3'), mockItem('4')];
+      expect(getWearRows(four, true)).toEqual([[four[0], four[1], four[2], four[3]]]);
+    });
+
+    it('chunks 5 items into 2 rows (3 + 2) filling 100% width on both rows', () => {
+      const items = [mockItem('1'), mockItem('2'), mockItem('3'), mockItem('4'), mockItem('5')];
+      const rows = getWearRows(items, true);
+      expect(rows).toEqual([
+        [items[0], items[1], items[2]],
+        [items[3], items[4]],
+      ]);
+    });
+
+    it('chunks 6 or more items into rows of 3', () => {
+      const items = [
+        mockItem('1'),
+        mockItem('2'),
+        mockItem('3'),
+        mockItem('4'),
+        mockItem('5'),
+        mockItem('6'),
+      ];
+      const rows = getWearRows(items, true);
+      expect(rows).toEqual([
+        [items[0], items[1], items[2]],
+        [items[3], items[4], items[5]],
+      ]);
+    });
   });
 });
