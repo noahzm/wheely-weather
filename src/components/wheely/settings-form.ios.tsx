@@ -231,18 +231,8 @@ export function SettingsForm({
 
           <Section
             title="Credits"
-            footer={
-              <Text>
-                Game-icons artwork by Lorc and Delapouite, licensed under CC BY 3.0. Apple Weather
-                provides forecasts and severe weather alerts on iOS.
-              </Text>
-            }
+            footer={<Text>Apple Weather provides forecasts and severe weather alerts on iOS.</Text>}
           >
-            <ExternalLinkRow
-              title="Kit guide icons by game-icons.net"
-              systemImage="paintbrush.fill"
-              url="https://game-icons.net/"
-            />
             {attribution && (
               <ExternalLinkRow
                 title="Apple Weather"

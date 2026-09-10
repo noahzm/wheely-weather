@@ -255,16 +255,16 @@ export const GEAR_TIPS = {
       items: [{ icon: 'Thermometer', label: 'Removable layer' }],
     },
     RAIN_HIGH: {
-      items: [{ icon: 'CloudRain', label: 'Rain jacket' }],
+      items: [{ icon: 'Jacket', label: 'Rain jacket' }],
     },
     RAIN_POSSIBLE: {
-      items: [{ icon: 'Umbrella', label: 'Quick-dry layer' }],
+      items: [{ icon: 'Jacket', label: 'Quick-dry layer' }],
     },
     WET_ROADS: {
-      items: [{ icon: 'CloudRain', label: 'Fenders or splash jacket' }],
+      items: [{ icon: 'Jacket', label: 'Fenders or splash jacket' }],
     },
     WINDY: {
-      items: [{ icon: 'Wind', label: 'Windbreaker' }],
+      items: [{ icon: 'Jacket', label: 'Windbreaker' }],
     },
     UV_EXTREME: {
       items: [
@@ -285,7 +285,7 @@ export const GEAR_TIPS = {
         { icon: 'LongSleeveShirt', label: 'Thermal base layer' },
         { icon: 'Jacket', label: 'Insulated jacket' },
         { slot: 'bottom', icon: 'Pants', label: 'Winter bib tights' },
-        { icon: 'Footprints', label: 'Shoe covers' },
+        { icon: 'ShoeCovers', label: 'Shoe covers' },
         { icon: 'Hand', label: 'Heavy full-finger gloves' },
         { icon: 'Snowflake', label: 'Ear and face coverage' },
       ],
@@ -303,16 +303,16 @@ export const GEAR_TIPS = {
       items: [
         { icon: 'Shirt', label: 'Short-sleeve jersey' },
         { slot: 'bottom', icon: 'BibShorts', label: 'Bib shorts' },
-        { icon: 'Thermometer', label: 'Arm warmers' },
-        { icon: 'Thermometer', label: 'Knee warmers' },
-        { icon: 'Layers', label: 'Gilet' },
+        { icon: 'ArmWarmers', label: 'Arm warmers' },
+        { icon: 'ArmWarmers', label: 'Knee warmers' },
+        { icon: 'Gilet', label: 'Gilet' },
       ],
     },
     MILD_COOL: {
       items: [
         { icon: 'Shirt', label: 'Short-sleeve jersey' },
         { slot: 'bottom', icon: 'BibShorts', label: 'Bib shorts' },
-        { icon: 'Thermometer', label: 'Arm warmers' },
+        { icon: 'ArmWarmers', label: 'Arm warmers' },
       ],
     },
     HOT: {
@@ -334,25 +334,25 @@ export const GEAR_TIPS = {
       ],
     },
     TEMP_SWING: {
-      items: [{ icon: 'Thermometer', label: 'Gilet or arm warmers' }],
+      items: [{ icon: 'Gilet', label: 'Gilet or arm warmers' }],
     },
     RAIN_HIGH: {
       items: [
-        { icon: 'CloudRain', label: 'Rain jacket' },
-        { icon: 'Footprints', label: 'Shoe covers' },
+        { icon: 'Jacket', label: 'Rain jacket' },
+        { icon: 'ShoeCovers', label: 'Shoe covers' },
       ],
     },
     RAIN_POSSIBLE: {
-      items: [{ icon: 'Umbrella', label: 'Packable vest or shell' }],
+      items: [{ icon: 'Gilet', label: 'Packable vest or shell' }],
     },
     WET_ROADS: {
       items: [
-        { icon: 'Footprints', label: 'Shoe covers or fenders' },
-        { icon: 'CloudRain', label: 'Wet road shell' },
+        { icon: 'ShoeCovers', label: 'Shoe covers or fenders' },
+        { icon: 'Jacket', label: 'Wet road shell' },
       ],
     },
     WINDY: {
-      items: [{ icon: 'Wind', label: 'Wind vest' }],
+      items: [{ icon: 'Gilet', label: 'Wind vest' }],
     },
     UV_EXTREME: {
       items: [

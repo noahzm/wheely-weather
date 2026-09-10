@@ -10,7 +10,6 @@ import { WebContentColumn } from './content-column';
 import { webBottomInset } from './bottom-nav-chrome';
 import { WEB_TITLE_CONTENT_SPACING } from './web-screen-header';
 import { HomeClimateSection } from './settings-home-section';
-import { IconAttributionSection } from './settings-icon-attribution-section';
 import { RNSegmentedPicker } from './rn-segmented-picker';
 import {
   APPEARANCE_LABELS,
@@ -83,8 +82,6 @@ export function SettingsForm({
         onClearHome={onClearHome}
         onExposureChange={onExposureChange}
       />
-
-      <IconAttributionSection />
     </>
   );
 

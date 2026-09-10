@@ -17,11 +17,13 @@ export function WebScreenTitle({ children }: Readonly<{ children: string }>) {
   return (
     <Text
       numberOfLines={1}
+      ellipsizeMode="tail"
       style={{
         color: c.ink,
         fontFamily: Fonts.city,
         fontWeight: FontWeightBlack,
         ...Type.subtitle,
+        flexShrink: 1,
       }}
     >
       {children}

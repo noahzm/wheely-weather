@@ -12,7 +12,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.one,
   },
+  halfWrap: {
+    position: 'relative',
+  },
   halfClip: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
     overflow: 'hidden',
   },
 });
@@ -30,48 +36,69 @@ function SolidStar({
   );
 }
 
+/** An outlined/empty star glyph: native SF Symbol on iOS, lucide elsewhere. */
+function EmptyStar({ size, color }: Readonly<{ size: number; color: string }>) {
+  return Platform.OS === 'ios' ? (
+    <SymbolView name="star" size={size} tintColor={color} />
+  ) : (
+    <Star size={size} color={color} fill="none" strokeWidth={1.5} />
+  );
+}
+
 /**
- * One earned star of the rating. A half star renders as the filled left half
- * alone: SF Symbols ships a fill-only half variant for exactly this, while
- * lucide's StarHalf is only a half outline, so on the web/Android side a
- * solid star is clipped to half width instead.
+ * One star of the rating (full, half, or empty).
+ * A half star renders the left half filled and the right half outlined.
  */
 function RatingStar({
   fill,
   size,
   filledColor,
+  emptyColor,
 }: Readonly<{
-  fill: Exclude<StarFill, 'empty'>;
+  fill: StarFill;
   size: number;
   filledColor: string;
+  emptyColor: string;
 }>) {
+  if (fill === 'empty') {
+    return <EmptyStar size={size} color={emptyColor} />;
+  }
   if (fill === 'half') {
     return Platform.OS === 'ios' ? (
       <SymbolView name="star.leadinghalf.filled" size={size} tintColor={filledColor} />
     ) : (
-      <View style={[styles.halfClip, { width: size / 2, height: size }]}>
-        <Star size={size} color={filledColor} fill={filledColor} strokeWidth={2} />
+      <View style={[styles.halfWrap, { width: size, height: size }]}>
+        <Star size={size} color={emptyColor} fill="none" strokeWidth={1.5} />
+        <View style={[styles.halfClip, { width: size / 2, height: size }]}>
+          <Star size={size} color={filledColor} fill={filledColor} strokeWidth={2} />
+        </View>
       </View>
     );
   }
   return <SolidStar sfSymbol="star.fill" size={size} color={filledColor} />;
 }
 
-/** Earned stars of a 0–5 rating in half-star steps; empty stars are omitted. */
+/** 0–5 star rating in half-star steps; displays all 5 stars for consistent baseline. */
 export function StarRating({
   rating,
   size = 24,
   color,
-}: Readonly<{ rating: number; size?: number; color?: string }>) {
+  emptyColor,
+}: Readonly<{ rating: number; size?: number; color?: string; emptyColor?: string }>) {
   const c = useWheelyColors();
   const starColor = color ?? c.ink;
-  const earned = Array.from({ length: STAR_COUNT }, (_, i) => starFillAt(i, rating)).filter(
-    (fill): fill is Exclude<StarFill, 'empty'> => fill !== 'empty',
-  );
+  const starEmptyColor = emptyColor ?? c.border;
+  const stars = Array.from({ length: STAR_COUNT }, (_, i) => starFillAt(i, rating));
   return (
     <View style={styles.row} accessible={true} accessibilityLabel={`${rating} out of 5 stars`}>
-      {earned.map((fill, i) => (
-        <RatingStar key={i} fill={fill} size={size} filledColor={starColor} />
+      {stars.map((fill, i) => (
+        <RatingStar
+          key={i}
+          fill={fill}
+          size={size}
+          filledColor={starColor}
+          emptyColor={starEmptyColor}
+        />
       ))}
     </View>
   );

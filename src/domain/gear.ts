@@ -159,3 +159,26 @@ export const getGearSuggestion = (
   const tipsSet: GearTipSet = mode === 'pro' ? GEAR_TIPS.PRO : GEAR_TIPS.CASUAL;
   return getGearTips(w, tipsSet, weather);
 };
+
+export function getWearRows(items: GearTipItem[], isWide: boolean): GearTipItem[][] {
+  const n = items.length;
+  if (n === 0) return [];
+  if (!isWide) {
+    const rows: GearTipItem[][] = [];
+    for (let i = 0; i < n; i += 2) {
+      rows.push(items.slice(i, i + 2));
+    }
+    return rows;
+  }
+  if (n <= 4) {
+    return [items];
+  }
+  if (n === 5) {
+    return [items.slice(0, 3), items.slice(3, 5)];
+  }
+  const rows: GearTipItem[][] = [];
+  for (let i = 0; i < n; i += 3) {
+    rows.push(items.slice(i, i + 3));
+  }
+  return rows;
+}
