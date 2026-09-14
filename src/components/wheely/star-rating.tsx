@@ -1,6 +1,6 @@
 import { Platform, StyleSheet, View } from 'react-native';
 import { SymbolView, type SFSymbol } from 'expo-symbols';
-import { Star } from 'lucide-react-native';
+import { Star } from './icons';
 
 import { useWheelyColors } from '@/hooks/use-theme';
 import { Spacing } from '@/constants/theme';

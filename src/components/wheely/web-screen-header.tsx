@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Platform, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ChevronLeft, X } from 'lucide-react-native';
+import { ChevronLeft, X } from './icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useWheelyColors } from '@/hooks/use-theme';

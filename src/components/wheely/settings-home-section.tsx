@@ -6,7 +6,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import { MapPin } from 'lucide-react-native';
+import { MapPin } from './icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { deriveAcclimatization } from '@/domain/acclimatization';

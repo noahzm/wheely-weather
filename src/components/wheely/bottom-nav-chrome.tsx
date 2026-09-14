@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
-import { CloudSun, Search, Settings, type LucideIcon } from 'lucide-react-native';
+import { CloudSun, Search, Settings, type LucideIcon } from './icons';
 import { usePathname, useRouter, useSegments } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 

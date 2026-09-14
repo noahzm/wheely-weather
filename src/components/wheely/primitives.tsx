@@ -10,7 +10,7 @@ import {
   CloudSun,
   Sun,
   type LucideIcon,
-} from 'lucide-react-native';
+} from './icons';
 import { SymbolView, type SFSymbol } from 'expo-symbols';
 
 import { ThemedText } from '@/components/themed-text';

@@ -7,7 +7,7 @@ import Animated, {
   LinearTransition,
   useReducedMotion,
 } from 'react-native-reanimated';
-import { Check, ChevronRight, House, Navigation, Pin } from 'lucide-react-native';
+import { Check, ChevronRight, House, Navigation, Pin } from './icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
