@@ -22,6 +22,17 @@ describe('Cloudflare Worker geocode proxy', () => {
   });
 
   describe('/api/geocode/search', () => {
+    it('rejects unsupported HTTP methods with 405', async () => {
+      const request = new Request('https://wheelyweather.app/api/geocode/search?q=Boston', {
+        method: 'POST',
+      });
+      const response = await worker.fetch(request, {});
+      expect(response.status).toBe(405);
+      expect(response.headers.get('Allow')).toBe('GET, OPTIONS');
+      const body = await response.json();
+      expect(body).toEqual({ error: 'Method not allowed' });
+    });
+
     it('rejects missing q parameter with 400', async () => {
       const request = new Request('https://wheelyweather.app/api/geocode/search');
       const response = await worker.fetch(request, {});
@@ -53,6 +64,12 @@ describe('Cloudflare Worker geocode proxy', () => {
       expect(response.status).toBe(200);
       expect(response.headers.get('Cache-Control')).toBe('public, max-age=3600');
       expect(response.headers.get('Access-Control-Allow-Origin')).toBe('https://wheelyweather.app');
+      expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
+      expect(response.headers.get('X-Frame-Options')).toBe('DENY');
+      expect(response.headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
+      expect(response.headers.get('Permissions-Policy')).toBe(
+        'camera=(), microphone=(), geolocation=(self)',
+      );
       const data = await response.json();
       expect(data).toEqual(mockNominatimResponse);
     });
@@ -155,6 +172,7 @@ describe('Cloudflare Worker geocode proxy', () => {
       const response = await worker.fetch(request, { ASSETS: { fetch: fakeAssetFetch } });
       expect(response.status).toBe(200);
       expect(response.headers.get('Cache-Control')).toBe('public, max-age=31536000, immutable');
+      expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
     });
 
     it('sets no-cache revalidate on HTML shell requests', async () => {
@@ -169,6 +187,12 @@ describe('Cloudflare Worker geocode proxy', () => {
       const response = await worker.fetch(request, { ASSETS: { fetch: fakeAssetFetch } });
       expect(response.status).toBe(200);
       expect(response.headers.get('Cache-Control')).toBe('public, max-age=0, must-revalidate');
+      expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
+      expect(response.headers.get('X-Frame-Options')).toBe('DENY');
+      expect(response.headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
+      expect(response.headers.get('Permissions-Policy')).toBe(
+        'camera=(), microphone=(), geolocation=(self)',
+      );
     });
 
     it('sets no-cache revalidate on robots.txt and favicon.ico', async () => {
