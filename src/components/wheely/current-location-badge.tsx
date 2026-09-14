@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
-import { Navigation } from 'lucide-react-native';
+import { Navigation } from './icons';
 import { SymbolView } from 'expo-symbols';
 
 import { ThemedText } from '@/components/themed-text';

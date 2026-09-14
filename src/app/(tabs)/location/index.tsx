@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { ActivityIndicator, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Stack } from 'expo-router';
 import Head from 'expo-router/head';
-import { Search, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { Search, X } from '@/components/wheely/icons';
 
 import {
   WebContentColumn,

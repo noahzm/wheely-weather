@@ -10,7 +10,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import Head from 'expo-router/head';
-import { Navigation } from 'lucide-react-native';
+import { Navigation } from '@/components/wheely/icons';
 
 import {
   CurrentLocationBadge,

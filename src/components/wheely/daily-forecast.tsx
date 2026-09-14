@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { SymbolView, type SFSymbol } from 'expo-symbols';
-import { ChevronDown, Clock, CloudRain, Wind, type LucideIcon } from 'lucide-react-native';
+import { ChevronDown, Clock, CloudRain, Wind, type LucideIcon } from './icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { CONDITION_DISPLAY } from '@/domain';

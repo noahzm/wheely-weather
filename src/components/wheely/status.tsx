@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
-import { AlertTriangle, CloudOff, MapPin, RefreshCw, Search } from 'lucide-react-native';
+import { AlertTriangle, CloudOff, MapPin, RefreshCw, Search } from './icons';
 import { SymbolView, type SFSymbol } from 'expo-symbols';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 

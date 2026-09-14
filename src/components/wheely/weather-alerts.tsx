@@ -1,7 +1,7 @@
 import { useMemo, useId, useState } from 'react';
 import { Platform, StyleSheet, View, type ViewStyle } from 'react-native';
 import Svg, { Defs, Pattern, Polygon, Rect } from 'react-native-svg';
-import { AlertTriangle, ChevronDown, Thermometer, type LucideIcon } from 'lucide-react-native';
+import { AlertTriangle, ChevronDown, Thermometer, type LucideIcon } from './icons';
 import { SymbolView, type SFSymbol } from 'expo-symbols';
 import Animated, { type SharedValue, useAnimatedStyle } from 'react-native-reanimated';
 

@@ -2,7 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
 import { SymbolView, type SFSymbol } from 'expo-symbols';
-import { Clock, CloudRain, Sun, Wind, type LucideIcon } from 'lucide-react-native';
+import { Clock, CloudRain, Sun, Wind, type LucideIcon } from './icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';

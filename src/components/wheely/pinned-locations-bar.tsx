@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Platform, ScrollView, StyleSheet, View } from 'react-native';
-import { Navigation, Pin } from 'lucide-react-native';
+import { Navigation, Pin } from './icons';
 import { SymbolView } from 'expo-symbols';
 
 import { ThemedText } from '@/components/themed-text';
