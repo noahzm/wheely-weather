@@ -11,6 +11,19 @@ const ALLOWED_ORIGIN = 'https://wheelyweather.app';
 // Nominatim place queries are short; cap input size to blunt proxy abuse.
 const MAX_QUERY_LENGTH = 200;
 
+const SECURITY_HEADERS = {
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=(self)',
+};
+
+function applySecurityHeaders(headers) {
+  for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
+    headers.set(key, value);
+  }
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -28,6 +41,7 @@ export default {
       if (pathname.includes('/_expo/static/') || pathname.includes('/assets/')) {
         const headers = new Headers(response.headers);
         headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+        applySecurityHeaders(headers);
         return new Response(response.body, {
           status: response.status,
           statusText: response.statusText,
@@ -36,6 +50,7 @@ export default {
       } else if (isHtmlShellRequest(pathname)) {
         const headers = new Headers(response.headers);
         headers.set('Cache-Control', 'public, max-age=0, must-revalidate');
+        applySecurityHeaders(headers);
         return new Response(response.body, {
           status: response.status,
           statusText: response.statusText,
@@ -92,10 +107,7 @@ function buildReverseUrl(url) {
   ) {
     return badRequest('Invalid coordinates');
   }
-  return (
-    `${NOMINATIM_REVERSE}?lat=${encodeURIComponent(latStr)}` +
-    `&lon=${encodeURIComponent(lonStr)}&format=json`
-  );
+  return `${NOMINATIM_REVERSE}?lat=${lat}&lon=${lon}&format=json`;
 }
 
 /**
@@ -106,6 +118,16 @@ function buildReverseUrl(url) {
 async function handleGeocode(request, nominatimUrl, cacheControl) {
   if (request.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders() });
+  }
+  if (request.method !== 'GET' && request.method !== 'HEAD') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
+      headers: {
+        ...jsonHeaders(),
+        'Cache-Control': 'no-store',
+        Allow: 'GET, OPTIONS',
+      },
+    });
   }
   if (nominatimUrl instanceof Response) return nominatimUrl;
 
@@ -156,6 +178,7 @@ function corsHeaders() {
     'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
+    ...SECURITY_HEADERS,
   };
 }
 
