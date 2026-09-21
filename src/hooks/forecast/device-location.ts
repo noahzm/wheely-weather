@@ -27,34 +27,38 @@ export function setLastKnownDeviceLocation(fix: SavedLocation | null): void {
 export async function resolveDeviceLocation(
   requestIfUndetermined: boolean,
 ): Promise<SavedLocation | null> {
-  let permission = await Location.getForegroundPermissionsAsync();
-  if (permission.status === Location.PermissionStatus.UNDETERMINED && requestIfUndetermined) {
-    permission = await Location.requestForegroundPermissionsAsync();
-  }
-  if (permission.status !== Location.PermissionStatus.GRANTED) {
+  try {
+    let permission = await Location.getForegroundPermissionsAsync();
+    if (permission.status === Location.PermissionStatus.UNDETERMINED && requestIfUndetermined) {
+      permission = await Location.requestForegroundPermissionsAsync();
+    }
+    if (permission.status !== Location.PermissionStatus.GRANTED) {
+      return null;
+    }
+    let lat: number;
+    let lon: number;
+    const lastKnown = await Location.getLastKnownPositionAsync().catch(() => null);
+    if (lastKnown) {
+      lat = lastKnown.coords.latitude;
+      lon = lastKnown.coords.longitude;
+    } else {
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      lat = position.coords.latitude;
+      lon = position.coords.longitude;
+    }
+    const saved = await saveLocation({
+      lat,
+      lon,
+      name: null,
+      source: 'device',
+    });
+    lastKnownDeviceFix = saved;
+    return saved;
+  } catch {
     return null;
   }
-  let lat: number;
-  let lon: number;
-  const lastKnown = await Location.getLastKnownPositionAsync().catch(() => null);
-  if (lastKnown) {
-    lat = lastKnown.coords.latitude;
-    lon = lastKnown.coords.longitude;
-  } else {
-    const position = await Location.getCurrentPositionAsync({
-      accuracy: Location.Accuracy.Balanced,
-    });
-    lat = position.coords.latitude;
-    lon = position.coords.longitude;
-  }
-  const saved = await saveLocation({
-    lat,
-    lon,
-    name: null,
-    source: 'device',
-  });
-  lastKnownDeviceFix = saved;
-  return saved;
 }
 
 export async function requestDeviceLocation(): Promise<SavedLocation | null> {

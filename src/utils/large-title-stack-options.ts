@@ -22,5 +22,6 @@ export function largeTitleStackOptions(c: WheelyPalette, title: string) {
     headerLargeTitleEnabled: true,
     headerLargeTitleStyle: { fontFamily: Fonts.city, fontWeight: FontWeightBlack },
     headerBackTitleStyle: { fontFamily: Fonts.heading },
+    headerShadowVisible: false,
   };
 }

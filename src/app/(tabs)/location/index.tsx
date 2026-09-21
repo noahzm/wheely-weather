@@ -24,7 +24,7 @@ import { withAlpha } from '@/utils/colors';
 const isWeb = Platform.OS === 'web';
 const isIOS = Platform.OS === 'ios';
 
-function WebSearchField({
+function SearchField({
   query,
   onQueryChange,
 }: Readonly<{
@@ -57,6 +57,9 @@ function WebSearchField({
           autoCorrect={false}
           returnKeyType="search"
           accessibilityLabel="Search for a location"
+          underlineColorAndroid="transparent"
+          cursorColor={c.accent}
+          selectionColor={c.accent}
           onFocus={() => {
             setFocused(true);
           }}
@@ -79,6 +82,25 @@ function WebSearchField({
       </View>
     </BrutalCard>
   );
+}
+
+function getScreenOptions(setQuery: (val: string) => void) {
+  if (isWeb) {
+    return { headerShown: false };
+  }
+  if (isIOS) {
+    return {
+      headerSearchBarOptions: {
+        placeholder: 'Search a city or place',
+        autoCapitalize: 'words' as const,
+        hideWhenScrolling: false,
+        onChangeText: (e: { nativeEvent: { text: string } }) => {
+          setQuery(e.nativeEvent.text);
+        },
+      },
+    };
+  }
+  return {};
 }
 
 export default function LocationSearchScreen() {
@@ -125,22 +147,7 @@ export default function LocationSearchScreen() {
           content="Search for a city or location to get today's cycling weather forecast."
         />
       </Head>
-      <Stack.Screen
-        options={
-          isWeb
-            ? { headerShown: false }
-            : {
-                headerSearchBarOptions: {
-                  placeholder: 'Search a city or place',
-                  autoCapitalize: 'words',
-                  hideWhenScrolling: false,
-                  onChangeText: (e) => {
-                    setQuery(e.nativeEvent.text);
-                  },
-                },
-              }
-        }
-      />
+      <Stack.Screen options={getScreenOptions(setQuery)} />
       <View style={styles.screen} collapsable={false}>
         {isIOS ? (
           <LocationSearchList {...listProps} />
@@ -164,7 +171,7 @@ export default function LocationSearchScreen() {
                   title={<WebScreenTitle>Search</WebScreenTitle>}
                 />
               )}
-              {isWeb && <WebSearchField query={query} onQueryChange={setQuery} />}
+              <SearchField query={query} onQueryChange={setQuery} />
               <LocationSearchList {...listProps} />
             </WebContentColumn>
           </ScrollView>
@@ -189,7 +196,9 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: ScreenGutter,
+    paddingTop: Spacing.three,
     paddingBottom: Spacing.six,
+    gap: Spacing.four,
   },
   scrollContentWeb: {
     width: '100%',

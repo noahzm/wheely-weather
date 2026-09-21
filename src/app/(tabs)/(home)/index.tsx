@@ -338,6 +338,58 @@ function getUpdatedLabels(snapshot: { lastUpdated: Date } | null, statusMessage:
   return { headerText, webUpdatedText, refreshTitle };
 }
 
+function HomeLocationPromptScreen({
+  locating,
+  setLocating,
+  forecast,
+  router,
+  screenStyle,
+  styles,
+  bottomNavInset,
+}: Readonly<{
+  locating: boolean;
+  setLocating: (val: boolean) => void;
+  forecast: ReturnType<typeof useForecast>;
+  router: ReturnType<typeof useRouter>;
+  screenStyle: object;
+  styles: ReturnType<typeof makeStyles>;
+  bottomNavInset?: number;
+}>) {
+  const scrollHostStyle = isWeb ? styles.scrollHost : undefined;
+  return (
+    <View style={screenStyle}>
+      <ScrollView
+        style={[styles.scroll, scrollHostStyle]}
+        contentInsetAdjustmentBehavior="automatic"
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={[
+          styles.scrollContent,
+          bottomNavInset != null && { paddingBottom: bottomNavInset },
+        ]}
+      >
+        <View style={styles.safeArea}>
+          <WebCityHeading city="" following={false} />
+          <View style={styles.content}>
+            <LocationPromptState
+              busy={locating}
+              statusMessage={forecast.statusMessage}
+              onUseDeviceLocation={() => {
+                setLocating(true);
+                void forecast.useDeviceLocation().finally(() => {
+                  setLocating(false);
+                });
+              }}
+              onChooseLocation={() => {
+                router.navigate('/location');
+              }}
+            />
+          </View>
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
 function HomeContent({
   forecast,
   sections,
@@ -375,21 +427,15 @@ function HomeContent({
 
   if (forecast.needsLocation) {
     return (
-      <View style={styles.screen}>
-        <LocationPromptState
-          busy={locating}
-          statusMessage={forecast.statusMessage}
-          onUseDeviceLocation={() => {
-            setLocating(true);
-            void forecast.useDeviceLocation().finally(() => {
-              setLocating(false);
-            });
-          }}
-          onChooseLocation={() => {
-            router.navigate('/location');
-          }}
-        />
-      </View>
+      <HomeLocationPromptScreen
+        locating={locating}
+        setLocating={setLocating}
+        forecast={forecast}
+        router={router}
+        screenStyle={styles.screen}
+        styles={styles}
+        bottomNavInset={bottomNavInset}
+      />
     );
   }
 
@@ -414,6 +460,8 @@ function HomeContent({
             onRefresh={forecast.refresh}
             title={refreshTitle}
             titleColor={c.mutedInk}
+            colors={[c.primary, c.accent]}
+            progressBackgroundColor={c.paper}
           />
         }
         contentContainerStyle={[

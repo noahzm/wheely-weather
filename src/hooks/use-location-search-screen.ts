@@ -30,7 +30,7 @@ export function useLocationSearchScreen() {
     if (Platform.OS === 'web') {
       router.dismissTo('/');
     } else {
-      router.navigate('/');
+      router.navigate('/(tabs)/(home)');
     }
   }, [router]);
 

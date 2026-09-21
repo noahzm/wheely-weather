@@ -28,14 +28,19 @@ function makeStyles(c: WheelyPalette, webPaddingBottom?: number) {
       backgroundColor: TRANSPARENT,
     },
     centerCard: {
+      width: '100%',
       maxWidth: MaxContentWidth,
       alignItems: 'center',
     },
     centerIcon: {
       marginBottom: Spacing.two,
     },
+    centerHeading: {
+      textAlign: 'center',
+    },
     muted: {
       color: c.mutedInk,
+      textAlign: 'center',
       ...Type.small,
     },
     statusMessage: {
@@ -105,7 +110,7 @@ export function ErrorState({
             style={styles.centerIcon}
           />
         )}
-        <SectionHeading>
+        <SectionHeading style={styles.centerHeading}>
           {network ? 'Forecast unavailable' : 'Something went sideways'}
         </SectionHeading>
         <ThemedText style={styles.muted}>
@@ -212,63 +217,61 @@ export function LocationPromptState({
 }>) {
   const { c, styles, buttonStyles } = useCardStyles();
   return (
-    <View style={styles.centerState}>
-      <BrutalCard style={styles.centerCard}>
-        {Platform.OS === 'ios' ? (
-          <SymbolView name="location.fill" size={42} tintColor={c.ink} style={styles.centerIcon} />
-        ) : (
-          <PlatformIcon
-            icon={MapPin}
-            size={42}
-            color={c.ink}
-            strokeWidth={2}
-            style={styles.centerIcon}
-          />
-        )}
-        <SectionHeading>Where are you riding?</SectionHeading>
-        <ThemedText style={styles.muted}>
-          Use your current location or search for a city to see the forecast.
+    <BrutalCard style={styles.centerCard}>
+      {Platform.OS === 'ios' ? (
+        <SymbolView name="location.fill" size={42} tintColor={c.ink} style={styles.centerIcon} />
+      ) : (
+        <PlatformIcon
+          icon={MapPin}
+          size={42}
+          color={c.ink}
+          strokeWidth={2}
+          style={styles.centerIcon}
+        />
+      )}
+      <SectionHeading style={styles.centerHeading}>Where are you riding?</SectionHeading>
+      <ThemedText style={styles.muted}>
+        Use your current location or search for a city to see the forecast.
+      </ThemedText>
+      <HapticPressable
+        onPress={onUseDeviceLocation}
+        disabled={busy}
+        accessibilityRole="button"
+        accessibilityLabel="Use current location"
+        accessibilityState={{ disabled: busy, busy }}
+        style={({ pressed }) => [
+          buttonStyles.base,
+          buttonStyles.primary,
+          (pressed || busy) && buttonStyles.pressed,
+        ]}
+      >
+        <UseLocationButtonIcon busy={busy} ink={c.primaryInk} />
+        <ThemedText style={[buttonStyles.label, buttonStyles.primaryLabel]}>
+          Use current location
         </ThemedText>
-        <HapticPressable
-          onPress={onUseDeviceLocation}
-          disabled={busy}
-          accessibilityRole="button"
-          accessibilityLabel="Use current location"
-          accessibilityState={{ disabled: busy, busy }}
-          style={({ pressed }) => [
-            buttonStyles.base,
-            buttonStyles.primary,
-            (pressed || busy) && buttonStyles.pressed,
-          ]}
-        >
-          <UseLocationButtonIcon busy={busy} ink={c.primaryInk} />
-          <ThemedText style={[buttonStyles.label, buttonStyles.primaryLabel]}>
-            Use current location
-          </ThemedText>
-        </HapticPressable>
-        <HapticPressable
-          onPress={onChooseLocation}
-          accessibilityRole="button"
-          accessibilityLabel="Search for a city"
-          style={({ pressed }) => [
-            buttonStyles.base,
-            buttonStyles.surface,
-            pressed && buttonStyles.pressed,
-          ]}
-        >
-          {Platform.OS === 'ios' ? (
-            <SymbolView name="magnifyingglass" size={14} tintColor={c.ink} />
-          ) : (
-            <PlatformIcon icon={Search} size={14} color={c.ink} strokeWidth={2.5} />
-          )}
-          <ThemedText style={buttonStyles.label}>Search for a city</ThemedText>
-        </HapticPressable>
-        {statusMessage.length > 0 && (
-          <ThemedText style={styles.statusMessage} accessibilityLiveRegion="polite">
-            {statusMessage}
-          </ThemedText>
+      </HapticPressable>
+      <HapticPressable
+        onPress={onChooseLocation}
+        accessibilityRole="button"
+        accessibilityLabel="Search for a city"
+        style={({ pressed }) => [
+          buttonStyles.base,
+          buttonStyles.surface,
+          pressed && buttonStyles.pressed,
+        ]}
+      >
+        {Platform.OS === 'ios' ? (
+          <SymbolView name="magnifyingglass" size={14} tintColor={c.ink} />
+        ) : (
+          <PlatformIcon icon={Search} size={14} color={c.ink} strokeWidth={2.5} />
         )}
-      </BrutalCard>
-    </View>
+        <ThemedText style={buttonStyles.label}>Search for a city</ThemedText>
+      </HapticPressable>
+      {statusMessage.length > 0 && (
+        <ThemedText style={styles.statusMessage} accessibilityLiveRegion="polite">
+          {statusMessage}
+        </ThemedText>
+      )}
+    </BrutalCard>
   );
 }

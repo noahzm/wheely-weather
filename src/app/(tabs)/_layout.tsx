@@ -1,7 +1,7 @@
 import { DynamicColorIOS, Platform } from 'react-native';
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 
-import { WheelyTheme } from '@/constants/theme';
+import { WheelyTheme, Fonts } from '@/constants/theme';
 import { useWheelyColors } from '@/hooks/use-theme';
 
 export default function TabsLayout() {
@@ -17,7 +17,7 @@ export default function TabsLayout() {
       sidebarAdaptable
       blurEffect="systemMaterial"
       tintColor={tintColor}
-      labelStyle={{ color: tintColor }}
+      labelStyle={{ color: tintColor, fontFamily: Fonts.body }}
       tabBarRespectsIMEInsets
     >
       <NativeTabs.Trigger name="(home)" disableTransparentOnScrollEdge>
