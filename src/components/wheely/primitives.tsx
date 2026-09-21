@@ -1,5 +1,13 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { Platform, Pressable, StyleSheet, View, type PressableProps } from 'react-native';
+import {
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
+  type PressableProps,
+  type StyleProp,
+  type TextStyle,
+} from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import {
   Cloud,
@@ -26,15 +34,23 @@ import {
 } from '@/constants/theme';
 import type { Condition } from '@/types/weather';
 import { selectionFeedback } from '@/utils/haptics';
+import { withAlpha } from '@/utils/colors';
 
 /** A `Pressable` that fires a selection haptic before delegating to `onPress`. */
-export function HapticPressable({ onPress, ...props }: Readonly<PressableProps>) {
+export function HapticPressable({ onPress, android_ripple, ...props }: Readonly<PressableProps>) {
+  const c = useWheelyColors();
+  const ripple =
+    Platform.OS === 'android' && android_ripple !== null
+      ? (android_ripple ?? { color: withAlpha(c.ink, 0.1) })
+      : undefined;
+
   return (
     <Pressable
       onPress={(event) => {
         selectionFeedback();
         onPress?.(event);
       }}
+      android_ripple={ripple}
       {...props}
     />
   );
@@ -105,14 +121,13 @@ const LABEL_BURST_VIEWBOX = '-4 -4 208 64';
 
 /** Cross-platform neobrutalist drop shadow. */
 export function brutalShadow(color: string, width: number, height = width) {
-  return Platform.OS === 'web'
-    ? ({ boxShadow: `${width}px ${height}px 0 ${color}` } as const)
-    : {
-        shadowColor: color,
-        shadowOffset: { width, height },
-        shadowOpacity: 1,
-        shadowRadius: 0,
-      };
+  return {
+    boxShadow: `${width}px ${height}px 0px ${color}`,
+    shadowColor: color,
+    shadowOffset: { width, height },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+  };
 }
 
 export const ButtonRadius = Radius.card;
@@ -247,18 +262,23 @@ const sectionHeadingStyles = StyleSheet.create({
     // Full-width box with room to wrap: iOS measures the text box with the
     // unscaled font, so a self-sized box clips mid-word at large Dynamic Type.
     alignSelf: 'stretch',
-    flexGrow: 1,
     flexShrink: 1,
     fontFamily: Fonts.bold,
     ...Type.heading,
     fontWeight: FontWeightBlack,
   },
+  rowHeading: {
+    flexGrow: 1,
+  },
 });
 
-export function SectionHeading({ children }: Readonly<{ children: string }>) {
+export function SectionHeading({
+  children,
+  style,
+}: Readonly<{ children: string; style?: StyleProp<TextStyle> }>) {
   return (
     <ThemedText
-      style={sectionHeadingStyles.text}
+      style={[sectionHeadingStyles.text, style]}
       accessibilityRole="header"
       accessibilityLabel={children}
     >
@@ -273,7 +293,7 @@ export function SectionTitle({
 }: Readonly<{ title: string; rightAccessory?: ReactNode }>) {
   return (
     <View style={sectionHeadingStyles.row}>
-      <SectionHeading>{title}</SectionHeading>
+      <SectionHeading style={sectionHeadingStyles.rowHeading}>{title}</SectionHeading>
       {rightAccessory}
     </View>
   );

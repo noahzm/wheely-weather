@@ -1,12 +1,7 @@
 // Default (Android / web) location search list. iOS is shadowed by location-search-list.ios.tsx
 // with a native SwiftUI List.
-import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
-import Animated, {
-  FadeIn,
-  FadeOut,
-  LinearTransition,
-  useReducedMotion,
-} from 'react-native-reanimated';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import Animated, { FadeIn, FadeOut, useReducedMotion } from 'react-native-reanimated';
 import { Check, ChevronRight, House, Navigation, Pin } from './icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -193,8 +188,6 @@ export function LocationSearchList({
   const reduceMotion = useReducedMotion();
   const entering = reduceMotion ? undefined : FadeIn.duration(200);
   const exiting = reduceMotion ? undefined : FadeOut.duration(150);
-  const layoutAnim =
-    Platform.OS !== 'web' && !reduceMotion ? LinearTransition.duration(250) : undefined;
 
   return (
     <>
@@ -214,7 +207,6 @@ export function LocationSearchList({
             key={section.id}
             entering={entering}
             exiting={exiting}
-            layout={layoutAnim}
             style={styles.sectionGroup}
           >
             {section.title ? <SectionTitle title={section.title} /> : null}
