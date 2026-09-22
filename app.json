@@ -49,6 +49,7 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      "./plugins/withDevLauncherSceneDelegateFix.js",
       [
         "expo-router",
         {
