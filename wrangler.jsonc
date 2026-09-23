@@ -6,6 +6,8 @@
   "main": "workers/index.mjs",
   "compatibility_date": "2026-06-01",
   "routes": [{ "pattern": "wheelyweather.app", "custom_domain": true }],
+  // Workers Logs: without it a failing /api/geocode proxy leaves nothing to inspect.
+  "observability": { "enabled": true },
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",

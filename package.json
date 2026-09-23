@@ -36,7 +36,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.29.7",
-    "@types/node": "^26.6.2",
+    "@types/node": "^24.13.6",
     "@types/react": "~19.2.18",
     "@vitest/coverage-v8": "^5.0.1",
     "cross-env": "^10.1.0",
@@ -80,5 +80,8 @@
     "eas:build:android-dev": "eas build --platform android --profile development",
     "eas:build:android-prod": "eas build --platform android --profile production"
   },
-  "private": true
+  "private": true,
+  "engines": {
+    "node": ">=24"
+  }
 }
