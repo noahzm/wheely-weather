@@ -1,4 +1,6 @@
 // Learn more https://docs.expo.io/guides/customizing-metro
-const { getDefaultConfig } = require('expo/metro-config');
+// Sentry's wrapper adds debug IDs to each bundle so errors can be matched to the
+// source maps uploaded at build time; plain Expo config would leave traces minified.
+const { getSentryExpoConfig } = require('@sentry/react-native/metro');
 
-module.exports = getDefaultConfig(__dirname);
+module.exports = getSentryExpoConfig(__dirname);

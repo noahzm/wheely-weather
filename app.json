@@ -115,8 +115,7 @@
         "@sentry/react-native/expo",
         {
           "organization": "noah-michaels",
-          "project": "wheely-weather",
-          "disableAutoUpload": true
+          "project": "wheely-weather"
         }
       ]
     ],
