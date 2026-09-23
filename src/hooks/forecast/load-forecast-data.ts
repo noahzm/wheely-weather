@@ -43,7 +43,7 @@ export const INITIAL_FORECAST_STATE: ForecastState = {
   statusMessage: '',
 };
 
-export type ForecastLoadResult =
+type ForecastLoadResult =
   | { kind: 'needsLocation'; recentLocations: RecentLocation[]; pinnedLocations: RecentLocation[] }
   | {
       kind: 'loaded';

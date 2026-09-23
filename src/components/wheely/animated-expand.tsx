@@ -9,8 +9,8 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-export const EXPAND_DURATION = 280;
-export const EXPAND_EASING = Easing.out(Easing.cubic);
+const EXPAND_DURATION = 280;
+const EXPAND_EASING = Easing.out(Easing.cubic);
 
 export function useExpandAnimation(open: boolean) {
   const reduceMotion = useReducedMotion();

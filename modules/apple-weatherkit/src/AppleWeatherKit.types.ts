@@ -2,7 +2,7 @@
 // `weather_code: number` (a WMO int) is replaced by `condition: string`
 // (WeatherKit's raw `WeatherCondition.rawValue`) — the WMO translation happens
 // in src/domain/weatherkit-codes.ts, applied by weatherService.ios.ts.
-export interface WeatherKitCurrent {
+interface WeatherKitCurrent {
   time: string;
   temperature_2m: number;
   apparent_temperature: number;
@@ -13,7 +13,7 @@ export interface WeatherKitCurrent {
   wind_direction_10m: number;
 }
 
-export interface WeatherKitHourly {
+interface WeatherKitHourly {
   time: string[];
   temperature_2m: number[];
   apparent_temperature: number[];
@@ -25,7 +25,7 @@ export interface WeatherKitHourly {
   uv_index: number[];
 }
 
-export interface WeatherKitDaily {
+interface WeatherKitDaily {
   time: string[];
   sunrise: string[];
   sunset: string[];

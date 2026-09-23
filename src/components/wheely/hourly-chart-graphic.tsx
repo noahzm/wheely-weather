@@ -39,7 +39,7 @@ import type { ChartHour } from './use-hourly-forecast-chart';
 
 export const CHART_HEIGHT = 140;
 const SELECTION_RING_SIZE = 32;
-export const SELECTION_RING_RADIUS = SELECTION_RING_SIZE / 2;
+const SELECTION_RING_RADIUS = SELECTION_RING_SIZE / 2;
 
 const GRIDLINE_CONDITIONS = ['good', 'fair', 'marginal', 'poor', 'bad'] as const;
 const GRIDLINE_INSET = 12;

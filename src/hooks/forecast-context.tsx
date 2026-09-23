@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 import { useGlobalSearchParams } from 'expo-router';
 
+import { isMockScenario } from '@/services/mockWeather';
+
 import { useWeatherForecast } from './use-weather-forecast';
 
 // ---------- types ----------
@@ -11,7 +13,6 @@ type ForecastContextValue = ReturnType<typeof useWeatherForecast>;
 const ForecastContext = createContext<ForecastContextValue | null>(null);
 
 // ---------- provider ----------
-const MOCK_SCENARIOS = new Set(['ride', 'maybe', 'rest', 'alert']);
 
 /**
  * Provides centralized forecast state and actions to the component tree,
@@ -19,7 +20,7 @@ const MOCK_SCENARIOS = new Set(['ride', 'maybe', 'rest', 'alert']);
  */
 export function ForecastProvider({ children }: Readonly<{ children: ReactNode }>) {
   const params = useGlobalSearchParams<{ mock?: string }>();
-  const paramMock = MOCK_SCENARIOS.has(String(params.mock)) ? String(params.mock) : null;
+  const paramMock = isMockScenario(params.mock) ? params.mock : null;
   // Tab navigation drops query params, so latch the last seen scenario for the session.
   const [latchedMock, setLatchedMock] = useState(paramMock);
   if (paramMock && paramMock !== latchedMock) setLatchedMock(paramMock);

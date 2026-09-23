@@ -8,7 +8,7 @@ import { createContext, useContext } from 'react';
 import { WheelyTheme, type WheelyPalette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
-export type ColorSchemeName = 'light' | 'dark';
+type ColorSchemeName = 'light' | 'dark';
 
 /**
  * Lets a parent (e.g. the root layout) force a color scheme instead of

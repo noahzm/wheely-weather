@@ -221,27 +221,6 @@ const SCENARIOS: Record<MockScenario, MockScenarioSpec> = {
   },
 };
 
-/** Reads `?mock=<scenario>` from URL params. Returns null when not in mock mode. */
-export function getMockScenarioFromParams(params: URLSearchParams): MockScenario | null {
-  const value = params.get('mock');
-  return isMockScenario(value) ? value : null;
-}
-
-/** Reads `?mock=<scenario>` from the browser URL. Returns null when not in mock mode. */
-export function getMockScenario(): MockScenario | null {
-  // React Native polyfills `window` but not necessarily `location` (varies by
-  // dev/release runtime), so guard on the actual value we need.
-  if (!('location' in globalThis)) return null;
-  const search = globalThis.location.search;
-  if (typeof search !== 'string') return null;
-  return getMockScenarioFromParams(new URLSearchParams(search));
-}
-
-/** Returns true when mock mode is active. */
-export function isMockMode(): boolean {
-  return getMockScenario() !== null;
-}
-
 /** Display label for the active scenario (used to override the location name). */
 export function getMockLocationLabel(scenario: string | null | undefined): string | null {
   const s = isMockScenario(scenario) ? SCENARIOS[scenario] : null;

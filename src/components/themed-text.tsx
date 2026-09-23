@@ -3,7 +3,7 @@ import { StyleSheet, Text, type TextProps } from 'react-native';
 import { FontWeightBlack, Fonts, ThemeColor, Type } from '@/constants/theme';
 import { useWheelyColors } from '@/hooks/use-theme';
 
-export type ThemedTextProps = TextProps & {
+type ThemedTextProps = TextProps & {
   type?:
     | 'default'
     | 'title'
