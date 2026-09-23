@@ -16,14 +16,19 @@ public class AppleWeatherKitModule: Module {
       Task {
         do {
           let location = CLLocation(latitude: lat, longitude: lon)
-          let timeZone = await Self.resolveTimeZone(for: location)
-          let dateTimeFormatter = Self.makeFormatter(timeZone: timeZone, dateOnly: false)
-          let dateFormatter = Self.makeFormatter(timeZone: timeZone, dateOnly: true)
+          // The time zone comes from a reverse geocode — its own network round
+          // trip on every cold launch — so run it alongside the WeatherKit
+          // request instead of ahead of it.
+          async let resolvedTimeZone = Self.resolveTimeZone(for: location)
 
           let (current, hourlyForecast, dailyForecast) = try await WeatherService.shared.weather(
             for: location,
             including: .current, .hourly, .daily
           )
+
+          let timeZone = await resolvedTimeZone
+          let dateTimeFormatter = Self.makeFormatter(timeZone: timeZone, dateOnly: false)
+          let dateFormatter = Self.makeFormatter(timeZone: timeZone, dateOnly: true)
 
           let currentDict: [String: Any?] = [
             "time": dateTimeFormatter.string(from: current.date),
