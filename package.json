@@ -46,9 +46,7 @@
     "eslint-plugin-react-native": "^5.0.0",
     "eslint-plugin-sonarjs": "^4.2.1",
     "eslint-plugin-unicorn": "^60.0.0",
-    "playwright": "^1.63.0",
     "prettier": "^3.9.9",
-    "serve": "^14.2.6",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.70.1",
     "vitest": "^5.0.1"
@@ -74,7 +72,6 @@
     "check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build:web",
     "test": "vitest run --project unit",
     "test:coverage": "vitest run --project unit --coverage",
-    "test:e2e:app": "playwright test --config playwright.app.config.ts",
     "eas:build:ios-dev": "eas build --platform ios --profile development",
     "eas:build:ios-prod": "eas build --platform ios --profile production",
     "eas:build:android-dev": "eas build --platform android --profile development",

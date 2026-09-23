@@ -48,7 +48,6 @@ npm run web            # or: npm run ios / npm run android
 | `npm run check`         | Everything CI runs: format, lint, types, tests, build |
 | `npm test`              | Unit tests                                            |
 | `npm run test:coverage` | Unit tests with coverage floors                       |
-| `npm run test:e2e:app`  | Playwright tests (run `npm run build:web` first)      |
 | `npm run ios:clean`     | Regenerate the native iOS project and run             |
 
 ## Project structure

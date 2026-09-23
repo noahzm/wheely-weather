@@ -14,15 +14,7 @@ const ESLINT_TSCONFIG = 'tsconfig.eslint.json';
 module.exports = defineConfig([
   // ── Ignores (generated/build output) ────────────────────────────────────
   {
-    ignores: [
-      'dist/**',
-      '.expo/**',
-      'node_modules/**',
-      'coverage/**',
-      'web-build/**',
-      'playwright-report/**',
-      'test-results/**',
-    ],
+    ignores: ['dist/**', '.expo/**', 'node_modules/**', 'coverage/**', 'web-build/**'],
   },
 
   // ── Expo base ────────────────────────────────────────────────────────────
