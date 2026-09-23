@@ -19,6 +19,7 @@ import {
   Type,
   type WheelyPalette,
 } from '@/constants/theme';
+import type { Thresholds } from '@/domain/constants';
 import type { DailyWeather } from '@/types/weather';
 import { AnimatedExpand, useExpandAnimation } from './animated-expand';
 import {
@@ -138,6 +139,7 @@ function DayRowDetail({
   isExpanded,
   bestRationale,
   tempUnit,
+  thresholds,
   formatTemp,
   styles,
   c,
@@ -146,12 +148,13 @@ function DayRowDetail({
   isExpanded: boolean;
   bestRationale: string | null;
   tempUnit: 'fahrenheit' | 'celsius';
+  thresholds: Thresholds;
   formatTemp: (f: number) => string;
   styles: ReturnType<typeof makeStyles>;
   c: WheelyPalette;
 }>) {
   const openProgress = useExpandAnimation(isExpanded);
-  const reasonText = bestRationale ?? getDayConditionReason(day, tempUnit);
+  const reasonText = bestRationale ?? getDayConditionReason(day, tempUnit, thresholds);
   const effectiveGust =
     day.windGust != null && Math.round(day.windGust) > Math.round(day.windSpeed)
       ? ` (gusts ${Math.round(day.windGust)} mph)`
@@ -209,6 +212,7 @@ function DayRow({
   isExpanded,
   onToggle,
   icon: DayIcon,
+  thresholds,
 }: Readonly<{
   day: DailyWeather;
   index: number;
@@ -218,6 +222,7 @@ function DayRow({
   isExpanded: boolean;
   onToggle: () => void;
   icon: LucideIcon;
+  thresholds: Thresholds;
 }>) {
   const { c, styles } = useStyles();
   const { format: formatTemp } = useTemperatureDisplay();
@@ -280,6 +285,7 @@ function DayRow({
         isExpanded={isExpanded}
         bestRationale={best ? bestRationale : null}
         tempUnit={tempUnit}
+        thresholds={thresholds}
         formatTemp={formatTemp}
         styles={styles}
         c={c}
@@ -288,7 +294,10 @@ function DayRow({
   );
 }
 
-export function DailyForecast({ daily }: Readonly<{ daily: DailyWeather[] }>) {
+export function DailyForecast({
+  daily,
+  thresholds,
+}: Readonly<{ daily: DailyWeather[]; thresholds: Thresholds }>) {
   const { styles } = useStyles();
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const bestDayInfo = getBestDayInfo(daily);
@@ -320,6 +329,7 @@ export function DailyForecast({ daily }: Readonly<{ daily: DailyWeather[] }>) {
                 setExpandedIndex((prev) => (prev === index ? null : index));
               }}
               icon={weatherIconFor(day.weatherCode)}
+              thresholds={thresholds}
             />
           ))}
         </View>

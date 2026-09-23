@@ -12,7 +12,7 @@ import {
   type SavedLocation,
 } from '@/services/locationStorage';
 import { getForecastSnapshot, type ForecastSnapshot } from '@/services/forecastSnapshot';
-import { setMemoryCachedForecast } from '@/services/forecastCache';
+import { saveCachedForecast } from '@/services/forecastCache';
 import { DEFAULT_EXPOSURE_LEVEL, type ExposureLevel } from '@/types/settings';
 import type { ForecastExtras } from '@/types/weather';
 
@@ -135,14 +135,20 @@ export function applyForecastSuccess(
   setState: Dispatch<SetStateAction<ForecastState>>,
   needsLocationRef: { current: boolean },
   lastLoadedAt: { current: number },
+  isLatestLoad: () => boolean = () => true,
 ): void {
   persistResolvedDeviceName(result);
   lastLoadedAt.current = Date.now();
   needsLocationRef.current = false;
-  if (result.savedLocation) {
-    setMemoryCachedForecast(result.savedLocation, result.snapshot);
-    if (result.savedLocation.source === 'device') {
-      setLastKnownDeviceLocation(result.savedLocation);
+  // Cache here, where the snapshot is known to belong to `savedLocation`. A
+  // state-watching effect saw transient pairs (new location, previous place's
+  // snapshot) while a location switch was loading, and a failed fetch left
+  // that mismatch cached under the new coordinates.
+  const { savedLocation } = result;
+  if (savedLocation) {
+    void saveCachedForecast(result.snapshot, savedLocation);
+    if (savedLocation.source === 'device') {
+      setLastKnownDeviceLocation(savedLocation);
     }
   }
   setState((current) => ({
@@ -157,5 +163,8 @@ export function applyForecastSuccess(
     errorKind: null,
     statusMessage: '',
   }));
-  mergeExtrasWhenReady(result.snapshot, result.extras, setState);
+  mergeExtrasWhenReady(result.snapshot, result.extras, setState, (merged) => {
+    // A newer load owns the cache by now; don't overwrite it with this one.
+    if (savedLocation && isLatestLoad()) void saveCachedForecast(merged, savedLocation);
+  });
 }

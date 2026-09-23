@@ -31,7 +31,9 @@ export function setMemoryCachedForecast(
   memorySnapshotCache.set(key, {
     snapshot,
     savedLocation,
-    timestamp: Date.now(),
+    // Age from fetch time, not write time: re-caching an already-shown snapshot
+    // (disk hydration, extras merge) must not restart its TTL.
+    timestamp: snapshot.lastUpdated.getTime(),
   });
 }
 

@@ -87,6 +87,18 @@ describe('getBestDayInfo', () => {
 });
 
 describe('getDayConditionReason', () => {
+  it('explains the rating with the thresholds the day was rated with', () => {
+    // A heat-acclimatized table where 86° is poor rather than marginal.
+    const acclimatized = {
+      ...THRESHOLDS,
+      TEMPERATURE: { ...THRESHOLDS.TEMPERATURE, MARGINAL_MAX: 78, POOR_MAX: 85 },
+    };
+    const hotDay = day({ condition: 'poor', high: 86 });
+    expect(getDayConditionReason(hotDay, 'fahrenheit', acclimatized)).toBe('Very hot (86°)');
+    // The base table would call 86° only marginal, too mild to explain a poor day.
+    expect(getDayConditionReason(hotDay)).toBe('Tough riding');
+  });
+
   it('prioritizes hazardous weather codes over condition', () => {
     expect(getDayConditionReason(day({ weatherCode: 95 }))).toBe('Storm risk');
     expect(getDayConditionReason(day({ weatherCode: 73 }))).toBe('Wintry roads');

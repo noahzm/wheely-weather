@@ -212,37 +212,56 @@ function dayMetricReasons(
  * list cannot express would explain itself with a fair-tier "Warm (72°)"
  * instead of falling back to honest generic phrasing.
  */
-function dayReasonAtTier(metrics: DayMetrics, tier: IssueTier, tempUnit: TempUnit): string | null {
-  return dayMetricReasons(metrics, tempUnit).find((r) => RANK[r.tier] <= RANK[tier])?.text ?? null;
+function dayReasonAtTier(
+  metrics: DayMetrics,
+  tier: IssueTier,
+  tempUnit: TempUnit,
+  thresholds: Thresholds,
+): string | null {
+  return (
+    dayMetricReasons(metrics, tempUnit, thresholds).find((r) => RANK[r.tier] <= RANK[tier])?.text ??
+    null
+  );
 }
 
 function badDayReason(
   { wind, gust, rain, high, low, temp, dewpoint }: DayMetrics,
-  tempUnit: TempUnit = 'fahrenheit',
+  tempUnit: TempUnit,
+  thresholds: Thresholds,
 ): string {
   return (
-    dayReasonAtTier({ wind, gust, rain, high, low, temp, dewpoint }, 'bad', tempUnit) ??
+    dayReasonAtTier({ wind, gust, rain, high, low, temp, dewpoint }, 'bad', tempUnit, thresholds) ??
     'Rough day to ride'
   );
 }
 
 function poorDayReason(
   { wind, gust, rain, high, low, temp, dewpoint }: DayMetrics,
-  tempUnit: TempUnit = 'fahrenheit',
+  tempUnit: TempUnit,
+  thresholds: Thresholds,
 ): string {
   return (
-    dayReasonAtTier({ wind, gust, rain, high, low, temp, dewpoint }, 'poor', tempUnit) ??
-    'Tough riding'
+    dayReasonAtTier(
+      { wind, gust, rain, high, low, temp, dewpoint },
+      'poor',
+      tempUnit,
+      thresholds,
+    ) ?? 'Tough riding'
   );
 }
 
 function marginalDayReason(
   { wind, gust, rain, high, low, temp, dewpoint }: DayMetrics,
-  tempUnit: TempUnit = 'fahrenheit',
+  tempUnit: TempUnit,
+  thresholds: Thresholds,
 ): string {
   return (
-    dayReasonAtTier({ wind, gust, rain, high, low, temp, dewpoint }, 'marginal', tempUnit) ??
-    'Mixed conditions'
+    dayReasonAtTier(
+      { wind, gust, rain, high, low, temp, dewpoint },
+      'marginal',
+      tempUnit,
+      thresholds,
+    ) ?? 'Mixed conditions'
   );
 }
 
@@ -423,10 +442,15 @@ export function getHourConditionReasons(
   return reasons;
 }
 
-/** Builds a short explanation for why a daily card rates the way it does. */
+/**
+ * Builds a short explanation for why a daily card rates the way it does.
+ * `thresholds` must be the ones the day was rated with (the snapshot's
+ * acclimatized table), or the reason can disagree with the card's rating.
+ */
 export function getDayConditionReason(
   day: DailyWeather,
   tempUnit: TempUnit = 'fahrenheit',
+  thresholds: Thresholds = THRESHOLDS,
 ): string {
   if (day.rideWindowUnavailable) return 'No three-hour daylight window left';
   const codeReason = weatherCodeReason(day);
@@ -435,18 +459,18 @@ export function getDayConditionReason(
   const m = dayMetrics(day);
   switch (day.condition) {
     case 'bad': {
-      return badDayReason(m, tempUnit);
+      return badDayReason(m, tempUnit, thresholds);
     }
     case 'poor': {
-      return poorDayReason(m, tempUnit);
+      return poorDayReason(m, tempUnit, thresholds);
     }
     case 'marginal': {
-      return marginalDayReason(m, tempUnit);
+      return marginalDayReason(m, tempUnit, thresholds);
     }
     case 'fair': {
       return fairDayReason(m);
     }
-    default: {
+    case 'good': {
       return idealDayReason(m);
     }
   }

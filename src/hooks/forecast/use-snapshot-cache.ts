@@ -1,6 +1,6 @@
 import { useEffect, type Dispatch, type SetStateAction } from 'react';
 
-import { loadCachedForecast, saveCachedForecast } from '@/services/forecastCache';
+import { loadCachedForecast } from '@/services/forecastCache';
 
 import type { ForecastState } from './load-forecast-data';
 
@@ -38,14 +38,4 @@ export function useSnapshotCacheHydration(
       cancelled = true;
     };
   }, [setState, mockScenario]);
-}
-
-/** Persists each live (non-mock) snapshot so the next launch can hydrate from it. */
-export function useSnapshotCachePersistence(state: ForecastState): void {
-  const { snapshot, savedLocation } = state;
-  useEffect(() => {
-    if (!snapshot || !savedLocation) return;
-    if (snapshot.mockScenario !== null) return;
-    void saveCachedForecast(snapshot, savedLocation);
-  }, [snapshot, savedLocation]);
 }

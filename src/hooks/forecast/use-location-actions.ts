@@ -21,14 +21,12 @@ import type { ForecastState } from './load-forecast-data';
 
 type LoadForecast = (override?: SavedLocation | null, refreshOnly?: boolean) => Promise<void>;
 
-export const LOCATION_SAVE_FAILED_MESSAGE = "Couldn't save that location. Try again.";
-
 /**
  * User-initiated location changes: picking a place manually or using the
- * device fix. Both actions never reject — `saveLocation`/`getCurrentPositionAsync`
- * can throw (bad data, GPS off, storage failure), so failures are caught here
- * and surfaced via `statusMessage`, letting every call site treat these as
- * plain `Promise<boolean>` without its own try/catch.
+ * device fix. Both actions never reject, so every call site can treat them as
+ * plain `Promise<boolean>` without its own try/catch. A denied or failed device
+ * fix is surfaced via `statusMessage`; persisting the choice is best-effort and
+ * non-blocking (the forecast still loads), so storage failures only go to Sentry.
  */
 export function useLocationActions(
   setState: Dispatch<SetStateAction<ForecastState>>,
@@ -91,17 +89,20 @@ export function useLocationActions(
     try {
       next = await requestDeviceLocation();
     } catch {
-      if (!fastFix) {
-        setState((current) => ({ ...current, statusMessage: LOCATION_DENIED_MESSAGE }));
-        return false;
-      }
-      return true;
+      next = null;
     }
     if (!next) {
       if (!fastFix) {
         setState((current) => ({ ...current, statusMessage: LOCATION_DENIED_MESSAGE }));
         return false;
       }
+      // No fresh fix, so commit to the fast one: persist it (otherwise the next
+      // launch reverts to the previous place) and load it, which also settles
+      // the `refreshing` flag set above.
+      void saveLocation(fastFix).catch((error: unknown) => {
+        captureError(error, { where: 'useDeviceLocation:save' });
+      });
+      await loadForecast(fastFix, true);
       return true;
     }
 
