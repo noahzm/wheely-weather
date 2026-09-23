@@ -140,4 +140,9 @@ export type MockScenario = 'ride' | 'maybe' | 'rest' | 'alert';
 export interface HomeBaseline {
   warmTemp: number;
   warmDewpoint: number;
+  /**
+   * Representative *cool* daytime temperature at home (°F). Optional: baselines
+   * cached before cold acclimatization existed lack it and get no cold shift.
+   */
+  coolTemp?: number;
 }

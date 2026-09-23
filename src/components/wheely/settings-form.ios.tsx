@@ -178,8 +178,8 @@ export function SettingsForm({
   const attribution = useWeatherAttribution();
   const homeOn = !!homeLabel;
   const homeHint = homeLabel
-    ? 'Adapts heat and humidity thresholds to your home climate based on your daily outdoor exposure.'
-    : 'Set your home to adapt the verdict to your climate. Requires regular outdoor exposure; if you spend most time in AC, keep this off.';
+    ? 'Adapts heat, cold, and humidity thresholds to your home climate based on your daily outdoor exposure.'
+    : 'Set your home to adapt the verdict to your climate, hot or cold. Requires regular outdoor exposure; if you spend most time indoors, keep this off.';
 
   return (
     <View style={styles.container}>
