@@ -173,6 +173,7 @@ export function LocationSearchList({
   sections,
   busy,
   message,
+  deviceMessage,
   isLoading,
   isSearching,
   resultsCount: _resultsCount,
@@ -237,6 +238,14 @@ export function LocationSearchList({
                 </Animated.View>
               ))}
             </BrutalCard>
+            {section.id === 'options' && !!deviceMessage && (
+              <ThemedText
+                style={[styles.deviceMessage, { color: c.mutedInk }]}
+                accessibilityLiveRegion="polite"
+              >
+                {deviceMessage}
+              </ThemedText>
+            )}
           </Animated.View>
         );
       })}
@@ -250,6 +259,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.two,
+  },
+  deviceMessage: {
+    ...Type.caption,
+    fontFamily: Fonts.body,
+    paddingHorizontal: Spacing.two,
+    paddingTop: Spacing.two,
   },
   messageText: {
     fontSize: Type.body.fontSize,

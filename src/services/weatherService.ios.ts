@@ -13,7 +13,7 @@ import AppleWeatherKitModule from '../../modules/apple-weatherkit/src/AppleWeath
 import { type Thresholds } from '../domain/constants';
 import { weatherKitConditionToWmoCode } from '../domain/weatherkit-codes';
 import { withTimeout } from './http';
-import { captureError } from './telemetry';
+import { captureError, traceAsync } from './telemetry';
 import { mapWeatherKitAlert } from './weatherkitAlertMapping';
 import { fetchAqi, FORECAST_FETCH_TIMEOUT_MS, type OpenMeteoData } from './weatherParsing';
 
@@ -77,9 +77,9 @@ export async function fetchOpenMeteoData(lat: number, lon: number): Promise<Open
   if (!AppleWeatherKitModule) {
     throw new Error('WeatherKit not available — rebuild the native app.');
   }
-  const result = await withTimeout(
-    AppleWeatherKitModule.forecast(lat, lon),
-    FORECAST_FETCH_TIMEOUT_MS,
+  const weatherKit = AppleWeatherKitModule;
+  const result = await traceAsync('weatherkit.forecast', 'weatherkit', () =>
+    withTimeout(weatherKit.forecast(lat, lon), FORECAST_FETCH_TIMEOUT_MS),
   );
   return toOpenMeteoData(result);
 }
@@ -92,9 +92,9 @@ const WEATHERKIT_ALERTS_TIMEOUT_MS = 8000;
 async function fetchWeatherKitAlerts(lat: number, lon: number): Promise<WeatherAlert[]> {
   try {
     if (!AppleWeatherKitModule) return [];
-    const alerts = await withTimeout(
-      AppleWeatherKitModule.alerts(lat, lon),
-      WEATHERKIT_ALERTS_TIMEOUT_MS,
+    const weatherKit = AppleWeatherKitModule;
+    const alerts = await traceAsync('weatherkit.alerts', 'weatherkit', () =>
+      withTimeout(weatherKit.alerts(lat, lon), WEATHERKIT_ALERTS_TIMEOUT_MS),
     );
     return alerts.map((alert) => mapWeatherKitAlert(alert));
   } catch (error) {

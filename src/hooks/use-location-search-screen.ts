@@ -22,6 +22,8 @@ export function useLocationSearchScreen() {
   const [homeLocation, setHomeLocation] = useHomeLocation();
   const [query, setQuery] = useState('');
   const [busy, setBusy] = useState(false);
+  // Shown under "Use Current Location" when a fix fails; cleared on the next try.
+  const [deviceMessage, setDeviceMessage] = useState('');
   const { results, message, isLoading } = useLocationSearch(query);
 
   const goToHome = useCallback(() => {
@@ -55,9 +57,11 @@ export function useLocationSearchScreen() {
 
   const handleUseDevice = useCallback(async () => {
     setBusy(true);
-    const ok = await forecast.useDeviceLocation();
+    setDeviceMessage('');
+    const outcome = await forecast.useDeviceLocation();
     setBusy(false);
-    if (ok) goToHome();
+    if (outcome.ok) goToHome();
+    else setDeviceMessage(outcome.message);
   }, [forecast, goToHome]);
 
   const handleTogglePin = useCallback(
@@ -112,6 +116,7 @@ export function useLocationSearchScreen() {
     setQuery,
     busy,
     message,
+    deviceMessage,
     isLoading,
     isSearching,
     resultsCount: results.length,

@@ -13,6 +13,7 @@ import {
 } from '@/services/locationStorage';
 import { getForecastSnapshot, type ForecastSnapshot } from '@/services/forecastSnapshot';
 import { saveCachedForecast } from '@/services/forecastCache';
+import { traceAsync } from '@/services/telemetry';
 import { DEFAULT_EXPOSURE_LEVEL, type ExposureLevel } from '@/types/settings';
 import type { ForecastExtras } from '@/types/weather';
 
@@ -58,11 +59,27 @@ type ForecastLoadResult =
       pinnedLocations: RecentLocation[];
     };
 
-export async function loadForecastData(
+/**
+ * Loads everything the forecast screen needs, traced as `forecast.load` with
+ * the location check and the forecast fetch as child spans, so Sentry shows
+ * where a slow load spends its time.
+ */
+export function loadForecastData(
   locationOverride: SavedLocation | null | undefined,
   mockScenario: string | null,
   homeLocation: SavedLocation | null,
   exposureLevel: ExposureLevel = DEFAULT_EXPOSURE_LEVEL,
+): Promise<ForecastLoadResult> {
+  return traceAsync('forecast.load', 'forecast', () =>
+    loadForecastDataUntraced(locationOverride, mockScenario, homeLocation, exposureLevel),
+  );
+}
+
+async function loadForecastDataUntraced(
+  locationOverride: SavedLocation | null | undefined,
+  mockScenario: string | null,
+  homeLocation: SavedLocation | null,
+  exposureLevel: ExposureLevel,
 ): Promise<ForecastLoadResult> {
   const [storedLocation, recentLocations, pinnedLocations] = await Promise.all([
     locationOverride === undefined ? loadSavedLocation() : Promise.resolve(locationOverride),
@@ -76,25 +93,28 @@ export async function loadForecastData(
   // loading the old spot and letting the watch correct it a moment later.
   // Explicit overrides are already fresh, and mocks never touch location.
   if (!mockScenario && locationOverride === undefined) {
+    const current = savedLocation;
     savedLocation =
-      (await refreshFollowedLocation(savedLocation, { allowGps: false })) ?? savedLocation;
+      (await traceAsync('location.refresh', 'location', () =>
+        refreshFollowedLocation(current, { allowGps: false }),
+      )) ?? savedLocation;
   }
   if (!mockScenario && !savedLocation) {
     if (Platform.OS === 'web') {
       return { kind: 'needsLocation', recentLocations, pinnedLocations };
     }
-    savedLocation = await resolveDeviceLocation(true);
+    savedLocation = await traceAsync('location.resolve', 'location', () =>
+      resolveDeviceLocation(true),
+    );
     if (!savedLocation) {
       return { kind: 'needsLocation', recentLocations, pinnedLocations };
     }
   }
 
-  const { snapshot, extras } = await getForecastSnapshot({
-    savedLocation,
-    homeLocation,
-    exposureLevel,
-    mockScenario,
-  });
+  const target = savedLocation;
+  const { snapshot, extras } = await traceAsync('forecast.snapshot', 'forecast', () =>
+    getForecastSnapshot({ savedLocation: target, homeLocation, exposureLevel, mockScenario }),
+  );
   return { kind: 'loaded', snapshot, extras, savedLocation, recentLocations, pinnedLocations };
 }
 

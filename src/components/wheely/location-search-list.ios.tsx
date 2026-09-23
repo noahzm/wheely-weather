@@ -195,6 +195,7 @@ function OptionsRow({
 function LocationSectionView({
   section,
   busy,
+  deviceMessage,
   pinnedLocations,
   activeLocation,
   onSelect,
@@ -202,6 +203,7 @@ function LocationSectionView({
 }: Readonly<{
   section: LocationSection;
   busy: boolean;
+  deviceMessage: string;
   pinnedLocations: LocationSearchListProps['pinnedLocations'];
   activeLocation: LocationSearchListProps['activeLocation'];
   onSelect: (item: RowItem) => void;
@@ -209,7 +211,10 @@ function LocationSectionView({
 }>) {
   if (section.id === 'options') {
     return (
-      <Section title={section.title}>
+      <Section
+        title={section.title}
+        footer={deviceMessage ? <Text>{deviceMessage}</Text> : undefined}
+      >
         {section.data.map((item) => (
           <OptionsRow key={placeKey(item)} item={item} busy={busy} onSelect={onSelect} />
         ))}
@@ -257,6 +262,7 @@ export function LocationSearchList({
   sections,
   busy,
   message,
+  deviceMessage,
   isLoading,
   isSearching,
   resultsCount,
@@ -298,6 +304,7 @@ export function LocationSearchList({
               key={section.id}
               section={section}
               busy={busy}
+              deviceMessage={deviceMessage}
               pinnedLocations={pinnedLocations}
               activeLocation={activeLocation}
               onSelect={onSelect}

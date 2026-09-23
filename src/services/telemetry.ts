@@ -31,6 +31,11 @@ export function initSentry() {
     dsn,
     // The app handles precise location; never attach IP/device identifiers by default.
     sendDefaultPii: false,
+    // Performance tracing (forecast load timing, see `traceAsync`). Every
+    // production session while the app is on TestFlight with a handful of
+    // riders — a sample would yield almost no data. Lower it before a wide
+    // release. Dev builds send none, so simulator timings never skew the numbers.
+    tracesSampleRate: __DEV__ ? 0 : 1,
     beforeBreadcrumb(breadcrumb) {
       const url: unknown = breadcrumb.data?.url;
       if (typeof url !== 'string') return breadcrumb;
@@ -60,4 +65,14 @@ export function initSentry() {
  */
 export function captureError(error: unknown, context?: Record<string, unknown>) {
   Sentry.captureException(error, context ? { extra: context } : undefined);
+}
+
+/**
+ * Times an async step as a Sentry span, nesting under any span already running
+ * (so `forecast.load` shows its location check and WeatherKit calls). Needed for
+ * native calls like WeatherKit, which automatic fetch tracing can't see. Runs
+ * `fn` untouched when tracing is off.
+ */
+export function traceAsync<T>(name: string, op: string, fn: () => Promise<T>): Promise<T> {
+  return Sentry.startSpan({ name, op }, fn);
 }

@@ -1,10 +1,13 @@
 import { Platform } from 'react-native';
 import * as Location from 'expo-location';
 
+import { withTimeout } from '@/services/http';
 import { saveLocation, type SavedLocation } from '@/services/locationStorage';
 import { hasMovedSignificantly, type Coords } from '@/utils/geo';
 
 export const LOCATION_DENIED_MESSAGE = 'Location access denied. Search for a city instead.';
+export const LOCATION_UNAVAILABLE_MESSAGE =
+  'Couldn’t find your location. Check that Location Services is on, or search for a city.';
 export const LOCATION_INSECURE_MESSAGE =
   'Location requires a secure connection (HTTPS). Search for a city instead.';
 
@@ -24,16 +27,27 @@ export function setLastKnownDeviceLocation(fix: SavedLocation | null): void {
   }
 }
 
-export async function resolveDeviceLocation(
-  requestIfUndetermined: boolean,
-): Promise<SavedLocation | null> {
+/** Why a device fix could not be produced, so callers can say what to do next. */
+export type DeviceLocationResult =
+  { kind: 'located'; location: SavedLocation } | { kind: 'denied' } | { kind: 'unavailable' };
+
+/** Message for a failed device fix; the insecure-context case is handled before any lookup. */
+export function deviceLocationErrorMessage(kind: 'denied' | 'unavailable'): string {
+  return kind === 'denied' ? LOCATION_DENIED_MESSAGE : LOCATION_UNAVAILABLE_MESSAGE;
+}
+
+// A fresh fix normally lands in a few seconds. Without a ceiling, a device (or
+// simulator) with no position leaves the caller waiting forever with no message.
+const DEVICE_FIX_TIMEOUT_MS = 10_000;
+
+async function locateDevice(requestIfUndetermined: boolean): Promise<DeviceLocationResult> {
   try {
     let permission = await Location.getForegroundPermissionsAsync();
     if (permission.status === Location.PermissionStatus.UNDETERMINED && requestIfUndetermined) {
       permission = await Location.requestForegroundPermissionsAsync();
     }
     if (permission.status !== Location.PermissionStatus.GRANTED) {
-      return null;
+      return { kind: 'denied' };
     }
     let lat: number;
     let lon: number;
@@ -42,9 +56,10 @@ export async function resolveDeviceLocation(
       lat = lastKnown.coords.latitude;
       lon = lastKnown.coords.longitude;
     } else {
-      const position = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
+      const position = await withTimeout(
+        Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+        DEVICE_FIX_TIMEOUT_MS,
+      );
       lat = position.coords.latitude;
       lon = position.coords.longitude;
     }
@@ -55,18 +70,26 @@ export async function resolveDeviceLocation(
       source: 'device',
     });
     lastKnownDeviceFix = saved;
-    return saved;
+    return { kind: 'located', location: saved };
   } catch {
-    return null;
+    // Location services off, no fix before the timeout, or a storage failure.
+    return { kind: 'unavailable' };
   }
 }
 
-export async function requestDeviceLocation(): Promise<SavedLocation | null> {
+export async function resolveDeviceLocation(
+  requestIfUndetermined: boolean,
+): Promise<SavedLocation | null> {
+  const result = await locateDevice(requestIfUndetermined);
+  return result.kind === 'located' ? result.location : null;
+}
+
+export async function requestDeviceLocation(): Promise<DeviceLocationResult> {
   const permission = await Location.requestForegroundPermissionsAsync();
   if (permission.status !== Location.PermissionStatus.GRANTED) {
-    return null;
+    return { kind: 'denied' };
   }
-  return resolveDeviceLocation(false);
+  return locateDevice(false);
 }
 
 /** True while the active location is the device fix, i.e. we should follow it. */
@@ -121,9 +144,10 @@ export async function refreshFollowedLocation(
     if (permission.status !== Location.PermissionStatus.GRANTED) return null;
     let next = await readRecentPosition();
     if (!next && allowGps) {
-      const position = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
+      const position = await withTimeout(
+        Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+        DEVICE_FIX_TIMEOUT_MS,
+      );
       next = { lat: position.coords.latitude, lon: position.coords.longitude };
     }
     if (!next || !hasMovedSignificantly(current, next)) return null;
