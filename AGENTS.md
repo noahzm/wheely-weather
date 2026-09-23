@@ -42,6 +42,8 @@ npm run build:web      # expo export --platform web
 - Native iOS modules: `modules/apple-weatherkit`, `modules/apple-location-search`. Web geocoding is proxied by the Cloudflare Worker `workers/index.mjs`.
 - Home screen widget: `targets/widget` (SwiftUI, generated into the Xcode project by `@bacons/apple-targets` on prebuild). It can't run TS scoring, so `useWidgetSync` builds a display-ready `WidgetSnapshot` (`src/utils/widgetSnapshot.ts`) and writes it to the `group.app.wheelyweather` App Group; `WheelyWidget.swift` decodes the same field names. Changing the payload means changing both sides. `targets/*/Assets.xcassets` is regenerated from `expo-target.config.js`.
 - Domain logic is framework-agnostic in `src/domain` / `src/utils`.
+- The verdict (home card and widget) comes from `getRideVerdict` (`src/domain/verdict.ts`): it rates today's best daylight ride window, or tomorrow's once no daylight is left, never just the current hour. Don't call `getOverallStatus` on current conditions for a verdict; it's the building block, and the fallback when no window exists.
+- Thresholds are resolved per rider by `resolveThresholds` (`src/domain/acclimatization.ts`): the home climate's recent warm, humid and cool extremes, scaled by the exposure level, shift the comfort bands. Hazards never move: the heat and dewpoint ceilings, freezing-precipitation weather codes, and the cold-rain rule.
 
 ## Forecast invariants
 

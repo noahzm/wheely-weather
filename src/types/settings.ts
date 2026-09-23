@@ -29,7 +29,7 @@ export const TEMP_UNIT_VALUES = [
 
 export type ExposureLevel = 'indoor' | 'moderate' | 'high';
 
-export const EXPOSURE_LABELS = ['Indoor / AC', 'Moderate', 'High'] as const;
+export const EXPOSURE_LABELS = ['Indoors', 'Moderate', 'High'] as const;
 export const EXPOSURE_VALUES = [
   'indoor',
   'moderate',

@@ -55,7 +55,11 @@ function isHomeBaseline(value: unknown): value is HomeBaseline | null {
   if (value === null) return true;
   if (!value || typeof value !== 'object') return false;
   const record = value as Record<string, unknown>;
-  return isFiniteNumber(record.warmTemp) && isFiniteNumber(record.warmDewpoint);
+  return (
+    isFiniteNumber(record.warmTemp) &&
+    isFiniteNumber(record.warmDewpoint) &&
+    (record.coolTemp === undefined || isFiniteNumber(record.coolTemp))
+  );
 }
 
 // Spot-checks the fields the UI reads unconditionally; the version key guards

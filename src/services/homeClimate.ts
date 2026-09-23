@@ -7,7 +7,7 @@ import type { HomeBaseline } from '@/types/weather';
 export type { HomeBaseline } from '@/types/weather';
 
 interface CachedBaseline extends HomeBaseline {
-  version: 1;
+  version: 2;
   fetchedAt: number;
 }
 
@@ -18,6 +18,9 @@ const HOME_CLIMATE_TIMEOUT_MS = 4000;
 // 75th-percentile of recent highs approximates the warm end a rider adapts to,
 // without chasing a single freak-hot day.
 const WARM_PERCENTILE = 0.75;
+// The cool end of the same recent highs: the daytime cold a rider has been
+// riding in lately, again without chasing one freak cold snap.
+const COOL_PERCENTILE = 0.25;
 
 /** Rounds to ~11km so nearby coordinates share a cache entry. */
 const roundCoord = (n: number) => Math.round(n * 10) / 10;
@@ -37,21 +40,23 @@ async function readCache(lat: number, lon: number): Promise<HomeBaseline | null>
     const raw = await AsyncStorage.getItem(cacheKey(lat, lon));
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<CachedBaseline>;
-    if (parsed.version !== 1) return null;
+    // v1 predates `coolTemp`; refetch so cold acclimatization can apply.
+    if (parsed.version !== 2) return null;
     if (typeof parsed.fetchedAt !== 'number' || Date.now() - parsed.fetchedAt > CACHE_TTL_MS) {
       return null;
     }
-    const { warmTemp, warmDewpoint } = parsed;
+    const { warmTemp, warmDewpoint, coolTemp } = parsed;
     if (typeof warmTemp !== 'number' || !Number.isFinite(warmTemp)) return null;
     if (typeof warmDewpoint !== 'number' || !Number.isFinite(warmDewpoint)) return null;
-    return { warmTemp, warmDewpoint };
+    if (typeof coolTemp !== 'number' || !Number.isFinite(coolTemp)) return null;
+    return { warmTemp, warmDewpoint, coolTemp };
   } catch {
     return null;
   }
 }
 
 async function writeCache(lat: number, lon: number, baseline: HomeBaseline) {
-  const payload: CachedBaseline = { version: 1, fetchedAt: Date.now(), ...baseline };
+  const payload: CachedBaseline = { version: 2, fetchedAt: Date.now(), ...baseline };
   try {
     await AsyncStorage.setItem(cacheKey(lat, lon), JSON.stringify(payload));
   } catch {
@@ -93,10 +98,11 @@ export async function getHomeBaseline(
     const dews = (data.hourly?.dewpoint_2m ?? []).filter((v): v is number => typeof v === 'number');
 
     const warmTemp = percentile(highs, WARM_PERCENTILE);
+    const coolTemp = percentile(highs, COOL_PERCENTILE);
     const warmDewpoint = percentile(dews, WARM_PERCENTILE);
-    if (warmTemp == null || warmDewpoint == null) return null;
+    if (warmTemp == null || warmDewpoint == null || coolTemp == null) return null;
 
-    const baseline: HomeBaseline = { warmTemp, warmDewpoint };
+    const baseline: HomeBaseline = { warmTemp, warmDewpoint, coolTemp };
     await writeCache(lat, lon, baseline);
     return baseline;
   } catch {

@@ -10,34 +10,119 @@ const NORDIC = { warmTemp: 52, warmDewpoint: 42 };
 
 describe('deriveAcclimatization', () => {
   it('returns zero shift for a temperate home or no home', () => {
-    expect(deriveAcclimatization(TEMPERATE)).toEqual({ tempShift: 0, dewShift: 0 });
-    expect(deriveAcclimatization(null)).toEqual({ tempShift: 0, dewShift: 0 });
-    expect(deriveAcclimatization(NORDIC)).toEqual({ tempShift: 0, dewShift: 0 });
+    expect(deriveAcclimatization(TEMPERATE)).toEqual({ tempShift: 0, dewShift: 0, coldShift: 0 });
+    expect(deriveAcclimatization(null)).toEqual({ tempShift: 0, dewShift: 0, coldShift: 0 });
+    expect(deriveAcclimatization(NORDIC)).toEqual({ tempShift: 0, dewShift: 0, coldShift: 0 });
   });
 
   it('returns zero shift when exposureLevel is indoor', () => {
-    expect(deriveAcclimatization(PHOENIX, 'indoor')).toEqual({ tempShift: 0, dewShift: 0 });
-    expect(deriveAcclimatization(GULF, 'indoor')).toEqual({ tempShift: 0, dewShift: 0 });
+    expect(deriveAcclimatization(PHOENIX, 'indoor')).toEqual({
+      tempShift: 0,
+      dewShift: 0,
+      coldShift: 0,
+    });
+    expect(deriveAcclimatization(GULF, 'indoor')).toEqual({
+      tempShift: 0,
+      dewShift: 0,
+      coldShift: 0,
+    });
   });
 
   it('shifts heat for a hot-dry home and humidity for a hot-humid home, both capped', () => {
-    expect(deriveAcclimatization(PHOENIX, 'moderate')).toEqual({ tempShift: 4, dewShift: 0 });
-    expect(deriveAcclimatization(PHOENIX, 'high')).toEqual({ tempShift: 7, dewShift: 0 });
-    expect(deriveAcclimatization(GULF, 'moderate')).toEqual({ tempShift: 4, dewShift: 5 });
-    expect(deriveAcclimatization(GULF, 'high')).toEqual({ tempShift: 7, dewShift: 8 });
+    expect(deriveAcclimatization(PHOENIX, 'moderate')).toEqual({
+      tempShift: 4,
+      dewShift: 0,
+      coldShift: 0,
+    });
+    expect(deriveAcclimatization(PHOENIX, 'high')).toEqual({
+      tempShift: 7,
+      dewShift: 0,
+      coldShift: 0,
+    });
+    expect(deriveAcclimatization(GULF, 'moderate')).toEqual({
+      tempShift: 4,
+      dewShift: 5,
+      coldShift: 0,
+    });
+    expect(deriveAcclimatization(GULF, 'high')).toEqual({
+      tempShift: 7,
+      dewShift: 8,
+      coldShift: 0,
+    });
     const AUSTIN = { warmTemp: 88, warmDewpoint: 68 };
-    expect(deriveAcclimatization(AUSTIN, 'moderate')).toEqual({ tempShift: 3, dewShift: 3 });
-    expect(deriveAcclimatization(AUSTIN, 'high')).toEqual({ tempShift: 5, dewShift: 5 });
+    expect(deriveAcclimatization(AUSTIN, 'moderate')).toEqual({
+      tempShift: 3,
+      dewShift: 3,
+      coldShift: 0,
+    });
+    expect(deriveAcclimatization(AUSTIN, 'high')).toEqual({
+      tempShift: 5,
+      dewShift: 5,
+      coldShift: 0,
+    });
+  });
+});
+
+describe('cold acclimatization', () => {
+  // Recent daytime highs: a Chicago December and a mild coastal winter.
+  const CHICAGO_WINTER = { ...TEMPERATE, coolTemp: 28 };
+  const MILD_WINTER = { ...TEMPERATE, coolTemp: 55 };
+
+  it('shifts the cold side for a cold home, scaled by exposure and capped', () => {
+    expect(deriveAcclimatization(CHICAGO_WINTER, 'moderate').coldShift).toBe(6);
+    expect(deriveAcclimatization(CHICAGO_WINTER, 'high').coldShift).toBe(12);
+    expect(deriveAcclimatization(CHICAGO_WINTER, 'indoor').coldShift).toBe(0);
+    expect(deriveAcclimatization({ ...TEMPERATE, coolTemp: 44 }, 'high').coldShift).toBe(4);
+  });
+
+  it('never shifts for a mild home or a baseline cached without coolTemp', () => {
+    expect(deriveAcclimatization(MILD_WINTER, 'high').coldShift).toBe(0);
+    expect(deriveAcclimatization(TEMPERATE, 'high').coldShift).toBe(0);
+  });
+
+  it('lowers every cold band, the floor included, and leaves the hot side alone', () => {
+    const adjusted = applyAcclimatization(THRESHOLDS, { tempShift: 0, dewShift: 0, coldShift: 12 });
+    const t = THRESHOLDS.TEMPERATURE;
+    expect(adjusted.TEMPERATURE).toMatchObject({
+      BAD_MIN: t.BAD_MIN - 12,
+      POOR_MIN: t.POOR_MIN - 12,
+      MARGINAL_MIN: t.MARGINAL_MIN - 12,
+      FAIR_MIN: t.FAIR_MIN - 12,
+      FAIR_MAX: t.FAIR_MAX,
+      BAD_MAX: t.BAD_MAX,
+    });
+  });
+
+  it('lets a cold-adapted rider ride a dry freezing day, but not freezing rain', () => {
+    const thresholds = resolveThresholds(CHICAGO_WINTER, THRESHOLDS, 'high');
+    const dryFreezing = {
+      hasThunderstorms: false,
+      temperature: 28,
+      feelsLike: 20,
+      windSpeed: 6,
+      rainChance: 0,
+      dewpoint: 15,
+      aqi: 20,
+    };
+    expect(getOverallStatus(dryFreezing)).toBe('no');
+    // Bands shift 12°F: rest day below 20°F, iffy 20–28°F, fair from 28°F.
+    expect(getOverallStatus(dryFreezing, thresholds)).toBe('yes');
+    expect(getOverallStatus({ ...dryFreezing, temperature: 22 }, thresholds)).toBe('maybe');
+    expect(getOverallStatus({ ...dryFreezing, temperature: 15 }, thresholds)).toBe('no');
+    // Freezing rain (WMO 67) stays a hazard whatever the acclimatization.
+    expect(getOverallStatus({ ...dryFreezing, weatherCode: 67 }, thresholds)).toBe('no');
   });
 });
 
 describe('applyAcclimatization', () => {
   it('is an identity for a zero shift', () => {
-    expect(applyAcclimatization(THRESHOLDS, { tempShift: 0, dewShift: 0 })).toBe(THRESHOLDS);
+    expect(applyAcclimatization(THRESHOLDS, { tempShift: 0, dewShift: 0, coldShift: 0 })).toBe(
+      THRESHOLDS,
+    );
   });
 
   it('raises the comfort dials but never the hard hazard ceiling', () => {
-    const adjusted = applyAcclimatization(THRESHOLDS, { tempShift: 6, dewShift: 7 });
+    const adjusted = applyAcclimatization(THRESHOLDS, { tempShift: 6, dewShift: 7, coldShift: 0 });
     // Comfort thresholds move up.
     expect(adjusted.TEMPERATURE.FAIR_MAX).toBe(THRESHOLDS.TEMPERATURE.FAIR_MAX + 6);
     expect(adjusted.DEWPOINT.POOR).toBe(
@@ -53,7 +138,11 @@ describe('applyAcclimatization', () => {
   });
 
   it('clamps shifted comfort thresholds strictly below the avoid line', () => {
-    const adjusted = applyAcclimatization(THRESHOLDS, { tempShift: 50, dewShift: 50 });
+    const adjusted = applyAcclimatization(THRESHOLDS, {
+      tempShift: 50,
+      dewShift: 50,
+      coldShift: 0,
+    });
     expect(adjusted.TEMPERATURE.POOR_MAX).toBeLessThan(THRESHOLDS.TEMPERATURE.BAD_MAX);
     expect(adjusted.DEWPOINT.POOR).toBeLessThan(THRESHOLDS.DEWPOINT.BAD);
   });

@@ -20,7 +20,7 @@ import { RNSegmentedPicker } from './rn-segmented-picker';
 import { EXPOSURE_LABELS, EXPOSURE_VALUES } from './settings-form.types';
 
 const EXPOSURE_HELP: Record<ExposureLevel, string> = {
-  indoor: 'Indoor / AC: Standard thresholds applied (0° shift).',
+  indoor: 'Mostly indoors: standard thresholds (no shift).',
   moderate: 'Moderate (~1h/day): Partial climate shift applied.',
   high: 'High (2h+/day): Full climate shift applied.',
 };
@@ -172,12 +172,15 @@ export function HomeClimateSection({
   const c = useWheelyColors();
   const styles = makeStyles(c);
 
-  const acclimatization = deriveAcclimatization(homeBaseline, exposureLevel);
-  const tempShift = acclimatization.tempShift;
+  const { tempShift, coldShift } = deriveAcclimatization(homeBaseline, exposureLevel);
+  const shifts = [
+    tempShift > 0 ? `+${tempShift}°F heat` : null,
+    coldShift > 0 ? `−${coldShift}°F cold` : null,
+  ].filter(Boolean);
 
   const hint = homeLabel
-    ? 'Adapts heat and humidity thresholds to your home climate.'
-    : 'Set your home location to adapt heat & humidity thresholds to your climate.';
+    ? 'Adapts heat, cold, and humidity thresholds to your home climate.'
+    : 'Set your home location to adapt heat, cold, and humidity thresholds to your climate.';
 
   return (
     <View style={styles.group}>
@@ -219,8 +222,11 @@ export function HomeClimateSection({
                   <PlatformIcon icon={MapPin} size={14} color={c.ink} strokeWidth={2.5} />
                   <ThemedText style={styles.badgeTitle}>
                     Climate Baseline: {Math.round(homeBaseline.warmTemp)}°F max •{' '}
+                    {homeBaseline.coolTemp == null
+                      ? ''
+                      : `${Math.round(homeBaseline.coolTemp)}°F cool • `}
                     {Math.round(homeBaseline.warmDewpoint)}°F dew (
-                    {tempShift > 0 ? `+${tempShift}°F shift` : 'no shift'})
+                    {shifts.length > 0 ? shifts.join(', ') : 'no shift'})
                   </ThemedText>
                 </View>
               </View>
