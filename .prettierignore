@@ -1,11 +1,2 @@
-# Build / generated output
-dist/
-.expo/
-node_modules/
-coverage/
-web-build/
-playwright-report/
-test-results/
-
-# Lockfiles and generated data
+# Prettier 3 also reads .gitignore, so only tracked files that shouldn't be formatted go here.
 package-lock.json

@@ -47,10 +47,10 @@
     "eslint-plugin-sonarjs": "^4.2.1",
     "eslint-plugin-unicorn": "^60.0.0",
     "playwright": "^1.63.0",
-    "prettier": "^3.9.8",
+    "prettier": "^3.9.9",
     "serve": "^14.2.6",
     "typescript": "~6.0.3",
-    "typescript-eslint": "^8.70.0",
+    "typescript-eslint": "^8.70.1",
     "vitest": "^5.0.1"
   },
   "overrides": {
