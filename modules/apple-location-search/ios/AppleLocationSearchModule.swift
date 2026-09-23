@@ -64,7 +64,7 @@ public class AppleLocationSearchModule: Module {
       DispatchQueue.main.async {
         self.completer.search(trimmed) { completions, error in
           if let error = error as NSError?, error.code == MKError.Code.loadingThrottled.rawValue {
-            promise.reject("SEARCH_THROTTLED", "Search rate limited, try again.")
+            promise.reject(SearchThrottledException())
             return
           }
           promise.resolve(self.cache(Array(completions.prefix(8))))
@@ -75,13 +75,13 @@ public class AppleLocationSearchModule: Module {
     AsyncFunction("resolve") { (id: String, promise: Promise) in
       DispatchQueue.main.async {
         guard let completion = self.completions[id] else {
-          promise.reject("UNKNOWN_SUGGESTION", "That result is no longer available.")
+          promise.reject(UnknownSuggestionException())
           return
         }
         let search = MKLocalSearch(request: MKLocalSearch.Request(completion: completion))
         search.start { response, error in
           if let error = error as NSError?, error.code == MKError.Code.loadingThrottled.rawValue {
-            promise.reject("SEARCH_THROTTLED", "Search rate limited, try again.")
+            promise.reject(SearchThrottledException())
             return
           }
           guard let placemark = response?.mapItems.first?.placemark else {
@@ -116,5 +116,27 @@ public class AppleLocationSearchModule: Module {
         "displayName": completion.subtitle,
       ]
     }
+  }
+}
+
+// Exception subclasses rather than `promise.reject(code, description)`, which
+// drops the description and reaches JS as "undefined reason".
+internal final class SearchThrottledException: Exception, @unchecked Sendable {
+  override var code: String {
+    "SEARCH_THROTTLED"
+  }
+
+  override var reason: String {
+    "Search rate limited, try again."
+  }
+}
+
+internal final class UnknownSuggestionException: Exception, @unchecked Sendable {
+  override var code: String {
+    "UNKNOWN_SUGGESTION"
+  }
+
+  override var reason: String {
+    "That result is no longer available."
   }
 }
