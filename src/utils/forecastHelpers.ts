@@ -277,6 +277,12 @@ function hourWindReason(
   return { text, tier };
 }
 
+function hourAqiReason(aqi: number | null, thresholds: Thresholds = THRESHOLDS): HourReason | null {
+  if (aqi == null) return null;
+  const tier = issuePhraseTier(evaluateCondition(aqi, 'aqi', thresholds));
+  return tier ? { text: ISSUE_PHRASES.AQI(Math.round(aqi), tier), tier } : null;
+}
+
 function hourRainReason(
   rain: number,
   precip: number | null | undefined,
@@ -404,6 +410,7 @@ export function getHourConditionReasons(
     effectiveRainReason,
     tempReason,
     hourDewReason(hour.dewpoint ?? null, tempUnit, thresholds),
+    hourAqiReason(hour.aqi ?? null, thresholds),
   ].filter((reason): reason is HourReason => reason != null);
 
   const filtered = metricReasons.filter((r) => !(dropFairTier && r.tier === 'fair'));

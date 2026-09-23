@@ -222,6 +222,12 @@ describe('getHourConditionReasons', () => {
     ]);
   });
 
+  it('names air quality when it set the hour rating', () => {
+    expect(getHourConditionReasons(hour({ condition: 'poor', aqi: 160 }))).toEqual([
+      'Poor air (AQI 160)',
+    ]);
+  });
+
   it('falls back to a tier phrase when no metric explains a non-good rating', () => {
     // AQI and other non-hourly metrics can set the rating with every hourly
     // metric reading fine; the drawer must not render empty.
