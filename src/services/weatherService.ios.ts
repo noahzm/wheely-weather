@@ -15,12 +15,7 @@ import { weatherKitConditionToWmoCode } from '../domain/weatherkit-codes';
 import { withTimeout } from './http';
 import { captureError } from './telemetry';
 import { mapWeatherKitAlert } from './weatherkitAlertMapping';
-import {
-  fetchAqi,
-  FORECAST_FETCH_TIMEOUT_MS,
-  SECONDARY_FETCH_TIMEOUT_MS,
-  type OpenMeteoData,
-} from './weatherParsing';
+import { fetchAqi, FORECAST_FETCH_TIMEOUT_MS, type OpenMeteoData } from './weatherParsing';
 
 import type { ForecastExtras, WeatherAlert } from '@/types/weather';
 
@@ -89,12 +84,17 @@ export async function fetchOpenMeteoData(lat: number, lon: number): Promise<Open
   return toOpenMeteoData(result);
 }
 
+// Alerts merge after first paint, so nothing waits on this. WeatherKit calls on
+// a cold launch share the token negotiation described at FORECAST_FETCH_TIMEOUT_MS,
+// which routinely outlasted the 2.5 s secondary-fetch budget (WHEELY-WEATHER-9).
+const WEATHERKIT_ALERTS_TIMEOUT_MS = 8000;
+
 async function fetchWeatherKitAlerts(lat: number, lon: number): Promise<WeatherAlert[]> {
   try {
     if (!AppleWeatherKitModule) return [];
     const alerts = await withTimeout(
       AppleWeatherKitModule.alerts(lat, lon),
-      SECONDARY_FETCH_TIMEOUT_MS,
+      WEATHERKIT_ALERTS_TIMEOUT_MS,
     );
     return alerts.map((alert) => mapWeatherKitAlert(alert));
   } catch (error) {

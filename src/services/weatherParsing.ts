@@ -108,8 +108,7 @@ interface NwsFeature {
 }
 
 // Keep secondary lookups snappy so slower third-party APIs do not hold up first paint.
-// Shared by both the Open-Meteo (weatherService.ts) and WeatherKit (weatherService.ios.ts)
-// fetch implementations.
+// WeatherKit alerts (weatherService.ios.ts) use their own, longer budget.
 export const SECONDARY_FETCH_TIMEOUT_MS = 2500;
 // WeatherKit's first call on a fresh install involves authentication token
 // negotiation with Apple's servers plus a CLGeocoder reverse-geocode for
