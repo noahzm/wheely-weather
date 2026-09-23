@@ -33,11 +33,9 @@ import { WEB_TITLE_CONTENT_SPACING } from '@/components/wheely/web-screen-header
 import { HapticPressable, PlatformIcon, SectionTitle } from '@/components/wheely/primitives';
 import { ThemedText } from '@/components/themed-text';
 import {
-  calculateRideScore,
   getDaylightWarning,
-  getMessage,
-  getOverallStatus,
   getRainTiming,
+  getRideVerdict,
   getWeatherAlerts,
   getVerdictLabel,
 } from '@/domain';
@@ -121,13 +119,14 @@ function deriveHomeState(
   tempUnit: TempUnit,
 ) {
   const { thresholds } = acclimatization;
-  const status = getOverallStatus(weather, thresholds);
-  const score = calculateRideScore(weather, thresholds);
+  // Rates the day's best ride window (tomorrow's after dark), not this hour.
+  const verdict = getRideVerdict(weather, thresholds, tempUnit);
   return {
-    status,
-    score,
-    message: getMessage(weather, status, thresholds, tempUnit),
-    label: getVerdictLabel(status, location),
+    status: verdict.status,
+    score: verdict.score,
+    message: verdict.message,
+    label: getVerdictLabel(verdict.status, location),
+    verdictWeatherCode: verdict.rated.weatherCode,
     rainTiming: getRainTiming(weather.hourly),
     daylightWarning: getDaylightWarning(weather.hourly, weather.daylight),
     alerts: getWeatherAlerts(weather, tempUnit),
@@ -226,7 +225,7 @@ function HomeSections({
             score={derived.score}
             message={derived.message}
             label={derived.label}
-            weatherCode={weather.weatherCode}
+            weatherCode={derived.verdictWeatherCode}
           />
         </Stagger>
         {derived.alerts.length > 0 && (

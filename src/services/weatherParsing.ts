@@ -266,6 +266,10 @@ function buildDaytimeAggregates(
 }
 
 const DAILY_RIDE_WINDOW_HOURS = 3;
+// Late in the day, today's window may shrink to what daylight is left, down to
+// this many hours. Without it a winter afternoon (sunset ~5 PM) had no window
+// from 2 PM on, and the verdict jumped to tomorrow hours too early.
+const MIN_TODAY_WINDOW_HOURS = 2;
 
 function getWorstWeatherCode(codes: (number | null)[]): number | null {
   let worstCode: number | null = null;
@@ -297,7 +301,7 @@ function buildRideWindowCandidate(
   hours: RideWindowHour[],
   thresholds: Thresholds,
 ): DailyRideWindow | null {
-  if (hours.length !== DAILY_RIDE_WINDOW_HOURS) return null;
+  if (hours.length === 0) return null;
   const first = hours[0];
   const last = hours.at(-1);
   if (!first || !last) return null;
@@ -352,16 +356,15 @@ function buildRideWindowCandidate(
 function selectBestRideWindow(
   hours: RideWindowHour[],
   thresholds: Thresholds,
+  minHours: number = DAILY_RIDE_WINDOW_HOURS,
 ): DailyRideWindow | null {
-  if (hours.length < DAILY_RIDE_WINDOW_HOURS) return null;
+  if (hours.length < minHours) return null;
+  const windowHours = Math.min(DAILY_RIDE_WINDOW_HOURS, hours.length);
 
   let best: DailyRideWindow | null = null;
   let bestScore = -Infinity;
-  for (let start = 0; start <= hours.length - DAILY_RIDE_WINDOW_HOURS; start++) {
-    const candidate = buildRideWindowCandidate(
-      hours.slice(start, start + DAILY_RIDE_WINDOW_HOURS),
-      thresholds,
-    );
+  for (let start = 0; start <= hours.length - windowHours; start++) {
+    const candidate = buildRideWindowCandidate(hours.slice(start, start + windowHours), thresholds);
     if (!candidate) continue;
     const score = scoreRideWindow(candidate);
     if (score > bestScore) {
@@ -411,9 +414,11 @@ function buildBestRideWindows(
     hoursByDate[date] = dateHours;
   }
 
+  const today = currentHourKey.slice(0, 10);
   const bestByDate: Record<string, DailyRideWindow> = {};
   for (const [date, hours] of Object.entries(hoursByDate)) {
-    const best = selectBestRideWindow(hours, thresholds);
+    const minHours = date === today ? MIN_TODAY_WINDOW_HOURS : DAILY_RIDE_WINDOW_HOURS;
+    const best = selectBestRideWindow(hours, thresholds, minHours);
     if (best) bestByDate[date] = best;
   }
 

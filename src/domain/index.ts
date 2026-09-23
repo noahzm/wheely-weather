@@ -14,3 +14,4 @@ export {
   getRainTiming,
   getWeatherAlerts,
 } from './weather';
+export { getRideVerdict, type RideVerdict, type VerdictWhen } from './verdict';

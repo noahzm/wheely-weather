@@ -447,22 +447,34 @@ describe('buildWeatherFromData — daily parsing', () => {
     expect(weather.daily[0]?.condition).toBe('marginal');
   });
 
-  it('does not create a shortened ride window when fewer than three daylight hours remain', () => {
+  it('shortens today’s window to the daylight left, down to two hours', () => {
     const hours = Array.from({ length: 9 }, (_, i) => hourTime('2024-01-20', i + 7));
-    const data = makeOpenMeteoData({
-      current: { time: hourTime('2024-01-20', 14) },
-      hourly: { time: hours },
-      daily: {
-        time: ['2024-01-20'],
-        sunrise: [hourTime('2024-01-20', 7)],
-        sunset: [hourTime('2024-01-20', 16)],
-      },
-    });
+    const daily = {
+      time: ['2024-01-20'],
+      sunrise: [hourTime('2024-01-20', 7)],
+      sunset: [hourTime('2024-01-20', 16)],
+    };
 
-    const weather = buildWeatherFromData(data, THRESHOLDS);
+    const twoLeft = buildWeatherFromData(
+      makeOpenMeteoData({
+        current: { time: hourTime('2024-01-20', 14) },
+        hourly: { time: hours },
+        daily,
+      }),
+      THRESHOLDS,
+    );
+    expect(twoLeft.daily[0]?.rideWindow).toMatchObject({ startHour: 14, endHour: 16 });
 
-    expect(weather.daily[0]?.rideWindow).toBeUndefined();
-    expect(weather.daily[0]?.rideWindowUnavailable).toBe(true);
+    const oneLeft = buildWeatherFromData(
+      makeOpenMeteoData({
+        current: { time: hourTime('2024-01-20', 15) },
+        hourly: { time: hours },
+        daily,
+      }),
+      THRESHOLDS,
+    );
+    expect(oneLeft.daily[0]?.rideWindow).toBeUndefined();
+    expect(oneLeft.daily[0]?.rideWindowUnavailable).toBe(true);
   });
 });
 

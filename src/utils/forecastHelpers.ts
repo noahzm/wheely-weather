@@ -442,7 +442,7 @@ export function getDayConditionReason(
   tempUnit: TempUnit = 'fahrenheit',
   thresholds: Thresholds = THRESHOLDS,
 ): string {
-  if (day.rideWindowUnavailable) return 'No three-hour daylight window left';
+  if (day.rideWindowUnavailable) return 'Not enough daylight left to ride';
   const codeReason = weatherCodeReason(day);
   if (codeReason) return codeReason.text;
 
