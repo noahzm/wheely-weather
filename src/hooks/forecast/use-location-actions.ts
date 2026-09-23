@@ -10,22 +10,26 @@ import { getMemoryCachedForecast } from '@/services/forecastCache';
 import { captureError } from '@/services/telemetry';
 
 import {
+  deviceLocationErrorMessage,
   getLastKnownDeviceLocation,
   isWebInsecureContext,
-  LOCATION_DENIED_MESSAGE,
   LOCATION_INSECURE_MESSAGE,
   requestDeviceLocation,
   setLastKnownDeviceLocation,
+  type DeviceLocationResult,
 } from './device-location';
 import type { ForecastState } from './load-forecast-data';
 
 type LoadForecast = (override?: SavedLocation | null, refreshOnly?: boolean) => Promise<void>;
 
+/** Outcome of "Use Current Location"; a failure carries the message to show the rider. */
+export type DeviceLocationOutcome = { ok: true } | { ok: false; message: string };
+
 /**
  * User-initiated location changes: picking a place manually or using the
  * device fix. Both actions never reject, so every call site can treat them as
- * plain `Promise<boolean>` without its own try/catch. A denied or failed device
- * fix is surfaced via `statusMessage`; persisting the choice is best-effort and
+ * plain promises without their own try/catch. A denied or failed device fix is
+ * surfaced via `statusMessage` and returned, so the screen that asked can show it; persisting the choice is best-effort and
  * non-blocking (the forecast still loads), so storage failures only go to Sentry.
  */
 export function useLocationActions(
@@ -66,10 +70,10 @@ export function useLocationActions(
     [loadForecast, needsLocationRef, setState],
   );
 
-  const useDeviceLocation = useCallback(async (): Promise<boolean> => {
+  const useDeviceLocation = useCallback(async (): Promise<DeviceLocationOutcome> => {
     if (isWebInsecureContext()) {
       setState((current) => ({ ...current, statusMessage: LOCATION_INSECURE_MESSAGE }));
-      return false;
+      return { ok: false, message: LOCATION_INSECURE_MESSAGE };
     }
     const fastFix = getLastKnownDeviceLocation();
     if (fastFix) {
@@ -85,16 +89,17 @@ export function useLocationActions(
       }));
     }
 
-    let next: SavedLocation | null;
+    let result: DeviceLocationResult;
     try {
-      next = await requestDeviceLocation();
+      result = await requestDeviceLocation();
     } catch {
-      next = null;
+      result = { kind: 'unavailable' };
     }
-    if (!next) {
+    if (result.kind !== 'located') {
       if (!fastFix) {
-        setState((current) => ({ ...current, statusMessage: LOCATION_DENIED_MESSAGE }));
-        return false;
+        const message = deviceLocationErrorMessage(result.kind);
+        setState((current) => ({ ...current, statusMessage: message }));
+        return { ok: false, message };
       }
       // No fresh fix, so commit to the fast one: persist it (otherwise the next
       // launch reverts to the previous place) and load it, which also settles
@@ -103,9 +108,10 @@ export function useLocationActions(
         captureError(error, { where: 'useDeviceLocation:save' });
       });
       await loadForecast(fastFix, true);
-      return true;
+      return { ok: true };
     }
 
+    const next = result.location;
     setLastKnownDeviceLocation(next);
     const cached = getMemoryCachedForecast(next);
     needsLocationRef.current = false;
@@ -118,7 +124,7 @@ export function useLocationActions(
       statusMessage: '',
     }));
     await loadForecast(next, true);
-    return true;
+    return { ok: true };
   }, [loadForecast, needsLocationRef, setState]);
 
   return { setManualLocation, useDeviceLocation };

@@ -5,6 +5,8 @@ export interface LocationSearchListProps {
   sections: LocationSection[];
   busy: boolean;
   message: string;
+  /** Why "Use Current Location" failed, shown under that row; empty when it didn't. */
+  deviceMessage: string;
   isLoading: boolean;
   isSearching: boolean;
   resultsCount: number;
