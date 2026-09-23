@@ -6,7 +6,8 @@ describe('getMetricExplainer', () => {
     const dewpoint = getMetricExplainer('Dewpoint');
     expect(dewpoint).not.toBeNull();
     expect(dewpoint?.title).toBe('Dewpoint & Moisture');
-    expect(dewpoint?.tip).toContain('sweat evaporation');
+    // Bands match THRESHOLDS.DEWPOINT (fair from 58°F, marginal from 66°F).
+    expect(dewpoint?.tip).toContain('58–66°F');
 
     const wind = getMetricExplainer('Wind');
     expect(wind).not.toBeNull();

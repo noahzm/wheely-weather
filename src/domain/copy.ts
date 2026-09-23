@@ -23,7 +23,7 @@ const VERDICT_LABELS: Record<RideStatus, readonly string[]> = {
     'Good to go',
     'Ride day',
     'Wheels up',
-    'Clear for riding',
+    'Cleared to ride',
     'Send it',
     'Party pace',
     'Go get lost',
@@ -56,15 +56,16 @@ const VERDICT_LABELS: Record<RideStatus, readonly string[]> = {
 
 /**
  * Picks a verdict badge label from a per-status pool, seeded by location and
- * the current day+hour so different locations show different labels and the
- * label rotates when the forecast hour rolls over.
+ * day so different locations show different labels. Held for the whole day: an
+ * hourly rotation changed the headline with no change in conditions, and left
+ * the home screen widget (which keeps the label it was written with) out of
+ * step with the app after the hour rolled over.
  */
 export function getVerdictLabel(status: RideStatus, location = ''): string {
   const pool = VERDICT_LABELS[status];
   const now = new Date();
   const day = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 1).getTime()) / 864e5);
-  const hour = now.getHours();
-  const seed = `${status}|${location}|${day}|${hour}`;
+  const seed = `${status}|${location}|${now.getFullYear()}|${day}`;
   return pool[seededHash(seed) % pool.length] ?? '';
 }
 
@@ -178,14 +179,24 @@ export const ISSUE_PHRASES = {
     })[tier],
 };
 
+const GOOD_WIND_CLAUSE: Record<Condition, string> = {
+  good: 'with light winds',
+  fair: 'and breezy',
+  marginal: 'and windy',
+  poor: 'and windy',
+  bad: 'and windy',
+};
+
 export const STATUS_MESSAGES = {
   THUNDERSTORM: 'Thunderstorms today. Stay off the road.',
-  GOOD: (tempLabel: string, cond: string) =>
-    `${tempLabel}, ${cond.toLowerCase()}, with light winds.`,
+  // The wind clause follows the wind's own rating, so a ride day with a fair
+  // breeze doesn't claim "light winds" above a chart that says "Breezy".
+  GOOD: (tempLabel: string, cond: string, wind: Condition) =>
+    `${tempLabel}, ${cond.toLowerCase()}, ${GOOD_WIND_CLAUSE[wind]}.`,
   MAYBE_IDEAL: 'On the edge of comfortable.',
   MAYBE_LEAD: 'Rideable, but:',
   LATER_GOOD: (time: string) => `Improves around ${time}`,
-  NO_IDEAL: 'No clear ride window right now.',
+  NO_IDEAL: 'No good ride window right now.',
   NO_LEAD: 'Sit this one out:',
   CLEAR_UP: (time: string) => `Clears by ${time}`,
 };
@@ -382,9 +393,9 @@ export const DAYLIGHT_MESSAGES = {
 
 export const ALERT_MESSAGES = {
   HEAT_EXTREME: (tempLabel: string) =>
-    `Dangerously hot, ${tempLabel} felt. Serious heat stroke risk. Not a ride day.`,
+    `Feels like ${tempLabel}. Serious heat-stroke risk. Not a ride day.`,
   HEAT_WARNING: (tempLabel: string) =>
-    `Very hot, ${tempLabel} felt. High risk of heat exhaustion. Ride early, or ride indoors.`,
+    `Feels like ${tempLabel}. High risk of heat exhaustion. Ride early, or ride indoors.`,
 };
 
 /** Capitalizes the first character of a string, preserving the remainder. */
