@@ -17,6 +17,8 @@ export interface WidgetSnapshot {
   temperature: string;
   symbol: string;
   location: string;
+  /** Following the device's location, so the widget shows the location arrow. */
+  isCurrentLocation: boolean;
   /** When the forecast was fetched (ISO 8601), so the widget can flag stale data. */
   updatedAt: string;
 }
@@ -43,6 +45,7 @@ export function buildWidgetSnapshot(
     temperature: formatTemperature(weather.temperature, tempUnit),
     symbol: weatherSfSymbol(weather.weatherCode),
     location,
+    isCurrentLocation: snapshot.isDeviceLocation,
     updatedAt: snapshot.lastUpdated.toISOString(),
   };
 }

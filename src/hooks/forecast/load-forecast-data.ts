@@ -16,7 +16,11 @@ import { saveCachedForecast } from '@/services/forecastCache';
 import { DEFAULT_EXPOSURE_LEVEL, type ExposureLevel } from '@/types/settings';
 import type { ForecastExtras } from '@/types/weather';
 
-import { resolveDeviceLocation, setLastKnownDeviceLocation } from './device-location';
+import {
+  refreshFollowedLocation,
+  resolveDeviceLocation,
+  setLastKnownDeviceLocation,
+} from './device-location';
 import { mergeExtrasWhenReady } from './merge-extras';
 
 export interface ForecastState {
@@ -67,6 +71,14 @@ export async function loadForecastData(
   ]);
 
   let savedLocation = storedLocation;
+  // Following the device: if iOS already knows we've moved since the fix was
+  // saved (e.g. a cold launch in another town), load there directly instead of
+  // loading the old spot and letting the watch correct it a moment later.
+  // Explicit overrides are already fresh, and mocks never touch location.
+  if (!mockScenario && locationOverride === undefined) {
+    savedLocation =
+      (await refreshFollowedLocation(savedLocation, { allowGps: false })) ?? savedLocation;
+  }
   if (!mockScenario && !savedLocation) {
     if (Platform.OS === 'web') {
       return { kind: 'needsLocation', recentLocations, pinnedLocations };

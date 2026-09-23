@@ -11,6 +11,8 @@ const STALE_REFRESH_MS = 15 * 60 * 1000;
  * Both checks share one listener so a move plus a stale forecast still cost a
  * single fetch. `relocate` resolves the new device fix when the rider has moved
  * (see `refreshFollowedLocation`), or null to skip straight to the stale check.
+ * A stale-only reload goes through `loadForecastData`, which also adopts a recent
+ * system position, and a later watch fix supersedes it via the load generation.
  */
 export function useStaleRefresh(
   loadForecast: (override?: SavedLocation | null, refreshOnly?: boolean) => Promise<void>,
@@ -25,17 +27,20 @@ export function useStaleRefresh(
       // same resume; without it a single move would fetch twice.
       if (needsLocationRef.current || relocatingRef.current) return;
       relocatingRef.current = true;
+      let moved: SavedLocation | null;
       try {
-        const moved = await relocate();
-        if (moved) {
-          await loadForecast(moved, true);
-          return;
-        }
-        if (!lastLoadedAt.current || Date.now() - lastLoadedAt.current > STALE_REFRESH_MS) {
-          await loadForecast(undefined, true);
-        }
+        moved = await relocate();
+        if (moved) await loadForecast(moved, true);
       } finally {
         relocatingRef.current = false;
+      }
+      // Released before a stale-only reload: the watch's first fix can land
+      // mid-fetch, and holding the flag would drop that move until the next 2 km.
+      if (
+        !moved &&
+        (!lastLoadedAt.current || Date.now() - lastLoadedAt.current > STALE_REFRESH_MS)
+      ) {
+        await loadForecast(undefined, true);
       }
     };
 

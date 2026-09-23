@@ -12,6 +12,8 @@ struct WidgetSnapshot: Decodable {
   let temperature: String
   let symbol: String
   let location: String
+  // Optional so a payload written by an older app build still decodes.
+  let isCurrentLocation: Bool?
   let updatedAt: Date
 }
 
@@ -138,7 +140,14 @@ struct WheelyWidgetView: View {
     if entry.isStale {
       Text("Updated \(snapshot.updatedAt, style: .relative) ago")
     } else {
-      Text(snapshot.location)
+      HStack(spacing: 3) {
+        if snapshot.isCurrentLocation == true {
+          Image(systemName: "location.fill")
+            .imageScale(.small)
+            .accessibilityLabel("Current location")
+        }
+        Text(snapshot.location)
+      }
     }
   }
 
