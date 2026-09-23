@@ -189,7 +189,7 @@ export function LoadingState() {
   return (
     <View style={styles.centerState}>
       <ActivityIndicator size="large" color={c.ink} />
-      <ThemedText style={styles.statusMessage}>Loading forecast...</ThemedText>
+      <ThemedText style={styles.statusMessage}>Loading forecast…</ThemedText>
     </View>
   );
 }

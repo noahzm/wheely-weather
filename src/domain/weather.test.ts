@@ -247,6 +247,17 @@ describe('Hourly Message Logic', () => {
     expect(message.lead).toBe('68°F, clear skies, with light winds.');
     expect(message.issues).toEqual([]);
     expect(message.timing).toBeNull();
+
+    // The wind clause follows the wind rating instead of always claiming calm.
+    expect(getMessage({ ...weather, windSpeed: 12 }, 'yes').lead).toBe(
+      '68°F, clear skies, and breezy.',
+    );
+    expect(getMessage({ ...weather, windSpeed: 18 }, 'yes').lead).toBe(
+      '68°F, clear skies, and windy.',
+    );
+    expect(getMessage({ ...weather, windSpeed: 6, windGust: 24 }, 'yes').lead).toBe(
+      '68°F, clear skies, and breezy.',
+    );
   });
 
   it('mentions when conditions become fair later even if they never reach fully good', () => {

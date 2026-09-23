@@ -5,7 +5,11 @@ import { withTimeout } from '@/services/http';
 import { saveLocation, type SavedLocation } from '@/services/locationStorage';
 import { hasMovedSignificantly, type Coords } from '@/utils/geo';
 
-export const LOCATION_DENIED_MESSAGE = 'Location access denied. Search for a city instead.';
+// Says where to turn access back on, not just that it's off.
+export const LOCATION_DENIED_MESSAGE =
+  Platform.OS === 'web'
+    ? 'Location is blocked for this site. Allow it in your browser settings, or search for a city.'
+    : 'Location is off for Wheely Weather. Turn it on in Settings, or search for a city.';
 export const LOCATION_UNAVAILABLE_MESSAGE =
   'Couldn’t find your location. Check that Location Services is on, or search for a city.';
 export const LOCATION_INSECURE_MESSAGE =

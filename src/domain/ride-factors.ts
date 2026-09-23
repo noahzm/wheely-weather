@@ -126,6 +126,7 @@ export const getMessage = (
       lead: MSG.GOOD(
         formatTemperature(weather.temperature, tempUnit, { withUnitLabel: true }),
         weather.condition,
+        evaluateWind(weather.windSpeed, weather.windGust, thresholds),
       ),
       issues: [],
       timing: null,

@@ -28,7 +28,7 @@ const EXPLAINERS: Record<string, MetricExplainer> = {
   Dewpoint: {
     title: 'Dewpoint & Moisture',
     summary: 'Absolute atmospheric moisture measurement.',
-    tip: 'More predictive than relative humidity for riders. Under 55°F is crisp and dry; 55–60°F is comfortable; 65°F+ hampers sweat evaporation, requiring extra electrolytes.',
+    tip: 'More predictive than relative humidity for riders. Under 58°F feels dry and comfortable; 58–66°F is humid; above 66°F sweat evaporates slowly, so drink more and carry electrolytes.',
   },
   'UV Index': {
     title: 'UV Radiation',
@@ -43,7 +43,7 @@ const EXPLAINERS: Record<string, MetricExplainer> = {
   Sunset: {
     title: 'Sunset Time',
     summary: 'Last direct daylight before twilight fades.',
-    tip: 'Light drops rapidly after sunset. Safety rules require a white front light (visible 500 ft) and red taillight if your route extends past dusk.',
+    tip: 'Light drops rapidly after sunset. If your ride runs past dusk, use a white front light and a red taillight; many places require both by law.',
   },
 };
 

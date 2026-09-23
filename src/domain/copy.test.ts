@@ -20,6 +20,15 @@ describe('verdict labels', () => {
     expect(getVerdictLabel('yes', 'Philadelphia')).toBe(getVerdictLabel('yes', 'Philadelphia'));
   });
 
+  it('holds the same label all day so the app and widget agree', () => {
+    vi.setSystemTime(new Date(2026, 6, 2, 6, 0, 0));
+    const morning = getVerdictLabel('maybe', 'Raleigh, NC');
+    for (let hour = 7; hour < 24; hour++) {
+      vi.setSystemTime(new Date(2026, 6, 2, hour, 30, 0));
+      expect(getVerdictLabel('maybe', 'Raleigh, NC')).toBe(morning);
+    }
+  });
+
   it('returns a non-empty label for every status', () => {
     vi.setSystemTime(new Date(2026, 6, 2, 9, 0, 0));
     expect(getVerdictLabel('yes', 'A')).not.toBe('');
