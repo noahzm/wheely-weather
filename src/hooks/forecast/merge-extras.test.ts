@@ -85,11 +85,28 @@ describe('mergeExtrasWhenReady', () => {
   it('does not touch state for a null or empty patch', async () => {
     const snapshot = buildSnapshot();
     const { setState, updaters } = fakeSetState();
+    const merged: ForecastSnapshot[] = [];
 
-    mergeExtrasWhenReady(snapshot, Promise.resolve(null), setState);
-    mergeExtrasWhenReady(snapshot, Promise.resolve({ aqi: null, nwsAlerts: [] }), setState);
+    mergeExtrasWhenReady(snapshot, Promise.resolve(null), setState, (s) => merged.push(s));
+    mergeExtrasWhenReady(snapshot, Promise.resolve({ aqi: null, nwsAlerts: [] }), setState, (s) =>
+      merged.push(s),
+    );
     await flushMicrotasks();
 
     expect(updaters).toHaveLength(0);
+    expect(merged).toHaveLength(0);
+  });
+
+  it('hands the same merged snapshot it put in state to onMerged', async () => {
+    const snapshot = buildSnapshot();
+    const { setState, updaters } = fakeSetState();
+    const merged: ForecastSnapshot[] = [];
+
+    mergeExtrasWhenReady(snapshot, Promise.resolve(EXTRAS), setState, (s) => merged.push(s));
+    await flushMicrotasks();
+
+    expect(merged).toHaveLength(1);
+    expect(merged[0]?.weather.aqi).toBe(42);
+    expect(updaters[0]?.(buildState(snapshot)).snapshot).toBe(merged[0]);
   });
 });

@@ -18,10 +18,7 @@ import { refreshFollowedLocation } from './forecast/device-location';
 import { useFollowDeviceLocation } from './forecast/use-follow-device-location';
 import { useLocationActions } from './forecast/use-location-actions';
 import { usePrefetchPins } from './forecast/use-prefetch-pins';
-import {
-  useSnapshotCacheHydration,
-  useSnapshotCachePersistence,
-} from './forecast/use-snapshot-cache';
+import { useSnapshotCacheHydration } from './forecast/use-snapshot-cache';
 import { useStaleRefresh } from './forecast/use-stale-refresh';
 
 /**
@@ -73,7 +70,13 @@ export function useWeatherForecast(mockScenario: string | null) {
           applyNeedsLocation(result, setState, needsLocationRef);
           return;
         }
-        applyForecastSuccess(result, setState, needsLocationRef, lastLoadedAt);
+        applyForecastSuccess(
+          result,
+          setState,
+          needsLocationRef,
+          lastLoadedAt,
+          () => gen === loadGenRef.current,
+        );
       } catch (error) {
         if (gen !== loadGenRef.current) return;
         captureError(error, { where: 'loadForecast' });
@@ -104,14 +107,18 @@ export function useWeatherForecast(mockScenario: string | null) {
   }, [state.savedLocation]);
 
   useSnapshotCacheHydration(setState, mockScenario);
-  useSnapshotCachePersistence(state);
   usePrefetchPins(state.pinnedLocations, homeLocation, exposureLevel, mockScenario);
-  useStaleRefresh(loadForecast, lastLoadedAt, needsLocationRef, savedLocationRef, relocatingRef);
+  // Mock previews must not run GPS or mutate the real persisted device fix.
+  const canRelocate = !mockScenario;
+  const relocate = useCallback(
+    () => (canRelocate ? refreshFollowedLocation(savedLocationRef.current) : Promise.resolve(null)),
+    [canRelocate],
+  );
+  useStaleRefresh(loadForecast, lastLoadedAt, needsLocationRef, relocate, relocatingRef);
   useFollowDeviceLocation(
     savedLocationRef,
     relocatingRef,
-    // Mock previews must not run GPS or mutate the real persisted device fix.
-    state.savedLocation?.source === 'device' && !mockScenario,
+    state.savedLocation?.source === 'device' && canRelocate,
     loadForecast,
   );
 
@@ -120,12 +127,12 @@ export function useWeatherForecast(mockScenario: string | null) {
   const refresh = useCallback(() => {
     if (needsLocationRef.current || relocatingRef.current) return;
     relocatingRef.current = true;
-    void refreshFollowedLocation(savedLocationRef.current)
+    void relocate()
       .then((moved) => loadForecast(moved ?? undefined, true))
       .finally(() => {
         relocatingRef.current = false;
       });
-  }, [loadForecast]);
+  }, [loadForecast, relocate]);
 
   const { setManualLocation, useDeviceLocation } = useLocationActions(
     setState,

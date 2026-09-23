@@ -263,7 +263,7 @@ function HomeSections({
       <Stagger order={6}>
         <View style={styles.section}>
           <SectionTitle title="The week ahead" />
-          <DailyForecast daily={weather.daily} />
+          <DailyForecast daily={weather.daily} thresholds={thresholds} />
         </View>
       </Stagger>
     </Animated.View>

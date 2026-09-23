@@ -3,21 +3,20 @@ import { AppState, type AppStateStatus } from 'react-native';
 
 import type { SavedLocation } from '@/services/locationStorage';
 
-import { refreshFollowedLocation } from './device-location';
-
 const STALE_REFRESH_MS = 15 * 60 * 1000;
 
 /**
  * On foreground, re-point the forecast before deciding it is stale: a rider
  * following their device location may have travelled while the app was away.
  * Both checks share one listener so a move plus a stale forecast still cost a
- * single fetch.
+ * single fetch. `relocate` resolves the new device fix when the rider has moved
+ * (see `refreshFollowedLocation`), or null to skip straight to the stale check.
  */
 export function useStaleRefresh(
   loadForecast: (override?: SavedLocation | null, refreshOnly?: boolean) => Promise<void>,
   lastLoadedAt: RefObject<number>,
   needsLocationRef: RefObject<boolean>,
-  savedLocationRef: RefObject<SavedLocation | null>,
+  relocate: () => Promise<SavedLocation | null>,
   relocatingRef: RefObject<boolean>,
 ) {
   useEffect(() => {
@@ -27,7 +26,7 @@ export function useStaleRefresh(
       if (needsLocationRef.current || relocatingRef.current) return;
       relocatingRef.current = true;
       try {
-        const moved = await refreshFollowedLocation(savedLocationRef.current);
+        const moved = await relocate();
         if (moved) {
           await loadForecast(moved, true);
           return;
@@ -47,5 +46,5 @@ export function useStaleRefresh(
     return () => {
       subscription.remove();
     };
-  }, [loadForecast, lastLoadedAt, needsLocationRef, relocatingRef, savedLocationRef]);
+  }, [loadForecast, lastLoadedAt, needsLocationRef, relocate, relocatingRef]);
 }

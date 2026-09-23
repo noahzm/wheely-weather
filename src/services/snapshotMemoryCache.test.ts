@@ -12,7 +12,6 @@ import type { ForecastSnapshot } from './forecastSnapshot';
 import { buildMockWeather } from './mockWeather';
 import type { SavedLocation } from './settingsCodec';
 
-const NOW = 1_750_000_000_000;
 const PORTLAND: SavedLocation = { lat: 45.5, lon: -122.6, name: 'Portland', source: 'manual' };
 const RALEIGH: SavedLocation = { lat: 35.78, lon: -78.64, name: 'Raleigh', source: 'manual' };
 
@@ -25,7 +24,8 @@ function buildSnapshot(
   return {
     weather,
     location: locationName,
-    lastUpdated: new Date(NOW),
+    // Fresh by default: entries age from fetch time.
+    lastUpdated: new Date(),
     isManualLocation: true,
     isDeviceLocation: false,
     mockScenario: null,
@@ -75,6 +75,15 @@ describe('snapshotMemoryCache', () => {
 
     // Expired with maxAgeMs = -1
     expect(getMemoryCachedForecast(PORTLAND, -1)).toBeNull();
+  });
+
+  it('ages entries from fetch time, not from when they were cached', () => {
+    // Re-caching an old snapshot (disk hydration, extras merge) must not restart its TTL.
+    const fiveHoursAgo = new Date(Date.now() - 5 * 60 * 60 * 1000);
+    setMemoryCachedForecast(PORTLAND, buildSnapshot('Portland', { lastUpdated: fiveHoursAgo }));
+
+    expect(getMemoryCachedForecast(PORTLAND, 6 * 60 * 60 * 1000)).not.toBeNull();
+    expect(getMemoryCachedForecast(PORTLAND, 4 * 60 * 60 * 1000)).toBeNull();
   });
 
   it('clears all memory entries on clearMemoryCachedForecasts', () => {
