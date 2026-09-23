@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Platform } from 'react-native';
 
 import { type RecentLocation, type SavedLocation } from '@/services/locationStorage';
 import { getForecastErrorKind } from '@/services/forecastSnapshot';
@@ -111,10 +112,16 @@ export function useWeatherForecast(mockScenario: string | null) {
   // Mock previews must not run GPS or mutate the real persisted device fix.
   const canRelocate = !mockScenario;
   const relocate = useCallback(
-    () => (canRelocate ? refreshFollowedLocation(savedLocationRef.current) : Promise.resolve(null)),
+    (allowGps: boolean) =>
+      canRelocate
+        ? refreshFollowedLocation(savedLocationRef.current, { allowGps })
+        : Promise.resolve(null),
     [canRelocate],
   );
-  useStaleRefresh(loadForecast, lastLoadedAt, needsLocationRef, relocate, relocatingRef);
+  // On resume the foreground watch re-arms and brings a fresh fix, so only web
+  // (which has no watch) waits on GPS here.
+  const relocateOnResume = useCallback(() => relocate(Platform.OS === 'web'), [relocate]);
+  useStaleRefresh(loadForecast, lastLoadedAt, needsLocationRef, relocateOnResume, relocatingRef);
   useFollowDeviceLocation(
     savedLocationRef,
     relocatingRef,
@@ -127,7 +134,7 @@ export function useWeatherForecast(mockScenario: string | null) {
   const refresh = useCallback(() => {
     if (needsLocationRef.current || relocatingRef.current) return;
     relocatingRef.current = true;
-    void relocate()
+    void relocate(true)
       .then((moved) => loadForecast(moved ?? undefined, true))
       .finally(() => {
         relocatingRef.current = false;

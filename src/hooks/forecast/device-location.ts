@@ -87,24 +87,46 @@ export function adoptDeviceFix(coords: Coords): Promise<SavedLocation> {
   return promise;
 }
 
+// A position iOS already has (from any app, or our own watch) is as good as a
+// new fix for a 2 km follow threshold, and it's instant — no GPS spin-up.
+const RECENT_FIX_MAX_AGE_MS = 5 * 60 * 1000;
+const RECENT_FIX_MIN_ACCURACY_M = 1000;
+
+async function readRecentPosition(): Promise<Coords | null> {
+  const position = await Location.getLastKnownPositionAsync({
+    maxAge: RECENT_FIX_MAX_AGE_MS,
+    requiredAccuracy: RECENT_FIX_MIN_ACCURACY_M,
+  }).catch(() => null);
+  return position ? { lat: position.coords.latitude, lon: position.coords.longitude } : null;
+}
+
 /**
  * Silently re-reads the device position and adopts it only when the rider has
  * moved past the threshold. Never prompts (a background check must not raise a
  * system dialog) and never rejects — returns null when we are not following, the
  * permission is gone, the fix fails, or nothing meaningful changed.
+ *
+ * Uses a recent system position when one exists. Without one, `allowGps` decides
+ * whether to wait on a fresh fix: pull-to-refresh does (the rider asked for now),
+ * while launch and resume don't — the foreground watch, armed at the same moment,
+ * delivers that fix and re-points the forecast itself.
  */
 export async function refreshFollowedLocation(
   current: SavedLocation | null,
+  { allowGps }: { allowGps: boolean },
 ): Promise<SavedLocation | null> {
   if (!isFollowingDevice(current)) return null;
   try {
     const permission = await Location.getForegroundPermissionsAsync();
     if (permission.status !== Location.PermissionStatus.GRANTED) return null;
-    const position = await Location.getCurrentPositionAsync({
-      accuracy: Location.Accuracy.Balanced,
-    });
-    const next = { lat: position.coords.latitude, lon: position.coords.longitude };
-    if (!hasMovedSignificantly(current, next)) return null;
+    let next = await readRecentPosition();
+    if (!next && allowGps) {
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      next = { lat: position.coords.latitude, lon: position.coords.longitude };
+    }
+    if (!next || !hasMovedSignificantly(current, next)) return null;
     return await adoptDeviceFix(next);
   } catch {
     // GPS off, permission revoked mid-flight, storage failure: keep the last

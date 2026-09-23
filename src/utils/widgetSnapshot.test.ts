@@ -45,6 +45,7 @@ describe('buildWidgetSnapshot', () => {
       status: 'yes',
       detail: snapshot.weather.condition,
       location: 'Raleigh',
+      isCurrentLocation: false,
       updatedAt: FETCHED_AT.toISOString(),
     });
     expect(widget?.headline.length).toBeGreaterThan(0);
@@ -61,6 +62,11 @@ describe('buildWidgetSnapshot', () => {
     expect(widget?.detail).toBe(
       message.timing ?? (formatIssuesAsSentence(message.issues) || message.lead),
     );
+  });
+
+  it('flags a forecast that follows the device location', () => {
+    const snapshot = buildSnapshot('ride', { isDeviceLocation: true, source: 'device' });
+    expect(buildWidgetSnapshot(snapshot, 'fahrenheit')?.isCurrentLocation).toBe(true);
   });
 
   it('formats the temperature in the requested unit', () => {
