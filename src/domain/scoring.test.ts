@@ -11,9 +11,10 @@ describe('Weather Condition Evaluation', () => {
   // Reproduces the cycling-weather reference zone tables, mapped zone->condition:
   // ideal->good, good->fair, caution->marginal, hard->poor, avoid->bad.
   it('rates air temperature against the reference table', () => {
-    expect(evaluateCondition(60, 'temperature')).toBe('good'); // 50-68 ideal
+    expect(evaluateCondition(60, 'temperature')).toBe('good'); // 50-75 ideal
+    expect(evaluateCondition(74, 'temperature')).toBe('good'); // low 70s count as ideal
     expect(evaluateCondition(45, 'temperature')).toBe('fair'); // 40-50 good
-    expect(evaluateCondition(75, 'temperature')).toBe('fair'); // 68-82 good/fair
+    expect(evaluateCondition(78, 'temperature')).toBe('fair'); // 75-82 good/fair
     expect(evaluateCondition(85, 'temperature')).toBe('marginal'); // 82-90 caution
     expect(evaluateCondition(35, 'temperature')).toBe('marginal'); // 32-40 caution
     expect(evaluateCondition(92, 'temperature')).toBe('poor'); // 90-95 hard
@@ -188,17 +189,19 @@ describe('Overall Status Determination', () => {
     expect(getOverallStatus(weather)).toBe('maybe');
   });
 
-  it('returns "no" for cold rain hypothermia hazard (temp <= 45°F and rain >= 30%)', () => {
+  it('returns "no" for cold rain hypothermia hazard (temp <= 45°F and rain >= 40%)', () => {
     const weather = {
       hasThunderstorms: false,
       temperature: 42,
       feelsLike: 40,
       windSpeed: 10,
-      rainChance: 35,
+      rainChance: 45,
       dewpoint: 38,
       aqi: 20,
     };
     expect(getOverallStatus(weather)).toBe('no');
+    // Below the trigger, a cool damp day is a judgment call, not a hazard.
+    expect(getOverallStatus({ ...weather, rainChance: 35 })).not.toBe('no');
   });
 });
 

@@ -165,8 +165,8 @@ describe('getHourConditionReasons', () => {
     expect(getHourConditionReasons(hour({ condition: 'fair', rainChance: 25 }))).toEqual([
       'Rain possible (25%)',
     ]);
-    expect(getHourConditionReasons(hour({ condition: 'fair', temperature: 75 }))).toEqual([
-      'Warm (75°F)',
+    expect(getHourConditionReasons(hour({ condition: 'fair', temperature: 78 }))).toEqual([
+      'Warm (78°F)',
     ]);
   });
 
@@ -191,8 +191,8 @@ describe('getHourConditionReasons', () => {
     expect(getHourConditionReasons(hour({ temperature: 48, feelsLike: 30 }))).toEqual([
       'Cool (48°F)',
     ]);
-    expect(getHourConditionReasons(hour({ temperature: 71, feelsLike: 95 }))).toEqual([
-      'Warm (71°F)',
+    expect(getHourConditionReasons(hour({ temperature: 78, feelsLike: 95 }))).toEqual([
+      'Warm (78°F)',
     ]);
   });
 
@@ -206,8 +206,8 @@ describe('getHourConditionReasons', () => {
   // so a standalone temperature reason is omitted to prevent redundant clauses.
   it('names the cold-rain hazard in place of the plain rain reason and omits redundant temperature', () => {
     expect(
-      getHourConditionReasons(hour({ temperature: 44, feelsLike: 44, rainChance: 35 })),
-    ).toEqual(['Cold rain risk (44°F, 35%)']);
+      getHourConditionReasons(hour({ temperature: 44, feelsLike: 44, rainChance: 45 })),
+    ).toEqual(['Cold rain risk (44°F, 45%)']);
   });
 
   it('falls back to a tier phrase when no metric explains a non-good rating', () => {
