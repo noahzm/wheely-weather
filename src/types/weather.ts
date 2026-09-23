@@ -15,6 +15,8 @@ export interface HourlyWeather {
   dewpoint: number | null;
   weatherCode: number | null;
   uv?: number | null;
+  /** Today's current AQI, folded into this hour's rating (see applyAirQualityToToday). */
+  aqi?: number | null;
   condition: Condition;
 }
 
