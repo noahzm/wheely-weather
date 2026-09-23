@@ -47,6 +47,7 @@ public class AppleWeatherKitModule: Module {
           var hourlyWind: [Double] = []
           var hourlyGust: [Double?] = []
           var hourlyPrecip: [Int] = []
+          var hourlyPrecipAmount: [Double] = []
           var hourlyCondition: [String] = []
           var hourlyDewpoint: [Double] = []
           var hourlyUv: [Int] = []
@@ -60,6 +61,9 @@ public class AppleWeatherKitModule: Module {
             hourlyWind.append(Self.mph(hour.wind.speed))
             hourlyGust.append(hour.wind.gust.map(Self.mph))
             hourlyPrecip.append(Self.percent(hour.precipitationChance))
+            // Liquid-equivalent amount, mm, like Open-Meteo's `precipitation`:
+            // lets a likely trace shower rate milder than a likely soaking.
+            hourlyPrecipAmount.append(hour.precipitationAmount.converted(to: .millimeters).value)
             hourlyCondition.append(hour.condition.rawValue)
             hourlyDewpoint.append(Self.fahrenheit(hour.dewPoint))
             hourlyUv.append(hour.uvIndex.value)
@@ -111,6 +115,7 @@ public class AppleWeatherKitModule: Module {
               "wind_speed_10m": hourlyWind,
               "wind_gusts_10m": hourlyGust,
               "precipitation_probability": hourlyPrecip,
+              "precipitation": hourlyPrecipAmount,
               "condition": hourlyCondition,
               "dewpoint_2m": hourlyDewpoint,
               "uv_index": hourlyUv,

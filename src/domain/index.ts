@@ -4,6 +4,7 @@ export { formatIssuesAsSentence, getVerdictLabel } from './copy';
 export {
   calculateRideScore,
   evaluateCondition,
+  evaluateRain,
   evaluateWind,
   getDaylightWarning,
   getGearSuggestion,

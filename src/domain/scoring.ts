@@ -1,4 +1,4 @@
-import { THRESHOLDS, COLD_RAIN_HAZARD, type Thresholds } from './constants';
+import { THRESHOLDS, COLD_RAIN_HAZARD, RAIN_AMOUNT_MM, type Thresholds } from './constants';
 import { getWeatherCodeCondition } from './weather-codes';
 
 import { fullHourLabel } from '../utils/timeFormat';
@@ -118,6 +118,34 @@ export const evaluateWind = (
   return worseCondition(sustained, evaluateCondition(windGust, 'windGust', thresholds));
 };
 
+const betterCondition = (a: Condition, b: Condition): Condition => (RANK[a] >= RANK[b] ? a : b);
+
+/**
+ * Rates rain on its chance, capped by the expected amount: a likely trace
+ * shower is at worst "fair", likely light rain at worst "marginal". Heavier or
+ * unknown amounts keep the chance-based rating.
+ */
+export const evaluateRain = (
+  chance: number,
+  amountMm: number | null | undefined,
+  thresholds: Thresholds = THRESHOLDS,
+): Condition => {
+  const byChance = evaluateCondition(chance, 'rainChance', thresholds);
+  if (amountMm == null) return byChance;
+  if (amountMm < RAIN_AMOUNT_MM.TRACE) return betterCondition(byChance, 'fair');
+  if (amountMm < RAIN_AMOUNT_MM.LIGHT) return betterCondition(byChance, 'marginal');
+  return byChance;
+};
+
+/** True when the expected amount, rather than the chance, set the rain rating. */
+export const isRainAmountCapped = (
+  chance: number,
+  amountMm: number | null | undefined,
+  thresholds: Thresholds = THRESHOLDS,
+): boolean =>
+  RANK[evaluateRain(chance, amountMm, thresholds)] >
+  RANK[evaluateCondition(chance, 'rainChance', thresholds)];
+
 /** True when gusts are a strictly worse limiter than sustained wind. */
 export const isGustDriven = (windSpeed: number, windGust: number | null | undefined): boolean =>
   windGust != null &&
@@ -158,7 +186,7 @@ export const getOverallStatus = (
   const conditions = [
     evaluateCondition(weather.temperature, 'temperature', thresholds),
     evaluateWind(weather.windSpeed, weather.windGust, thresholds),
-    evaluateCondition(weather.rainChance, 'rainChance', thresholds),
+    evaluateRain(weather.rainChance, weather.precipitation, thresholds),
     evaluateCondition(weather.dewpoint, 'dewpoint', thresholds),
     getWeatherCodeCondition(weather.weatherCode),
     ...(weather.aqi == null ? [] : [evaluateCondition(weather.aqi, 'aqi', thresholds)]),
@@ -182,20 +210,22 @@ interface HourlyConditionInput {
   wind: number;
   gust?: number | null;
   rain: number;
+  /** Expected precipitation (mm/h); caps a high chance of a trace amount. */
+  precip?: number | null;
   code?: number | null;
   dewpoint: number | null;
 }
 
 /** UV is intentionally excluded — it drives sunscreen/kit advice, not ride-ability. */
 export const getHourlyCondition = (
-  { temperature, wind, gust, rain, code, dewpoint }: HourlyConditionInput,
+  { temperature, wind, gust, rain, precip, code, dewpoint }: HourlyConditionInput,
   thresholds: Thresholds = THRESHOLDS,
 ): Condition => {
   const coldRainCondition = evaluateColdRainHazard(temperature, rain, code);
   return getCyclingCondition([
     evaluateCondition(temperature, 'temperature', thresholds),
     evaluateWind(wind, gust, thresholds),
-    evaluateCondition(rain, 'rainChance', thresholds),
+    evaluateRain(rain, precip, thresholds),
     evaluateCondition(dewpoint, 'dewpoint', thresholds),
     getWeatherCodeCondition(code),
     ...(coldRainCondition ? [coldRainCondition] : []),
@@ -208,6 +238,8 @@ interface DailyConditionInput {
   wind: number;
   gust?: number | null;
   rain: number;
+  /** Heaviest expected hourly precipitation (mm) in the window, when known. */
+  precip?: number | null;
   code?: number | null;
   dewpoint?: number | null;
 }
@@ -219,7 +251,16 @@ interface DailyConditionInput {
 // may be omitted.
 /** UV is intentionally excluded — it drives sunscreen/kit advice, not ride-ability. */
 export const getDailyCondition = (
-  { tempLow = null, tempHigh, wind, gust = null, rain, code, dewpoint = null }: DailyConditionInput,
+  {
+    tempLow = null,
+    tempHigh,
+    wind,
+    gust = null,
+    rain,
+    precip = null,
+    code,
+    dewpoint = null,
+  }: DailyConditionInput,
   thresholds: Thresholds = THRESHOLDS,
 ): Condition => {
   const effectiveColdTemp = tempLow ?? tempHigh;
@@ -228,7 +269,7 @@ export const getDailyCondition = (
     ...(tempLow == null ? [] : [evaluateCondition(tempLow, 'temperature', thresholds)]),
     ...(tempHigh == null ? [] : [evaluateCondition(tempHigh, 'temperature', thresholds)]),
     evaluateWind(wind, gust, thresholds),
-    evaluateCondition(rain, 'rainChance', thresholds),
+    evaluateRain(rain, precip, thresholds),
     getWeatherCodeCondition(code),
     ...(dewpoint == null ? [] : [evaluateCondition(dewpoint, 'dewpoint', thresholds)]),
     ...(coldRainCondition ? [coldRainCondition] : []),
@@ -272,7 +313,7 @@ export function calculateRideScore(weather: Weather, thresholds: Thresholds = TH
 
   const tempCond = evaluateCondition(weather.temperature, 'temperature', thresholds);
   const windCond = evaluateWind(weather.windSpeed, weather.windGust, thresholds);
-  const rainCond = evaluateCondition(weather.rainChance, 'rainChance', thresholds);
+  const rainCond = evaluateRain(weather.rainChance, weather.precipitation, thresholds);
   const dewCond = evaluateCondition(weather.dewpoint, 'dewpoint', thresholds);
   const codeCond = getWeatherCodeCondition(weather.weatherCode);
   const aqiCond = weather.aqi == null ? 'good' : evaluateCondition(weather.aqi, 'aqi', thresholds);

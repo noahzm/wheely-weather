@@ -14,7 +14,13 @@ import {
 import { SymbolView, type SFSymbol } from 'expo-symbols';
 
 import { ThemedText } from '@/components/themed-text';
-import { CONDITION_DISPLAY, evaluateCondition, evaluateWind, THRESHOLDS } from '@/domain';
+import {
+  CONDITION_DISPLAY,
+  evaluateCondition,
+  evaluateRain,
+  evaluateWind,
+  THRESHOLDS,
+} from '@/domain';
 import {
   getAqiLabel,
   getDewpointLabel,
@@ -75,7 +81,7 @@ function rideSpecMetrics(
       sf: 'drop.fill',
       label: 'Rain Chance',
       value: formatPercent(weather.rainChance),
-      condition: evaluateCondition(weather.rainChance, 'rainChance', thresholds),
+      condition: evaluateRain(weather.rainChance, weather.precipitation, thresholds),
     },
     {
       Icon: Thermometer,

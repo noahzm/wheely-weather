@@ -11,7 +11,9 @@ import {
   evaluateCondition,
   evaluateWind,
   evaluateColdRainHazard,
+  evaluateRain,
   getLaterGoodHour,
+  isRainAmountCapped,
   isColdTemp,
   isGustDriven,
   RANK,
@@ -90,8 +92,11 @@ const collectMessageIssues = (
   if (coldRainTier) {
     issues.push(ISSUE_PHRASES.COLD_RAIN(temp, formatPercent(weather.rainChance), coldRainTier));
   } else {
-    addIssue(weather.rainChance, 'rainChance', (tier) =>
-      ISSUE_PHRASES.RAIN(formatPercent(weather.rainChance), tier),
+    addIssue(
+      weather.rainChance,
+      'rainChance',
+      (tier) => rainPhrase(weather.rainChance, weather.precipitation, tier, thresholds),
+      evaluateRain(weather.rainChance, weather.precipitation, thresholds),
     );
   }
   const weatherCodeIssue = getWeatherCodeIssue(weather.weatherCode, status);
@@ -113,6 +118,17 @@ const collectMessageIssues = (
   }
   return issues;
 };
+
+/** Phrases a rain issue, naming light rain when the amount capped the rating. */
+export const rainPhrase = (
+  chance: number,
+  amountMm: number | null | undefined,
+  tier: IssueTier,
+  thresholds: Thresholds = THRESHOLDS,
+): string =>
+  isRainAmountCapped(chance, amountMm, thresholds)
+    ? ISSUE_PHRASES.LIGHT_RAIN(formatPercent(chance), tier)
+    : ISSUE_PHRASES.RAIN(formatPercent(chance), tier);
 
 export const getMessage = (
   weather: Weather,
@@ -186,7 +202,7 @@ export const getRideFactors = (
     });
   }
 
-  const rainRating = evaluateCondition(weather.rainChance, 'rainChance', thresholds);
+  const rainRating = evaluateRain(weather.rainChance, weather.precipitation, thresholds);
   if (isLimiting(rainRating)) {
     factors.push({
       type: 'rainChance',

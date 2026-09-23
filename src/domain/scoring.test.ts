@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   calculateRideScore,
   evaluateCondition,
+  evaluateRain,
   evaluateWind,
   getOverallStatus,
   isColdTemp,
@@ -273,5 +274,37 @@ describe('calculateRideScore', () => {
     const score = calculateRideScore(maybeWeather);
     expect(score).toBeGreaterThanOrEqual(4);
     expect(score).toBeLessThanOrEqual(6);
+  });
+});
+
+describe('Rain amount', () => {
+  it('rates on chance alone when the amount is unknown', () => {
+    expect(evaluateRain(80, null)).toBe('bad');
+  });
+
+  it('caps a likely trace amount at fair and likely light rain at marginal', () => {
+    expect(evaluateRain(80, 0.1)).toBe('fair');
+    expect(evaluateRain(80, 0.6)).toBe('marginal');
+    expect(evaluateRain(80, 2.5)).toBe('bad');
+  });
+
+  it('never makes a low chance worse because of the amount', () => {
+    expect(evaluateRain(10, 4)).toBe('good');
+    expect(evaluateRain(30, 0.1)).toBe('fair');
+  });
+
+  it('keeps a likely trace shower from forcing a rest day', () => {
+    const weather = {
+      hasThunderstorms: false,
+      temperature: 65,
+      feelsLike: 65,
+      windSpeed: 6,
+      rainChance: 70,
+      dewpoint: 50,
+      aqi: 20,
+    };
+    expect(getOverallStatus({ ...weather, precipitation: 3 })).toBe('no');
+    expect(getOverallStatus({ ...weather, precipitation: 0.5 })).toBe('maybe');
+    expect(getOverallStatus({ ...weather, precipitation: 0.1 })).toBe('yes');
   });
 });
