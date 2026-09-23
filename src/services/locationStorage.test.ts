@@ -4,7 +4,6 @@ import { DEFAULT_SETTINGS } from './settingsCodec';
 import {
   addPinnedLocation,
   clearHomeLocation,
-  clearLocation,
   loadAllSettings,
   loadPinnedLocations,
   loadRecentLocations,
@@ -84,12 +83,6 @@ describe('saved location', () => {
   it('propagates corrupt JSON rather than reading it as no location', async () => {
     store.set('ww_location', '{not json');
     await expect(loadSavedLocation()).rejects.toThrow();
-  });
-
-  it('clears the saved location', async () => {
-    await saveLocation({ lat: 1, lon: 2, name: null, source: 'device' });
-    await clearLocation();
-    await expect(loadSavedLocation()).resolves.toBeNull();
   });
 });
 

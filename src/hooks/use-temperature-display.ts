@@ -1,7 +1,7 @@
 import { useResolvedTempUnit } from '@/hooks/settings-context';
 import { formatTemperature, type TempUnit } from '@/utils/temperature';
 
-export interface TemperatureDisplay {
+interface TemperatureDisplay {
   /** Concrete display unit ('auto' preference already resolved). */
   unit: TempUnit;
   /** Formats a Fahrenheit source value in the resolved unit. */

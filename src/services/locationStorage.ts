@@ -50,11 +50,6 @@ export async function saveLocation(location: SavedLocation) {
   return normalized;
 }
 
-/** Clears the active saved location from storage. */
-export async function clearLocation() {
-  await AsyncStorage.removeItem(LOCATION_KEY);
-}
-
 /** Persists the user's home location (used for climate acclimatization). */
 export async function saveHomeLocation(location: SavedLocation) {
   const normalized = normalizeLocationRecord(location);

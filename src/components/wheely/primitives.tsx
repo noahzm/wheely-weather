@@ -120,7 +120,7 @@ const LABEL_BURST_VIEWBOX = '-4 -4 208 64';
 // ─── Shared helpers ─────────────────────────────────────────────────────────
 
 /** Cross-platform neobrutalist drop shadow. */
-export function brutalShadow(color: string, width: number, height = width) {
+function brutalShadow(color: string, width: number, height = width) {
   return {
     boxShadow: `${width}px ${height}px 0px ${color}`,
     shadowColor: color,
@@ -130,9 +130,9 @@ export function brutalShadow(color: string, width: number, height = width) {
   };
 }
 
-export const ButtonRadius = Radius.card;
+const ButtonRadius = Radius.card;
 
-export const CardBorderWidth = 2;
+const CardBorderWidth = 2;
 
 /**
  * Concentric radius for edge-to-edge children that clip themselves inside a

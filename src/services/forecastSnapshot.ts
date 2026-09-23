@@ -35,7 +35,7 @@ export interface ForecastSnapshot {
   acclimatization: AcclimatizationContext;
 }
 
-export interface ForecastSnapshotResult {
+interface ForecastSnapshotResult {
   snapshot: ForecastSnapshot;
   /**
    * Slower, non-critical enrichments (AQI, NWS alerts) that must not hold up

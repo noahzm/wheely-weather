@@ -2,7 +2,7 @@ import { DEFAULT_EXPOSURE_LEVEL, type ExposureLevel } from '@/types/settings';
 import type { HomeBaseline } from '@/types/weather';
 import { THRESHOLDS, type Thresholds } from './constants';
 
-export interface Acclimatization {
+interface Acclimatization {
   tempShift: number;
   dewShift: number;
 }

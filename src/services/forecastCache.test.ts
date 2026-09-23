@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { THRESHOLDS } from '../domain/constants';
 
 import {
-  clearCachedForecast,
   clearMemoryCachedForecasts,
   getMemoryCachedForecast,
   loadCachedForecast,
@@ -56,9 +55,9 @@ const storeActiveLocation = (location: SavedLocation) => {
   store.set('ww_location', JSON.stringify({ version: 1, ...location }));
 };
 
-beforeEach(async () => {
+beforeEach(() => {
   store.clear();
-  await clearCachedForecast();
+  clearMemoryCachedForecasts();
   vi.clearAllMocks();
 });
 
@@ -116,21 +115,5 @@ describe('loadCachedForecast', () => {
 
     await expect(loadCachedForecast()).resolves.toBeNull();
     expect(captureError).toHaveBeenCalledWith(expect.anything(), { where: 'loadCachedForecast' });
-  });
-});
-
-describe('clearCachedForecast', () => {
-  it('clears disk and memory', async () => {
-    await saveCachedForecast(buildSnapshot(), PORTLAND);
-    await clearCachedForecast();
-
-    expect(store.has(CACHE_KEY)).toBe(false);
-    expect(getMemoryCachedForecast(PORTLAND)).toBeNull();
-  });
-
-  it('reports a failed removal without throwing', async () => {
-    storage.removeItem.mockRejectedValueOnce(new Error('locked'));
-    await expect(clearCachedForecast()).resolves.toBeUndefined();
-    expect(captureError).toHaveBeenCalledWith(expect.anything(), { where: 'clearCachedForecast' });
   });
 });

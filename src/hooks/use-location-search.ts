@@ -7,7 +7,7 @@ import type { RecentLocation } from '@/services/locationStorage';
 export const MIN_SEARCH_QUERY_LENGTH = 2;
 const SEARCH_DEBOUNCE_MS = 300;
 
-export interface LocationSearchState {
+interface LocationSearchState {
   results: RecentLocation[];
   message: string;
   isLoading: boolean;

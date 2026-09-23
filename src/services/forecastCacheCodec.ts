@@ -9,7 +9,7 @@ import type { LocationSource, SavedLocation } from './locationStorage';
 // v2 adds `exposureLevel`. Bumping also discards v1 entries, which were rated
 // under the previous threshold table and would otherwise render for up to
 // FORECAST_CACHE_TTL_MS under semantics the current build no longer uses.
-export const FORECAST_CACHE_VERSION = 2;
+const FORECAST_CACHE_VERSION = 2;
 // Cached content is only a bridge until the background refresh lands; when
 // offline, 6h-old data still beats a spinner, but older than that the "Now"
 // marker and hourly window drift too far to trust.

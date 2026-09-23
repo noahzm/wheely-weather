@@ -9,7 +9,7 @@ import {
 import { loadSavedLocation, type SavedLocation } from './locationStorage';
 import { captureError } from './telemetry';
 
-import { setMemoryCachedForecast, clearMemoryCachedForecasts } from './snapshotMemoryCache';
+import { setMemoryCachedForecast } from './snapshotMemoryCache';
 
 export {
   clearMemoryCachedForecasts,
@@ -53,14 +53,5 @@ export async function saveCachedForecast(
   } catch (error) {
     // A failed write just means the next launch falls back to the spinner.
     captureError(error, { where: 'saveCachedForecast' });
-  }
-}
-
-export async function clearCachedForecast(): Promise<void> {
-  clearMemoryCachedForecasts();
-  try {
-    await AsyncStorage.removeItem(FORECAST_CACHE_KEY);
-  } catch (error) {
-    captureError(error, { where: 'clearCachedForecast' });
   }
 }

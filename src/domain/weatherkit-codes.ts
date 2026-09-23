@@ -1,4 +1,4 @@
-export type WeatherKitCondition =
+type WeatherKitCondition =
   | 'clear'
   | 'mostlyClear'
   | 'partlyCloudy'

@@ -27,9 +27,9 @@ function elementAt(arr: number[], i: number): number {
 export const CHART_X_ORIGIN = 24;
 export const CHART_X_STEP = 44;
 
-export const DOT_RADIUS_MAX = 8;
-export const DOT_RADIUS_MIN = 5;
-export const DOT_RADIUS_NOW_FLOOR = 7;
+const DOT_RADIUS_MAX = 8;
+const DOT_RADIUS_MIN = 5;
+const DOT_RADIUS_NOW_FLOOR = 7;
 const DOT_OPACITY_MUTED = 0.58;
 
 /**
