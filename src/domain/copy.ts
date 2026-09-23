@@ -192,7 +192,8 @@ const GOOD_WIND_CLAUSE: Record<Condition, string> = {
 };
 
 export const STATUS_MESSAGES = {
-  THUNDERSTORM: 'Thunderstorms today. Stay off the road.',
+  // Not "today": the verdict can be rating tomorrow's window after dark.
+  THUNDERSTORM: 'Thunderstorms expected. Stay off the road.',
   // The wind clause follows the wind's own rating, so a ride day with a fair
   // breeze doesn't claim "light winds" above a chart that says "Breezy".
   GOOD: (tempLabel: string, cond: string, wind: Condition) =>
@@ -203,6 +204,8 @@ export const STATUS_MESSAGES = {
   NO_IDEAL: 'No good ride window right now.',
   NO_LEAD: 'Sit this one out:',
   CLEAR_UP: (time: string) => `Clears by ${time}`,
+  BEST_WINDOW: (range: string) => `Best ${range}`,
+  TOMORROW_WINDOW: (range: string) => `Tomorrow ${range}`,
 };
 
 /**
