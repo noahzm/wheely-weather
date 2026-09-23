@@ -123,6 +123,9 @@
       "typedRoutes": true,
       "reactCompiler": true
     },
+    "buildCacheProvider": {
+      "plugin": "expo/local-build-cache-provider"
+    },
     "extra": {
       "router": {},
       "eas": {
