@@ -3,6 +3,7 @@ import { useGlobalSearchParams } from 'expo-router';
 
 import { isMockScenario } from '@/services/mockWeather';
 
+import { useWidgetSync } from './forecast/use-widget-sync';
 import { useWeatherForecast } from './use-weather-forecast';
 
 // ---------- types ----------
@@ -25,6 +26,7 @@ export function ForecastProvider({ children }: Readonly<{ children: ReactNode }>
   const [latchedMock, setLatchedMock] = useState(paramMock);
   if (paramMock && paramMock !== latchedMock) setLatchedMock(paramMock);
   const forecast = useWeatherForecast(paramMock ?? latchedMock);
+  useWidgetSync(forecast.snapshot);
   return <ForecastContext.Provider value={forecast}>{children}</ForecastContext.Provider>;
 }
 

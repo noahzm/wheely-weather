@@ -39,6 +39,7 @@ npm run build:web      # expo export --platform web
 - Services split by platform: shared file + `*.ios.ts*` / `*.web.ts*` siblings. Default paths use Open-Meteo (weather) and Nominatim (geocoding); iOS shadows them with WeatherKit (`weatherService.ios.ts`) and MapKit (`locationSearch.ios.ts`). iOS weather/location modules do **not** fall back to web APIs — they fail with rebuild-required errors, by design.
 - In `weatherService.ios.ts`, shared parsing must be imported from `weatherParsing.ts`, never from `weatherService.ts` (importing from `weatherService.ts` causes iOS platform-resolution recursion).
 - Native iOS modules: `modules/apple-weatherkit`, `modules/apple-location-search`. Web geocoding is proxied by the Cloudflare Worker `workers/index.mjs`.
+- Home screen widget: `targets/widget` (SwiftUI, generated into the Xcode project by `@bacons/apple-targets` on prebuild). It can't run TS scoring, so `useWidgetSync` builds a display-ready `WidgetSnapshot` (`src/utils/widgetSnapshot.ts`) and writes it to the `group.app.wheelyweather` App Group; `WheelyWidget.swift` decodes the same field names. Changing the payload means changing both sides. `targets/*/Assets.xcassets` is regenerated from `expo-target.config.js`.
 - Domain logic is framework-agnostic in `src/domain` / `src/utils`.
 
 ## Forecast invariants
@@ -61,7 +62,7 @@ Each of these has caused a real bug when broken.
 - Sentry is DSN-gated (`EXPO_PUBLIC_SENTRY_DSN`). Source maps upload only from EAS production builds (`SENTRY_AUTH_TOKEN` is an EAS secret there); local native builds and the development/preview EAS environments set `SENTRY_DISABLE_AUTO_UPLOAD=true` (already in the npm scripts). `metro.config.js` must keep `getSentryExpoConfig`, which injects the debug IDs that tie events to uploaded maps.
 - ESLint type-aware linting uses `tsconfig.eslint.json` (includes test files), while `npm run typecheck` uses `tsconfig.json` (excludes them). A test file may pass typecheck but fail lint, or vice versa.
 - `max-params` is 5: pass a function or an options object rather than a sixth argument.
-- Commits use conventional prefixes: `feat`, `fix`, `chore`, `docs`, `deps`, `ci`, with an optional scope (`fix(forecast): …`).
+- Commits use conventional prefixes, with an optional scope (`fix(forecast): …`). The usual ones are `feat`, `fix`, `chore`, `docs`, `deps`, `ci`, but any standard prefix (`perf`, `refactor`, `test`, …) is fine.
 
 ## Testing
 
