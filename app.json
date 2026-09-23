@@ -26,7 +26,8 @@
         }
       },
       "entitlements": {
-        "com.apple.developer.weatherkit": true
+        "com.apple.developer.weatherkit": true,
+        "com.apple.security.application-groups": ["group.app.wheelyweather"]
       }
     },
     "android": {
@@ -50,6 +51,7 @@
     },
     "plugins": [
       "./plugins/withDevLauncherSceneDelegateFix.js",
+      "@bacons/apple-targets",
       [
         "expo-router",
         {
