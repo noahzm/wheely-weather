@@ -48,16 +48,14 @@ module.exports = defineConfig([
       },
     },
     rules: {
+      // Only overrides and additions live here; strictTypeChecked and
+      // stylisticTypeChecked already enable the no-unsafe-*, no-explicit-any,
+      // no-unnecessary-condition, prefer-nullish-coalescing and no-deprecated rules.
       '@typescript-eslint/restrict-template-expressions': ['error', { allowNumber: true }],
-      '@typescript-eslint/no-unnecessary-condition': 'error',
-      '@typescript-eslint/no-unsafe-assignment': 'error',
-      '@typescript-eslint/no-unsafe-call': 'error',
-      '@typescript-eslint/no-unsafe-member-access': 'error',
-      '@typescript-eslint/no-unsafe-return': 'error',
-      '@typescript-eslint/no-unsafe-argument': 'error',
-      '@typescript-eslint/no-explicit-any': 'error',
-      '@typescript-eslint/prefer-nullish-coalescing': 'error',
-      '@typescript-eslint/no-deprecated': 'error',
+      // A switch over a union (Condition, IssueTier, ...) must handle every
+      // member, so adding one to the type flags each switch that ignores it.
+      // A `default` branch doesn't count: it would silently absorb the new member.
+      '@typescript-eslint/switch-exhaustiveness-check': 'error',
 
       // ── Naming conventions (SwiftLint identifier_name / type_name) ─────
       // Enforce casing only; boolean-prefix conventions are intentionally not
@@ -72,12 +70,12 @@ module.exports = defineConfig([
   },
 
   // ── JS files: non-type-checked strict rules ──────────────────────────────
-  // Plain-JS domain/util files: the type-aware rules need richer config tuning
-  // to avoid false positives on untyped JS, so apply the non-type-checked
-  // strict preset here. (Logic is still unit-tested in src/**/*.test.js.)
+  // Config files, Expo config plugins, and the Cloudflare Worker (.mjs). The
+  // type-aware rules need a tsconfig covering these and would false-positive on
+  // untyped JS, so they get the non-type-checked strict preset instead.
   ...tseslint.configs.strict.map((c) => ({
     ...c,
-    files: ['**/*.{js,jsx}'],
+    files: ['**/*.{js,jsx,mjs,cjs}'],
   })),
 
   // ── Unicorn (modern JS idioms — SwiftLint style rules) ───────────────────
@@ -90,9 +88,6 @@ module.exports = defineConfig([
       'unicorn/no-null': 'off', // React & RN APIs use null
       'unicorn/prefer-module': 'off', // these config files are CommonJS
       'unicorn/prefer-top-level-await': 'off', // not applicable in RN/Expo entry points
-      'unicorn/no-array-reduce': 'error',
-      'unicorn/no-array-callback-reference': 'error',
-      'unicorn/consistent-function-scoping': 'error',
     },
   },
 
@@ -100,9 +95,9 @@ module.exports = defineConfig([
   sonarjs.configs.recommended,
   {
     rules: {
+      // Preset default is 15. This is the single complexity gate; ESLint's core
+      // cyclomatic `complexity` rule overlapped it and is intentionally not enabled.
       'sonarjs/cognitive-complexity': ['error', 20],
-      'sonarjs/prefer-read-only-props': 'error',
-      'sonarjs/no-nested-conditional': 'error',
     },
   },
 
@@ -118,7 +113,6 @@ module.exports = defineConfig([
   // ── Complexity / length caps (SwiftLint function_body_length, nesting) ───
   {
     rules: {
-      complexity: ['error', 20],
       'max-depth': ['error', 4],
       'max-params': ['error', 5],
       'max-lines': ['error', { max: 700, skipBlankLines: true, skipComments: true }],

@@ -237,17 +237,12 @@ function useInitialChartScroll(params: {
   } = params;
   const hasInitialScroll = useRef(false);
 
-  // Reanimated shared values are mutable by design; the immutability rule
-  // can't model worklet-driven `.value` writes.
-  // eslint-disable-next-line react-hooks/immutability
   const applyInitialScroll = useCallback(() => {
     if (viewportWidth <= 0 || count === 0) return;
     const x = chartScrollOffsetForIndex(nowIdx, viewportWidth, maxIndex);
     scrollRef.current?.scrollTo({ x, animated: false });
-    // eslint-disable-next-line react-hooks/immutability -- reanimated shared value write
-    scrollX.value = x;
-    // eslint-disable-next-line react-hooks/immutability -- reanimated shared value write
-    lastNotifiedIdx.value = nowIdx;
+    scrollX.set(x);
+    lastNotifiedIdx.set(nowIdx);
     if (isWeb) {
       liveScrollXRef.current = x;
       setLiveScrollX(x);
@@ -267,14 +262,12 @@ function useInitialChartScroll(params: {
     setLiveScrollX,
   ]);
 
-  // eslint-disable-next-line react-hooks/immutability -- applyInitialScroll writes shared values
   useEffect(() => {
     if (viewportWidth <= 0 || count === 0 || hasInitialScroll.current) return;
     hasInitialScroll.current = true;
     applyInitialScroll();
   }, [viewportWidth, count, applyInitialScroll]);
 
-  // eslint-disable-next-line react-hooks/immutability -- applyInitialScroll writes shared values
   const reassertInitialScroll = useCallback(() => {
     if (!hasInitialScroll.current || selectionHapticEnabledRef.current) return;
     applyInitialScroll();
@@ -435,10 +428,7 @@ export function useHourlyScrollPicker(
 
   const publishScrollOffset = useCallback(
     (offsetX: number, haptic: boolean) => {
-      // Reanimated shared values are mutable by design; the immutability rule
-      // can't model worklet-driven `.value` writes.
-      // eslint-disable-next-line react-hooks/immutability
-      scrollX.value = offsetX;
+      scrollX.set(offsetX);
       liveScrollXRef.current = offsetX;
       setLiveScrollX(offsetX);
       syncSelectionFromScroll(offsetX, haptic);
@@ -504,14 +494,13 @@ export function useHourlyScrollPicker(
 
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
-      // eslint-disable-next-line react-hooks/immutability -- reanimated shared value write
-      scrollX.value = event.contentOffset.x;
+      scrollX.set(event.contentOffset.x);
       if (viewportWidth <= 0) return;
       // Only hop to the JS thread when the hour under the needle changes; the
       // end-drag/momentum handlers re-sync unconditionally as a safety net.
       const idx = chartIndexFromScrollOffset(event.contentOffset.x, viewportWidth, maxIndex);
-      if (idx === lastNotifiedIdx.value) return;
-      lastNotifiedIdx.value = idx;
+      if (idx === lastNotifiedIdx.get()) return;
+      lastNotifiedIdx.set(idx);
       scheduleOnRN(syncSelectionFromScroll, event.contentOffset.x, true);
     },
   });
