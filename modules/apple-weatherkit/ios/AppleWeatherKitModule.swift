@@ -126,7 +126,7 @@ public class AppleWeatherKitModule: Module {
           ]
           promise.resolve(result)
         } catch {
-          promise.reject("WEATHERKIT_ERROR", error.localizedDescription)
+          promise.reject(WeatherKitException(error))
         }
       }
     }
@@ -148,7 +148,7 @@ public class AppleWeatherKitModule: Module {
           }
           promise.resolve(results)
         } catch {
-          promise.reject("WEATHERKIT_ERROR", error.localizedDescription)
+          promise.reject(WeatherKitException(error))
         }
       }
     }
@@ -163,7 +163,7 @@ public class AppleWeatherKitModule: Module {
             "legalPageURL": attribution.legalPageURL.absoluteString,
           ])
         } catch {
-          promise.reject("WEATHERKIT_ERROR", error.localizedDescription)
+          promise.reject(WeatherKitException(error))
         }
       }
     }
@@ -229,5 +229,19 @@ public class AppleWeatherKitModule: Module {
     formatter.timeZone = timeZone
     formatter.dateFormat = dateOnly ? "yyyy-MM-dd" : "yyyy-MM-dd'T'HH:mm"
     return formatter
+  }
+}
+
+// `promise.reject(code, description)` drops the description: Expo builds the JS
+// error message from `Exception.reason`, which that initializer leaves as
+// "undefined reason". Carry the underlying error so Sentry shows why it failed.
+internal final class WeatherKitException: GenericException<Error>, @unchecked Sendable {
+  override var code: String {
+    "WEATHERKIT_ERROR"
+  }
+
+  override var reason: String {
+    let nsError = param as NSError
+    return "\(param.localizedDescription) (\(nsError.domain) \(nsError.code))"
   }
 }
