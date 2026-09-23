@@ -30,9 +30,11 @@ const SCENE_DELEGATE_MARKER = 'ExpoAppSceneDelegate';
 const LEGACY_WINDOW_BLOCK_RE =
   /\n *#if os\(iOS\) \|\| os\(tvOS\)\n *window = UIWindow\(frame: UIScreen\.main\.bounds\)\n *factory\.startReactNative\(\n *withModuleName: "main",\n *in: window,\n *launchOptions: launchOptions\)\n *#endif\n/;
 
-const SCENE_BASED_CLASS_RE = /class SceneDelegate: UIResponder, UIWindowSceneDelegate \{[\s\S]*?\n\}(?=\n)/;
+const SCENE_BASED_CLASS_RE =
+  /class SceneDelegate: UIResponder, UIWindowSceneDelegate \{[\s\S]*?\n\}(?=\n)/;
 
-const APP_DELEGATE_CLASS_OPEN_RE = /class AppDelegate: ExpoAppDelegate(, ExpoReactNativeFactoryProvider)? \{\n(?: *var window: UIWindow\?\n)?/;
+const APP_DELEGATE_CLASS_OPEN_RE =
+  /class AppDelegate: ExpoAppDelegate(, ExpoReactNativeFactoryProvider)? \{\n(?: *var window: UIWindow\?\n)?/;
 
 const SCENE_DELEGATE_CLASS =
   '// Re-feeds scene life-cycle and URL events to `AppDelegate`, so both its subscribers (e.g.\n' +
@@ -52,13 +54,13 @@ function patchAppDelegateSwift(contents) {
     console.warn(
       '[withDevLauncherSceneDelegateFix] Could not find the expected `AppDelegate` class opening ' +
         "to patch. Expo's generated template may have changed — skipping this part of the fix, " +
-        'check ios/WheelyWeather/AppDelegate.swift by hand.'
+        'check ios/WheelyWeather/AppDelegate.swift by hand.',
     );
   } else {
     const before = patched;
     patched = patched.replace(
       APP_DELEGATE_CLASS_OPEN_RE,
-      'class AppDelegate: ExpoAppDelegate, ExpoReactNativeFactoryProvider {\n  var window: UIWindow?\n'
+      'class AppDelegate: ExpoAppDelegate, ExpoReactNativeFactoryProvider {\n  var window: UIWindow?\n',
     );
     changed = changed || patched !== before;
   }
@@ -80,14 +82,14 @@ function patchAppDelegateSwift(contents) {
       // No scene delegate at all (the common case) — insert one before `ReactNativeDelegate`.
       patched = patched.replace(
         /class ReactNativeDelegate: ExpoReactNativeFactoryDelegate/,
-        `${SCENE_DELEGATE_CLASS}\nclass ReactNativeDelegate: ExpoReactNativeFactoryDelegate`
+        `${SCENE_DELEGATE_CLASS}\nclass ReactNativeDelegate: ExpoReactNativeFactoryDelegate`,
       );
       changed = true;
     } else {
       console.warn(
         '[withDevLauncherSceneDelegateFix] Could not find where to insert `SceneDelegate` ' +
           "(no `ReactNativeDelegate` class found either). Expo's generated template may have " +
-          'changed — skipping this part of the fix, check ios/WheelyWeather/AppDelegate.swift by hand.'
+          'changed — skipping this part of the fix, check ios/WheelyWeather/AppDelegate.swift by hand.',
       );
     }
   }
@@ -100,7 +102,7 @@ const withDevLauncherSceneDelegateFix = (config) => {
     if (config.modResults.language !== 'swift') {
       console.warn(
         '[withDevLauncherSceneDelegateFix] Expected a Swift AppDelegate but found ' +
-          `"${config.modResults.language}" — skipping.`
+          `"${config.modResults.language}" — skipping.`,
       );
       return config;
     }

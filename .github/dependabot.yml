@@ -39,6 +39,9 @@ updates:
         update-types: ['version-update:semver-major']
       - dependency-name: 'eslint-plugin-unicorn'
         update-types: ['version-update:semver-major']
+      # Tracks the Node major CI runs (ci.yml, package.json engines); bump together.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
 
   - package-ecosystem: github-actions
     directory: /
