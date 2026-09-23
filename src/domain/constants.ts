@@ -6,7 +6,7 @@ import type { Condition } from '@/types/weather';
 // separately) rather than feels-like, which would double-count humidity.
 export const THRESHOLDS = {
   // Air temperature, °F. Asymmetric by design. The hot side runs the full ladder
-  // — 68->82 fair, 82->90 caution (marginal), 90->95 hard (poor), 95+ avoid —
+  // — 75->82 fair, 82->90 caution (marginal), 90->95 hard (poor), 95+ avoid —
   // because sustained effort in heat degrades a ride well before it becomes
   // dangerous. The cold side keeps the reference table's gap: it has no "hard"
   // (poor) zone, 32->40 caution jumping straight to <32 avoid, which is why
@@ -19,7 +19,9 @@ export const THRESHOLDS = {
     MARGINAL_MIN: 40,
     MARGINAL_MAX: 82,
     FAIR_MIN: 50,
-    FAIR_MAX: 68,
+    // Most riders call the low 70s ideal, not merely fair; the reference's 68
+    // docked stars from ordinary shirt-sleeve days.
+    FAIR_MAX: 75,
   },
   // Sustained wind. Each hour is rated on the worse of WIND_SPEED and WIND_GUST.
   WIND_SPEED: {
@@ -80,7 +82,9 @@ export type Thresholds = typeof THRESHOLDS;
 export const COLD_RAIN_HAZARD = {
   MAX_TEMP: 45,
   SEVERE_TEMP: 40,
-  MIN_RAIN_CHANCE: 30,
+  // 30% turned most cool, showery days into rest days; 40% keeps the hazard
+  // rule for rain that is more likely than not to be a factor.
+  MIN_RAIN_CHANCE: 40,
 };
 
 // Thresholds for post-rain wet road spray detection.
