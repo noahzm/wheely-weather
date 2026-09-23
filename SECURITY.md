@@ -1,32 +1,38 @@
 # Security Policy
 
-## Reporting a Vulnerability
+## Reporting a vulnerability
 
-Please report security issues privately by opening a **GitHub Security Advisory** for this repository.
+Report security issues privately through GitHub: open the repository's **Security** tab and choose **Report a vulnerability** ([direct link](https://github.com/noahzm/wheely-weather/security/advisories/new)). Only the maintainer can see the report.
 
-If you cannot use advisories, open a private report to the maintainer via GitHub: https://github.com/noahzm.
+Please don't open public issues or pull requests for suspected vulnerabilities.
 
-Please include:
+Include:
 
-- A clear description of the issue and affected components.
-- Reproduction steps or proof of concept.
-- Impact assessment and any suggested remediation.
+- A description of the issue and the affected part of the app.
+- Steps to reproduce, or a proof of concept.
+- The impact you expect, and any fix you'd suggest.
 
-Do not open public issues for suspected vulnerabilities.
+## Scope
 
-## Response Process
+In scope:
 
-1. Maintainer triages the report and confirms scope/impact.
+- The Wheely Weather iOS app (latest TestFlight build).
+- The web app at [wheelyweather.app](https://wheelyweather.app).
+- The Cloudflare Worker that serves the site and proxies geocoding (`/api/geocode/*`).
+
+Out of scope: the third-party services the app reads from (Apple WeatherKit and MapKit, Open-Meteo, Nominatim, the US National Weather Service). Report issues in those to their providers.
+
+## Response process
+
+1. The maintainer triages the report and confirms scope and impact.
 2. A fix is prepared and validated.
-3. Coordinated disclosure is made after a patch is available.
+3. The issue is disclosed once a fix is released.
 
-Best effort response targets:
+Best-effort response targets:
 
-- Initial acknowledgement within 3 business days.
-- Status update within 7 business days after acknowledgement.
+- Acknowledgement within 3 business days.
+- A status update within 7 business days after that.
 
-## Supported Versions
+## Supported versions
 
-Wheely Weather is actively maintained on the `main` branch.
-
-Security fixes are applied to `main` and released forward. Historical commits/tags are not guaranteed to receive backported patches.
+Only the latest release is supported: the current TestFlight build and the live site, both built from `main`.
