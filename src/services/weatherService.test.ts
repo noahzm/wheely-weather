@@ -213,6 +213,30 @@ describe('buildWeatherFromData — current-hour alignment', () => {
   });
 });
 
+describe('buildWeatherFromData — rain amount', () => {
+  it('carries the hourly amount through and lets a trace amount soften the rating', () => {
+    const data = makeOpenMeteoData({
+      hourly: {
+        precipitation_probability: Array.from({ length: 24 }, () => 80),
+        precipitation: Array.from({ length: 24 }, () => 0.1),
+      },
+    });
+    const weather = buildWeatherFromData(data, THRESHOLDS);
+    expect(weather.precipitation).toBeCloseTo(0.1);
+    expect(weather.hourly[0]?.precipitation).toBeCloseTo(0.1);
+    expect(weather.hourly[1]?.condition).toBe('fair');
+  });
+
+  it('rates on chance alone when the provider sends no amount', () => {
+    const data = makeOpenMeteoData({
+      hourly: { precipitation_probability: Array.from({ length: 24 }, () => 80) },
+    });
+    const weather = buildWeatherFromData(data, THRESHOLDS);
+    expect(weather.precipitation).toBeNull();
+    expect(weather.hourly[1]?.condition).toBe('bad');
+  });
+});
+
 describe('buildWeatherFromData — past hourly window', () => {
   it('clips past hours at the start of the array when fewer than the requested count are available', () => {
     const hourlyTime = Array.from({ length: 6 }, (_, i) => hourTime('2024-01-15', i));

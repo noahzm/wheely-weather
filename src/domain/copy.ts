@@ -145,6 +145,10 @@ export const ISSUE_PHRASES = {
       marginal: `Rain likely (${pct})`,
       fair: `Rain possible (${pct})`,
     })[tier],
+  // Used when the expected amount, not the chance, set the rating: a 70%
+  // chance of a trace amount reads as sprinkles, not "Rain likely".
+  LIGHT_RAIN: (pct: string, tier: IssueTier): string =>
+    tier === 'fair' ? `Sprinkles possible (${pct})` : `Light rain likely (${pct})`,
   HEAT: (tempLabel: string, tier: IssueTier): string =>
     ({
       bad: `Dangerous heat (${tempLabel})`,

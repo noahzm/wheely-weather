@@ -10,6 +10,8 @@ export interface HourlyWeather {
   windSpeed: number;
   windGust: number | null;
   rainChance: number;
+  /** Expected precipitation for the hour (mm), when the provider supplies it. */
+  precipitation?: number | null;
   dewpoint: number | null;
   weatherCode: number | null;
   uv?: number | null;
@@ -32,6 +34,8 @@ export interface DailyWeather {
   windSpeed: number;
   windGust: number | null;
   rainChance: number;
+  /** Heaviest expected hourly precipitation (mm) in the ride window, when known. */
+  precipitation?: number | null;
   weatherCode: number | null;
   condition: Condition;
 }
@@ -61,6 +65,8 @@ export interface Weather {
   windGust: number | null;
   windDirection?: number | null;
   rainChance: number;
+  /** Expected precipitation this hour (mm), when known; caps the rain rating. */
+  precipitation?: number | null;
   weatherCode: number | null;
   hasThunderstorms: boolean;
   condition: string;

@@ -30,6 +30,7 @@ interface DailyRideWindow {
   windSpeed: number;
   windGust: number | null;
   rainChance: number;
+  precipitation: number | null;
   dewpoint: number | null;
   weatherCode: number | null;
   condition: DailyWeather['condition'];
@@ -41,6 +42,7 @@ interface RideWindowHour {
   windSpeed: number;
   windGust: number | null;
   rainChance: number;
+  precipitation: number | null;
   dewpoint: number | null;
   weatherCode: number | null;
 }
@@ -61,6 +63,8 @@ interface OpenMeteoHourly {
   wind_speed_10m: number[];
   wind_gusts_10m?: (number | null)[];
   precipitation_probability: number[];
+  /** Expected amount per hour, mm. Optional: older cached payloads lack it. */
+  precipitation?: (number | null)[];
   weather_code: number[];
   dewpoint_2m: number[];
   uv_index?: (number | null)[];
@@ -148,6 +152,7 @@ function buildHourRecord(
   if (t == null || temperature == null || feelsLike == null || wind == null) return null;
   const gust = data.hourly.wind_gusts_10m?.[idx] ?? null;
   const rain = normalizeRainChance(data.hourly.precipitation_probability[idx]);
+  const precip = data.hourly.precipitation?.[idx] ?? null;
   const code = data.hourly.weather_code[idx] ?? null;
   const dewpoint = data.hourly.dewpoint_2m[idx] ?? null;
   const uv = data.hourly.uv_index?.[idx] ?? 0;
@@ -158,10 +163,14 @@ function buildHourRecord(
     windSpeed: wind,
     windGust: gust,
     rainChance: rain,
+    precipitation: precip,
     dewpoint,
     weatherCode: code,
     uv,
-    condition: getHourlyCondition({ temperature, wind, gust, rain, code, dewpoint }, thresholds),
+    condition: getHourlyCondition(
+      { temperature, wind, gust, rain, precip, code, dewpoint },
+      thresholds,
+    ),
   };
 }
 
@@ -299,6 +308,12 @@ function buildRideWindowCandidate(
   const gusts = hours.map((hour) => hour.windGust).filter((gust): gust is number => gust != null);
   const windGust = gusts.length > 0 ? Math.max(...gusts) : null;
   const rainChance = Math.max(...hours.map((hour) => hour.rainChance));
+  // Worst hour's amount, matching the worst-case chance above; unknown if any
+  // hour lacks it, so a partial series can't understate the rain.
+  const amounts = hours.map((hour) => hour.precipitation);
+  const precipitation = amounts.every((amount): amount is number => amount != null)
+    ? Math.max(...amounts)
+    : null;
   const dewpoints = hours
     .map((hour) => hour.dewpoint)
     .filter((dewpoint): dewpoint is number => dewpoint != null);
@@ -315,6 +330,7 @@ function buildRideWindowCandidate(
     windSpeed,
     windGust,
     rainChance,
+    precipitation,
     dewpoint,
     weatherCode,
     condition: getDailyCondition(
@@ -324,6 +340,7 @@ function buildRideWindowCandidate(
         wind: windSpeed,
         gust: windGust,
         rain: rainChance,
+        precip: precipitation,
         code: weatherCode,
         dewpoint,
       },
@@ -387,6 +404,7 @@ function buildBestRideWindows(
       windSpeed,
       windGust: data.hourly.wind_gusts_10m?.[i] ?? null,
       rainChance: normalizeRainChance(rainChanceRaw),
+      precipitation: data.hourly.precipitation?.[i] ?? null,
       dewpoint: data.hourly.dewpoint_2m[i] ?? null,
       weatherCode: data.hourly.weather_code[i] ?? null,
     });
@@ -460,6 +478,7 @@ function applyRideWindow(day: DailyWeather, window: DailyRideWindow): DailyWeath
     windSpeed: window.windSpeed,
     windGust: window.windGust,
     rainChance: window.rainChance,
+    precipitation: window.precipitation,
     weatherCode: window.weatherCode,
     condition: window.condition,
   };
@@ -628,6 +647,7 @@ function mergeNowObservation(
         wind: current.wind_speed_10m,
         gust: windGust,
         rain: now.rainChance,
+        precip: now.precipitation,
         code: current.weather_code,
         dewpoint: current.dewpoint_2m,
       },
@@ -660,6 +680,7 @@ export function buildWeatherFromData(data: OpenMeteoData, thresholds: Thresholds
     windGust: data.current.wind_gusts_10m ?? null,
     windDirection: data.current.wind_direction_10m,
     rainChance: currentRainChance,
+    precipitation: hourIdx === -1 ? null : (data.hourly.precipitation?.[hourIdx] ?? null),
     weatherCode: data.current.weather_code,
     hasThunderstorms: isThunderstorm(data.current.weather_code),
     condition: getWeatherDescription(data.current.weather_code),

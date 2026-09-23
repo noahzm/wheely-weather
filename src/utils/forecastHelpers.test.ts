@@ -210,6 +210,18 @@ describe('getHourConditionReasons', () => {
     ).toEqual(['Cold rain risk (44°F, 45%)']);
   });
 
+  it('names light rain when a small amount, not the chance, set the rating', () => {
+    expect(getHourConditionReasons(hour({ rainChance: 70, precipitation: 0.1 }))).toEqual([
+      'Sprinkles possible (70%)',
+    ]);
+    expect(getHourConditionReasons(hour({ rainChance: 70, precipitation: 0.6 }))).toEqual([
+      'Light rain likely (70%)',
+    ]);
+    expect(getHourConditionReasons(hour({ rainChance: 70, precipitation: 3 }))).toEqual([
+      'Rain very likely (70%)',
+    ]);
+  });
+
   it('falls back to a tier phrase when no metric explains a non-good rating', () => {
     // AQI and other non-hourly metrics can set the rating with every hourly
     // metric reading fine; the drawer must not render empty.

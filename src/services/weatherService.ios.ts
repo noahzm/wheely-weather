@@ -45,6 +45,7 @@ function toOpenMeteoData(result: WeatherKitForecastResult): OpenMeteoData {
       wind_speed_10m: result.hourly.wind_speed_10m,
       wind_gusts_10m: result.hourly.wind_gusts_10m,
       precipitation_probability: result.hourly.precipitation_probability,
+      precipitation: result.hourly.precipitation,
       weather_code: result.hourly.condition.map((condition) =>
         weatherKitConditionToWmoCode(condition),
       ),

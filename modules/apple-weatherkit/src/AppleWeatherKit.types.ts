@@ -20,6 +20,8 @@ interface WeatherKitHourly {
   wind_speed_10m: number[];
   wind_gusts_10m: (number | null)[];
   precipitation_probability: number[];
+  /** Expected liquid-equivalent amount per hour, mm. Absent before build 18. */
+  precipitation?: number[];
   condition: string[];
   dewpoint_2m: number[];
   uv_index: number[];

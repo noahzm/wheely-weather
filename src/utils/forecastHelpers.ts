@@ -1,8 +1,10 @@
 import { THRESHOLDS, type Thresholds } from '../domain/constants';
 import { ISSUE_PHRASES, issuePhraseTier, type IssueTier } from '../domain/copy';
+import { rainPhrase } from '../domain/ride-factors';
 import {
   evaluateColdRainHazard,
   evaluateCondition,
+  evaluateRain,
   evaluateWind,
   isColdTemp,
   isGustDriven,
@@ -100,6 +102,7 @@ interface DayMetrics {
   wind: number;
   gust: number | null;
   rain: number;
+  precip: number | null;
   high: number | null;
   low: number | null;
   temp: number | null;
@@ -113,6 +116,7 @@ function dayMetrics(day: DailyWeather): DayMetrics {
     wind: Math.round(day.windSpeed),
     gust: day.windGust ?? null,
     rain: day.rainChance,
+    precip: day.precipitation ?? null,
     high,
     low,
     // Daily reasons describe the selected ride window rather than overnight or
@@ -144,7 +148,7 @@ function weatherCodeReason(entry: { weatherCode: number | null }): HourReason | 
  * itself in bad-tier language.
  */
 function dayMetricReasons(
-  { wind, gust, rain, low, temp, dewpoint }: DayMetrics,
+  { wind, gust, rain, precip, low, temp, dewpoint }: DayMetrics,
   tempUnit: TempUnit = 'fahrenheit',
   thresholds: Thresholds = THRESHOLDS,
 ): HourReason[] {
@@ -163,9 +167,9 @@ function dayMetricReasons(
     });
   }
 
-  const rainTier = issuePhraseTier(evaluateCondition(rain, 'rainChance', thresholds));
+  const rainTier = issuePhraseTier(evaluateRain(rain, precip, thresholds));
   if (rainTier)
-    reasons.push({ text: ISSUE_PHRASES.RAIN(formatPercent(rain), rainTier), tier: rainTier });
+    reasons.push({ text: rainPhrase(rain, precip, rainTier, thresholds), tier: rainTier });
 
   if (temp != null && temp >= 50) {
     // Daily temp reasons describe the ride window's high, so they read as heat;
@@ -224,45 +228,20 @@ function dayReasonAtTier(
   );
 }
 
-function badDayReason(
-  { wind, gust, rain, high, low, temp, dewpoint }: DayMetrics,
-  tempUnit: TempUnit,
-  thresholds: Thresholds,
-): string {
-  return (
-    dayReasonAtTier({ wind, gust, rain, high, low, temp, dewpoint }, 'bad', tempUnit, thresholds) ??
-    'Rough day to ride'
-  );
+function badDayReason(metrics: DayMetrics, tempUnit: TempUnit, thresholds: Thresholds): string {
+  return dayReasonAtTier(metrics, 'bad', tempUnit, thresholds) ?? 'Rough day to ride';
 }
 
-function poorDayReason(
-  { wind, gust, rain, high, low, temp, dewpoint }: DayMetrics,
-  tempUnit: TempUnit,
-  thresholds: Thresholds,
-): string {
-  return (
-    dayReasonAtTier(
-      { wind, gust, rain, high, low, temp, dewpoint },
-      'poor',
-      tempUnit,
-      thresholds,
-    ) ?? 'Tough riding'
-  );
+function poorDayReason(metrics: DayMetrics, tempUnit: TempUnit, thresholds: Thresholds): string {
+  return dayReasonAtTier(metrics, 'poor', tempUnit, thresholds) ?? 'Tough riding';
 }
 
 function marginalDayReason(
-  { wind, gust, rain, high, low, temp, dewpoint }: DayMetrics,
+  metrics: DayMetrics,
   tempUnit: TempUnit,
   thresholds: Thresholds,
 ): string {
-  return (
-    dayReasonAtTier(
-      { wind, gust, rain, high, low, temp, dewpoint },
-      'marginal',
-      tempUnit,
-      thresholds,
-    ) ?? 'Mixed conditions'
-  );
+  return dayReasonAtTier(metrics, 'marginal', tempUnit, thresholds) ?? 'Mixed conditions';
 }
 
 function fairDayReason({ wind, rain, high }: DayMetrics): string {
@@ -298,10 +277,14 @@ function hourWindReason(
   return { text, tier };
 }
 
-function hourRainReason(rain: number, thresholds: Thresholds = THRESHOLDS): HourReason | null {
-  const tier = issuePhraseTier(evaluateCondition(rain, 'rainChance', thresholds));
+function hourRainReason(
+  rain: number,
+  precip: number | null | undefined,
+  thresholds: Thresholds = THRESHOLDS,
+): HourReason | null {
+  const tier = issuePhraseTier(evaluateRain(rain, precip, thresholds));
   if (!tier) return null;
-  return { text: ISSUE_PHRASES.RAIN(formatPercent(rain), tier), tier };
+  return { text: rainPhrase(rain, precip, tier, thresholds), tier };
 }
 
 function hourTempReason(
@@ -362,7 +345,7 @@ function resolveHourRainReasons(
         ),
         tier: coldRainTier,
       }
-    : hourRainReason(hour.rainChance, thresholds);
+    : hourRainReason(hour.rainChance, hour.precipitation, thresholds);
 
   const tempReason = coldRainTier ? null : hourTempReason(hour.temperature, tempUnit, thresholds);
 
