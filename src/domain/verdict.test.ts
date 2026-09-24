@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { THRESHOLDS } from './constants';
 import { getOverallStatus } from './scoring';
 import { formatVerdictDetail } from './copy';
-import { getRideVerdict, getRideVerdictLabel } from './verdict';
+import { getRideKitTitle, getRideVerdict, getRideVerdictLabel } from './verdict';
 
 import type { Condition, DailyWeather, HourlyWeather, Weather } from '@/types/weather';
 
@@ -103,6 +103,15 @@ describe('getRideVerdict', () => {
     expect(getRideVerdictLabel(verdict, 'Raleigh')).not.toMatch(/PM$/);
   });
 
+  it('carries the five-level rating behind the status', () => {
+    const breezy = rainyMorning([day({ windSpeed: 14 }, window(8, 11))]);
+    const verdict = getRideVerdict(breezy, THRESHOLDS);
+    expect(verdict.status).toBe('yes');
+    expect(verdict.condition).toBe('fair');
+    const stormy = { ...rainyMorning([day(), day()]), hasThunderstorms: true };
+    expect(getRideVerdict(stormy, THRESHOLDS)).toMatchObject({ status: 'no', condition: 'bad' });
+  });
+
   it('names thunderstorms as the reason to wait', () => {
     const stormy = {
       ...rainyMorning([day({}, window(14, 17))]),
@@ -157,5 +166,13 @@ describe('getRideVerdict', () => {
     expect(verdict.when).toBe('current');
     expect(verdict.window).toBeNull();
     expect(verdict.status).toBe(getOverallStatus(weather, THRESHOLDS));
+  });
+});
+
+describe('getRideKitTitle', () => {
+  it('says whose kit it is, and hedges on a no-go day', () => {
+    expect(getRideKitTitle({ status: 'yes', when: 'wait' })).toBe('Today’s kit');
+    expect(getRideKitTitle({ status: 'maybe', when: 'tomorrow' })).toBe('Tomorrow’s kit');
+    expect(getRideKitTitle({ status: 'no', when: 'now' })).toBe('If you go anyway');
   });
 });

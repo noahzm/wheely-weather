@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  chartWindowBand,
   CHART_SCROLL_UNSET,
   CHART_X_ORIGIN,
   CHART_X_STEP,
@@ -248,5 +249,29 @@ describe('chartSmoothPath', () => {
     const path = chartSmoothPath(data);
     expect(path).toContain('M 24.0,24.0');
     expect(path).toContain('C'); // Should contain a curve command
+  });
+});
+
+describe('chartWindowBand', () => {
+  // Two past hours (7, 8 AM), then now (9 AM) through 2 PM.
+  const data = [7, 8, 9, 10, 11, 12, 13, 14].map((hour, idx) => ({
+    idx,
+    hour,
+    isPast: idx < 2,
+  }));
+
+  it('spans the window’s hours, edge to edge', () => {
+    const band = chartWindowBand(data, { startHour: 12, endHour: 15 });
+    expect(band).toEqual({ left: chartX(5) - CHART_X_STEP / 2, width: 3 * CHART_X_STEP });
+  });
+
+  it('ignores past hours that share the window’s hour of day', () => {
+    const band = chartWindowBand(data, { startHour: 7, endHour: 10 });
+    expect(band).toEqual({ left: chartX(2) - CHART_X_STEP / 2, width: CHART_X_STEP });
+  });
+
+  it('is null without a window or when its hours are off the chart', () => {
+    expect(chartWindowBand(data, null)).toBeNull();
+    expect(chartWindowBand(data, { startHour: 17, endHour: 20 })).toBeNull();
   });
 });

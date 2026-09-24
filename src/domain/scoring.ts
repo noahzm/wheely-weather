@@ -172,12 +172,23 @@ export const evaluateColdRainHazard = (
   return null;
 };
 
-/** Determines the overall cycling verdict. */
-export const getOverallStatus = (
+const getCyclingCondition = (conditions: Condition[]): Condition => {
+  if (conditions.includes('bad')) return 'bad';
+  if (conditions.includes('poor')) return 'poor';
+  if (conditions.includes('marginal')) return 'marginal';
+  if (conditions.includes('fair')) return 'fair';
+  return 'good';
+};
+
+/**
+ * The five-level rating behind the verdict: its worst metric, the same scale
+ * the hourly chart and week list use. Thunderstorms are always `bad`.
+ */
+export const getOverallCondition = (
   weather: Weather,
   thresholds: Thresholds = THRESHOLDS,
-): RideStatus => {
-  if (weather.hasThunderstorms) return 'no';
+): Condition => {
+  if (weather.hasThunderstorms) return 'bad';
   const coldRainCondition = evaluateColdRainHazard(
     weather.temperature,
     weather.rainChance,
@@ -192,18 +203,21 @@ export const getOverallStatus = (
     ...(weather.aqi == null ? [] : [evaluateCondition(weather.aqi, 'aqi', thresholds)]),
     ...(coldRainCondition ? [coldRainCondition] : []),
   ];
-  if (conditions.some((c) => c === 'bad' || c === 'poor')) return 'no';
-  if (conditions.includes('marginal')) return 'maybe';
+  return getCyclingCondition(conditions);
+};
+
+/** Collapses a rating to the verdict's go / maybe / no. */
+export const conditionToStatus = (condition: Condition): RideStatus => {
+  if (condition === 'bad' || condition === 'poor') return 'no';
+  if (condition === 'marginal') return 'maybe';
   return 'yes';
 };
 
-const getCyclingCondition = (conditions: Condition[]): Condition => {
-  if (conditions.includes('bad')) return 'bad';
-  if (conditions.includes('poor')) return 'poor';
-  if (conditions.includes('marginal')) return 'marginal';
-  if (conditions.includes('fair')) return 'fair';
-  return 'good';
-};
+/** Determines the overall cycling verdict. */
+export const getOverallStatus = (
+  weather: Weather,
+  thresholds: Thresholds = THRESHOLDS,
+): RideStatus => conditionToStatus(getOverallCondition(weather, thresholds));
 
 interface HourlyConditionInput {
   temperature: number;

@@ -1,7 +1,7 @@
 import { Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { getGearSuggestion, getWearRows } from '@/domain';
+import { getGearSuggestion, getWearRows, type RideHours } from '@/domain';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { useGearMode } from '@/hooks/settings-context';
 import type { GearMode } from '@/types/settings';
@@ -137,17 +137,20 @@ function useStyles() {
 
 export function KitGuide({
   weather,
+  rideHours = null,
   mode: controlledMode,
   showPicker = true,
 }: Readonly<{
   weather: Weather;
+  /** The verdict's window to dress for; without one, the next few hours. */
+  rideHours?: RideHours | null;
   mode?: GearMode;
   showPicker?: boolean;
 }>) {
   const [internalMode, setMode] = useGearMode();
   const mode = controlledMode ?? internalMode;
   const { width } = useWindowDimensions();
-  const gear = getGearSuggestion(weather, mode);
+  const gear = getGearSuggestion(weather, mode, rideHours);
   const { c, styles } = useStyles();
   const isWide = Platform.OS === 'web' && width >= 640;
   const rows = getWearRows(gear.wear, isWide);

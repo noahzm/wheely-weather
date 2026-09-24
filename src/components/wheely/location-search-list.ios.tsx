@@ -22,6 +22,7 @@ import {
   disabled,
   foregroundStyle,
   labelStyle,
+  lineLimit,
   listStyle,
   tag,
 } from '@expo/ui/swift-ui/modifiers';
@@ -37,6 +38,7 @@ import {
   type LocationSection,
   type RowItem,
 } from '@/utils/locationRows';
+import type { PlaceVerdict } from '@/utils/placeVerdict';
 
 import { type LocationSearchListProps } from './location-search-list.types';
 
@@ -76,6 +78,28 @@ function LocationRowTexts({
 }
 
 /**
+ * A saved place's verdict at a glance: a dot in the card's color (pink while
+ * waiting) and its headline. Color is never the only cue; the label says it.
+ */
+function PlaceVerdictBadge({ verdict }: Readonly<{ verdict: PlaceVerdict | null }>) {
+  const c = useWheelyColors();
+  // Rendered unconditionally (SwiftUI Button children can't be conditional);
+  // a place with no cached forecast simply shows nothing.
+  if (!verdict) return null;
+  const dot = verdict.waiting ? c.accent : c.condition[verdict.condition].bg;
+  return (
+    <HStack spacing={5}>
+      <Image systemName="circle.fill" size={9} modifiers={[foregroundStyle(dot)]} />
+      <Text
+        modifiers={[foregroundStyle({ type: 'hierarchical', style: 'secondary' }), lineLimit(1)]}
+      >
+        {verdict.label}
+      </Text>
+    </HStack>
+  );
+}
+
+/**
  * A saved place: tap to show its forecast, pin button to keep it in the list.
  *
  * Setting home lives in Settings › Home climate rather than on every row — it
@@ -89,6 +113,7 @@ function PinnableRow({
   busy,
   pinned,
   active,
+  verdict,
   onSelect,
   onTogglePin,
 }: Readonly<{
@@ -96,6 +121,7 @@ function PinnableRow({
   busy: boolean;
   pinned: boolean;
   active: boolean;
+  verdict: PlaceVerdict | null;
   onSelect: () => void;
   onTogglePin: () => void;
 }>) {
@@ -111,6 +137,7 @@ function PinnableRow({
       <Button modifiers={[buttonStyle('plain'), disabled(busy)]} onPress={onSelect}>
         <LocationRowTexts item={item} active={active} />
         <Spacer />
+        <PlaceVerdictBadge verdict={verdict} />
         {/* A checkmark is the native idiom for the selected row, and it does not
             fight the group's own rounding or separators the way a stroked
             outline does. Always rendered so rows keep a stable width; it is
@@ -198,6 +225,7 @@ function LocationSectionView({
   deviceMessage,
   pinnedLocations,
   activeLocation,
+  verdictFor,
   onSelect,
   onTogglePin,
 }: Readonly<{
@@ -206,13 +234,14 @@ function LocationSectionView({
   deviceMessage: string;
   pinnedLocations: LocationSearchListProps['pinnedLocations'];
   activeLocation: LocationSearchListProps['activeLocation'];
+  verdictFor: LocationSearchListProps['verdictFor'];
   onSelect: (item: RowItem) => void;
   onTogglePin: (item: RowItem) => void;
 }>) {
   if (section.id === 'options') {
     return (
       <Section
-        title={section.title}
+        title={section.title === '' ? undefined : section.title}
         footer={deviceMessage ? <Text>{deviceMessage}</Text> : undefined}
       >
         {section.data.map((item) => (
@@ -242,6 +271,7 @@ function LocationSectionView({
             busy={busy}
             pinned={isPinned(item, pinnedLocations)}
             active={isActive(item, activeLocation)}
+            verdict={verdictFor(item)}
             onSelect={() => {
               onSelect(item);
             }}
@@ -268,6 +298,7 @@ export function LocationSearchList({
   resultsCount,
   pinnedLocations,
   activeLocation,
+  verdictFor,
   onSelect,
   onTogglePin,
 }: Readonly<LocationSearchListProps>) {
@@ -307,6 +338,7 @@ export function LocationSearchList({
               deviceMessage={deviceMessage}
               pinnedLocations={pinnedLocations}
               activeLocation={activeLocation}
+              verdictFor={verdictFor}
               onSelect={onSelect}
               onTogglePin={onTogglePin}
             />

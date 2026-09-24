@@ -229,6 +229,9 @@ export const STATUS_MESSAGES = {
   BEST_WINDOW: (range: string) => `Best ${range}`,
   UNTIL: (time: string) => `Until ${time}`,
   RIGHT_NOW: (issue: string) => `Right now: ${issue}.`,
+  KIT_TODAY: 'Today’s kit',
+  KIT_TOMORROW: 'Tomorrow’s kit',
+  KIT_ANYWAY: 'If you go anyway',
   TOMORROW_WINDOW: (range: string) => `Tomorrow ${range}`,
 };
 
@@ -472,7 +475,10 @@ const lowerFirst = (text: string): string => text.charAt(0).toLowerCase() + text
  * what's wrong right now, so a good later window doesn't read as "go now".
  */
 export function formatVerdictDetail(status: RideStatus, message: VerdictMessage): string {
-  const detail = status === 'yes' ? message.lead : formatIssuesAsSentence(message.issues);
+  // With no single issue to name (a thunderstorm, say), the lead is a full
+  // sentence ("Thunderstorms expected. Stay off the road.") and says why.
+  const detail =
+    status === 'yes' ? message.lead : formatIssuesAsSentence(message.issues) || message.lead;
   if (!message.now) return detail;
   const now = STATUS_MESSAGES.RIGHT_NOW(lowerFirst(message.now));
   return detail ? `${now} Then ${lowerFirst(detail)}` : now;

@@ -9,17 +9,19 @@ import {
   type RowItem,
 } from '@/utils/locationRows';
 import { useForecast } from '@/hooks/forecast-context';
-import { useHomeLocation } from '@/hooks/settings-context';
+import { useHomeLocation, useResolvedTempUnit } from '@/hooks/settings-context';
 import { MIN_SEARCH_QUERY_LENGTH, useLocationSearch } from '@/hooks/use-location-search';
 import { resolveSuggestion } from '@/services/locationSearch';
 import type { RecentLocation } from '@/services/locationStorage';
 import { captureError } from '@/services/telemetry';
+import { getCachedPlaceVerdict } from '@/utils/placeVerdict';
 
 export function useLocationSearchScreen() {
   const router = useRouter();
   const forecast = useForecast();
 
   const [homeLocation, setHomeLocation] = useHomeLocation();
+  const tempUnit = useResolvedTempUnit();
   const [query, setQuery] = useState('');
   const [busy, setBusy] = useState(false);
   // Shown under "Use Current Location" when a fix fails; cleared on the next try.
@@ -103,6 +105,10 @@ export function useLocationSearchScreen() {
   );
 
   const isSearching = query.trim().length >= MIN_SEARCH_QUERY_LENGTH;
+  // Real places only: the current-location row and unresolved search results
+  // have no coordinates to look up.
+  const verdictFor = (item: RowItem) =>
+    isSavablePlace(item) ? getCachedPlaceVerdict(item, tempUnit) : null;
   const sections = buildSections(
     isSearching,
     results,
@@ -124,6 +130,7 @@ export function useLocationSearchScreen() {
     pinnedLocations: forecast.pinnedLocations,
     homeLocation: homeRow,
     activeLocation: forecast.savedLocation,
+    verdictFor,
     handleSelect,
     handleTogglePin,
     handleToggleHome,

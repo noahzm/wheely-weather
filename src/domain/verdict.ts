@@ -1,13 +1,20 @@
 import { THRESHOLDS, type Thresholds } from './constants';
 import { getVerdictLabel, STATUS_MESSAGES as MSG } from './copy';
 import { describeNow, getMessage } from './ride-factors';
-import { calculateRideScore, evaluateCondition, getOverallStatus, RANK } from './scoring';
+import {
+  calculateRideScore,
+  conditionToStatus,
+  evaluateCondition,
+  getOverallCondition,
+  getOverallStatus,
+  RANK,
+} from './scoring';
 import { getWeatherDescription, isThunderstorm } from './weather-codes';
 
 import { fullHourLabel } from '../utils/timeFormat';
 import type { TempUnit } from '../utils/temperature';
 
-import type { DailyWeather, RideStatus, VerdictMessage, Weather } from '@/types/weather';
+import type { Condition, DailyWeather, RideStatus, VerdictMessage, Weather } from '@/types/weather';
 
 /**
  * Which stretch of time the verdict rates:
@@ -21,6 +28,8 @@ export type VerdictWhen = 'now' | 'wait' | 'later' | 'tomorrow' | 'current';
 
 export interface RideVerdict {
   status: RideStatus;
+  /** The five-level rating behind `status`, for colors that match the week list and chart. */
+  condition: Condition;
   /** 0–10 ride score for the rated stretch. */
   score: number;
   message: VerdictMessage;
@@ -107,9 +116,11 @@ export function getRideVerdict(
   else if (hasWindow(tomorrow)) target = tomorrow;
 
   if (!target) {
-    const status = getOverallStatus(weather, thresholds);
+    const condition = getOverallCondition(weather, thresholds);
+    const status = conditionToStatus(condition);
     return {
       status,
+      condition,
       score: calculateRideScore(weather, thresholds),
       message: getMessage(weather, status, thresholds, tempUnit),
       when: 'current',
@@ -128,7 +139,8 @@ export function getRideVerdict(
   if (isToday) when = window.startHour === weather.hourly[0]?.hour ? 'now' : 'later';
 
   const rated = windowWeather(weather, target, isToday, thresholds);
-  const status = getOverallStatus(rated, thresholds);
+  const condition = getOverallCondition(rated, thresholds);
+  const status = conditionToStatus(condition);
   // A good later window while it's pouring now reads as "go ride" to anyone
   // looking out the window, so the verdict says to wait and names why.
   if (when === 'later' && status !== 'no' && getOverallStatus(weather, thresholds) === 'no') {
@@ -137,6 +149,7 @@ export function getRideVerdict(
   const message = getMessage(rated, status, thresholds, tempUnit);
   return {
     status,
+    condition,
     score: calculateRideScore(rated, thresholds),
     // The window replaces "improves around…" timing, which described the
     // current hour's trajectory rather than the stretch being rated.
@@ -157,4 +170,14 @@ export function getRideVerdictLabel(verdict: RideVerdict, location = ''): string
   const waitFrom =
     verdict.when === 'wait' && verdict.window ? fullHourLabel(verdict.window.startHour) : null;
   return getVerdictLabel(verdict.status, location, waitFrom);
+}
+
+/**
+ * The kit section's heading. The kit dresses for the rated window, so it says
+ * when that is; on a no-go day it's advice for riding anyway, not a nudge to go.
+ */
+export function getRideKitTitle(verdict: Pick<RideVerdict, 'status' | 'when'>): string {
+  if (verdict.status === 'no') return MSG.KIT_ANYWAY;
+  if (verdict.when === 'tomorrow') return MSG.KIT_TOMORROW;
+  return MSG.KIT_TODAY;
 }

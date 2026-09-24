@@ -7,6 +7,9 @@ import WidgetKit
 // src/utils/widgetSnapshot.ts.
 struct WidgetSnapshot: Decodable {
   let status: String
+  // The five-level rating (good…bad) behind `status`, so the widget's color
+  // matches the app's card. Optional so older payloads still decode.
+  let condition: String?
   let headline: String
   let detail: String
   let temperature: String
@@ -156,6 +159,14 @@ struct WheelyWidgetView: View {
   // Colorsets from expo-target.config.js, matching the verdict card.
   private func statusColor(_ snapshot: WidgetSnapshot) -> Color {
     if snapshot.waiting == true { return Color("rideWait") }
+    switch snapshot.condition {
+    case "good": return Color("rideYes")
+    case "fair": return Color("rideFair")
+    case "marginal": return Color("rideMaybe")
+    case "poor": return Color("ridePoor")
+    case "bad": return Color("rideNo")
+    default: break
+    }
     switch snapshot.status {
     case "yes": return Color("rideYes")
     case "maybe": return Color("rideMaybe")

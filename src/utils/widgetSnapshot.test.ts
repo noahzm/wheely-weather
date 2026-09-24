@@ -43,6 +43,7 @@ describe('buildWidgetSnapshot', () => {
     const widget = buildWidgetSnapshot(snapshot, 'fahrenheit');
     expect(widget).toMatchObject({
       status: 'yes',
+      condition: 'good',
       detail: snapshot.weather.condition,
       location: 'Raleigh',
       isCurrentLocation: false,

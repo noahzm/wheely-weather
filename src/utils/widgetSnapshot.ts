@@ -1,6 +1,6 @@
 import { formatIssuesAsSentence, getRideVerdict, getRideVerdictLabel } from '@/domain';
 import type { ForecastSnapshot } from '@/services/forecastSnapshot';
-import type { RideStatus } from '@/types/weather';
+import type { Condition, RideStatus } from '@/types/weather';
 
 import { formatTemperature, type TempUnit } from './temperature';
 import { weatherSfSymbol } from './weatherSymbols';
@@ -12,6 +12,8 @@ import { weatherSfSymbol } from './weatherSymbols';
  */
 export interface WidgetSnapshot {
   status: RideStatus;
+  /** The rating behind `status`, so the widget's color matches the card. */
+  condition: Condition;
   headline: string;
   detail: string;
   temperature: string;
@@ -46,6 +48,7 @@ export function buildWidgetSnapshot(
     status === 'yes' ? rated.condition : formatIssuesAsSentence(message.issues) || message.lead;
   return {
     status,
+    condition: verdict.condition,
     headline: getRideVerdictLabel(verdict, location),
     waiting: verdict.when === 'wait',
     detail,

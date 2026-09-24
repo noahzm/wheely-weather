@@ -37,6 +37,7 @@ import {
   getRainTiming,
   getRideVerdict,
   getWeatherAlerts,
+  getRideKitTitle,
   getRideVerdictLabel,
 } from '@/domain';
 import type { AcclimatizationContext } from '@/services/forecastSnapshot';
@@ -123,11 +124,16 @@ function deriveHomeState(
   const verdict = getRideVerdict(weather, thresholds, tempUnit);
   return {
     status: verdict.status,
+    condition: verdict.condition,
     score: verdict.score,
     message: verdict.message,
     label: getRideVerdictLabel(verdict, location),
     verdictWeatherCode: verdict.weatherCode,
     waiting: verdict.when === 'wait',
+    // Shaded on the chart when it's a recommendation; the best of a no-go day isn't.
+    rideWindow: verdict.status === 'no' ? null : verdict.window,
+    // Dress for the window the verdict rates, not the current hour.
+    kit: { title: getRideKitTitle(verdict), weather: verdict.rated, rideHours: verdict.window },
     rainTiming: getRainTiming(weather.hourly),
     daylightWarning: getDaylightWarning(weather.hourly, weather.daylight),
     alerts: getWeatherAlerts(weather, tempUnit),
@@ -167,21 +173,21 @@ function WebCityHeading({ city, following }: Readonly<{ city: string; following:
   );
 }
 
-function TodayKitSection({
-  weather,
+function KitSection({
+  kit,
   styles,
 }: Readonly<{
-  weather: Weather;
+  kit: HomeState['kit'];
   styles: ReturnType<typeof makeStyles>;
 }>) {
   const [mode, setMode] = useGearMode();
   return (
     <View style={styles.section}>
       <SectionTitle
-        title="Today’s kit"
+        title={kit.title}
         rightAccessory={<GearStylePicker mode={mode} onModeChange={setMode} />}
       />
-      <KitGuide weather={weather} mode={mode} showPicker={false} />
+      <KitGuide weather={kit.weather} rideHours={kit.rideHours} mode={mode} showPicker={false} />
     </View>
   );
 }
@@ -228,6 +234,7 @@ function HomeSections({
             label={derived.label}
             weatherCode={derived.verdictWeatherCode}
             waiting={derived.waiting}
+            condition={derived.condition}
           />
         </Stagger>
         {derived.alerts.length > 0 && (
@@ -246,17 +253,18 @@ function HomeSections({
             rainTiming={derived.rainTiming}
             daylightWarning={derived.daylightWarning}
             thresholds={thresholds}
+            rideWindow={derived.rideWindow}
           />
         </View>
       </Stagger>
 
       <Stagger order={4}>
-        <TodayKitSection weather={weather} styles={styles} />
+        <KitSection kit={derived.kit} styles={styles} />
       </Stagger>
 
       <Stagger order={5}>
         <View style={styles.section}>
-          <SectionTitle title="The numbers" />
+          <SectionTitle title="Right now" />
           <RideSpecs weather={weather} thresholds={thresholds} />
         </View>
       </Stagger>

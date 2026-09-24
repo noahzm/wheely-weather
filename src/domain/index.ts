@@ -8,10 +8,17 @@ export {
   evaluateWind,
   getDaylightWarning,
   getGearSuggestion,
+  type RideHours,
   getWearRows,
   getMessage,
   getOverallStatus,
   getRainTiming,
   getWeatherAlerts,
 } from './weather';
-export { getRideVerdict, getRideVerdictLabel, type RideVerdict, type VerdictWhen } from './verdict';
+export {
+  getRideKitTitle,
+  getRideVerdict,
+  getRideVerdictLabel,
+  type RideVerdict,
+  type VerdictWhen,
+} from './verdict';
