@@ -1,6 +1,9 @@
 import { DEFAULT_EXPOSURE_LEVEL, type ExposureLevel } from '@/types/settings';
 import type { HomeBaseline } from '@/types/weather';
 import { THRESHOLDS, type Thresholds } from './constants';
+import { CLIMATE_MESSAGES as MSG } from './copy';
+
+import { fahrenheitToCelsius, formatTemperature, type TempUnit } from '../utils/temperature';
 
 interface Acclimatization {
   tempShift: number;
@@ -107,3 +110,39 @@ export const resolveThresholds = (
   base: Thresholds = THRESHOLDS,
   exposureLevel: ExposureLevel = DEFAULT_EXPOSURE_LEVEL,
 ): Thresholds => applyAcclimatization(base, deriveAcclimatization(homeBaseline, exposureLevel));
+
+/** "40–82°F": the low end without a unit, so the range reads as one span. */
+const formatRange = (low: number, high: number, unit: TempUnit): string => {
+  const lowValue = unit === 'celsius' ? fahrenheitToCelsius(low) : low;
+  return `${Math.round(lowValue)}–${formatTemperature(high, unit, { withUnitLabel: true })}`;
+};
+
+/** The temperatures that still rate a ride day (fair or better) under `t`. */
+const rideRange = (t: Thresholds, unit: TempUnit): string =>
+  formatRange(t.TEMPERATURE.MARGINAL_MIN, t.TEMPERATURE.MARGINAL_MAX, unit);
+
+/**
+ * What the home climate setting does, in plain numbers, for the settings
+ * screen: the ride-day temperature range it produces against the standard one,
+ * plus a humidity line when that moved too. One sentence per entry.
+ */
+export const describeClimateAdjustment = (
+  homeBaseline: HomeBaseline | null | undefined,
+  exposureLevel: ExposureLevel,
+  unit: TempUnit,
+): string[] => {
+  const standard = rideRange(THRESHOLDS, unit);
+  if (!homeBaseline || exposureLevel === 'indoor') return [MSG.STANDARD(standard)];
+
+  const shift = deriveAcclimatization(homeBaseline, exposureLevel);
+  if (!shift.tempShift && !shift.coldShift && !shift.dewShift) return [MSG.NO_SHIFT(standard)];
+
+  const adjusted = applyAcclimatization(THRESHOLDS, shift);
+  const lines = [MSG.SHIFTED(rideRange(adjusted, unit), standard)];
+  if (shift.dewShift) {
+    const dew = (t: Thresholds) =>
+      formatTemperature(t.DEWPOINT.MARGINAL, unit, { withUnitLabel: true });
+    lines.push(MSG.HUMIDITY(dew(adjusted), dew(THRESHOLDS)));
+  }
+  return lines;
+};

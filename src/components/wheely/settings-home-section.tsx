@@ -6,24 +6,18 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import { MapPin } from './icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { deriveAcclimatization } from '@/domain/acclimatization';
+import { CLIMATE_MESSAGES, describeClimateAdjustment } from '@/domain';
+import { useResolvedTempUnit } from '@/hooks/settings-context';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { Fonts, Spacing, Type, type WheelyPalette } from '@/constants/theme';
 import type { ExposureLevel } from '@/types/settings';
 import type { HomeBaseline } from '@/types/weather';
 import { selectionFeedback } from '@/utils/haptics';
-import { BrutalCard, PlatformIcon, SectionTitle } from './primitives';
+import { BrutalCard, SectionTitle } from './primitives';
 import { RNSegmentedPicker } from './rn-segmented-picker';
 import { EXPOSURE_LABELS, EXPOSURE_VALUES } from './settings-form.types';
-
-const EXPOSURE_HELP: Record<ExposureLevel, string> = {
-  indoor: 'Mostly indoors: standard thresholds (no shift).',
-  moderate: 'Moderate (~1h/day): Partial climate shift applied.',
-  high: 'High (2h+/day): Full climate shift applied.',
-};
 
 function makeStyles(c: WheelyPalette) {
   return StyleSheet.create({
@@ -63,23 +57,6 @@ function makeStyles(c: WheelyPalette) {
       color: c.mutedInk,
       fontFamily: Fonts.body,
       ...Type.small,
-    },
-    badgeCard: {
-      backgroundColor: c.background,
-      borderColor: c.border,
-      borderWidth: 1,
-      borderRadius: 8,
-      padding: Spacing.three,
-    },
-    badgeHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: Spacing.one,
-    },
-    badgeTitle: {
-      color: c.ink,
-      fontFamily: Fonts.heading,
-      ...Type.caption,
     },
   });
 }
@@ -172,15 +149,9 @@ export function HomeClimateSection({
   const c = useWheelyColors();
   const styles = makeStyles(c);
 
-  const { tempShift, coldShift } = deriveAcclimatization(homeBaseline, exposureLevel);
-  const shifts = [
-    tempShift > 0 ? `+${tempShift}°F heat` : null,
-    coldShift > 0 ? `−${coldShift}°F cold` : null,
-  ].filter(Boolean);
-
-  const hint = homeLabel
-    ? 'Adapts heat, cold, and humidity thresholds to your home climate.'
-    : 'Set your home location to adapt heat, cold, and humidity thresholds to your climate.';
+  const unit = useResolvedTempUnit();
+  // What the setting does, in ride-day temperatures; shared with the iOS form.
+  const adjustment = describeClimateAdjustment(homeBaseline, exposureLevel, unit).join(' ');
 
   return (
     <View style={styles.group}>
@@ -202,39 +173,21 @@ export function HomeClimateSection({
         </View>
 
         {!!homeLabel && (
-          <>
-            <View style={styles.pickerContainer}>
-              <ThemedText style={styles.pickerLabel}>Daily Outdoor Exposure</ThemedText>
-              <RNSegmentedPicker
-                values={EXPOSURE_VALUES}
-                labels={EXPOSURE_LABELS}
-                selectedValue={exposureLevel}
-                onSelect={onExposureChange}
-              />
-              <ThemedText style={styles.exposureHelpText}>
-                {EXPOSURE_HELP[exposureLevel]}
-              </ThemedText>
-            </View>
-
-            {homeBaseline != null && (
-              <View style={styles.badgeCard}>
-                <View style={styles.badgeHeader}>
-                  <PlatformIcon icon={MapPin} size={14} color={c.ink} strokeWidth={2.5} />
-                  <ThemedText style={styles.badgeTitle}>
-                    Climate Baseline: {Math.round(homeBaseline.warmTemp)}°F max •{' '}
-                    {homeBaseline.coolTemp == null
-                      ? ''
-                      : `${Math.round(homeBaseline.coolTemp)}°F cool • `}
-                    {Math.round(homeBaseline.warmDewpoint)}°F dew (
-                    {shifts.length > 0 ? shifts.join(', ') : 'no shift'})
-                  </ThemedText>
-                </View>
-              </View>
-            )}
-          </>
+          <View style={styles.pickerContainer}>
+            <ThemedText style={styles.pickerLabel}>{CLIMATE_MESSAGES.QUESTION}</ThemedText>
+            <RNSegmentedPicker
+              values={EXPOSURE_VALUES}
+              labels={EXPOSURE_LABELS}
+              selectedValue={exposureLevel}
+              onSelect={onExposureChange}
+            />
+            <ThemedText style={styles.exposureHelpText} accessibilityLiveRegion="polite">
+              {adjustment}
+            </ThemedText>
+          </View>
         )}
 
-        <ThemedText style={styles.hint}>{hint}</ThemedText>
+        {!homeLabel && <ThemedText style={styles.hint}>{CLIMATE_MESSAGES.HINT_OFF}</ThemedText>}
       </BrutalCard>
     </View>
   );

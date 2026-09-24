@@ -483,3 +483,20 @@ export function formatVerdictDetail(status: RideStatus, message: VerdictMessage)
   const now = STATUS_MESSAGES.RIGHT_NOW(lowerFirst(message.now));
   return detail ? `${now} Then ${lowerFirst(detail)}` : now;
 }
+
+/**
+ * Home climate settings copy, shared by the iOS and web forms so they can't
+ * drift apart. Ranges are the temperatures that still rate a ride day.
+ */
+export const CLIMATE_MESSAGES = {
+  QUESTION: 'How often do you ride outside?',
+  HINT_OFF:
+    'Set your home so the verdict adapts to your climate, hot or cold. How much depends on how often you ride outside.',
+  STANDARD: (range: string) => `The standard range applies: ride days run ${range}.`,
+  NO_SHIFT: (range: string) =>
+    `Your home’s weather is close to the standard, so ride days run ${range}.`,
+  SHIFTED: (range: string, normal: string) =>
+    `Ride days run ${range} for you (normally ${normal}).`,
+  HUMIDITY: (dew: string, normal: string) =>
+    `Humid days stay rideable up to a ${dew} dew point (normally ${normal}).`,
+};
