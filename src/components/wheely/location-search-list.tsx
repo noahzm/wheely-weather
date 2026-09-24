@@ -23,6 +23,7 @@ import {
   pinAccessibilityLabel,
   type RowItem,
 } from '@/utils/locationRows';
+import type { PlaceVerdict } from '@/utils/placeVerdict';
 
 import { type LocationSearchListProps } from './location-search-list.types';
 
@@ -97,6 +98,7 @@ function LocationRow({
   pinned,
   home,
   active,
+  verdict,
   onSelect,
   onTogglePin,
   onToggleHome,
@@ -107,6 +109,7 @@ function LocationRow({
   pinned: boolean;
   home: boolean;
   active: boolean;
+  verdict: PlaceVerdict | null;
   onSelect: () => void;
   onTogglePin: () => void;
   onToggleHome: () => void;
@@ -152,6 +155,22 @@ function LocationRow({
               {item.displayName}
             </ThemedText>
           )}
+          {verdict && (
+            <View style={styles.verdictRow}>
+              <View
+                style={[
+                  styles.verdictDot,
+                  {
+                    backgroundColor: verdict.waiting ? c.accent : c.condition[verdict.condition].bg,
+                    borderColor: c.border,
+                  },
+                ]}
+              />
+              <ThemedText style={[styles.rowSub, { color: c.mutedInk }]} numberOfLines={1}>
+                {verdict.label}
+              </ThemedText>
+            </View>
+          )}
         </View>
         {!isAction && (
           <PlatformIcon
@@ -180,6 +199,7 @@ export function LocationSearchList({
   pinnedLocations,
   homeLocation,
   activeLocation,
+  verdictFor,
   onSelect,
   onTogglePin,
   onToggleHome,
@@ -225,6 +245,7 @@ export function LocationSearchList({
                     pinned={!item._kind && isPinned(item, pinnedLocations)}
                     home={!item._kind && isHome(item, homeLocation)}
                     active={!item._kind && isActive(item, activeLocation)}
+                    verdict={verdictFor(item)}
                     onSelect={() => {
                       onSelect(item);
                     }}
@@ -323,5 +344,17 @@ const styles = StyleSheet.create({
   },
   chevron: {
     marginLeft: Spacing.two,
+  },
+  verdictRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  // Bordered so the pale accent (the wait state) still reads on white paper.
+  verdictDot: {
+    width: 9,
+    height: 9,
+    borderRadius: Radius.pill,
+    borderWidth: 1,
   },
 });

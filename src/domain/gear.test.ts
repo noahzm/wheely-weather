@@ -284,6 +284,52 @@ describe('Gear Suggestions', () => {
     expect(matchesItem(gear, /shoe covers or fenders|wet road shell/i)).toBe(true);
   });
 
+  describe('with the verdict’s ride window', () => {
+    const hr = (hour: number, temperature: number, rainChance: number) => ({
+      hour,
+      temperature,
+      windSpeed: 5,
+      rainChance,
+      dewpoint: 50,
+      uv: 0,
+    });
+    // Cold and pouring now (9–11), mild and dry for the noon–3 PM window.
+    const waitDay = {
+      ...base,
+      hourly: [
+        hr(9, 42, 90),
+        hr(10, 44, 90),
+        hr(11, 50, 60),
+        hr(12, 70, 5),
+        hr(13, 72, 5),
+        hr(14, 72, 5),
+        hr(15, 60, 5),
+      ],
+    };
+    const window = { startHour: 12, endHour: 15 };
+
+    it('dresses for the window, not the next few hours', () => {
+      const now = getGearSuggestion(waitDay, 'casual');
+      const later = getGearSuggestion(waitDay, 'casual', window);
+      expect(matchesItem(now, /rain/i)).toBe(true);
+      expect(matchesItem(later, /short-sleeve top/i)).toBe(true);
+      expect(matchesItem(later, /rain jacket/i)).toBe(false);
+    });
+
+    it('counts rain before a later window as wet roads', () => {
+      const gear = getGearSuggestion(waitDay, 'pro', window);
+      expect(matchesItem(gear, /shoe covers or fenders|wet road shell/i)).toBe(true);
+    });
+
+    it('falls back to the given conditions when the window is beyond the hourly data', () => {
+      const gear = getGearSuggestion({ ...waitDay, temperature: 40 }, 'casual', {
+        startHour: 20,
+        endHour: 23,
+      });
+      expect(matchesItem(gear, /short-sleeve top/i)).toBe(false);
+    });
+  });
+
   it('does not treat upcoming rain chance as wet roads', () => {
     const gear = getGearSuggestion(
       {

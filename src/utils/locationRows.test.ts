@@ -160,8 +160,8 @@ describe('accessibility labels', () => {
 describe('buildSections', () => {
   it('puts Home above Pinned and Recent', () => {
     const sections = buildSections(false, [], [AUSTIN], [DENVER], PORTLAND);
-    expect(ids(sections)).toEqual(['home', 'pinned', 'recent', 'options']);
-    expect(sections[0]?.data).toEqual([PORTLAND]);
+    expect(ids(sections)).toEqual(['options', 'home', 'pinned', 'recent']);
+    expect(sections[1]?.data).toEqual([PORTLAND]);
   });
 
   it('lists a home that is also pinned or recent only once, under Home', () => {
@@ -173,17 +173,17 @@ describe('buildSections', () => {
 
   it('drops the Pinned section when home was its only entry', () => {
     const sections = buildSections(false, [], [PORTLAND], [], PORTLAND);
-    expect(ids(sections)).toEqual(['home', 'options']);
+    expect(ids(sections)).toEqual(['options', 'home']);
   });
 
   it('omits Home when none is set, leaving the previous ordering intact', () => {
     const sections = buildSections(false, [], [AUSTIN], [DENVER], null);
-    expect(ids(sections)).toEqual(['pinned', 'recent', 'options']);
+    expect(ids(sections)).toEqual(['options', 'pinned', 'recent']);
   });
 
   it('defaults to no home when the argument is omitted entirely', () => {
     const sections = buildSections(false, [], [AUSTIN], [DENVER]);
-    expect(ids(sections)).toEqual(['pinned', 'recent', 'options']);
+    expect(ids(sections)).toEqual(['options', 'pinned', 'recent']);
   });
 
   it('shows only results while searching, never Home', () => {

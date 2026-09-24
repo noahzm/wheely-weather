@@ -22,7 +22,13 @@ import {
   HourlyChartGridlines,
   SelectionMarker,
 } from './hourly-chart-graphic';
-import { CHART_X_STEP, chartScrollOffsetForIndex, chartX } from '@/utils/hourlyChart';
+import {
+  CHART_X_STEP,
+  chartScrollOffsetForIndex,
+  chartWindowBand,
+  chartX,
+} from '@/utils/hourlyChart';
+import { withAlpha } from '@/utils/colors';
 import { fullHourLabel } from '@/utils/timeFormat';
 import { HourlyNoteStickers } from './hourly-note-stickers';
 import { useHourlyForecastChart, type ChartHour } from './use-hourly-forecast-chart';
@@ -82,6 +88,26 @@ function makeStyles(c: WheelyPalette) {
     },
     scrollContent: {
       flexDirection: 'row',
+    },
+    // Tinted in the accent pink, which marks "when to go" across the app (the
+    // wait card, the week's Best tag). Drawn under the line, so it never hides data.
+    windowBand: {
+      position: 'absolute',
+      top: 0,
+      height: CHART_HEIGHT,
+      backgroundColor: withAlpha(c.accent, 0.35),
+      alignItems: 'center',
+      pointerEvents: 'none',
+    },
+    // The chart's top 24px sit above the best-rated row, so the label is clear of the line.
+    windowBandLabel: {
+      color: c.ink,
+      fontFamily: Fonts.bold,
+      fontWeight: FontWeightBlack,
+      fontSize: 10,
+      lineHeight: 14,
+      letterSpacing: 0.4,
+      textTransform: 'uppercase',
     },
     hourReason: {
       color: c.mutedInk,
@@ -226,14 +252,18 @@ function useHourlyChipScroll({
   return { conditionLabels, handleChipLayouts, chartScroll };
 }
 
+type WindowBand = ReturnType<typeof chartWindowBand>;
+
 function HourlyForecastBody({
   data,
   nowIdx,
   thresholds,
+  windowBand,
 }: Readonly<{
   data: ChartHour[];
   nowIdx: number;
   thresholds?: Thresholds;
+  windowBand: WindowBand;
 }>) {
   const { styles } = useStyles();
   const c = useWheelyColors();
@@ -261,7 +291,13 @@ function HourlyForecastBody({
   return (
     <View style={styles.hourlyBody}>
       <ConditionChipWidthProbe labels={conditionLabels} large onLayouts={handleChipLayouts} />
-      <HourlyChartShell chart={chart} data={data} nowIdx={nowIdx} maxIndex={maxIndex} />
+      <HourlyChartShell
+        chart={chart}
+        data={data}
+        nowIdx={nowIdx}
+        maxIndex={maxIndex}
+        windowBand={windowBand}
+      />
       <HourlyReasonFooter
         reasonOpen={chart.reasonOpen}
         selectedReason={chart.selectedReason}
@@ -346,12 +382,14 @@ function HourlyChartScroller({
   data,
   nowIdx,
   maxIndex,
+  windowBand,
   styles,
 }: Readonly<{
   chart: ReturnType<typeof useHourlyForecastChart>;
   data: ChartHour[];
   nowIdx: number;
   maxIndex: number;
+  windowBand: WindowBand;
   styles: ReturnType<typeof makeStyles>;
 }>) {
   const {
@@ -421,6 +459,13 @@ function HourlyChartScroller({
       >
         <View style={{ width: contentPadding }} />
         <View style={[styles.hourChart, { width: chartWidth, height: CHART_HEIGHT }]}>
+          {windowBand && (
+            <View style={[styles.windowBand, { left: windowBand.left, width: windowBand.width }]}>
+              <ThemedText style={styles.windowBandLabel} numberOfLines={1}>
+                Ride window
+              </ThemedText>
+            </View>
+          )}
           <HourlyChartGraphic
             data={data}
             nowIdx={nowIdx}
@@ -453,11 +498,13 @@ function HourlyChartShell({
   data,
   nowIdx,
   maxIndex,
+  windowBand,
 }: Readonly<{
   chart: ReturnType<typeof useHourlyForecastChart>;
   data: ChartHour[];
   nowIdx: number;
   maxIndex: number;
+  windowBand: WindowBand;
 }>) {
   const { styles } = useStyles();
   const {
@@ -485,6 +532,7 @@ function HourlyChartShell({
         data={data}
         nowIdx={nowIdx}
         maxIndex={maxIndex}
+        windowBand={windowBand}
         styles={styles}
       />
       <HourlyChartEdgeFades />
@@ -509,12 +557,15 @@ export function HourlyForecast({
   rainTiming,
   daylightWarning,
   thresholds,
+  rideWindow = null,
 }: Readonly<{
   hourly: HourlyWeather[];
   pastHourly: HourlyWeather[];
   rainTiming?: string | null;
   daylightWarning?: string | null;
   thresholds?: Thresholds;
+  /** The verdict's recommended window, shaded on the chart. */
+  rideWindow?: { startHour: number; endHour: number } | null;
 }>) {
   const { styles } = useStyles();
   const data = useMemo(() => {
@@ -524,6 +575,7 @@ export function HourlyForecast({
   }, [hourly, pastHourly]);
 
   const nowIdx = pastHourly.length;
+  const windowBand = chartWindowBand(data, rideWindow);
 
   if (hourly.length === 0) {
     return (
@@ -543,6 +595,7 @@ export function HourlyForecast({
           data={data}
           nowIdx={nowIdx}
           thresholds={thresholds}
+          windowBand={windowBand}
         />
       </BrutalCard>
     </View>

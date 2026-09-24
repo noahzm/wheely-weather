@@ -1,7 +1,7 @@
 import { WET_ROADS_THRESHOLD } from './constants';
 import { GEAR_TIPS } from './copy';
 
-import type { GearSuggestion, GearTip, GearTipItem, Weather } from '@/types/weather';
+import type { GearSuggestion, GearTip, GearTipItem, HourlyWeather, Weather } from '@/types/weather';
 
 interface RideWindow {
   minTemp: number;
@@ -32,8 +32,31 @@ interface GearTipSet {
 
 const RIDE_WINDOW_HOURS = 3;
 
-function getRideWindow(weather: Weather): RideWindow {
-  const upcoming = weather.hourly.slice(0, RIDE_WINDOW_HOURS);
+/** The verdict's ride window, as local hours [start, end). */
+export interface RideHours {
+  startHour: number;
+  endHour: number;
+}
+
+/**
+ * The hours the kit dresses for: the verdict's window when there is one (so a
+ * wet 9 AM doesn't dress a dry noon ride), else the next few hours. `hourly`
+ * starts at the current hour and spans a day, so each hour of day appears once.
+ */
+function selectRideHours(weather: Weather, rideHours: RideHours | null): HourlyWeather[] {
+  if (!rideHours) return weather.hourly.slice(0, RIDE_WINDOW_HOURS);
+  return weather.hourly.filter((h) => h.hour >= rideHours.startHour && h.hour < rideHours.endHour);
+}
+
+/** Hours before the ride: the past, plus any forecast hours before a later window. */
+function selectHoursBeforeRide(weather: Weather, rideHours: RideHours | null): HourlyWeather[] {
+  if (!rideHours) return weather.pastHourly;
+  const startIndex = weather.hourly.findIndex((h) => h.hour === rideHours.startHour);
+  return [...weather.pastHourly, ...weather.hourly.slice(0, Math.max(startIndex, 0))];
+}
+
+function getRideWindow(weather: Weather, rideHours: RideHours | null): RideWindow {
+  const upcoming = selectRideHours(weather, rideHours);
   const startConditions = upcoming[0] ?? weather;
   return {
     minTemp:
@@ -75,26 +98,29 @@ function getTemperatureTips(w: RideWindow, tipsSet: GearTipSet): GearTip[] {
   return tips;
 }
 
-function hasWetRoads(weather: Weather, w: RideWindow): boolean {
+function hasWetRoads(weather: Weather, w: RideWindow, before: HourlyWeather[]): boolean {
   if (w.maxRain > 30) return false;
   const code = weather.weatherCode;
   const isWetCode = code != null && [51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code);
-  // "Recent" rain means rain that already happened, so look at the past hours —
-  // the upcoming forecast can't say whether the road is already wet.
-  const recentRain = weather.pastHourly.some(
-    (h) => h.rainChance >= WET_ROADS_THRESHOLD.RECENT_RAIN_CHANCE,
-  );
+  // "Recent" rain means rain before the ride starts: the past hours, plus the
+  // forecast hours ahead of a later window (rain now, dry ride at noon).
+  const recentRain = before.some((h) => h.rainChance >= WET_ROADS_THRESHOLD.RECENT_RAIN_CHANCE);
   return isWetCode || recentRain;
 }
 
 /** Builds the weather-driven add-on tips (rain, wet roads, wind, UV, temp swing, mugginess). */
-function buildSupportingTips(w: RideWindow, tipsSet: GearTipSet, weather: Weather): GearTip[] {
+function buildSupportingTips(
+  w: RideWindow,
+  tipsSet: GearTipSet,
+  weather: Weather,
+  before: HourlyWeather[],
+): GearTip[] {
   const tips: GearTip[] = [];
 
   if (w.maxTemp - w.minTemp >= 15) tips.push(tipsSet.TEMP_SWING);
   if (w.maxRain > 50) tips.push(tipsSet.RAIN_HIGH);
   else if (w.maxRain > 30) tips.push(tipsSet.RAIN_POSSIBLE);
-  else if (hasWetRoads(weather, w) && tipsSet.WET_ROADS) tips.push(tipsSet.WET_ROADS);
+  else if (hasWetRoads(weather, w, before) && tipsSet.WET_ROADS) tips.push(tipsSet.WET_ROADS);
 
   if (w.maxWind > 15) tips.push(tipsSet.WINDY);
   if (w.maxUv >= 8) tips.push(tipsSet.UV_EXTREME);
@@ -131,9 +157,14 @@ function mergeTipItems(tips: { tip: GearTip; base: boolean }[]): MergedTipItem[]
   return merged;
 }
 
-function getGearTips(w: RideWindow, tipsSet: GearTipSet, weather: Weather): GearSuggestion {
+function getGearTips(
+  w: RideWindow,
+  tipsSet: GearTipSet,
+  weather: Weather,
+  before: HourlyWeather[],
+): GearSuggestion {
   const temperatureTips = getTemperatureTips(w, tipsSet);
-  const supportingTips = buildSupportingTips(w, tipsSet, weather);
+  const supportingTips = buildSupportingTips(w, tipsSet, weather, before);
 
   // An empty temperature tip means the ride window sits in the ideal band, so
   // NEUTRAL supplies the baseline outfit.
@@ -154,10 +185,11 @@ function getGearTips(w: RideWindow, tipsSet: GearTipSet, weather: Weather): Gear
 export const getGearSuggestion = (
   weather: Weather,
   mode: 'casual' | 'pro' = 'casual',
+  rideHours: RideHours | null = null,
 ): GearSuggestion => {
-  const w = getRideWindow(weather);
+  const w = getRideWindow(weather, rideHours);
   const tipsSet: GearTipSet = mode === 'pro' ? GEAR_TIPS.PRO : GEAR_TIPS.CASUAL;
-  return getGearTips(w, tipsSet, weather);
+  return getGearTips(w, tipsSet, weather, selectHoursBeforeRide(weather, rideHours));
 };
 
 export function getWearRows(items: GearTipItem[], isWide: boolean): GearTipItem[][] {

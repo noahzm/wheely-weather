@@ -348,3 +348,22 @@ export function chartSmoothPath(data: { idx: number; condition: string }[]): str
   }
   return parts.join(' ');
 }
+
+/**
+ * The chart-space extent of the verdict's ride window ([startHour, endHour)),
+ * or null when none of its hours are charted. Only future hours count: the
+ * chart spans a day either side of now, so an hour of day can repeat in the past.
+ */
+export function chartWindowBand(
+  data: readonly { idx: number; hour: number; isPast: boolean }[],
+  window: { startHour: number; endHour: number } | null,
+): { left: number; width: number } | null {
+  if (!window) return null;
+  const idxs = data
+    .filter((d) => !d.isPast && d.hour >= window.startHour && d.hour < window.endHour)
+    .map((d) => d.idx);
+  if (idxs.length === 0) return null;
+  const first = Math.min(...idxs);
+  const last = Math.max(...idxs);
+  return { left: chartX(first) - CHART_X_STEP / 2, width: (last - first + 1) * CHART_X_STEP };
+}

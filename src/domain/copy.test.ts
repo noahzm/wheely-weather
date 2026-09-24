@@ -214,6 +214,18 @@ describe('formatVerdictDetail', () => {
   it('leads with what’s wrong right now when waiting', () => {
     const message = { lead: 'Rideable, but:', issues: ['Breezy'], timing: null, now: 'Rain' };
     expect(formatVerdictDetail('maybe', message)).toBe('Right now: rain. Then breezy.');
-    expect(formatVerdictDetail('maybe', { ...message, issues: [] })).toBe('Right now: rain.');
+    expect(
+      formatVerdictDetail('maybe', { ...message, lead: 'On the edge of comfortable.', issues: [] }),
+    ).toBe('Right now: rain. Then on the edge of comfortable.');
+  });
+
+  it('falls back to the lead when there is no single issue to name', () => {
+    expect(
+      formatVerdictDetail('no', {
+        lead: STATUS_MESSAGES.THUNDERSTORM,
+        issues: [],
+        timing: null,
+      }),
+    ).toBe(STATUS_MESSAGES.THUNDERSTORM);
   });
 });

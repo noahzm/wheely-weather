@@ -96,7 +96,7 @@ export function pinAccessibilityLabel(pinned: boolean): string {
 
 /**
  * Organizes raw location lists into section data for the search/locations screen,
- * prioritizing Home, then Pinned, Recent, and Options.
+ * with the current-location action first, then Home, Pinned, and Recent.
  */
 export function buildSections(
   isSearching: boolean,
@@ -106,6 +106,15 @@ export function buildSections(
   homeLocation: RecentLocation | null = null,
 ): LocationSection[] {
   const sections: LocationSection[] = [];
+  // "Use Current Location" leads, untitled: it's the main action here, and
+  // below a long Recent list it scrolled out of reach.
+  if (!isSearching) {
+    sections.push({
+      id: 'options',
+      title: '',
+      data: [{ lat: 0, lon: 0, label: 'Use Current Location', _kind: 'device' }],
+    });
+  }
   if (isSearching) {
     if (results.length > 0) {
       sections.push({ id: 'results', title: 'Results', data: results });
@@ -128,13 +137,6 @@ export function buildSections(
     if (unpinnedRecent.length > 0) {
       sections.push({ id: 'recent', title: 'Recent', data: unpinnedRecent });
     }
-  }
-  if (!isSearching) {
-    sections.push({
-      id: 'options',
-      title: 'Options',
-      data: [{ lat: 0, lon: 0, label: 'Use Current Location', _kind: 'device' }],
-    });
   }
   return sections;
 }

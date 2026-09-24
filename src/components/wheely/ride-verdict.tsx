@@ -16,7 +16,7 @@ import {
 } from '@/constants/theme';
 import { verdictFeedback } from '@/utils/haptics';
 import { scoreToStars } from '@/utils/starRating';
-import type { VerdictMessage } from '@/types/weather';
+import type { Condition, VerdictMessage } from '@/types/weather';
 import { formatIssuesAsSentence, formatVerdictDetail } from '@/domain';
 import { BrutalCard, PlatformIcon, weatherIconFor, weatherSfSymbol } from './primitives';
 import { StarRating } from './star-rating';
@@ -129,9 +129,12 @@ export function RideVerdict({
   label,
   score,
   weatherCode,
+  condition,
   waiting = false,
 }: Readonly<{
   status: VerdictStatus;
+  /** The rating behind `status`; colors the card like the week list. Defaults per status. */
+  condition?: Condition;
   message: VerdictMessage;
   label?: string;
   score?: number;
@@ -145,13 +148,15 @@ export function RideVerdict({
     verdictFeedback(status);
   }, [status]);
 
+  const byStatus = {
+    yes: { defaultLabel: 'Ride day', rating: 'good' },
+    maybe: { defaultLabel: 'Mixed conditions', rating: 'marginal' },
+    no: { defaultLabel: 'Rest day', rating: 'bad' },
+  } as const satisfies Record<VerdictStatus, { defaultLabel: string; rating: Condition }>;
+  const { defaultLabel, rating } = byStatus[status];
   const meta = waiting
     ? { defaultLabel: 'Ride later', bg: c.accent, ink: c.accentInk }
-    : {
-        yes: { defaultLabel: 'Ride day', ...c.condition.good },
-        maybe: { defaultLabel: 'Mixed conditions', ...c.condition.marginal },
-        no: { defaultLabel: 'Rest day', ...c.condition.bad },
-      }[status];
+    : { defaultLabel, ...c.condition[condition ?? rating] };
 
   const statusIcon =
     weatherCode == null ? getFallbackStatusIcon(status) : weatherIconFor(weatherCode);

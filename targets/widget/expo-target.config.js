@@ -12,7 +12,9 @@ module.exports = (config) => ({
     $accent: '#F1BDF2',
     $widgetBackground: { light: '#FFFFFF', dark: '#141416' },
     rideYes: '#2ECC71',
+    rideFair: '#38BDF8',
     rideMaybe: '#FFD20A',
+    ridePoor: '#FF9F0A',
     rideNo: '#FF5252',
     // The wait state (bad now, good later) uses the app's accent pink.
     rideWait: '#F1BDF2',
