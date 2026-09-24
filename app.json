@@ -34,7 +34,7 @@
       "package": "app.wheelyweather",
       "allowBackup": false,
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#F1BDF2",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -61,10 +61,13 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
-          "android": {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#F1BDF2",
+          "dark": {
             "image": "./assets/images/splash-icon.png",
-            "imageWidth": 76
+            "backgroundColor": "#2E1F5E"
           }
         }
       ],
