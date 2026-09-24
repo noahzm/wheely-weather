@@ -26,7 +26,7 @@ import { useStaleRefresh } from './forecast/use-stale-refresh';
  * Primary forecast hook driving loading, periodic/stale refresh, GPS following,
  * snapshot caching, and manual/device location actions.
  *
- * @param mockScenario - Optional mock scenario key ('ride' | 'maybe' | 'rest' | 'alert')
+ * @param mockScenario - Optional mock scenario key ('ride' | 'maybe' | 'rest' | 'alert' | 'wait')
  *                       used for testing or previews.
  * @returns Combined forecast state and mutator callbacks (`refresh`, `setManualLocation`,
  *          `useDeviceLocation`, `togglePin`).

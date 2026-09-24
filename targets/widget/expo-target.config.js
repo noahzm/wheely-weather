@@ -14,6 +14,8 @@ module.exports = (config) => ({
     rideYes: '#2ECC71',
     rideMaybe: '#FFD20A',
     rideNo: '#FF5252',
+    // The wait state (bad now, good later) uses the app's accent pink.
+    rideWait: '#F1BDF2',
   },
   entitlements: {
     'com.apple.security.application-groups':

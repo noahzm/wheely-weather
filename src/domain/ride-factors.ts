@@ -164,6 +164,20 @@ export const getMessage = (
   return { lead, issues, timing };
 };
 
+/**
+ * The main thing wrong with the current conditions, for the verdict's wait
+ * state ("Right now: rain expected (90%)"). Falls back to the sky description.
+ */
+export const describeNow = (
+  weather: Weather,
+  thresholds: Thresholds = THRESHOLDS,
+  tempUnit: TempUnit = 'fahrenheit',
+): string => {
+  if (weather.hasThunderstorms) return 'Thunderstorms';
+  const [worst] = collectMessageIssues(weather, 'no', thresholds, tempUnit);
+  return worst ?? weather.condition;
+};
+
 /** Returns up to 3 limiting ride factors with label, value, and condition rating. */
 export const getRideFactors = (
   weather: Weather | null | undefined,

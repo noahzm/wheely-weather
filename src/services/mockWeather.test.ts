@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { isMockScenario, getMockLocationLabel, buildMockWeather } from './mockWeather';
+import { getRideVerdict } from '@/domain';
 
 describe('mockWeather', () => {
   it('isMockScenario validates known scenarios', () => {
@@ -7,6 +8,7 @@ describe('mockWeather', () => {
     expect(isMockScenario('maybe')).toBe(true);
     expect(isMockScenario('rest')).toBe(true);
     expect(isMockScenario('alert')).toBe(true);
+    expect(isMockScenario('wait')).toBe(true);
     expect(isMockScenario('unknown')).toBe(false);
     expect(isMockScenario(null)).toBe(false);
   });
@@ -40,5 +42,15 @@ describe('mockWeather', () => {
 
     const unknown = buildMockWeather('unknown');
     expect(unknown).toBeNull();
+  });
+
+  it('wait scenario is a no-go now with a good window later today', () => {
+    const wait = buildMockWeather('wait');
+    expect(wait).not.toBeNull();
+    if (!wait) return;
+    expect(wait.daily[0]?.rideWindow).toBeDefined();
+    const verdict = getRideVerdict(wait);
+    expect(verdict.when).toBe('wait');
+    expect(verdict.status).toBe('yes');
   });
 });

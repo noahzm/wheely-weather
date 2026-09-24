@@ -17,7 +17,7 @@ import {
 import { verdictFeedback } from '@/utils/haptics';
 import { scoreToStars } from '@/utils/starRating';
 import type { VerdictMessage } from '@/types/weather';
-import { formatIssuesAsSentence } from '@/domain';
+import { formatIssuesAsSentence, formatVerdictDetail } from '@/domain';
 import { BrutalCard, PlatformIcon, weatherIconFor, weatherSfSymbol } from './primitives';
 import { StarRating } from './star-rating';
 
@@ -129,12 +129,15 @@ export function RideVerdict({
   label,
   score,
   weatherCode,
+  waiting = false,
 }: Readonly<{
   status: VerdictStatus;
   message: VerdictMessage;
   label?: string;
   score?: number;
   weatherCode?: number | null;
+  /** Bad now, good later: the accent pink sets it apart from a go-now verdict. */
+  waiting?: boolean;
 }>) {
   const { c, styles } = useStyles();
 
@@ -142,11 +145,13 @@ export function RideVerdict({
     verdictFeedback(status);
   }, [status]);
 
-  const meta = {
-    yes: { defaultLabel: 'Ride day', ...c.condition.good },
-    maybe: { defaultLabel: 'Mixed conditions', ...c.condition.marginal },
-    no: { defaultLabel: 'Rest day', ...c.condition.bad },
-  }[status];
+  const meta = waiting
+    ? { defaultLabel: 'Ride later', bg: c.accent, ink: c.accentInk }
+    : {
+        yes: { defaultLabel: 'Ride day', ...c.condition.good },
+        maybe: { defaultLabel: 'Mixed conditions', ...c.condition.marginal },
+        no: { defaultLabel: 'Rest day', ...c.condition.bad },
+      }[status];
 
   const statusIcon =
     weatherCode == null ? getFallbackStatusIcon(status) : weatherIconFor(weatherCode);
@@ -156,10 +161,8 @@ export function RideVerdict({
       : (weatherSfSymbol(weatherCode) as SFSymbol);
   const headlineText = (label ?? message.lead).replace(/(, but|:)$/i, '').trim();
   const issuesSentence = formatIssuesAsSentence(message.issues);
-  const detailSentence =
-    status === 'yes' && label && message.lead && label !== message.lead
-      ? message.lead
-      : issuesSentence;
+  // Without a label the lead is the headline, so it isn't repeated below.
+  const detailSentence = label ? formatVerdictDetail(status, message) : issuesSentence;
   const hasBottomBadge = message.timing != null;
   const hasDetails = detailSentence.length > 0;
   const cardPaddingBottom = hasBottomBadge ? Spacing.four + Spacing.two : Spacing.four;

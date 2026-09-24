@@ -37,7 +37,7 @@ import {
   getRainTiming,
   getRideVerdict,
   getWeatherAlerts,
-  getVerdictLabel,
+  getRideVerdictLabel,
 } from '@/domain';
 import type { AcclimatizationContext } from '@/services/forecastSnapshot';
 import { useForecast } from '@/hooks/forecast-context';
@@ -125,8 +125,9 @@ function deriveHomeState(
     status: verdict.status,
     score: verdict.score,
     message: verdict.message,
-    label: getVerdictLabel(verdict.status, location),
-    verdictWeatherCode: verdict.rated.weatherCode,
+    label: getRideVerdictLabel(verdict, location),
+    verdictWeatherCode: verdict.weatherCode,
+    waiting: verdict.when === 'wait',
     rainTiming: getRainTiming(weather.hourly),
     daylightWarning: getDaylightWarning(weather.hourly, weather.daylight),
     alerts: getWeatherAlerts(weather, tempUnit),
@@ -226,6 +227,7 @@ function HomeSections({
             message={derived.message}
             label={derived.label}
             weatherCode={derived.verdictWeatherCode}
+            waiting={derived.waiting}
           />
         </Stagger>
         {derived.alerts.length > 0 && (
