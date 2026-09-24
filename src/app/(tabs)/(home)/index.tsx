@@ -43,6 +43,7 @@ import {
 import type { AcclimatizationContext } from '@/services/forecastSnapshot';
 import { useForecast } from '@/hooks/forecast-context';
 import { useGearMode, useResolvedTempUnit } from '@/hooks/settings-context';
+import { useMinimumRefreshing } from '@/hooks/use-minimum-refreshing';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { GearStylePicker } from '@/components/wheely/gear-style-picker';
 import { cityFromLocation } from '@/utils/locationTitle';
@@ -425,6 +426,7 @@ function HomeContent({
   bottomNavInset?: number;
 }>) {
   const c = useWheelyColors();
+  const showRefreshing = useMinimumRefreshing(forecast.refreshing);
   if (forecast.loading) {
     return <LoadingState />;
   }
@@ -465,7 +467,7 @@ function HomeContent({
         contentInsetAdjustmentBehavior="automatic"
         refreshControl={
           <RefreshControl
-            refreshing={forecast.refreshing}
+            refreshing={showRefreshing}
             onRefresh={forecast.refresh}
             title={refreshTitle}
             titleColor={c.mutedInk}
