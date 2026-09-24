@@ -20,6 +20,16 @@ struct WidgetSnapshot: Decodable {
   // Bad now, good later today: shown in the accent pink. Optional like above.
   let waiting: Bool?
   let updatedAt: Date
+  // While waiting: when the window opens and the go-now verdict to show from
+  // then on, since the widget only updates when the app runs. Optional above.
+  let windowStarts: WindowStart?
+}
+
+struct WindowStart: Decodable {
+  let at: Date
+  let headline: String
+  let detail: String
+  let symbol: String
 }
 
 enum SnapshotStore {
@@ -51,6 +61,15 @@ struct VerdictEntry: TimelineEntry {
   let date: Date
   let snapshot: WidgetSnapshot?
   let isStale: Bool
+  /// Past the waited-for window's start: show its go-now verdict.
+  var windowOpen = false
+
+  var headline: String { opened?.headline ?? snapshot?.headline ?? "" }
+  var detail: String { opened?.detail ?? snapshot?.detail ?? "" }
+  var symbol: String { opened?.symbol ?? snapshot?.symbol ?? "bicycle" }
+  var waiting: Bool { snapshot?.waiting == true && !windowOpen }
+
+  private var opened: WindowStart? { windowOpen ? snapshot?.windowStarts : nil }
 }
 
 struct VerdictProvider: TimelineProvider {
@@ -67,14 +86,17 @@ struct VerdictProvider: TimelineProvider {
   }
 
   // The app reloads the timeline whenever it writes a new verdict, so the only
-  // scheduled change is the switch to the stale look.
+  // scheduled changes are a waited-for window opening and the stale look.
   func getTimeline(in context: Context, completion: @escaping (Timeline<VerdictEntry>) -> Void) {
     let snapshot = SnapshotStore.load()
     var entries = [entry(at: .now, snapshot: snapshot)]
     if let snapshot {
-      let staleAt = snapshot.updatedAt.addingTimeInterval(Self.staleAfter)
-      if staleAt > .now {
-        entries.append(entry(at: staleAt, snapshot: snapshot))
+      let changes = [
+        snapshot.windowStarts?.at,
+        snapshot.updatedAt.addingTimeInterval(Self.staleAfter),
+      ]
+      for date in changes.compactMap({ $0 }).filter({ $0 > .now }).sorted() {
+        entries.append(entry(at: date, snapshot: snapshot))
       }
     }
     completion(Timeline(entries: entries, policy: .never))
@@ -82,7 +104,8 @@ struct VerdictProvider: TimelineProvider {
 
   private func entry(at date: Date, snapshot: WidgetSnapshot?) -> VerdictEntry {
     let isStale = snapshot.map { date.timeIntervalSince($0.updatedAt) >= Self.staleAfter } ?? false
-    return VerdictEntry(date: date, snapshot: snapshot, isStale: isStale)
+    let windowOpen = snapshot?.windowStarts.map { date >= $0.at } ?? false
+    return VerdictEntry(date: date, snapshot: snapshot, isStale: isStale, windowOpen: windowOpen)
   }
 }
 
@@ -109,18 +132,18 @@ struct WheelyWidgetView: View {
   private func verdict(_ snapshot: WidgetSnapshot) -> some View {
     VStack(alignment: .leading, spacing: 2) {
       HStack(alignment: .firstTextBaseline) {
-        Image(systemName: snapshot.symbol)
+        Image(systemName: entry.symbol)
           .font(.title2)
         Spacer(minLength: 4)
         Text(snapshot.temperature)
           .font(.title2.weight(.bold))
       }
       Spacer(minLength: 0)
-      Text(snapshot.headline)
+      Text(entry.headline)
         .font(.headline.weight(.heavy))
         .lineLimit(2)
         .minimumScaleFactor(0.8)
-      Text(snapshot.detail)
+      Text(entry.detail)
         .font(.caption)
         .lineLimit(2)
       footer(snapshot)
@@ -158,7 +181,7 @@ struct WheelyWidgetView: View {
 
   // Colorsets from expo-target.config.js, matching the verdict card.
   private func statusColor(_ snapshot: WidgetSnapshot) -> Color {
-    if snapshot.waiting == true { return Color("rideWait") }
+    if entry.waiting { return Color("rideWait") }
     switch snapshot.condition {
     case "good": return Color("rideYes")
     case "fair": return Color("rideFair")

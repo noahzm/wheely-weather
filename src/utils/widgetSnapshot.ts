@@ -1,6 +1,12 @@
-import { formatIssuesAsSentence, getRideVerdict, getRideVerdictLabel } from '@/domain';
+import {
+  formatIssuesAsSentence,
+  getRideVerdict,
+  getRideVerdictLabel,
+  getVerdictLabel,
+  type RideVerdict,
+} from '@/domain';
 import type { ForecastSnapshot } from '@/services/forecastSnapshot';
-import type { Condition, RideStatus } from '@/types/weather';
+import type { Condition, RideStatus, Weather } from '@/types/weather';
 
 import { formatTemperature, type TempUnit } from './temperature';
 import { weatherSfSymbol } from './weatherSymbols';
@@ -25,6 +31,65 @@ export interface WidgetSnapshot {
   isCurrentLocation: boolean;
   /** When the forecast was fetched (ISO 8601), so the widget can flag stale data. */
   updatedAt: string;
+  /**
+   * While waiting: when the window opens and what to show from then on. The
+   * widget only updates when the app runs, so without this "Wait till 12 PM"
+   * would still be up at 2 PM.
+   */
+  windowStarts: WindowStart | null;
+}
+
+export interface WindowStart {
+  /** ISO 8601. */
+  at: string;
+  headline: string;
+  detail: string;
+  symbol: string;
+}
+
+/**
+ * When the window opens, as an absolute time. `hourly[0]` is the hour the
+ * forecast was fetched in (the location's local time), so the window opens that
+ * many hours after the top of the fetch hour. Exact for whole-hour UTC offsets;
+ * a half-hour zone could be 30 minutes off, which the widget tolerates.
+ */
+export function windowStartTime(weather: Weather, startHour: number, fetchedAt: Date): Date | null {
+  const hoursAhead = weather.hourly.findIndex((h) => h.hour === startHour);
+  if (hoursAhead <= 0) return null;
+  const topOfHour = new Date(fetchedAt);
+  topOfHour.setMinutes(0, 0, 0);
+  return new Date(topOfHour.getTime() + hoursAhead * 60 * 60 * 1000);
+}
+
+/** The one line of reasoning a small widget has room for. */
+function widgetDetail(verdict: RideVerdict): string {
+  const { status, message, rated } = verdict;
+  // Waiting, the headline already says when ("Wait till 2 PM"), so the line
+  // says why ("Now: rain expected (90%)"). Otherwise: when to go if the best
+  // window isn't now ("Best 2 PM–5 PM", "Tomorrow 9 AM–12 PM"), else the sky on
+  // a ride day, else what's wrong.
+  if (message.now) return `Now: ${message.now.charAt(0).toLowerCase()}${message.now.slice(1)}`;
+  if (message.timing) return message.timing;
+  return status === 'yes'
+    ? rated.condition
+    : formatIssuesAsSentence(message.issues) || message.lead;
+}
+
+/** What the widget switches to once a waited-for window opens: the go-now verdict. */
+function buildWindowStart(verdict: RideVerdict, snapshot: ForecastSnapshot): WindowStart | null {
+  if (verdict.when !== 'wait' || !verdict.window) return null;
+  const at = windowStartTime(snapshot.weather, verdict.window.startHour, snapshot.lastUpdated);
+  if (!at) return null;
+  const { status, rated } = verdict;
+  return {
+    at: at.toISOString(),
+    headline: getVerdictLabel(status, snapshot.location),
+    detail:
+      status === 'yes'
+        ? rated.condition
+        : formatIssuesAsSentence(verdict.message.issues) || verdict.message.lead,
+    symbol: weatherSfSymbol(rated.weatherCode),
+  };
 }
 
 /** Builds the widget payload, mirroring the home screen's verdict card. Mock previews return null. */
@@ -36,26 +101,18 @@ export function buildWidgetSnapshot(
   const { weather, location } = snapshot;
   const { thresholds } = snapshot.acclimatization;
   const verdict = getRideVerdict(weather, thresholds, tempUnit);
-  const { status, message, rated } = verdict;
-  // A small widget has room for one line of reasoning. Waiting, the headline
-  // already says when ("Wait till 2 PM"), so the line says why ("Now: rain
-  // expected (90%)"). Otherwise: when to go if the best window isn't now ("Best
-  // 2 PM–5 PM", "Tomorrow 9 AM–12 PM"), else the sky on a ride day, else what's wrong.
-  let detail = message.now
-    ? `Now: ${message.now.charAt(0).toLowerCase()}${message.now.slice(1)}`
-    : message.timing;
-  detail ??=
-    status === 'yes' ? rated.condition : formatIssuesAsSentence(message.issues) || message.lead;
+  const { status } = verdict;
   return {
     status,
     condition: verdict.condition,
     headline: getRideVerdictLabel(verdict, location),
     waiting: verdict.when === 'wait',
-    detail,
+    detail: widgetDetail(verdict),
     temperature: formatTemperature(weather.temperature, tempUnit),
     symbol: weatherSfSymbol(verdict.weatherCode),
     location,
     isCurrentLocation: snapshot.isDeviceLocation,
     updatedAt: snapshot.lastUpdated.toISOString(),
+    windowStarts: buildWindowStart(verdict, snapshot),
   };
 }

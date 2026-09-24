@@ -5,7 +5,7 @@ import type { ForecastSnapshot } from '@/services/forecastSnapshot';
 import { buildMockWeather } from '@/services/mockWeather';
 import { DEFAULT_EXPOSURE_LEVEL } from '@/types/settings';
 
-import { buildWidgetSnapshot } from './widgetSnapshot';
+import { buildWidgetSnapshot, windowStartTime } from './widgetSnapshot';
 
 const FETCHED_AT = new Date('2026-09-23T14:00:00Z');
 
@@ -77,7 +77,21 @@ describe('buildWidgetSnapshot', () => {
   });
 
   it('is not waiting on a plain ride day', () => {
-    expect(buildWidgetSnapshot(buildSnapshot('ride'), 'fahrenheit')?.waiting).toBe(false);
+    const widget = buildWidgetSnapshot(buildSnapshot('ride'), 'fahrenheit');
+    expect(widget?.waiting).toBe(false);
+    expect(widget?.windowStarts).toBeNull();
+  });
+
+  it('schedules the switch to the go verdict for when a waited-for window opens', () => {
+    // The wait mock's window opens three hours after the fetch hour.
+    const widget = buildWidgetSnapshot(buildSnapshot('wait'), 'fahrenheit');
+    expect(widget?.windowStarts).toMatchObject({
+      at: '2026-09-23T17:00:00.000Z',
+      detail: 'Mostly clear',
+      symbol: 'sun.max.fill',
+    });
+    // The plain ride-day headline, not "Wait till …".
+    expect(widget?.windowStarts?.headline).not.toMatch(/(AM|PM)$/);
   });
 
   it('flags a forecast that follows the device location', () => {
@@ -98,5 +112,24 @@ describe('buildWidgetSnapshot', () => {
       weather: { ...buildSnapshot('ride').weather, weatherCode: 95 },
     });
     expect(buildWidgetSnapshot(snapshot, 'fahrenheit')?.symbol).toBe('cloud.bolt.fill');
+  });
+});
+
+describe('windowStartTime', () => {
+  const weather = buildMockWeather('ride');
+  if (!weather) throw new Error('mock weather fixture missing');
+  const fetchedAt = new Date('2026-09-23T14:25:00Z');
+  const firstHour = weather.hourly[0]?.hour ?? 0;
+
+  it('counts hours from the top of the fetch hour', () => {
+    const inTwo = (firstHour + 2) % 24;
+    expect(windowStartTime(weather, inTwo, fetchedAt)?.toISOString()).toBe(
+      '2026-09-23T16:00:00.000Z',
+    );
+  });
+
+  it('is null for a window already open or not in the hourly data', () => {
+    expect(windowStartTime(weather, firstHour, fetchedAt)).toBeNull();
+    expect(windowStartTime({ ...weather, hourly: [] }, 12, fetchedAt)).toBeNull();
   });
 });
