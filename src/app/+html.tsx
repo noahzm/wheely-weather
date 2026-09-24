@@ -18,7 +18,10 @@ export default function Root({ children }: Readonly<PropsWithChildren>) {
           content="Scores how good today's weather is for a bike ride — hourly forecast, kit guide, and a plain-language ride verdict."
         />
         <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://wheelyweather.app/share-icon.png" />
         <meta name="twitter:card" content="summary" />
+        <meta name="twitter:image" content="https://wheelyweather.app/share-icon.png" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <meta name="twitter:title" content="Wheely Weather" />
         <meta
           name="twitter:description"

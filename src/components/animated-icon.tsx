@@ -1,16 +1,23 @@
 import { useState } from 'react';
-import { Dimensions, StyleSheet } from 'react-native';
+import { Appearance, Dimensions, StyleSheet } from 'react-native';
 import Animated, { Easing, Keyframe } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 
 const INITIAL_SCALE_FACTOR = Dimensions.get('screen').height / 90;
 const DURATION = 600;
-// Must match the native splash `backgroundColor` in app.json (expo-splash-screen)
-// so the JS overlay hands off seamlessly — intentionally not a palette token.
-const ICON_BG_FALLBACK = '#208AEF';
+// Must match the native splash `backgroundColor` and `dark.backgroundColor` in
+// app.json (expo-splash-screen) so the JS overlay hands off seamlessly —
+// intentionally not palette tokens (they are the app icon's sky colors).
+const SPLASH_BG_LIGHT = '#F1BDF2';
+const SPLASH_BG_DARK = '#2E1F5E';
 
 export function AnimatedSplashOverlay() {
   const [visible, setVisible] = useState(true);
+  // Read once at mount: the native splash follows the system scheme, and the
+  // in-app appearance override is only applied in an effect after this render.
+  const [backgroundColor] = useState(() =>
+    Appearance.getColorScheme() === 'dark' ? SPLASH_BG_DARK : SPLASH_BG_LIGHT,
+  );
 
   if (!visible) return null;
 
@@ -41,7 +48,7 @@ export function AnimatedSplashOverlay() {
           scheduleOnRN(setVisible, false);
         }
       })}
-      style={styles.backgroundSolidColor}
+      style={[styles.backgroundSolidColor, { backgroundColor }]}
     />
   );
 }
@@ -49,7 +56,6 @@ export function AnimatedSplashOverlay() {
 const styles = StyleSheet.create({
   backgroundSolidColor: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: ICON_BG_FALLBACK,
     zIndex: 1000,
   },
 });

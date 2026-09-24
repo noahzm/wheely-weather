@@ -1,49 +1,45 @@
 {
-  "fill": "automatic",
+  "fill-specializations": [
+    {
+      "value": {
+        "automatic-gradient": "extended-srgb:0.94510,0.74118,0.94902,1.00000"
+      }
+    },
+    {
+      "appearance": "dark",
+      "value": {
+        "automatic-gradient": "extended-srgb:0.18039,0.12157,0.36863,1.00000"
+      }
+    }
+  ],
   "groups": [
     {
+      "name": "Road",
       "layers": [
         {
+          "name": "dashes",
+          "image-name": "dashes.svg",
+          "glass": true,
+          "hidden": false,
           "fill-specializations": [
-            {
-              "value": "automatic"
-            },
-            {
-              "appearance": "dark",
-              "value": {
-                "solid": "display-p3:0.99029,1.00000,1.00000,1.00000"
-              }
-            },
             {
               "appearance": "tinted",
               "value": {
-                "solid": "display-p3:0.99029,1.00000,1.00000,1.00000"
+                "solid": "extended-srgb:1.00000,1.00000,1.00000,1.00000"
               }
             }
-          ],
+          ]
+        },
+        {
+          "name": "road",
+          "image-name": "road.svg",
           "glass": true,
           "hidden": false,
-          "image-name": "WW 2.svg",
-          "name": "WW 2",
-          "position-specializations": [
+          "fill-specializations": [
             {
+              "appearance": "tinted",
               "value": {
-                "scale": 1,
-                "translation-in-points": [0, 33.9265054709399]
-              }
-            },
-            {
-              "idiom": "square",
-              "value": {
-                "scale": 1,
-                "translation-in-points": [8.5, 8]
-              }
-            },
-            {
-              "idiom": "watchOS",
-              "value": {
-                "scale": 1,
-                "translation-in-points": [8, 30]
+                "solid": "extended-srgb:0.00000,0.00000,0.00000,1.00000"
               }
             }
           ]
@@ -54,7 +50,85 @@
         "opacity": 0.5
       },
       "translucency": {
-        "enabled": true,
+        "enabled": false,
+        "value": 0.5
+      }
+    },
+    {
+      "name": "Land",
+      "layers": [
+        {
+          "name": "land",
+          "image-name": "land.svg",
+          "glass": true,
+          "hidden": false,
+          "fill-specializations": [
+            {
+              "value": {
+                "automatic-gradient": "extended-srgb:0.18039,0.80000,0.44314,1.00000"
+              }
+            },
+            {
+              "appearance": "tinted",
+              "value": {
+                "solid": "extended-srgb:0.28000,0.28000,0.28000,1.00000"
+              }
+            }
+          ]
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
+      },
+      "translucency": {
+        "enabled": false,
+        "value": 0.5
+      }
+    },
+    {
+      "name": "Sun",
+      "layers": [
+        {
+          "name": "shine",
+          "image-name": "shine.svg",
+          "glass": true,
+          "hidden": false,
+          "fill-specializations": [
+            {
+              "appearance": "tinted",
+              "value": {
+                "solid": "extended-srgb:0.62000,0.62000,0.62000,1.00000"
+              }
+            }
+          ]
+        },
+        {
+          "name": "sun",
+          "image-name": "sun.svg",
+          "glass": true,
+          "hidden": false,
+          "fill-specializations": [
+            {
+              "value": {
+                "automatic-gradient": "extended-srgb:1.00000,0.82353,0.03922,1.00000"
+              }
+            },
+            {
+              "appearance": "tinted",
+              "value": {
+                "solid": "extended-srgb:1.00000,1.00000,1.00000,1.00000"
+              }
+            }
+          ]
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
+      },
+      "translucency": {
+        "enabled": false,
         "value": 0.5
       }
     }
