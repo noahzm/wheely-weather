@@ -206,6 +206,27 @@ export const getOverallCondition = (
   return getCyclingCondition(conditions);
 };
 
+/**
+ * Light precipitation codes that rate `fair` (drizzle, light rain, light
+ * showers). In a forecast they mean a shower sometime in the hour; in an
+ * observation, it's falling on you now.
+ */
+const LIGHT_PRECIP_CODES = new Set([51, 53, 61, 80]);
+
+/**
+ * Rates the current observation rather than a forecast: the same metrics, but
+ * precipitation that's falling right now caps it at `marginal`, so "light rain"
+ * outside never comes back as a clear go.
+ */
+export const getCurrentCondition = (
+  weather: Weather,
+  thresholds: Thresholds = THRESHOLDS,
+): Condition => {
+  const condition = getOverallCondition(weather, thresholds);
+  const raining = weather.weatherCode != null && LIGHT_PRECIP_CODES.has(weather.weatherCode);
+  return raining && RANK[condition] > RANK.marginal ? 'marginal' : condition;
+};
+
 /** Collapses a rating to the verdict's go / maybe / no. */
 export const conditionToStatus = (condition: Condition): RideStatus => {
   if (condition === 'bad' || condition === 'poor') return 'no';
@@ -322,7 +343,16 @@ const CONDITION_SCORES: Record<Condition, number> = {
  * Calculates a quantitative Ride Quality Index (0–100) based on weather metrics.
  * Bounded by overall status so the score never contradicts the plain-language verdict.
  */
-export function calculateRideScore(weather: Weather, thresholds: Thresholds = THRESHOLDS): number {
+/**
+ * The 0–10 score behind the stars, clamped to its verdict's band so the stars
+ * never contradict it. Pass `status` when the verdict rated differently from
+ * `getOverallStatus` (the current-conditions rain cap).
+ */
+export function calculateRideScore(
+  weather: Weather,
+  thresholds: Thresholds = THRESHOLDS,
+  status: RideStatus = getOverallStatus(weather, thresholds),
+): number {
   if (weather.hasThunderstorms) return 1;
 
   const tempCond = evaluateCondition(weather.temperature, 'temperature', thresholds);
@@ -348,7 +378,7 @@ export function calculateRideScore(weather: Weather, thresholds: Thresholds = TH
     ...(coldRainCond ? [coldRainCond] : []),
   ];
 
-  const overallStatus = getOverallStatus(weather, thresholds);
+  const overallStatus = status;
 
   const weighted =
     CONDITION_SCORES[tempCond] * 0.25 +

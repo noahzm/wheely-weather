@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { getCurrentCondition, getOverallCondition } from './scoring';
 import {
   calculateRideScore,
   evaluateCondition,
@@ -306,5 +307,42 @@ describe('Rain amount', () => {
     expect(getOverallStatus({ ...weather, precipitation: 3 })).toBe('no');
     expect(getOverallStatus({ ...weather, precipitation: 0.5 })).toBe('maybe');
     expect(getOverallStatus({ ...weather, precipitation: 0.1 })).toBe('yes');
+  });
+});
+
+describe('getCurrentCondition', () => {
+  const clear = {
+    temperature: 68,
+    feelsLike: 68,
+    windSpeed: 5,
+    windGust: null,
+    rainChance: 10,
+    weatherCode: 1,
+    hasThunderstorms: false,
+    condition: 'Mostly clear',
+    dewpoint: 50,
+    aqi: 20,
+    hourly: [],
+    pastHourly: [],
+    daily: [],
+  };
+
+  it('matches the overall rating when nothing is falling', () => {
+    expect(getCurrentCondition(clear)).toBe(getOverallCondition(clear));
+    expect(getCurrentCondition(clear)).toBe('good');
+  });
+
+  it('caps light rain falling right now at marginal, which a forecast rates fair', () => {
+    for (const code of [51, 53, 61, 80]) {
+      const raining = { ...clear, weatherCode: code };
+      expect(getOverallCondition(raining)).toBe('fair');
+      expect(getCurrentCondition(raining)).toBe('marginal');
+    }
+  });
+
+  it('never lifts a worse rating', () => {
+    const stormy = { ...clear, weatherCode: 61, windSpeed: 30 };
+    expect(getCurrentCondition(stormy)).toBe(getOverallCondition(stormy));
+    expect(['poor', 'bad']).toContain(getCurrentCondition(stormy));
   });
 });
