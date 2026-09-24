@@ -131,10 +131,17 @@ export function useWeatherForecast(mockScenario: string | null) {
 
   // Pull-to-refresh re-locates first, so a rider following their device gets the
   // forecast for where they are now, not where they were when they last opened.
+  //
+  // `refreshing` goes true at once, before the GPS wait: RefreshControl is
+  // controlled, so leaving it false snapped the spinner shut on release, then
+  // `loadForecast` reopened it after the fix arrived (the pull stuttered). A
+  // failed fix still reloads the current place, so the flag always settles.
   const refresh = useCallback(() => {
     if (needsLocationRef.current || relocatingRef.current) return;
     relocatingRef.current = true;
+    setState((current) => ({ ...current, refreshing: true }));
     void relocate(true)
+      .catch(() => null)
       .then((moved) => loadForecast(moved ?? undefined, true))
       .finally(() => {
         relocatingRef.current = false;
