@@ -23,6 +23,9 @@ import { StarRating } from './star-rating';
 
 type VerdictStatus = 'yes' | 'maybe' | 'no';
 
+/** How far the timing chip hangs below the card's bottom edge. */
+const TIMING_BADGE_OVERHANG = 18;
+
 function makeStyles(c: WheelyPalette) {
   return StyleSheet.create({
     verdictWrap: {
@@ -53,9 +56,13 @@ function makeStyles(c: WheelyPalette) {
       borderColor: c.border,
       transform: [{ rotate: '1deg' }],
     },
+    // Clears the timing chip's overhang, so an alert card directly below isn't covered.
+    verdictWrapWithBadge: {
+      marginBottom: Spacing.three + TIMING_BADGE_OVERHANG,
+    },
     bottomBadgeGroup: {
       position: 'absolute',
-      bottom: -18,
+      bottom: -TIMING_BADGE_OVERHANG,
       left: Spacing.three,
       zIndex: 10,
       pointerEvents: 'none',
@@ -185,7 +192,7 @@ export function RideVerdict({
 
   return (
     <View
-      style={styles.verdictWrap}
+      style={[styles.verdictWrap, hasBottomBadge && styles.verdictWrapWithBadge]}
       accessibilityLiveRegion="polite"
       accessibilityLabel={spokenMessage}
     >

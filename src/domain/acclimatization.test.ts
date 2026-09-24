@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { deriveAcclimatization, applyAcclimatization, resolveThresholds } from './acclimatization';
+import {
+  deriveAcclimatization,
+  applyAcclimatization,
+  describeClimateAdjustment,
+  resolveThresholds,
+} from './acclimatization';
 import { THRESHOLDS } from './constants';
 import { getOverallStatus, evaluateCondition } from './weather';
 
@@ -192,5 +197,44 @@ describe('acclimatization and the verdict', () => {
   it('reproduces the base verdict when there is no home baseline', () => {
     const day = { ...base, temperature: 88, dewpoint: 64 };
     expect(getOverallStatus(day, resolveThresholds(null))).toBe(getOverallStatus(day, THRESHOLDS));
+  });
+});
+
+describe('describeClimateAdjustment', () => {
+  const CHICAGO_WINTER = { warmTemp: 40, warmDewpoint: 30, coolTemp: 25 };
+
+  it('states the standard range without a home or when riding outside rarely', () => {
+    expect(describeClimateAdjustment(null, 'high', 'fahrenheit')).toEqual([
+      'The standard range applies: ride days run 40–82°F.',
+    ]);
+    expect(describeClimateAdjustment(GULF, 'indoor', 'fahrenheit')).toEqual([
+      'The standard range applies: ride days run 40–82°F.',
+    ]);
+  });
+
+  it('says so when the home climate is close to the standard', () => {
+    expect(describeClimateAdjustment(TEMPERATE, 'high', 'fahrenheit')).toEqual([
+      'Your home’s weather is close to the standard, so ride days run 40–82°F.',
+    ]);
+  });
+
+  it('gives the shifted range against the normal one, and humidity when it moved', () => {
+    const shift = deriveAcclimatization(GULF, 'high');
+    const lines = describeClimateAdjustment(GULF, 'high', 'fahrenheit');
+    expect(lines[0]).toBe(`Ride days run 40–${82 + shift.tempShift}°F for you (normally 40–82°F).`);
+    expect(lines[1]).toBe(
+      `Humid days stay rideable up to a ${66 + shift.dewShift}°F dew point (normally 66°F).`,
+    );
+  });
+
+  it('lowers the cold end for a cold home, and speaks the rider’s unit', () => {
+    const { coldShift } = deriveAcclimatization(CHICAGO_WINTER, 'high');
+    expect(coldShift).toBeGreaterThan(0);
+    expect(describeClimateAdjustment(CHICAGO_WINTER, 'high', 'fahrenheit')).toEqual([
+      `Ride days run ${40 - coldShift}–82°F for you (normally 40–82°F).`,
+    ]);
+    expect(describeClimateAdjustment(null, 'moderate', 'celsius')).toEqual([
+      'The standard range applies: ride days run 4–28°C.',
+    ]);
   });
 });

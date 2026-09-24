@@ -12,10 +12,12 @@ import {
   Spacer,
   Text,
   Toggle,
+  VStack,
 } from '@expo/ui/swift-ui';
 import {
   buttonStyle,
   disabled,
+  font,
   foregroundStyle,
   listStyle,
   pickerStyle,
@@ -26,6 +28,8 @@ import {
 import AppleWeatherKitModule from '../../../modules/apple-weatherkit/src/AppleWeatherKitModule';
 import type { WeatherKitAttribution } from '../../../modules/apple-weatherkit/src/AppleWeatherKit.types';
 import { TRANSPARENT } from '@/constants/theme';
+import { CLIMATE_MESSAGES, describeClimateAdjustment } from '@/domain';
+import { useResolvedTempUnit } from '@/hooks/settings-context';
 import { useWheelyColors } from '@/hooks/use-theme';
 import {
   APPEARANCE_LABELS,
@@ -138,20 +142,32 @@ function HomeClimateSectionIOS({
       >
         <Text>{homeLabel ?? 'Use current location as home'}</Text>
       </Toggle>
+      {/* One row: the question captions the picker. As its own row, plain
+          text in a grouped list reads as something to tap. */}
       {homeOn && (
-        <Picker
-          selection={exposureLevel}
-          onSelectionChange={(value) => {
-            onExposureChange(value);
-          }}
-          modifiers={[pickerStyle('segmented')]}
-        >
-          {EXPOSURE_VALUES.map((level, index) => (
-            <Text key={level} modifiers={[tag(level)]}>
-              {EXPOSURE_LABELS[index]}
-            </Text>
-          ))}
-        </Picker>
+        <VStack alignment="leading" spacing={8}>
+          <Text
+            modifiers={[
+              font({ textStyle: 'subheadline' }),
+              foregroundStyle({ type: 'hierarchical', style: 'secondary' }),
+            ]}
+          >
+            {CLIMATE_MESSAGES.QUESTION}
+          </Text>
+          <Picker
+            selection={exposureLevel}
+            onSelectionChange={(value) => {
+              onExposureChange(value);
+            }}
+            modifiers={[pickerStyle('segmented')]}
+          >
+            {EXPOSURE_VALUES.map((level, index) => (
+              <Text key={level} modifiers={[tag(level)]}>
+                {EXPOSURE_LABELS[index]}
+              </Text>
+            ))}
+          </Picker>
+        </VStack>
       )}
     </Section>
   );
@@ -169,6 +185,7 @@ export function SettingsForm({
   onTempUnitChange,
   exposureLevel,
   onExposureChange,
+  homeBaseline,
   homeLabel,
   canSetHome,
   onSetHome,
@@ -176,10 +193,12 @@ export function SettingsForm({
 }: Readonly<SettingsFormProps>) {
   const c = useWheelyColors();
   const attribution = useWeatherAttribution();
+  const unit = useResolvedTempUnit();
   const homeOn = !!homeLabel;
-  const homeHint = homeLabel
-    ? 'Adapts heat, cold, and humidity thresholds to your home climate based on your daily outdoor exposure.'
-    : 'Set your home so the verdict adapts to your climate, hot or cold. How much it adapts depends on your daily time outdoors, which you set next.';
+  // On: what the setting does, in ride-day temperatures. Off: how to use it.
+  const homeHint = homeOn
+    ? describeClimateAdjustment(homeBaseline, exposureLevel, unit).join(' ')
+    : CLIMATE_MESSAGES.HINT_OFF;
 
   return (
     <View style={styles.container}>

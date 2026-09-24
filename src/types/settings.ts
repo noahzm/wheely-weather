@@ -29,7 +29,9 @@ export const TEMP_UNIT_VALUES = [
 
 export type ExposureLevel = 'indoor' | 'moderate' | 'high';
 
-export const EXPOSURE_LABELS = ['Indoors', 'Moderate', 'High'] as const;
+// Asked as how often you ride outside, which riders can answer, rather than
+// "exposure". The stored values keep their original names.
+export const EXPOSURE_LABELS = ['Rarely', 'Some days', 'Most days'] as const;
 export const EXPOSURE_VALUES = [
   'indoor',
   'moderate',
