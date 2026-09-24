@@ -14,6 +14,8 @@ struct WidgetSnapshot: Decodable {
   let location: String
   // Optional so a payload written by an older app build still decodes.
   let isCurrentLocation: Bool?
+  // Bad now, good later today: shown in the accent pink. Optional like above.
+  let waiting: Bool?
   let updatedAt: Date
 }
 
@@ -130,7 +132,7 @@ struct WheelyWidgetView: View {
       if entry.isStale {
         Color.clear.background(.fill.tertiary)
       } else {
-        statusColor(snapshot.status)
+        statusColor(snapshot)
       }
     }
   }
@@ -152,8 +154,9 @@ struct WheelyWidgetView: View {
   }
 
   // Colorsets from expo-target.config.js, matching the verdict card.
-  private func statusColor(_ status: String) -> Color {
-    switch status {
+  private func statusColor(_ snapshot: WidgetSnapshot) -> Color {
+    if snapshot.waiting == true { return Color("rideWait") }
+    switch snapshot.status {
     case "yes": return Color("rideYes")
     case "maybe": return Color("rideMaybe")
     default: return Color("rideNo")

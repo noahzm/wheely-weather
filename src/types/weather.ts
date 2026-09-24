@@ -91,6 +91,8 @@ export interface VerdictMessage {
   issues: string[];
   /** Improvement timing (e.g. "Clears by 3 PM"), shown as a chip when present. */
   timing: string | null;
+  /** What's wrong right now, when the verdict says to wait for a later window. */
+  now?: string | null;
 }
 
 export interface RideFactor {
@@ -130,7 +132,7 @@ export interface LocationSearchResult {
   displayName?: string;
 }
 
-export type MockScenario = 'ride' | 'maybe' | 'rest' | 'alert';
+export type MockScenario = 'ride' | 'maybe' | 'rest' | 'alert' | 'wait';
 
 /**
  * A rider's home-climate baseline: representative *warm* exposure at home, used

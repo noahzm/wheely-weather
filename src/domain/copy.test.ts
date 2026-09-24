@@ -4,6 +4,7 @@ import {
   ISSUE_PHRASES,
   STATUS_MESSAGES,
   formatIssuesAsSentence,
+  formatVerdictDetail,
   getVerdictLabel,
   issuePhraseTier,
 } from './copy';
@@ -14,6 +15,19 @@ import { getHourConditionReasons } from '../utils/forecastHelpers';
 describe('verdict labels', () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
+
+  it('puts the start time in the headline when waiting for a later window', () => {
+    vi.setSystemTime(new Date(2026, 8, 24, 9, 0, 0));
+    for (const location of ['A', 'B', 'Raleigh, NC', 'Philadelphia']) {
+      expect(getVerdictLabel('yes', location, '2 PM')).toMatch(/ 2 PM$/);
+      expect(getVerdictLabel('maybe', location, '2 PM')).toMatch(/ 2 PM$/);
+    }
+  });
+
+  it('ignores the wait time on a no-go day', () => {
+    vi.setSystemTime(new Date(2026, 8, 24, 9, 0, 0));
+    expect(getVerdictLabel('no', 'A', '2 PM')).toBe(getVerdictLabel('no', 'A'));
+  });
 
   it('returns a stable label for the same status and location seed', () => {
     vi.setSystemTime(new Date(2026, 6, 2, 9, 0, 0));
@@ -184,5 +198,22 @@ describe('formatIssuesAsSentence', () => {
     expect(formatIssuesAsSentence(['fog', 'Windy (22 mph)', 'Rain likely (60%)'])).toBe(
       'Fog, windy (22 mph), and rain likely (60%).',
     );
+  });
+});
+
+describe('formatVerdictDetail', () => {
+  it('describes the conditions on a ride day and the issues otherwise', () => {
+    expect(formatVerdictDetail('yes', { lead: '68°F, clear.', issues: [], timing: null })).toBe(
+      '68°F, clear.',
+    );
+    expect(
+      formatVerdictDetail('maybe', { lead: 'Rideable, but:', issues: ['Breezy'], timing: null }),
+    ).toBe('Breezy.');
+  });
+
+  it('leads with what’s wrong right now when waiting', () => {
+    const message = { lead: 'Rideable, but:', issues: ['Breezy'], timing: null, now: 'Rain' };
+    expect(formatVerdictDetail('maybe', message)).toBe('Right now: rain. Then breezy.');
+    expect(formatVerdictDetail('maybe', { ...message, issues: [] })).toBe('Right now: rain.');
   });
 });

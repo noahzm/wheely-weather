@@ -42,8 +42,8 @@ npm run build:web      # expo export --platform web
 - Native iOS modules: `modules/apple-weatherkit`, `modules/apple-location-search`. Web geocoding is proxied by the Cloudflare Worker `workers/index.mjs`.
 - Home screen widget: `targets/widget` (SwiftUI, generated into the Xcode project by `@bacons/apple-targets` on prebuild). It can't run TS scoring, so `useWidgetSync` builds a display-ready `WidgetSnapshot` (`src/utils/widgetSnapshot.ts`) and writes it to the `group.app.wheelyweather` App Group; `WheelyWidget.swift` decodes the same field names. Changing the payload means changing both sides. `targets/*/Assets.xcassets` is regenerated from `expo-target.config.js`.
 - Domain logic is framework-agnostic in `src/domain` / `src/utils`.
-- The verdict (home card and widget) comes from `getRideVerdict` (`src/domain/verdict.ts`): it rates today's best daylight ride window, or tomorrow's once no daylight is left, never just the current hour. Don't call `getOverallStatus` on current conditions for a verdict; it's the building block, and the fallback when no window exists.
-- Thresholds are resolved per rider by `resolveThresholds` (`src/domain/acclimatization.ts`): the home climate's recent warm, humid and cool extremes, scaled by the exposure level, shift the comfort bands. Hazards never move: the heat and dewpoint ceilings, freezing-precipitation weather codes, and the cold-rain rule.
+- The verdict (home card and widget) comes from `getRideVerdict` (`src/domain/verdict.ts`): it rates today's best daylight ride window, or tomorrow's once no daylight is left. `getOverallStatus` is the building block it rates with, and the fallback when no window exists.
+- Thresholds are resolved per rider by `resolveThresholds` (`src/domain/acclimatization.ts`): the home climate's recent warm, humid and cool extremes, scaled by the exposure level, shift the comfort bands. Hazards currently stay fixed: the heat and dewpoint ceilings, freezing-precipitation weather codes, and the cold-rain rule.
 
 ## Forecast invariants
 
@@ -61,7 +61,6 @@ Each of these has caused a real bug when broken.
 - No inline style color literals — use `useWheelyColors()` and theme tokens from `src/constants/theme.ts`.
 - React Compiler is enabled (`app.json`): do not add manual `useMemo`/`useCallback` for performance-only reasons.
 - Reanimated shared values: use `.set()` / `.get()`, not `.value =` — the React Compiler lint rule (`react-hooks/immutability`) flags `.value` writes.
-- Get user approval before structural or logic changes to `src/domain/scoring.ts`.
 - Sentry is DSN-gated (`EXPO_PUBLIC_SENTRY_DSN`). Source maps upload only from EAS production builds (`SENTRY_AUTH_TOKEN` is an EAS secret there); local native builds and the development/preview EAS environments set `SENTRY_DISABLE_AUTO_UPLOAD=true` (already in the npm scripts). `metro.config.js` must keep `getSentryExpoConfig`, which injects the debug IDs that tie events to uploaded maps.
 - ESLint type-aware linting uses `tsconfig.eslint.json` (includes test files), while `npm run typecheck` uses `tsconfig.json` (excludes them). A test file may pass typecheck but fail lint, or vice versa.
 - `max-params` is 5: pass a function or an options object rather than a sixth argument.

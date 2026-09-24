@@ -64,6 +64,21 @@ describe('buildWidgetSnapshot', () => {
     );
   });
 
+  it('says to wait, and why, when it is bad now but good later', () => {
+    const widget = buildWidgetSnapshot(buildSnapshot('wait'), 'fahrenheit');
+    expect(widget).toMatchObject({
+      status: 'yes',
+      waiting: true,
+      detail: 'Now: rain expected (95%)',
+      symbol: 'cloud.rain.fill',
+    });
+    expect(widget?.headline).toMatch(/(AM|PM)$/);
+  });
+
+  it('is not waiting on a plain ride day', () => {
+    expect(buildWidgetSnapshot(buildSnapshot('ride'), 'fahrenheit')?.waiting).toBe(false);
+  });
+
   it('flags a forecast that follows the device location', () => {
     const snapshot = buildSnapshot('ride', { isDeviceLocation: true, source: 'device' });
     expect(buildWidgetSnapshot(snapshot, 'fahrenheit')?.isCurrentLocation).toBe(true);

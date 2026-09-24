@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import { THRESHOLDS } from './constants';
 import { getOverallStatus } from './scoring';
-import { getRideVerdict } from './verdict';
+import { formatVerdictDetail } from './copy';
+import { getRideVerdict, getRideVerdictLabel } from './verdict';
 
 import type { Condition, DailyWeather, HourlyWeather, Weather } from '@/types/weather';
 
@@ -71,8 +72,44 @@ describe('getRideVerdict', () => {
 
     const verdict = getRideVerdict(weather, THRESHOLDS);
     expect(verdict.status).toBe('yes');
+    expect(verdict.when).toBe('wait');
+    expect(verdict.message.timing).toBe('Until 5 PM');
+    // The icon shows the rain outside, not the dry window.
+    expect(verdict.weatherCode).toBe(63);
+    expect(verdict.rated.weatherCode).toBe(1);
+  });
+
+  it('says to wait, and why, when it’s a no-go now but good later', () => {
+    const weather = rainyMorning([day({}, window(14, 17)), day({}, window(9, 12))]);
+    const verdict = getRideVerdict(weather, THRESHOLDS);
+    expect(verdict.message.now).toBe('Rain expected (95%)');
+    expect(formatVerdictDetail(verdict.status, verdict.message)).toBe(
+      'Right now: rain expected (95%). Then 68°F, mostly clear, with light winds.',
+    );
+    expect(getRideVerdictLabel(verdict, 'Raleigh')).toMatch(/2 PM$/);
+  });
+
+  it('keeps the ride-day headline when it’s rideable now and better later', () => {
+    const dryNow = {
+      ...rainyMorning([day({}, window(14, 17))]),
+      rainChance: 0,
+      weatherCode: 1,
+      condition: 'Mostly clear',
+    };
+    const verdict = getRideVerdict(dryNow, THRESHOLDS);
     expect(verdict.when).toBe('later');
+    expect(verdict.message.now).toBeNull();
     expect(verdict.message.timing).toBe('Best 2 PM–5 PM');
+    expect(getRideVerdictLabel(verdict, 'Raleigh')).not.toMatch(/PM$/);
+  });
+
+  it('names thunderstorms as the reason to wait', () => {
+    const stormy = {
+      ...rainyMorning([day({}, window(14, 17))]),
+      weatherCode: 95,
+      hasThunderstorms: true,
+    };
+    expect(getRideVerdict(stormy, THRESHOLDS).message.now).toBe('Thunderstorms');
   });
 
   it('shows no timing when the best window is underway', () => {

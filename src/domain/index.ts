@@ -1,6 +1,6 @@
 export { CONDITION_DISPLAY, THRESHOLDS } from './constants';
 export { resolveThresholds } from './acclimatization';
-export { formatIssuesAsSentence, getVerdictLabel } from './copy';
+export { formatIssuesAsSentence, formatVerdictDetail, getVerdictLabel } from './copy';
 export {
   calculateRideScore,
   evaluateCondition,
@@ -14,4 +14,4 @@ export {
   getRainTiming,
   getWeatherAlerts,
 } from './weather';
-export { getRideVerdict, type RideVerdict, type VerdictWhen } from './verdict';
+export { getRideVerdict, getRideVerdictLabel, type RideVerdict, type VerdictWhen } from './verdict';

@@ -1,6 +1,6 @@
 import { THRESHOLDS, type Thresholds } from './constants';
-import { STATUS_MESSAGES as MSG } from './copy';
-import { getMessage } from './ride-factors';
+import { getVerdictLabel, STATUS_MESSAGES as MSG } from './copy';
+import { describeNow, getMessage } from './ride-factors';
 import { calculateRideScore, evaluateCondition, getOverallStatus, RANK } from './scoring';
 import { getWeatherDescription, isThunderstorm } from './weather-codes';
 
@@ -12,11 +12,12 @@ import type { DailyWeather, RideStatus, VerdictMessage, Weather } from '@/types/
 /**
  * Which stretch of time the verdict rates:
  * - `now`: today's best window starts this hour
- * - `later`: today's best window is later today
+ * - `wait`: today's best window is later, and right now is a no-go
+ * - `later`: today's best window is later, and right now is rideable too
  * - `tomorrow`: no daylight left today, so tomorrow's best window
  * - `current`: no window at all (missing data), so the current conditions
  */
-export type VerdictWhen = 'now' | 'later' | 'tomorrow' | 'current';
+export type VerdictWhen = 'now' | 'wait' | 'later' | 'tomorrow' | 'current';
 
 export interface RideVerdict {
   status: RideStatus;
@@ -28,6 +29,11 @@ export interface RideVerdict {
   window: { startHour: number; endHour: number } | null;
   /** The conditions the verdict was worked out from, for callers that describe them. */
   rated: Weather;
+  /**
+   * The weather code to illustrate the verdict with: the window's, except while
+   * waiting, when it's the current sky so the icon matches the view outside.
+   */
+  weatherCode: number | null;
 }
 
 type DayWithWindow = DailyWeather & { rideWindow: NonNullable<DailyWeather['rideWindow']> };
@@ -76,6 +82,8 @@ function windowTiming(
   window: { startHour: number; endHour: number },
 ): string | null {
   if (when === 'tomorrow') return MSG.TOMORROW_WINDOW(windowRange(window));
+  // Waiting, the headline already names the start ("Ride at 2 PM").
+  if (when === 'wait') return MSG.UNTIL(fullHourLabel(window.endHour));
   // A later window only helps if it's worth riding in; on a "no" day the
   // best of a bad day isn't a recommendation.
   if (when === 'later' && status !== 'no') return MSG.BEST_WINDOW(windowRange(window));
@@ -107,6 +115,7 @@ export function getRideVerdict(
       when: 'current',
       window: null,
       rated: weather,
+      weatherCode: weather.weatherCode,
     };
   }
 
@@ -120,15 +129,32 @@ export function getRideVerdict(
 
   const rated = windowWeather(weather, target, isToday, thresholds);
   const status = getOverallStatus(rated, thresholds);
+  // A good later window while it's pouring now reads as "go ride" to anyone
+  // looking out the window, so the verdict says to wait and names why.
+  if (when === 'later' && status !== 'no' && getOverallStatus(weather, thresholds) === 'no') {
+    when = 'wait';
+  }
   const message = getMessage(rated, status, thresholds, tempUnit);
   return {
     status,
     score: calculateRideScore(rated, thresholds),
     // The window replaces "improves around…" timing, which described the
     // current hour's trajectory rather than the stretch being rated.
-    message: { ...message, timing: windowTiming(when, status, window) },
+    message: {
+      ...message,
+      timing: windowTiming(when, status, window),
+      now: when === 'wait' ? describeNow(weather, thresholds, tempUnit) : null,
+    },
     when,
     window,
     rated,
+    weatherCode: when === 'wait' ? weather.weatherCode : rated.weatherCode,
   };
+}
+
+/** The verdict's headline; in the wait state it names when to head out ("Wait till 2 PM"). */
+export function getRideVerdictLabel(verdict: RideVerdict, location = ''): string {
+  const waitFrom =
+    verdict.when === 'wait' && verdict.window ? fullHourLabel(verdict.window.startHour) : null;
+  return getVerdictLabel(verdict.status, location, waitFrom);
 }

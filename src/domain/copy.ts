@@ -3,7 +3,7 @@
  * Separates human-readable strings from core weather logic.
  */
 
-import type { Condition, RideStatus } from '@/types/weather';
+import type { Condition, RideStatus, VerdictMessage } from '@/types/weather';
 
 /** djb2-style hash for deterministic, seed-varied picks. */
 function seededHash(str: string): number {
@@ -55,17 +55,39 @@ const VERDICT_LABELS: Record<RideStatus, readonly string[]> = {
 };
 
 /**
+ * Headlines for the wait state: bad right now, but a rideable window later
+ * today. The start time is in the headline so it can't read as "go now".
+ */
+const WAIT_LABELS: Record<Exclude<RideStatus, 'no'>, readonly ((time: string) => string)[]> = {
+  yes: [
+    (t) => `Ride at ${t}`,
+    (t) => `Wait till ${t}`,
+    (t) => `Hold till ${t}`,
+    (t) => `Roll out at ${t}`,
+  ],
+  maybe: [(t) => `Better at ${t}`, (t) => `Wait till ${t}`, (t) => `Hold till ${t}`],
+};
+
+/**
  * Picks a verdict badge label from a per-status pool, seeded by location and
  * day so different locations show different labels. Held for the whole day: an
  * hourly rotation changed the headline with no change in conditions, and left
  * the home screen widget (which keeps the label it was written with) out of
  * step with the app after the hour rolled over.
  */
-export function getVerdictLabel(status: RideStatus, location = ''): string {
-  const pool = VERDICT_LABELS[status];
+export function getVerdictLabel(
+  status: RideStatus,
+  location = '',
+  waitFrom: string | null = null,
+): string {
   const now = new Date();
   const day = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 1).getTime()) / 864e5);
   const seed = `${status}|${location}|${now.getFullYear()}|${day}`;
+  if (waitFrom && status !== 'no') {
+    const waitPool = WAIT_LABELS[status];
+    return waitPool[seededHash(seed) % waitPool.length]?.(waitFrom) ?? '';
+  }
+  const pool = VERDICT_LABELS[status];
   return pool[seededHash(seed) % pool.length] ?? '';
 }
 
@@ -205,6 +227,8 @@ export const STATUS_MESSAGES = {
   NO_LEAD: 'Sit this one out:',
   CLEAR_UP: (time: string) => `Clears by ${time}`,
   BEST_WINDOW: (range: string) => `Best ${range}`,
+  UNTIL: (time: string) => `Until ${time}`,
+  RIGHT_NOW: (issue: string) => `Right now: ${issue}.`,
   TOMORROW_WINDOW: (range: string) => `Tomorrow ${range}`,
 };
 
@@ -438,4 +462,18 @@ export function formatIssuesAsSentence(issues: readonly string[]): string {
   const last = formatted.at(-1);
   const rest = formatted.slice(0, -1).join(', ');
   return `${rest}, and ${last}.`;
+}
+
+const lowerFirst = (text: string): string => text.charAt(0).toLowerCase() + text.slice(1);
+
+/**
+ * The verdict's detail line, shared by the home card and the widget: the
+ * conditions on a ride day, else what's wrong. In the wait state it leads with
+ * what's wrong right now, so a good later window doesn't read as "go now".
+ */
+export function formatVerdictDetail(status: RideStatus, message: VerdictMessage): string {
+  const detail = status === 'yes' ? message.lead : formatIssuesAsSentence(message.issues);
+  if (!message.now) return detail;
+  const now = STATUS_MESSAGES.RIGHT_NOW(lowerFirst(message.now));
+  return detail ? `${now} Then ${lowerFirst(detail)}` : now;
 }

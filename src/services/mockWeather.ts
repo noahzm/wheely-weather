@@ -1,5 +1,5 @@
 // Deterministic fixture data for UI testing without hitting the live API.
-// Activate with `?mock=ride`, `?mock=maybe`, `?mock=rest`, or `?mock=alert`.
+// Activate with `?mock=ride`, `?mock=maybe`, `?mock=rest`, `?mock=alert`, or `?mock=wait`.
 
 import {
   getHourlyCondition,
@@ -48,7 +48,12 @@ interface MockScenarioSpec {
   sunriseHour: number;
   sunsetHour: number;
   nwsAlerts: WeatherAlert[];
+  /** Today's best ride window, as hour offsets from now; omitted, the verdict rates current conditions. */
+  todayWindow?: { startOffset: number; hours: number; tempLow: number; tempHigh: number };
 }
+
+/** Hours from now until `h` (0–23), for templates keyed to the current time. */
+const hoursFromNow = (h: number): number => (h - new Date().getHours() + 24) % 24;
 
 /** Narrows an arbitrary value to a known mock scenario name. */
 export function isMockScenario(value: unknown): value is MockScenario {
@@ -219,6 +224,50 @@ const SCENARIOS: Record<MockScenario, MockScenarioSpec> = {
       },
     ],
   },
+  wait: {
+    label: 'Wait For It',
+    current: {
+      temperature: 58,
+      feelsLike: 56,
+      windSpeed: 9,
+      windGust: 16,
+      windDirection: 200,
+      rainChance: 95,
+      weatherCode: 63,
+      dewpoint: 55,
+      aqi: 22,
+      uvIndex: 1,
+      uvIndexDailyMax: 5,
+    },
+    // Rain for the next three hours, then clearing and warming.
+    hourTemplate: (h) => {
+      const wet = hoursFromNow(h) < 3;
+      return {
+        temperature: wet ? 58 : 67,
+        feelsLike: wet ? 56 : 67,
+        windSpeed: wet ? 9 : 6,
+        windGust: wet ? 16 : 10,
+        rainChance: wet ? 95 : 5,
+        dewpoint: wet ? 55 : 50,
+        weatherCode: wet ? 63 : 1,
+        uv: wet ? 1 : 4,
+      };
+    },
+    dayTemplate: (i) => ({
+      high: 70 + (i % 3),
+      low: 55,
+      windSpeed: 6,
+      windGust: 10,
+      rainChance: 5,
+      weatherCode: 1,
+    }),
+    sunrise: '7:05 AM',
+    sunset: '7:10 PM',
+    sunriseHour: 7,
+    sunsetHour: 19,
+    nwsAlerts: [],
+    todayWindow: { startOffset: 3, hours: 3, tempLow: 66, tempHigh: 68 },
+  },
 };
 
 /** Display label for the active scenario (used to override the location name). */
@@ -268,7 +317,16 @@ export function buildMockWeather(scenario: string | null | undefined): Weather |
     d.setDate(today.getDate() + i);
     d.setHours(12, 0, 0, 0);
     const t = spec.dayTemplate(i);
+    const window = i === 0 ? spec.todayWindow : undefined;
     return {
+      ...(window && {
+        rideWindow: {
+          startHour: (nowHour + window.startOffset) % 24,
+          endHour: (nowHour + window.startOffset + window.hours) % 24,
+          tempLow: window.tempLow,
+          tempHigh: window.tempHigh,
+        },
+      }),
       date: d,
       high: t.high,
       low: t.low,
