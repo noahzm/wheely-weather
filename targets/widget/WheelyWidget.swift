@@ -111,6 +111,9 @@ struct VerdictProvider: TimelineProvider {
 
 struct WheelyWidgetView: View {
   let entry: VerdictEntry
+  // Tinted and Clear home screens drop the colored background, and with it the
+  // verdict's color; `fullColor` is the default and Dark home screens.
+  @Environment(\.widgetRenderingMode) private var renderingMode
 
   var body: some View {
     if let snapshot = entry.snapshot {
@@ -139,10 +142,19 @@ struct WheelyWidgetView: View {
           .font(.title2.weight(.bold))
       }
       Spacer(minLength: 0)
-      Text(entry.headline)
-        .font(.headline.weight(.heavy))
-        .lineLimit(2)
-        .minimumScaleFactor(0.8)
+      HStack(alignment: .firstTextBaseline, spacing: 4) {
+        // Without the color, a symbol says which way the playful headline
+        // leans ("Your call" alone doesn't). The headline still says it in words.
+        if renderingMode != .fullColor {
+          Image(systemName: statusSymbol)
+            .accessibilityHidden(true)
+        }
+        Text(entry.headline)
+          .lineLimit(2)
+          .minimumScaleFactor(0.8)
+      }
+      .font(.headline.weight(.heavy))
+      .widgetAccentable()
       Text(entry.detail)
         .font(.caption)
         .lineLimit(2)
@@ -176,6 +188,15 @@ struct WheelyWidgetView: View {
         }
         Text(snapshot.location)
       }
+    }
+  }
+
+  private var statusSymbol: String {
+    if entry.waiting { return "clock.fill" }
+    switch entry.snapshot?.status {
+    case "yes": return "checkmark.circle.fill"
+    case "maybe": return "questionmark.circle.fill"
+    default: return "xmark.circle.fill"
     }
   }
 
