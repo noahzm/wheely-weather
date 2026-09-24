@@ -160,6 +160,21 @@ describe('getRideVerdict', () => {
     expect(getRideVerdict(mild, THRESHOLDS).rated.temperature).toBe(70);
   });
 
+  it('says maybe, and names the rain, when it’s lightly raining with no window to rate', () => {
+    const drizzly = {
+      ...rainyMorning([day(), day()]),
+      rainChance: 20,
+      weatherCode: 61,
+      condition: 'Light rain',
+    };
+    const verdict = getRideVerdict(drizzly, THRESHOLDS);
+    expect(verdict.when).toBe('current');
+    expect(verdict).toMatchObject({ status: 'maybe', condition: 'marginal' });
+    expect(verdict.message.issues).toContain('light rain');
+    // The stars follow the capped verdict (the maybe band), not the uncapped rating.
+    expect(verdict.score).toBeLessThanOrEqual(6);
+  });
+
   it('falls back to the current conditions when no window exists', () => {
     const weather = rainyMorning([day(), day()]);
     const verdict = getRideVerdict(weather, THRESHOLDS);

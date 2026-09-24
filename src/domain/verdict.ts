@@ -5,8 +5,8 @@ import {
   calculateRideScore,
   conditionToStatus,
   evaluateCondition,
+  getCurrentCondition,
   getOverallCondition,
-  getOverallStatus,
   RANK,
 } from './scoring';
 import { getWeatherDescription, isThunderstorm } from './weather-codes';
@@ -116,12 +116,12 @@ export function getRideVerdict(
   else if (hasWindow(tomorrow)) target = tomorrow;
 
   if (!target) {
-    const condition = getOverallCondition(weather, thresholds);
+    const condition = getCurrentCondition(weather, thresholds);
     const status = conditionToStatus(condition);
     return {
       status,
       condition,
-      score: calculateRideScore(weather, thresholds),
+      score: calculateRideScore(weather, thresholds, status),
       message: getMessage(weather, status, thresholds, tempUnit),
       when: 'current',
       window: null,
@@ -143,7 +143,8 @@ export function getRideVerdict(
   const status = conditionToStatus(condition);
   // A good later window while it's pouring now reads as "go ride" to anyone
   // looking out the window, so the verdict says to wait and names why.
-  if (when === 'later' && status !== 'no' && getOverallStatus(weather, thresholds) === 'no') {
+  const nowStatus = conditionToStatus(getCurrentCondition(weather, thresholds));
+  if (when === 'later' && status !== 'no' && nowStatus === 'no') {
     when = 'wait';
   }
   const message = getMessage(rated, status, thresholds, tempUnit);
