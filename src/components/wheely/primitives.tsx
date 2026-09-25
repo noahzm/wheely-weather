@@ -17,7 +17,7 @@ import {
   CloudSnow,
   CloudSun,
   Sun,
-  type LucideIcon,
+  type IconComponent,
 } from './icons';
 import { SymbolView, type SFSymbol } from 'expo-symbols';
 
@@ -150,19 +150,30 @@ export function PlatformIcon({
   size,
   color,
   strokeWidth = 2,
+  filled = false,
   style,
 }: Readonly<{
-  icon: LucideIcon;
+  icon: IconComponent;
   sf?: SFSymbol;
   size: number;
   color: string;
   strokeWidth?: number;
+  /** The filled variant, as iOS uses `.fill` symbols for tabs and on-states. */
+  filled?: boolean;
   style?: object;
 }>) {
   if (Platform.OS === 'ios' && sf) {
     return <SymbolView name={sf} size={size} tintColor={color} style={style} />;
   }
-  return <Icon size={size} color={color} strokeWidth={strokeWidth} style={style} />;
+  return (
+    <Icon
+      size={size}
+      color={color}
+      strokeWidth={strokeWidth}
+      fill={filled ? color : undefined}
+      style={style}
+    />
+  );
 }
 
 export { KitGearIcon, GameGearIcon, type KitGearIconProps } from './kit-gear-icon';
@@ -204,7 +215,7 @@ export function makeButtonStyles(c: WheelyPalette) {
 }
 
 /** Maps an Open-Meteo WMO weather code to a Lucide icon. */
-export function weatherIconFor(code: number | null | undefined): LucideIcon {
+export function weatherIconFor(code: number | null | undefined): IconComponent {
   if (code == null) return Cloud;
   if (code <= 1) return Sun;
   if (code <= 3) return CloudSun;
@@ -405,7 +416,7 @@ function BurstConditionChip({
   children: ReactNode;
   backgroundColor: string;
   color: string;
-  icon?: LucideIcon;
+  icon?: IconComponent;
   large?: boolean;
   variant?: 'condition' | 'label';
   burstScaleY?: number;
@@ -477,7 +488,7 @@ export function Chip({
   // Condition chips render as a spiky burst badge by default; pass burst={false}
   // for a calm flat pill (used where the badge repeats, e.g. the daily list).
   burst?: boolean;
-  icon?: LucideIcon;
+  icon?: IconComponent;
   style?: object;
 }>) {
   const { c, styles } = useChipStyles();

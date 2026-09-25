@@ -23,7 +23,7 @@ const styles = StyleSheet.create({
   },
 });
 
-/** A solid star glyph: native SF Symbol on iOS, lucide elsewhere. */
+/** A solid star glyph: native SF Symbol on iOS, Fluent elsewhere. */
 function SolidStar({
   sfSymbol,
   size,
@@ -36,7 +36,7 @@ function SolidStar({
   );
 }
 
-/** An outlined/empty star glyph: native SF Symbol on iOS, lucide elsewhere. */
+/** An outlined/empty star glyph: native SF Symbol on iOS, Fluent elsewhere. */
 function EmptyStar({ size, color }: Readonly<{ size: number; color: string }>) {
   return Platform.OS === 'ios' ? (
     <SymbolView name="star" size={size} tintColor={color} />

@@ -1,5 +1,7 @@
 import type { ComponentType } from 'react';
+import { Platform, type StyleProp, type ViewStyle } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
+import { SymbolView, type SFSymbol } from 'expo-symbols';
 import { CloudRain, Snowflake, Sun, Thermometer, Umbrella, Wind } from './icons';
 
 export interface KitGearIconProps {
@@ -7,14 +9,14 @@ export interface KitGearIconProps {
   size: number;
   color: string;
   strokeWidth?: number;
-  style?: object;
+  style?: StyleProp<ViewStyle>;
 }
 
 interface KitSvgProps {
   size: number;
   color: string;
   strokeWidth?: number;
-  style?: object;
+  style?: StyleProp<ViewStyle>;
 }
 
 /** Solid filled cycling short-sleeve jersey. */
@@ -184,6 +186,25 @@ const ICON_COMPONENT_MAP: Record<string, ComponentType<KitSvgProps>> = {
 };
 
 /**
+ * Kit with a real SF Symbol, drawn natively on iOS. The rest (and web/Android,
+ * where Apple's license keeps SF Symbols out) use the solid drawings above.
+ */
+const SF_SYMBOL_MAP: Partial<Record<string, SFSymbol>> = {
+  Shirt: 'tshirt.fill',
+  // jacket.fill is iOS 17+; the app still supports 16.4.
+  ...(Number.parseInt(String(Platform.Version), 10) >= 17 && { Jacket: 'jacket.fill' as const }),
+  ShoeCovers: 'shoe.fill',
+  Footprints: 'shoe.fill',
+  Glasses: 'sunglasses.fill',
+  Sun: 'sun.max.fill',
+  CloudRain: 'cloud.rain.fill',
+  Umbrella: 'umbrella.fill',
+  Wind: 'wind',
+  Thermometer: 'thermometer.medium',
+  Snowflake: 'snowflake',
+};
+
+/**
  * Calculates an optical stroke width scaling so on-screen line thickness
  * stays crisp and consistent (~1.8-2.0px) across different icon sizes.
  */
@@ -197,7 +218,7 @@ function getOpticalStrokeWidth(size: number, explicitStrokeWidth?: number): numb
 }
 
 /**
- * Renders a 24x24 stroke-based icon matching the Lucide design language for clothing and kit tips.
+ * Renders a solid 24x24 kit icon, or its SF Symbol on iOS when one exists.
  */
 export function KitGearIcon({
   iconKey,
@@ -206,6 +227,10 @@ export function KitGearIcon({
   strokeWidth,
   style,
 }: Readonly<KitGearIconProps>) {
+  const sfSymbol = SF_SYMBOL_MAP[iconKey];
+  if (Platform.OS === 'ios' && sfSymbol) {
+    return <SymbolView name={sfSymbol} size={size} tintColor={color} style={style} />;
+  }
   const IconComponent = ICON_COMPONENT_MAP[iconKey] ?? ShirtIcon;
   const resolvedStrokeWidth = getOpticalStrokeWidth(size, strokeWidth);
   return (

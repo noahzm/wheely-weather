@@ -2,7 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
 import { SymbolView, type SFSymbol } from 'expo-symbols';
-import { Clock, CloudRain, Sun, Wind, type LucideIcon } from './icons';
+import { Clock, CloudRain, Sun, Wind, type IconComponent } from './icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
@@ -124,7 +124,7 @@ function useStyles() {
   return { c, styles };
 }
 
-function getFallbackStatusIcon(status: VerdictStatus): LucideIcon {
+function getFallbackStatusIcon(status: VerdictStatus): IconComponent {
   if (status === 'yes') return Sun;
   if (status === 'maybe') return Wind;
   return CloudRain;
@@ -233,7 +233,7 @@ export function RideVerdict({
               icon={statusIcon}
               size={30}
               color={meta.ink}
-              strokeWidth={2.5}
+              filled
               style={hasDetails ? { marginTop: 1 } : undefined}
             />
           )}

@@ -47,6 +47,7 @@ function PinButton({ pinned, onPress }: Readonly<{ pinned: boolean; onPress: () 
         size={16}
         color={pinned ? c.ink : c.mutedInk}
         strokeWidth={pinned ? 2.5 : 2}
+        filled={pinned}
       />
     </HapticPressable>
   );
@@ -72,6 +73,7 @@ function HomeButton({ home, onPress }: Readonly<{ home: boolean; onPress: () => 
         size={16}
         color={home ? c.ink : c.mutedInk}
         strokeWidth={home ? 2.5 : 2}
+        filled={home}
       />
     </HapticPressable>
   );

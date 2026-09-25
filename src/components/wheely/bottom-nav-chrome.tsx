@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
-import { CloudSun, Search, Settings, type LucideIcon } from './icons';
+import { CloudSun, Search, Settings, type IconComponent } from './icons';
 import { usePathname, useRouter, useSegments } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -85,7 +85,7 @@ function NavTab({
   inactiveOpacity,
 }: Readonly<{
   label: string;
-  icon: LucideIcon;
+  icon: IconComponent;
   active: boolean;
   onPress: () => void;
   styles: ReturnType<typeof useBottomNavStyles>;
@@ -114,6 +114,8 @@ function NavTab({
           size={TAB_ICON_SIZE}
           color={color}
           strokeWidth={active ? 2.5 : 2}
+          // Filled like the iOS tab bar's SF `.fill` symbols.
+          filled
         />
         <Text style={[styles.tabLabel, { color }]}>{label}</Text>
       </View>
