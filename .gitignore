@@ -67,3 +67,6 @@ lighthouse-report.json
 
 # Claude Code local overrides
 .claude/settings.local.json
+
+# App Store listing (holds App Review contact details)
+store.config.json

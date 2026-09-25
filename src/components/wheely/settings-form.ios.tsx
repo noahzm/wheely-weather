@@ -250,7 +250,12 @@ export function SettingsForm({
 
           <Section
             title="Credits"
-            footer={<Text>Apple Weather provides forecasts and severe weather alerts on iOS.</Text>}
+            footer={
+              <Text>
+                Apple Weather provides forecasts and severe weather alerts. Air quality data by
+                Open-Meteo.com (CC BY 4.0).
+              </Text>
+            }
           >
             {attribution && (
               <ExternalLinkRow
@@ -259,6 +264,11 @@ export function SettingsForm({
                 url={attribution.legalPageURL}
               />
             )}
+            <ExternalLinkRow
+              title="Open-Meteo"
+              systemImage="aqi.medium"
+              url="https://open-meteo.com/"
+            />
           </Section>
         </List>
       </Host>
