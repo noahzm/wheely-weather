@@ -34,7 +34,7 @@ function makeStyles(c: WheelyPalette) {
  * content just below. Web renders the same arrow inline beside its own heading.
  *
  * The glyph matches the "Use Current Location" row on the search screen:
- * `location.fill` on iOS, lucide `Navigation` elsewhere.
+ * `location.fill` on iOS, Fluent `Navigation` elsewhere.
  */
 export function CurrentLocationBadge() {
   const c = useWheelyColors();

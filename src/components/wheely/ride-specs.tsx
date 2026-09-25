@@ -9,7 +9,7 @@ import {
   Sunset,
   Thermometer,
   Wind,
-  type LucideIcon,
+  type IconComponent,
 } from './icons';
 import { SymbolView, type SFSymbol } from 'expo-symbols';
 
@@ -46,7 +46,7 @@ import {
 } from './primitives';
 
 interface RideSpecMetric {
-  Icon: LucideIcon;
+  Icon: IconComponent;
   sf: string;
   label: string;
   value: string;

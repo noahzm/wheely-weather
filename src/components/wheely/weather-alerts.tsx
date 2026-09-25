@@ -1,7 +1,7 @@
 import { useMemo, useId, useState } from 'react';
 import { Platform, StyleSheet, View, type ViewStyle } from 'react-native';
 import Svg, { Defs, Pattern, Polygon, Rect } from 'react-native-svg';
-import { AlertTriangle, ChevronDown, Thermometer, type LucideIcon } from './icons';
+import { AlertTriangle, ChevronDown, Thermometer, type IconComponent } from './icons';
 import { SymbolView, type SFSymbol } from 'expo-symbols';
 import Animated, { type SharedValue, useAnimatedStyle } from 'react-native-reanimated';
 
@@ -130,7 +130,7 @@ function AlertLeadingIcon({
   sfIcon,
   Icon,
   color,
-}: Readonly<{ sfIcon: SFSymbol; Icon: LucideIcon; color: string }>) {
+}: Readonly<{ sfIcon: SFSymbol; Icon: IconComponent; color: string }>) {
   return Platform.OS === 'ios' ? (
     <SymbolView name={sfIcon} size={20} tintColor={color} />
   ) : (
