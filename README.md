@@ -10,6 +10,10 @@ A cyclist-first weather app for iOS, Android, and the web. Live at [wheelyweathe
   <img src="./assets/images/screenshot-ideal.png" alt="Home screen, ideal ride conditions" width="45%" />
   <img src="./assets/images/screenshot-poor.png" alt="Home screen, poor ride conditions" width="45%" />
 </p>
+<p>
+  <img src="./assets/images/screenshot-week.png" alt="Week ahead with daily ride ratings" width="45%" />
+  <img src="./assets/images/screenshot-dark.png" alt="Home screen in dark mode" width="45%" />
+</p>
 
 ## Features
 

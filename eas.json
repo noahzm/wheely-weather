@@ -22,6 +22,19 @@
         "image": "macos-tahoe-26.5-xcode-26.6"
       },
       "channel": "production"
+    },
+    "screenshots": {
+      "distribution": "internal",
+      "env": {
+        "SHARP_IGNORE_GLOBAL_LIBVIPS": "1",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+      },
+      "ios": {
+        "simulator": true,
+        "buildConfiguration": "Release",
+        "image": "macos-tahoe-26.5-xcode-26.6"
+      },
+      "channel": "screenshots"
     }
   },
   "submit": {
