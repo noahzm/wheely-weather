@@ -205,8 +205,12 @@ export function RideVerdict({
       {/* Top Floating Badge (Score) */}
       {score != null && scoreToStars(score) > 0 && (
         <View style={styles.badgeGroup}>
-          <Animated.View entering={ZoomIn.delay(160).springify()} style={styles.scorePill}>
-            <StarRating rating={scoreToStars(score)} />
+          {/* The entrance animates `transform`, so the tilt lives on an inner
+              view: on the same view the animation overwrote it mid-entrance. */}
+          <Animated.View entering={ZoomIn.delay(160).springify()}>
+            <View style={styles.scorePill}>
+              <StarRating rating={scoreToStars(score)} />
+            </View>
           </Animated.View>
         </View>
       )}
@@ -249,13 +253,15 @@ export function RideVerdict({
       {/* Bottom Floating Timing Badge Button */}
       {message.timing != null && (
         <View style={styles.bottomBadgeGroup}>
-          <Animated.View entering={FadeInDown.delay(200)} style={styles.timingBadge}>
-            {Platform.OS === 'ios' ? (
-              <SymbolView name="clock.fill" size={14} tintColor={c.background} />
-            ) : (
-              <Clock size={14} color={c.background} strokeWidth={2.5} />
-            )}
-            <ThemedText style={styles.timingBadgeText}>{message.timing}</ThemedText>
+          <Animated.View entering={FadeInDown.delay(200)}>
+            <View style={styles.timingBadge}>
+              {Platform.OS === 'ios' ? (
+                <SymbolView name="clock.fill" size={14} tintColor={c.background} />
+              ) : (
+                <Clock size={14} color={c.background} strokeWidth={2.5} />
+              )}
+              <ThemedText style={styles.timingBadgeText}>{message.timing}</ThemedText>
+            </View>
           </Animated.View>
         </View>
       )}
