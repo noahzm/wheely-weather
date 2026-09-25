@@ -60,7 +60,9 @@ export function useLocationActions(
       void saveLocation(next).catch((error: unknown) => {
         captureError(error, { where: 'setManualLocation:save' });
       });
-      void saveRecentLocation(place).catch((error: unknown) => {
+      // Awaited (a quick local write): the load below reads the recents list,
+      // and racing it left the place just picked out of Recent until the next load.
+      await saveRecentLocation(place).catch((error: unknown) => {
         captureError(error, { where: 'saveRecentLocation' });
       });
 

@@ -16,7 +16,12 @@ import type { RecentLocation } from '@/services/locationStorage';
 import { captureError } from '@/services/telemetry';
 import { getCachedPlaceVerdict } from '@/utils/placeVerdict';
 
-export function useLocationSearchScreen() {
+/**
+ * @param onPlaceChosen - Called once a picked place (or the device fix) has
+ *   loaded, so the screen can close its native search bar. The query is reset
+ *   here; without both, returning to Search reopened the last search.
+ */
+export function useLocationSearchScreen(onPlaceChosen?: () => void) {
   const router = useRouter();
   const forecast = useForecast();
 
@@ -29,6 +34,8 @@ export function useLocationSearchScreen() {
   const { results, message, isLoading } = useLocationSearch(query);
 
   const goToHome = useCallback(() => {
+    setQuery('');
+    onPlaceChosen?.();
     // On web the tabs render as a Stack; navigate() pushes a duplicate home
     // screen instead of unwinding, so dismiss back to it. Native tabs switch.
     if (Platform.OS === 'web') {
@@ -36,7 +43,7 @@ export function useLocationSearchScreen() {
     } else {
       router.navigate('/(tabs)/(home)');
     }
-  }, [router]);
+  }, [router, onPlaceChosen]);
 
   const choosePlace = useCallback(
     async (place: RowItem) => {
