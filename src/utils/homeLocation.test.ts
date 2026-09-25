@@ -23,8 +23,11 @@ describe('toHomeLocation', () => {
 });
 
 describe('pickAutoHomeLocation', () => {
+  const searched: SavedLocation = { lat: 39.74, lon: -104.99, name: 'Denver', source: 'manual' };
   const base = {
+    homeLocation: null,
     homeLocationChosen: false,
+    homeLocationAuto: false,
     mockScenario: null,
     savedLocation: houston,
     placeName: 'Houston, Texas',
@@ -35,7 +38,36 @@ describe('pickAutoHomeLocation', () => {
   });
 
   it('leaves a chosen or cleared home alone', () => {
+    expect(
+      pickAutoHomeLocation({ ...base, homeLocation: searched, homeLocationChosen: true }),
+    ).toBeNull();
     expect(pickAutoHomeLocation({ ...base, homeLocationChosen: true })).toBeNull();
+  });
+
+  it('replaces a provisional home from a search with the first GPS fix', () => {
+    const provisional = {
+      ...base,
+      homeLocation: searched,
+      homeLocationChosen: true,
+      homeLocationAuto: true,
+    };
+    expect(pickAutoHomeLocation(provisional)?.name).toBe('Houston, TX');
+    // Another search doesn't move it; only a device fix is a better guess.
+    expect(
+      pickAutoHomeLocation({ ...provisional, savedLocation: { ...houston, source: 'manual' } }),
+    ).toBeNull();
+  });
+
+  it('keeps a provisional home that already came from GPS', () => {
+    expect(
+      pickAutoHomeLocation({
+        ...base,
+        homeLocation: houston,
+        homeLocationChosen: true,
+        homeLocationAuto: true,
+        savedLocation: { ...houston, lat: 30.27, lon: -97.74 },
+      }),
+    ).toBeNull();
   });
 
   it('never assigns from a mock preview', () => {

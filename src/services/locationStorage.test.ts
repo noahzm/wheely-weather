@@ -100,6 +100,18 @@ describe('home location', () => {
     });
   });
 
+  it('round-trips an app-assigned home as provisional', async () => {
+    await saveHomeLocation(
+      { lat: 29.76, lon: -95.37, name: 'Houston, TX', source: 'manual' },
+      { auto: true },
+    );
+    await expect(loadAllSettings()).resolves.toMatchObject({
+      homeLocation: { name: 'Houston, TX' },
+      homeLocationChosen: true,
+      homeLocationAuto: true,
+    });
+  });
+
   // A cleared home must stay cleared: an absent key is what allows auto-assign.
   it('reads a never-set home as not chosen', async () => {
     await expect(loadAllSettings()).resolves.toMatchObject({
@@ -213,6 +225,7 @@ describe('settings', () => {
       exposureLevel: 'high',
       homeLocation: { lat: 10, lon: 20, name: 'Home', source: 'manual' },
       homeLocationChosen: true,
+      homeLocationAuto: false,
     });
     expect(storage.multiGet).toHaveBeenCalledTimes(1);
   });

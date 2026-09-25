@@ -47,9 +47,12 @@ export function SettingsForm({
   onExposureChange,
   homeBaseline,
   homeLabel,
+  activeLabel,
+  homeAutoFromSearch,
   canSetHome,
   onSetHome,
   onClearHome,
+  onChangeHome,
 }: Readonly<SettingsFormProps>) {
   const insets = useSafeAreaInsets();
   const form = (
@@ -76,6 +79,9 @@ export function SettingsForm({
 
       <HomeClimateSection
         homeLabel={homeLabel}
+        activeLabel={activeLabel}
+        homeAutoFromSearch={homeAutoFromSearch}
+        onChangeHome={onChangeHome}
         canSetHome={canSetHome}
         exposureLevel={exposureLevel}
         homeBaseline={homeBaseline}

@@ -23,21 +23,32 @@ export function toHomeLocation(location: SavedLocation, placeName?: string | nul
  * The home to assign automatically after a forecast loads, or null to leave
  * home alone. Home climate is what adapts the comfort limits to a rider's
  * climate, and riders in hot, humid or cold places rarely found the setting,
- * so the first real place a rider loads becomes home until they change it.
- * Never after the rider has chosen (or cleared) a home, and never from a mock
- * preview, which must not touch persisted location state.
+ * so the first real place a rider loads becomes a provisional home.
+ *
+ * A provisional home from a search (a trip, maybe) gives way to the first GPS
+ * fix, which is a far better guess at where the rider lives; after that it
+ * stays put, so riding around with GPS on never moves it. Anything the rider
+ * chooses, or clears, is final. A mock preview never assigns: it must not
+ * touch persisted location state.
  */
 export function pickAutoHomeLocation({
+  homeLocation,
   homeLocationChosen,
+  homeLocationAuto,
   mockScenario,
   savedLocation,
   placeName,
 }: Readonly<{
+  homeLocation: SavedLocation | null;
   homeLocationChosen: boolean;
+  homeLocationAuto: boolean;
   mockScenario: string | null;
   savedLocation: SavedLocation | null;
   placeName?: string | null;
 }>): SavedLocation | null {
-  if (homeLocationChosen || mockScenario || !savedLocation) return null;
-  return toHomeLocation(savedLocation, placeName);
+  if (mockScenario || !savedLocation) return null;
+  if (!homeLocationChosen) return toHomeLocation(savedLocation, placeName);
+  const upgradeToGps =
+    homeLocationAuto && homeLocation?.source !== 'device' && savedLocation.source === 'device';
+  return upgradeToGps ? toHomeLocation(savedLocation, placeName) : null;
 }

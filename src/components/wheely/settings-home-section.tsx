@@ -15,7 +15,8 @@ import { Fonts, Spacing, Type, type WheelyPalette } from '@/constants/theme';
 import type { ExposureLevel } from '@/types/settings';
 import type { HomeBaseline } from '@/types/weather';
 import { selectionFeedback } from '@/utils/haptics';
-import { BrutalCard, SectionTitle } from './primitives';
+import { ChevronRight } from './icons';
+import { BrutalCard, PressedOpacity, SectionTitle } from './primitives';
 import { RNSegmentedPicker } from './rn-segmented-picker';
 import { EXPOSURE_LABELS, EXPOSURE_VALUES } from './settings-form.types';
 
@@ -57,6 +58,21 @@ function makeStyles(c: WheelyPalette) {
       color: c.mutedInk,
       fontFamily: Fonts.body,
       ...Type.small,
+    },
+    homeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.two,
+    },
+    homeRowPressed: {
+      opacity: PressedOpacity,
+    },
+    homeValue: {
+      flex: 1,
+      color: c.mutedInk,
+      fontFamily: Fonts.body,
+      ...Type.body,
+      textAlign: 'right',
     },
   });
 }
@@ -125,25 +141,32 @@ function RNSwitch({
 }
 
 /**
- * Home-climate control: pins the rider's home location, whose recent climate sets
- * their acclimatization baseline. When unset, the verdict uses the reference
- * defaults; when set, hot/humid conditions are judged against what they're used to.
+ * Home-climate control. The toggle adapts ratings to the rider's home, whose
+ * recent climate sets their acclimatization baseline; the Home row names that
+ * place and opens search to change it. Off, the verdict uses the reference
+ * defaults.
  */
 export function HomeClimateSection({
   homeLabel,
+  activeLabel,
+  homeAutoFromSearch,
   canSetHome,
   exposureLevel,
   homeBaseline,
   onSetHome,
   onClearHome,
+  onChangeHome,
   onExposureChange,
 }: Readonly<{
   homeLabel: string | null;
+  activeLabel: string | null;
+  homeAutoFromSearch: boolean;
   canSetHome: boolean;
   exposureLevel: ExposureLevel;
   homeBaseline: HomeBaseline | null;
   onSetHome: () => void;
   onClearHome: () => void;
+  onChangeHome: () => void;
   onExposureChange: (level: ExposureLevel) => void;
 }>) {
   const c = useWheelyColors();
@@ -151,7 +174,10 @@ export function HomeClimateSection({
 
   const unit = useResolvedTempUnit();
   // What the setting does, in ride-day temperatures; shared with the iOS form.
-  const adjustment = describeClimateAdjustment(homeBaseline, exposureLevel, unit).join(' ');
+  const adjustment = [
+    ...describeClimateAdjustment(homeBaseline, exposureLevel, unit, homeLabel),
+    ...(homeAutoFromSearch ? [CLIMATE_MESSAGES.AUTO_FROM_SEARCH] : []),
+  ].join(' ');
 
   return (
     <View style={styles.group}>
@@ -159,18 +185,33 @@ export function HomeClimateSection({
       <BrutalCard style={styles.card}>
         <View style={styles.toggleRow}>
           <ThemedText style={styles.toggleLabel} numberOfLines={2}>
-            {homeLabel ?? 'Use current location as home'}
+            {CLIMATE_MESSAGES.TOGGLE}
           </ThemedText>
           <RNSwitch
             value={!!homeLabel}
             disabled={!homeLabel && !canSetHome}
-            accessibilityLabel={homeLabel ?? 'Use current location as home'}
+            accessibilityLabel={CLIMATE_MESSAGES.TOGGLE}
             onValueChange={(v) => {
               if (v) onSetHome();
               else onClearHome();
             }}
           />
         </View>
+
+        {!!homeLabel && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${CLIMATE_MESSAGES.LOCATION}: ${homeLabel}. Change`}
+            onPress={onChangeHome}
+            style={({ pressed }) => [styles.homeRow, pressed && styles.homeRowPressed]}
+          >
+            <ThemedText style={styles.toggleLabel}>{CLIMATE_MESSAGES.LOCATION}</ThemedText>
+            <ThemedText style={styles.homeValue} numberOfLines={1}>
+              {homeLabel}
+            </ThemedText>
+            <ChevronRight size={18} color={c.mutedInk} />
+          </Pressable>
+        )}
 
         {!!homeLabel && (
           <View style={styles.pickerContainer}>
@@ -187,7 +228,9 @@ export function HomeClimateSection({
           </View>
         )}
 
-        {!homeLabel && <ThemedText style={styles.hint}>{CLIMATE_MESSAGES.HINT_OFF}</ThemedText>}
+        {!homeLabel && (
+          <ThemedText style={styles.hint}>{CLIMATE_MESSAGES.HINT_OFF(activeLabel)}</ThemedText>
+        )}
       </BrutalCard>
     </View>
   );

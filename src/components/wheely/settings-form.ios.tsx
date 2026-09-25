@@ -16,11 +16,13 @@ import {
 } from '@expo/ui/swift-ui';
 import {
   buttonStyle,
+  contentShape,
   disabled,
   font,
   foregroundStyle,
   listStyle,
   pickerStyle,
+  shapes,
   tag,
   tint,
 } from '@expo/ui/swift-ui/modifiers';
@@ -118,6 +120,7 @@ function HomeClimateSectionIOS({
   accentColor,
   onSetHome,
   onClearHome,
+  onChangeHome,
   onExposureChange,
 }: Readonly<{
   homeOn: boolean;
@@ -128,6 +131,7 @@ function HomeClimateSectionIOS({
   accentColor: string;
   onSetHome: () => void;
   onClearHome: () => void;
+  onChangeHome: () => void;
   onExposureChange: (level: ExposureLevel) => void;
 }>) {
   return (
@@ -140,8 +144,28 @@ function HomeClimateSectionIOS({
         }}
         modifiers={[disabled(!homeOn && !canSetHome), tint(accentColor)]}
       >
-        <Text>{homeLabel ?? 'Use current location as home'}</Text>
+        <Text>{CLIMATE_MESSAGES.TOGGLE}</Text>
       </Toggle>
+      {/* Names the home and opens search to change it, like a Settings.app
+          detail row, instead of toggling off, moving, and toggling back on. */}
+      {homeOn && homeLabel && (
+        <Button modifiers={[buttonStyle('plain')]} onPress={onChangeHome}>
+          {/* Without a content shape only the text and chevron take taps; the
+              gap between them read as a dead row. */}
+          <HStack modifiers={[contentShape(shapes.rectangle())]}>
+            <Text>{CLIMATE_MESSAGES.LOCATION}</Text>
+            <Spacer />
+            <Text modifiers={[foregroundStyle({ type: 'hierarchical', style: 'secondary' })]}>
+              {homeLabel}
+            </Text>
+            <Image
+              systemName="chevron.right"
+              size={13}
+              modifiers={[foregroundStyle({ type: 'hierarchical', style: 'tertiary' })]}
+            />
+          </HStack>
+        </Button>
+      )}
       {/* One row: the question captions the picker. As its own row, plain
           text in a grouped list reads as something to tap. */}
       {homeOn && (
@@ -187,9 +211,12 @@ export function SettingsForm({
   onExposureChange,
   homeBaseline,
   homeLabel,
+  activeLabel,
+  homeAutoFromSearch,
   canSetHome,
   onSetHome,
   onClearHome,
+  onChangeHome,
 }: Readonly<SettingsFormProps>) {
   const c = useWheelyColors();
   const attribution = useWeatherAttribution();
@@ -197,8 +224,11 @@ export function SettingsForm({
   const homeOn = !!homeLabel;
   // On: what the setting does, in ride-day temperatures. Off: how to use it.
   const homeHint = homeOn
-    ? describeClimateAdjustment(homeBaseline, exposureLevel, unit).join(' ')
-    : CLIMATE_MESSAGES.HINT_OFF;
+    ? [
+        ...describeClimateAdjustment(homeBaseline, exposureLevel, unit, homeLabel),
+        ...(homeAutoFromSearch ? [CLIMATE_MESSAGES.AUTO_FROM_SEARCH] : []),
+      ].join(' ')
+    : CLIMATE_MESSAGES.HINT_OFF(activeLabel);
 
   return (
     <View style={styles.container}>
@@ -245,6 +275,7 @@ export function SettingsForm({
             accentColor={c.accent}
             onSetHome={onSetHome}
             onClearHome={onClearHome}
+            onChangeHome={onChangeHome}
             onExposureChange={onExposureChange}
           />
 

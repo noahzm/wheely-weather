@@ -244,6 +244,17 @@ describe('describeClimateAdjustment', () => {
     );
   });
 
+  it('names the home and its 30-day window when the climate applies', () => {
+    expect(describeClimateAdjustment(GULF, 'moderate', 'fahrenheit', 'Houston, TX').at(-1)).toBe(
+      'Based on the last 30 days in Houston, TX.',
+    );
+    expect(describeClimateAdjustment(TEMPERATE, 'moderate', 'fahrenheit', 'Portland, OR')).toEqual([
+      'Your home’s weather is close to the standard, so ride days run 40–82°F.',
+      'Based on the last 30 days in Portland, OR.',
+    ]);
+    expect(describeClimateAdjustment(GULF, 'indoor', 'fahrenheit', 'Houston, TX')).toHaveLength(1);
+  });
+
   it('lowers the cold end for a cold home, and speaks the rider’s unit', () => {
     const { coldShift } = deriveAcclimatization(CHICAGO_WINTER, 'high');
     expect(coldShift).toBeGreaterThan(0);

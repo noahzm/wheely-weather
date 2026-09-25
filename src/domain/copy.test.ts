@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  CLIMATE_MESSAGES,
   ALERT_MESSAGES,
   ISSUE_PHRASES,
   STATUS_MESSAGES,
@@ -11,6 +12,13 @@ import {
 import { getMessage } from './ride-factors';
 import { getHourlyCondition } from './scoring';
 import { getHourConditionReasons } from '../utils/forecastHelpers';
+
+describe('home climate copy', () => {
+  it('names the place turning it on would use, or asks for one', () => {
+    expect(CLIMATE_MESSAGES.HINT_OFF('Houston, TX')).toContain('to Houston, TX’s climate');
+    expect(CLIMATE_MESSAGES.HINT_OFF(null)).toContain('Pick a place first');
+  });
+});
 
 describe('verdict labels', () => {
   beforeEach(() => vi.useFakeTimers());
