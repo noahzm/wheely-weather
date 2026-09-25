@@ -47,12 +47,16 @@ export function useLocationActions(
       };
       const cached = getMemoryCachedForecast(next);
       needsLocationRef.current = false;
+      // Without a cached forecast, show the loading state rather than keeping
+      // the previous place's snapshot under the new location.
       setState((current) => ({
         ...current,
         needsLocation: false,
         savedLocation: next,
-        snapshot: cached ? cached.snapshot : current.snapshot,
-        refreshing: !cached,
+        snapshot: cached ? cached.snapshot : null,
+        loading: !cached,
+        refreshing: false,
+        errorKind: null,
         statusMessage: '',
       }));
 
@@ -66,7 +70,10 @@ export function useLocationActions(
         captureError(error, { where: 'saveRecentLocation' });
       });
 
-      await loadForecast(next, true);
+      // Not awaited: callers (search) leave for the forecast screen at once and
+      // it loads there, instead of search hanging until the fetch finishes.
+      // `loadForecast` settles `loading` itself, on success or failure.
+      void loadForecast(next);
       return true;
     },
     [loadForecast, needsLocationRef, setState],
