@@ -7,6 +7,7 @@ import {
   parseExposureLevel,
   parseGearMode,
   parseHomeLocation,
+  parseHomeLocationAuto,
   parseHomeLocationChosen,
   parseTempUnit,
 } from './settingsCodec';
@@ -35,6 +36,7 @@ describe('setting parsers', () => {
       appearance: parseAppearance(null),
       homeLocation: parseHomeLocation(null),
       homeLocationChosen: parseHomeLocationChosen(null),
+      homeLocationAuto: parseHomeLocationAuto(null),
       tempUnit: parseTempUnit(null),
       exposureLevel: parseExposureLevel(null),
     });
@@ -46,6 +48,13 @@ describe('parseHomeLocationChosen', () => {
     expect(parseHomeLocationChosen(null)).toBe(false);
     expect(parseHomeLocationChosen('{"version":1,"cleared":true}')).toBe(true);
     expect(parseHomeLocationChosen('{"version":1,"lat":1,"lon":2}')).toBe(true);
+  });
+
+  it('reads the provisional marker only on a real home', () => {
+    expect(parseHomeLocationAuto('{"version":1,"lat":1,"lon":2,"auto":true}')).toBe(true);
+    expect(parseHomeLocationAuto('{"version":1,"lat":1,"lon":2}')).toBe(false);
+    expect(parseHomeLocationAuto('{"version":1,"cleared":true,"auto":true}')).toBe(false);
+    expect(parseHomeLocationAuto('{not json')).toBe(false);
   });
 
   it('reads a cleared marker as no home', () => {

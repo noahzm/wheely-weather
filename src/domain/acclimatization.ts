@@ -135,18 +135,24 @@ const rideRange = (t: Thresholds, unit: TempUnit): string =>
 /**
  * What the home climate setting does, in plain numbers, for the settings
  * screen: the ride-day temperature range it produces against the standard one,
- * plus a humidity line when that moved too. One sentence per entry.
+ * plus a humidity line when that moved too. When the home's climate applies,
+ * a last line says it comes from the home's last 30 days, which is why the
+ * numbers move with the seasons. One sentence per entry.
  */
 export const describeClimateAdjustment = (
   homeBaseline: HomeBaseline | null | undefined,
   exposureLevel: ExposureLevel,
   unit: TempUnit,
+  homeLabel?: string | null,
 ): string[] => {
   const standard = rideRange(THRESHOLDS, unit);
   if (!homeBaseline || exposureLevel === 'indoor') return [MSG.STANDARD(standard)];
+  const basis = homeLabel ? [MSG.BASIS(homeLabel)] : [];
 
   const shift = deriveAcclimatization(homeBaseline, exposureLevel);
-  if (!shift.tempShift && !shift.coldShift && !shift.dewShift) return [MSG.NO_SHIFT(standard)];
+  if (!shift.tempShift && !shift.coldShift && !shift.dewShift) {
+    return [MSG.NO_SHIFT(standard), ...basis];
+  }
 
   const adjusted = applyAcclimatization(THRESHOLDS, shift);
   const lines = [MSG.SHIFTED(rideRange(adjusted, unit), standard)];
@@ -155,5 +161,5 @@ export const describeClimateAdjustment = (
       formatTemperature(t.DEWPOINT.MARGINAL, unit, { withUnitLabel: true });
     lines.push(MSG.HUMIDITY(dew(adjusted), dew(THRESHOLDS)));
   }
-  return lines;
+  return [...lines, ...basis];
 };

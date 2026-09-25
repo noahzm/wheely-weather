@@ -78,11 +78,26 @@ export function parseHomeLocationChosen(raw: string | null): boolean {
   return raw != null;
 }
 
+/**
+ * True when the stored home was assigned automatically rather than chosen by
+ * the rider. A provisional home may be replaced by a better guess (the first
+ * GPS fix); anything the rider picks is final.
+ */
+export function parseHomeLocationAuto(raw: string | null): boolean {
+  if (!parseHomeLocation(raw)) return false;
+  try {
+    return (JSON.parse(raw ?? '') as { auto?: unknown }).auto === true;
+  } catch {
+    return false;
+  }
+}
+
 export interface PersistedSettings {
   gearMode: GearMode;
   appearance: Appearance;
   homeLocation: SavedLocation | null;
   homeLocationChosen: boolean;
+  homeLocationAuto: boolean;
   tempUnit: TempUnitPreference;
   exposureLevel: ExposureLevel;
 }
@@ -92,6 +107,7 @@ export const DEFAULT_SETTINGS: PersistedSettings = {
   appearance: 'system',
   homeLocation: null,
   homeLocationChosen: false,
+  homeLocationAuto: false,
   tempUnit: 'auto',
   exposureLevel: DEFAULT_EXPOSURE_LEVEL,
 };

@@ -33,6 +33,10 @@ interface SettingsValue {
   homeLocation: SettingTuple<SavedLocation | null>;
   /** True once a home has been set or cleared; false means it may be auto-assigned. */
   homeLocationChosen: boolean;
+  /** True when the current home was assigned by the app, not chosen by the rider. */
+  homeLocationAuto: boolean;
+  /** Stores an app-assigned (provisional) home; see `pickAutoHomeLocation`. */
+  assignAutoHome: (next: SavedLocation) => void;
   tempUnit: SettingTuple<TempUnitPreference>;
   exposureLevel: SettingTuple<ExposureLevel>;
   /** True once the persisted values have been read from storage. */
@@ -84,11 +88,26 @@ export function SettingsProvider({ children }: Readonly<{ children: ReactNode }>
       homeLocation: [
         settings.homeLocation,
         (next: SavedLocation | null) => {
-          setSettings((current) => ({ ...current, homeLocation: next, homeLocationChosen: true }));
+          setSettings((current) => ({
+            ...current,
+            homeLocation: next,
+            homeLocationChosen: true,
+            homeLocationAuto: false,
+          }));
           (next ? saveHomeLocation(next) : clearHomeLocation()).catch(swallowWriteError);
         },
       ],
       homeLocationChosen: settings.homeLocationChosen,
+      homeLocationAuto: settings.homeLocationAuto,
+      assignAutoHome: (next: SavedLocation) => {
+        setSettings((current) => ({
+          ...current,
+          homeLocation: next,
+          homeLocationChosen: true,
+          homeLocationAuto: true,
+        }));
+        saveHomeLocation(next, { auto: true }).catch(swallowWriteError);
+      },
       tempUnit: [
         settings.tempUnit,
         (next: TempUnitPreference) => {
@@ -132,8 +151,15 @@ export function useHomeLocation(): SettingTuple<SavedLocation | null> {
   return useSettings().homeLocation;
 }
 
-export function useHomeLocationChosen(): boolean {
-  return useSettings().homeLocationChosen;
+/** Everything the one-time home auto-assign needs to decide and act. */
+export function useAutoHomeSettings() {
+  const { homeLocation, homeLocationChosen, homeLocationAuto, assignAutoHome } = useSettings();
+  return { homeLocation: homeLocation[0], homeLocationChosen, homeLocationAuto, assignAutoHome };
+}
+
+/** True when the rider's home was assigned by the app rather than chosen. */
+export function useHomeLocationAuto(): boolean {
+  return useSettings().homeLocationAuto;
 }
 
 export function useTempUnit(): SettingTuple<TempUnitPreference> {

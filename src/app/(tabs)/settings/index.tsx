@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { Platform, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import Head from 'expo-router/head';
 
 import { SettingsForm, WebScreenHeader, WebScreenTitle } from '@/components/wheely';
@@ -7,6 +8,7 @@ import {
   useAppearance,
   useExposureLevel,
   useHomeLocation,
+  useHomeLocationAuto,
   useTempUnit,
 } from '@/hooks/settings-context';
 import { useForecast } from '@/hooks/forecast-context';
@@ -28,6 +30,13 @@ export default function SettingsScreen() {
     homeLocation?.name ??
     (homeLocation ? `${homeLocation.lat.toFixed(1)}, ${homeLocation.lon.toFixed(1)}` : null);
 
+  const homeLocationAuto = useHomeLocationAuto();
+  const router = useRouter();
+  // The place turning home climate on would use, named in the off-state hint.
+  const activeLabel = active ? toHomeLocation(active, forecast.snapshot?.location).name : null;
+  // A GPS-based auto home is a safe guess; one from a search might be a trip.
+  const homeAutoFromSearch = homeLocationAuto && homeLocation?.source !== 'device';
+
   const onSetHome = useCallback(() => {
     if (!active) return;
     setHomeLocation(toHomeLocation(active, forecast.snapshot?.location));
@@ -36,6 +45,10 @@ export default function SettingsScreen() {
   const onClearHome = useCallback(() => {
     setHomeLocation(null);
   }, [setHomeLocation]);
+
+  const onChangeHome = useCallback(() => {
+    router.navigate('/location');
+  }, [router]);
 
   return (
     <>
@@ -59,9 +72,12 @@ export default function SettingsScreen() {
           onExposureChange={setExposureLevel}
           homeBaseline={homeBaseline}
           homeLabel={homeLabel}
+          activeLabel={activeLabel}
+          homeAutoFromSearch={homeAutoFromSearch}
           canSetHome={!!active}
           onSetHome={onSetHome}
           onClearHome={onClearHome}
+          onChangeHome={onChangeHome}
         />
       </View>
     </>

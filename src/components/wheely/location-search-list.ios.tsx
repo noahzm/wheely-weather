@@ -31,7 +31,9 @@ import { Spacing, TRANSPARENT } from '@/constants/theme';
 import { useColorSchemeName, useWheelyColors } from '@/hooks/use-theme';
 
 import {
+  homeAccessibilityLabel,
   isActive,
+  isHome,
   isPinned,
   pinAccessibilityLabel,
   placeKey,
@@ -100,30 +102,33 @@ function PlaceVerdictBadge({ verdict }: Readonly<{ verdict: PlaceVerdict | null 
 }
 
 /**
- * A saved place: tap to show its forecast, pin button to keep it in the list.
- *
- * Setting home lives in Settings › Home climate rather than on every row — it
- * is one global choice, not a per-row one, and duplicating it here cost a second
- * control on the trailing edge. Pin stays inline rather than behind a swipe
- * because a swipe action's glyph is forced white by SwiftUI, and white cannot
- * sit on the accent (1.6:1); on the row itself the accent reads at ~11.8:1.
+ * A saved place: tap to show its forecast; house and pin buttons set it as the
+ * home climate and keep it in the list. Home is set here, where places are
+ * managed (as on web), and Settings › Home climate links back to it. Both stay
+ * inline rather than behind a swipe because a swipe action's glyph is forced
+ * white by SwiftUI, and white cannot sit on the accent (1.6:1); on the row
+ * itself the accent reads at ~11.8:1.
  */
 function PinnableRow({
   item,
   busy,
   pinned,
+  home,
   active,
   verdict,
   onSelect,
   onTogglePin,
+  onToggleHome,
 }: Readonly<{
   item: RowItem;
   busy: boolean;
   pinned: boolean;
+  home: boolean;
   active: boolean;
   verdict: PlaceVerdict | null;
   onSelect: () => void;
   onTogglePin: () => void;
+  onToggleHome: () => void;
 }>) {
   const c = useWheelyColors();
   const scheme = useColorSchemeName();
@@ -148,9 +153,24 @@ function PinnableRow({
           modifiers={[foregroundStyle(active ? activeGlyphColor : TRANSPARENT)]}
         />
       </Button>
-      {/* No controlSize('small') here: at the default size this clears the 44pt
+      {/* No controlSize('small') here: at the default size these clear the 44pt
           minimum, which the previous 15pt icon buttons did not. Colour carries
           the state alongside the fill, since fill alone was near-invisible. */}
+      <Button
+        label={homeAccessibilityLabel(home)}
+        systemImage={home ? 'house.fill' : 'house'}
+        modifiers={[
+          labelStyle('iconOnly'),
+          buttonStyle('plain'),
+          disabled(busy),
+          foregroundStyle(
+            home
+              ? activeGlyphColor
+              : { type: 'hierarchical' as const, style: 'secondary' as const },
+          ),
+        ]}
+        onPress={onToggleHome}
+      />
       <Button
         label={pinAccessibilityLabel(pinned)}
         systemImage={pinned ? 'pin.fill' : 'pin'}
@@ -224,19 +244,23 @@ function LocationSectionView({
   busy,
   deviceMessage,
   pinnedLocations,
+  homeLocation,
   activeLocation,
   verdictFor,
   onSelect,
   onTogglePin,
+  onToggleHome,
 }: Readonly<{
   section: LocationSection;
   busy: boolean;
   deviceMessage: string;
   pinnedLocations: LocationSearchListProps['pinnedLocations'];
+  homeLocation: LocationSearchListProps['homeLocation'];
   activeLocation: LocationSearchListProps['activeLocation'];
   verdictFor: LocationSearchListProps['verdictFor'];
   onSelect: (item: RowItem) => void;
   onTogglePin: (item: RowItem) => void;
+  onToggleHome: (item: RowItem) => void;
 }>) {
   if (section.id === 'options') {
     return (
@@ -270,6 +294,7 @@ function LocationSectionView({
             item={item}
             busy={busy}
             pinned={isPinned(item, pinnedLocations)}
+            home={isHome(item, homeLocation)}
             active={isActive(item, activeLocation)}
             verdict={verdictFor(item)}
             onSelect={() => {
@@ -277,6 +302,9 @@ function LocationSectionView({
             }}
             onTogglePin={() => {
               onTogglePin(item);
+            }}
+            onToggleHome={() => {
+              onToggleHome(item);
             }}
           />
         ))}
@@ -286,7 +314,7 @@ function LocationSectionView({
 }
 
 /**
- * iOS location search list — native SwiftUI List with tap-to-pin and swipe-to-pin.
+ * iOS location search list — native SwiftUI List with inline home and pin buttons.
  */
 export function LocationSearchList({
   sections,
@@ -297,10 +325,12 @@ export function LocationSearchList({
   isSearching,
   resultsCount,
   pinnedLocations,
+  homeLocation,
   activeLocation,
   verdictFor,
   onSelect,
   onTogglePin,
+  onToggleHome,
 }: Readonly<LocationSearchListProps>) {
   const showProgress = isSearching && isLoading;
   // ContentUnavailableView is for "nothing to show" — no matches, or a failed
@@ -337,10 +367,12 @@ export function LocationSearchList({
               busy={busy}
               deviceMessage={deviceMessage}
               pinnedLocations={pinnedLocations}
+              homeLocation={homeLocation}
               activeLocation={activeLocation}
               verdictFor={verdictFor}
               onSelect={onSelect}
               onTogglePin={onTogglePin}
+              onToggleHome={onToggleHome}
             />
           ))}
         </List>

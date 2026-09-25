@@ -492,9 +492,18 @@ export function formatVerdictDetail(status: RideStatus, message: VerdictMessage)
  * drift apart. Ranges are the temperatures that still rate a ride day.
  */
 export const CLIMATE_MESSAGES = {
+  // The section is titled "Home climate", so rows don't repeat "home".
+  TOGGLE: 'Adapt ratings',
+  LOCATION: 'Location',
   QUESTION: 'How often do you ride outside?',
-  HINT_OFF:
-    'Set your home so the verdict adapts to your climate, hot or cold. How much depends on how often you ride outside.',
+  // Names the place turning it on would use: "current location" read as GPS,
+  // but it's whatever place the forecast is showing.
+  HINT_OFF: (place: string | null) =>
+    place
+      ? `Tunes ratings to ${place}’s climate, hot or cold. How much depends on how often you ride outside.`
+      : 'Tunes ratings to your climate, hot or cold. Pick a place first, then turn this on.',
+  BASIS: (place: string) => `Based on the last 30 days in ${place}.`,
+  AUTO_FROM_SEARCH: 'Set from the first place you searched. Tap Location to change it.',
   STANDARD: (range: string) => `The standard range applies: ride days run ${range}.`,
   NO_SHIFT: (range: string) =>
     `Your home’s weather is close to the standard, so ride days run ${range}.`,

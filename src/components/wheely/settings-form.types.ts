@@ -24,6 +24,12 @@ export interface SettingsFormProps {
   homeBaseline: HomeBaseline | null;
   /** Label of the rider's saved home location, or null when unset. */
   homeLabel: string | null;
+  /** Label of the place turning home climate on would use, or null when none. */
+  activeLabel: string | null;
+  /** True when home was auto-assigned from a search, so the rider is told. */
+  homeAutoFromSearch: boolean;
+  /** Opens location search, where home is set, to pick a different one. */
+  onChangeHome: () => void;
   /** True when there is an active location that can be saved as home. */
   canSetHome: boolean;
   /** Save the current active location as the acclimatization home. */

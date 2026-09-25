@@ -1,36 +1,38 @@
 import { useCallback, useEffect, useRef } from 'react';
 
-import { useHomeLocation, useHomeLocationChosen } from '@/hooks/settings-context';
+import { useAutoHomeSettings } from '@/hooks/settings-context';
 import type { SavedLocation } from '@/services/locationStorage';
 import { pickAutoHomeLocation } from '@/utils/homeLocation';
 
 /**
- * Returns a callback that makes a freshly loaded place the rider's home when
- * they have never chosen one (see `pickAutoHomeLocation`). Call it where the
- * snapshot is known to belong to `savedLocation`. Setting home changes
- * `loadForecast`, so the load effect refetches once with its climate applied.
+ * Returns a callback that assigns (or upgrades) a provisional home after a
+ * forecast loads (see `pickAutoHomeLocation`). Call it where the snapshot is
+ * known to belong to `savedLocation`. Setting home changes `loadForecast`, so
+ * the load effect refetches once with its climate applied.
  *
- * The chosen flag and setter are read through a ref: the settings setter
- * changes identity with every setting, so depending on it would make an
- * appearance toggle refetch the forecast.
+ * The settings are read through a ref: the settings setters change identity
+ * with every setting, so depending on them would make an appearance toggle
+ * refetch the forecast.
  */
 export function useAutoHomeLocation(mockScenario: string | null) {
-  const [, setHomeLocation] = useHomeLocation();
-  const homeLocationChosen = useHomeLocationChosen();
-  const latest = useRef({ chosen: homeLocationChosen, set: setHomeLocation });
+  const settings = useAutoHomeSettings();
+  const latest = useRef(settings);
   useEffect(() => {
-    latest.current = { chosen: homeLocationChosen, set: setHomeLocation };
-  }, [homeLocationChosen, setHomeLocation]);
+    latest.current = settings;
+  });
 
   return useCallback(
     (savedLocation: SavedLocation | null, placeName: string) => {
+      const { homeLocation, homeLocationChosen, homeLocationAuto, assignAutoHome } = latest.current;
       const home = pickAutoHomeLocation({
-        homeLocationChosen: latest.current.chosen,
+        homeLocation,
+        homeLocationChosen,
+        homeLocationAuto,
         mockScenario,
         savedLocation,
         placeName,
       });
-      if (home) latest.current.set(home);
+      if (home) assignAutoHome(home);
     },
     [mockScenario],
   );

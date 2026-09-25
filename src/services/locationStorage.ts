@@ -8,6 +8,7 @@ import {
   parseExposureLevel,
   parseGearMode,
   parseHomeLocation,
+  parseHomeLocationAuto,
   parseHomeLocationChosen,
   parseTempUnit,
   type PersistedSettings,
@@ -51,11 +52,17 @@ export async function saveLocation(location: SavedLocation) {
   return normalized;
 }
 
-/** Persists the user's home location (used for climate acclimatization). */
-export async function saveHomeLocation(location: SavedLocation) {
+/**
+ * Persists the user's home location (used for climate acclimatization).
+ * `auto` marks a home the app assigned rather than one the rider chose.
+ */
+export async function saveHomeLocation(location: SavedLocation, { auto = false } = {}) {
   const normalized = normalizeLocationRecord(location);
   if (!normalized) throw new Error('Invalid location');
-  await AsyncStorage.setItem(HOME_LOCATION_KEY, JSON.stringify({ version: 1, ...normalized }));
+  await AsyncStorage.setItem(
+    HOME_LOCATION_KEY,
+    JSON.stringify({ version: 1, ...normalized, ...(auto ? { auto: true } : {}) }),
+  );
   return normalized;
 }
 
@@ -157,6 +164,7 @@ export async function loadAllSettings(): Promise<PersistedSettings> {
       appearance: parseAppearance(byKey.get(APPEARANCE_KEY) ?? null),
       homeLocation: parseHomeLocation(byKey.get(HOME_LOCATION_KEY) ?? null),
       homeLocationChosen: parseHomeLocationChosen(byKey.get(HOME_LOCATION_KEY) ?? null),
+      homeLocationAuto: parseHomeLocationAuto(byKey.get(HOME_LOCATION_KEY) ?? null),
       tempUnit: parseTempUnit(byKey.get(TEMP_UNIT_KEY) ?? null),
       exposureLevel: parseExposureLevel(byKey.get(EXPOSURE_LEVEL_KEY) ?? null),
     };
