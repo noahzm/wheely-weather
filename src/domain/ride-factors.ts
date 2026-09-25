@@ -87,6 +87,7 @@ const collectMessageIssues = (
     weather.temperature,
     weather.rainChance,
     weather.weatherCode,
+    thresholds,
   );
   const coldRainTier = coldRainCondition ? issuePhraseTier(coldRainCondition) : null;
   if (coldRainTier) {

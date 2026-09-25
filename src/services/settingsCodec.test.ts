@@ -7,6 +7,7 @@ import {
   parseExposureLevel,
   parseGearMode,
   parseHomeLocation,
+  parseHomeLocationChosen,
   parseTempUnit,
 } from './settingsCodec';
 
@@ -33,9 +34,22 @@ describe('setting parsers', () => {
       gearMode: parseGearMode(null),
       appearance: parseAppearance(null),
       homeLocation: parseHomeLocation(null),
+      homeLocationChosen: parseHomeLocationChosen(null),
       tempUnit: parseTempUnit(null),
       exposureLevel: parseExposureLevel(null),
     });
+  });
+});
+
+describe('parseHomeLocationChosen', () => {
+  it('treats a stored location or a cleared marker as chosen', () => {
+    expect(parseHomeLocationChosen(null)).toBe(false);
+    expect(parseHomeLocationChosen('{"version":1,"cleared":true}')).toBe(true);
+    expect(parseHomeLocationChosen('{"version":1,"lat":1,"lon":2}')).toBe(true);
+  });
+
+  it('reads a cleared marker as no home', () => {
+    expect(parseHomeLocation('{"version":1,"cleared":true}')).toBeNull();
   });
 });
 

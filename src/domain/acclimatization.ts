@@ -38,15 +38,22 @@ export const deriveAcclimatization = (
   }
   const factor = exposureLevel === 'high' ? 0.65 : 0.35;
   const maxTempShift = exposureLevel === 'high' ? 7 : 4;
-  const maxDewShift = exposureLevel === 'high' ? 8 : 5;
+  // Humidity adapts further than heat. A 2025 replay of Gulf Coast summers,
+  // when a typical morning dew point is ~75°F, rated every day "maybe" under
+  // the old 0.35 / 5°F dials, leaving the verdict nothing to tell apart. These
+  // put a local-normal summer morning at "fair"; 78°F+ stays a hazard (BAD).
+  const dewFactor = exposureLevel === 'high' ? 0.8 : 0.6;
+  const maxDewShift = exposureLevel === 'high' ? 12 : 9;
   // Larger than the heat cap: kit does most of the cold adapting, and a
   // winter-hardened rider in full kit rides 20°F below the reference floor.
-  const maxColdShift = exposureLevel === 'high' ? 12 : 6;
+  // Ice is rated separately (weather codes, cold rain), so these only move
+  // comfort lines.
+  const maxColdShift = exposureLevel === 'high' ? 18 : 10;
   const { coolTemp } = homeBaseline;
 
   return {
     tempShift: Math.round(clamp((homeBaseline.warmTemp - REF_TEMP) * factor, 0, maxTempShift)),
-    dewShift: Math.round(clamp((homeBaseline.warmDewpoint - REF_DEW) * factor, 0, maxDewShift)),
+    dewShift: Math.round(clamp((homeBaseline.warmDewpoint - REF_DEW) * dewFactor, 0, maxDewShift)),
     coldShift:
       coolTemp == null ? 0 : Math.round(clamp((REF_COOL - coolTemp) * factor, 0, maxColdShift)),
   };
@@ -62,7 +69,9 @@ export const deriveAcclimatization = (
  * The cold side shifts down as a whole, `BAD_MIN` included: the reference's
  * 32°F floor is a comfort line, not a hazard, since ice is rated separately by
  * the freezing-precipitation weather codes and the cold-rain hazard, which stay
- * fixed. The cap in `deriveAcclimatization` bounds how far it can go.
+ * fixed. The cap in `deriveAcclimatization` bounds how far it can go. A cold
+ * shift also softens mild cold rain (above SEVERE_TEMP) from poor to marginal;
+ * cold rain at or below SEVERE_TEMP stays bad.
  */
 export const applyAcclimatization = (
   base: Thresholds,
@@ -93,6 +102,8 @@ export const applyAcclimatization = (
       MARGINAL: Math.min(d.MARGINAL + dewShift, dewCeiling),
       POOR: Math.min(d.POOR + dewShift, dewCeiling),
     },
+    // Cold-adapted riders take the mild cold-rain band as marginal, not poor.
+    COLD_RAIN: coldShift > 0 ? { MILD: 'marginal' } : base.COLD_RAIN,
   };
 };
 

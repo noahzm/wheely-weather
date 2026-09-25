@@ -340,7 +340,12 @@ function resolveHourRainReasons(
   rainReason: HourReason | null;
   tempReason: HourReason | null;
 } {
-  const coldRain = evaluateColdRainHazard(hour.temperature, hour.rainChance, hour.weatherCode);
+  const coldRain = evaluateColdRainHazard(
+    hour.temperature,
+    hour.rainChance,
+    hour.weatherCode,
+    thresholds,
+  );
   const coldRainTier = coldRain ? issuePhraseTier(coldRain) : null;
   const rainReason = coldRainTier
     ? {

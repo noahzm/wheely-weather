@@ -93,9 +93,13 @@ function windowTiming(
   if (when === 'tomorrow') return MSG.TOMORROW_WINDOW(windowRange(window));
   // Waiting, the headline already names the start ("Ride at 2 PM").
   if (when === 'wait') return MSG.UNTIL(fullHourLabel(window.endHour));
-  // A later window only helps if it's worth riding in; on a "no" day the
-  // best of a bad day isn't a recommendation.
-  if (when === 'later' && status !== 'no') return MSG.BEST_WINDOW(windowRange(window));
+  // On a "no" day the later window isn't a recommendation, but riders who have
+  // to go (and riders in climates with long no-go seasons) still need to know
+  // when it's least rough, so it's named without calling it good.
+  if (when === 'later') {
+    const range = windowRange(window);
+    return status === 'no' ? MSG.LEAST_BAD_WINDOW(range) : MSG.BEST_WINDOW(range);
+  }
   return null;
 }
 

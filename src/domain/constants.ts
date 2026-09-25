@@ -74,6 +74,13 @@ export const THRESHOLDS = {
     MARGINAL: 5,
     FAIR: 2,
   },
+  // The rating for cold rain between COLD_RAIN_HAZARD.SEVERE_TEMP and MAX_TEMP.
+  // Cold-acclimatized riders get `marginal` (see applyAcclimatization): 40–45°F
+  // drizzle is an ordinary winter commute in the Pacific Northwest. At or below
+  // SEVERE_TEMP it stays `bad` for everyone.
+  COLD_RAIN: {
+    MILD: 'poor' as Condition,
+  },
 };
 
 export type Thresholds = typeof THRESHOLDS;
