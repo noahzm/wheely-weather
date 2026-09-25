@@ -16,6 +16,7 @@ import {
   type ForecastState,
 } from './forecast/load-forecast-data';
 import { refreshFollowedLocation } from './forecast/device-location';
+import { useAutoHomeLocation } from './forecast/use-auto-home-location';
 import { useFollowDeviceLocation } from './forecast/use-follow-device-location';
 import { useLocationActions } from './forecast/use-location-actions';
 import { usePrefetchPins } from './forecast/use-prefetch-pins';
@@ -35,6 +36,7 @@ export function useWeatherForecast(mockScenario: string | null) {
   const [state, setState] = useState<ForecastState>(INITIAL_FORECAST_STATE);
   const [homeLocation] = useHomeLocation();
   const [exposureLevel] = useExposureLevel();
+  const autoSetHome = useAutoHomeLocation(mockScenario);
   const settingsHydrated = useSettingsHydrated();
   const lastLoadedAt = useRef(0);
   const needsLocationRef = useRef(false);
@@ -78,6 +80,7 @@ export function useWeatherForecast(mockScenario: string | null) {
           lastLoadedAt,
           () => gen === loadGenRef.current,
         );
+        autoSetHome(result.savedLocation, result.snapshot.location);
       } catch (error) {
         if (gen !== loadGenRef.current) return;
         captureError(error, { where: 'loadForecast' });
@@ -90,7 +93,7 @@ export function useWeatherForecast(mockScenario: string | null) {
         }));
       }
     },
-    [mockScenario, homeLocation, exposureLevel],
+    [mockScenario, homeLocation, exposureLevel, autoSetHome],
   );
 
   // Wait for settings so the first fetch reads the real home location; without

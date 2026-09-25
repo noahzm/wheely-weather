@@ -89,9 +89,23 @@ describe('saved location', () => {
 describe('home location', () => {
   it('saves and clears', async () => {
     await saveHomeLocation({ lat: 35.78, lon: -78.64, name: 'Raleigh', source: 'manual' });
-    expect(store.has('ww_home_location')).toBe(true);
+    await expect(loadAllSettings()).resolves.toMatchObject({
+      homeLocation: { name: 'Raleigh' },
+      homeLocationChosen: true,
+    });
     await clearHomeLocation();
-    expect(store.has('ww_home_location')).toBe(false);
+    await expect(loadAllSettings()).resolves.toMatchObject({
+      homeLocation: null,
+      homeLocationChosen: true,
+    });
+  });
+
+  // A cleared home must stay cleared: an absent key is what allows auto-assign.
+  it('reads a never-set home as not chosen', async () => {
+    await expect(loadAllSettings()).resolves.toMatchObject({
+      homeLocation: null,
+      homeLocationChosen: false,
+    });
   });
 
   it('rejects an invalid location', async () => {
@@ -198,6 +212,7 @@ describe('settings', () => {
       tempUnit: 'celsius',
       exposureLevel: 'high',
       homeLocation: { lat: 10, lon: 20, name: 'Home', source: 'manual' },
+      homeLocationChosen: true,
     });
     expect(storage.multiGet).toHaveBeenCalledTimes(1);
   });

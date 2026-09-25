@@ -6,6 +6,7 @@ import {
   resolveThresholds,
 } from './acclimatization';
 import { THRESHOLDS } from './constants';
+import { evaluateColdRainHazard } from './scoring';
 import { getOverallStatus, evaluateCondition } from './weather';
 
 const TEMPERATE = { warmTemp: 80, warmDewpoint: 60 };
@@ -46,23 +47,23 @@ describe('deriveAcclimatization', () => {
     });
     expect(deriveAcclimatization(GULF, 'moderate')).toEqual({
       tempShift: 4,
-      dewShift: 5,
+      dewShift: 9,
       coldShift: 0,
     });
     expect(deriveAcclimatization(GULF, 'high')).toEqual({
       tempShift: 7,
-      dewShift: 8,
+      dewShift: 12,
       coldShift: 0,
     });
     const AUSTIN = { warmTemp: 88, warmDewpoint: 68 };
     expect(deriveAcclimatization(AUSTIN, 'moderate')).toEqual({
       tempShift: 3,
-      dewShift: 3,
+      dewShift: 5,
       coldShift: 0,
     });
     expect(deriveAcclimatization(AUSTIN, 'high')).toEqual({
       tempShift: 5,
-      dewShift: 5,
+      dewShift: 6,
       coldShift: 0,
     });
   });
@@ -74,10 +75,22 @@ describe('cold acclimatization', () => {
   const MILD_WINTER = { ...TEMPERATE, coolTemp: 55 };
 
   it('shifts the cold side for a cold home, scaled by exposure and capped', () => {
-    expect(deriveAcclimatization(CHICAGO_WINTER, 'moderate').coldShift).toBe(6);
-    expect(deriveAcclimatization(CHICAGO_WINTER, 'high').coldShift).toBe(12);
+    expect(deriveAcclimatization(CHICAGO_WINTER, 'moderate').coldShift).toBe(8);
+    expect(deriveAcclimatization(CHICAGO_WINTER, 'high').coldShift).toBe(14);
+    // A Winnipeg January hits the caps.
+    const PRAIRIE_WINTER = { ...TEMPERATE, coolTemp: 5 };
+    expect(deriveAcclimatization(PRAIRIE_WINTER, 'moderate').coldShift).toBe(10);
+    expect(deriveAcclimatization(PRAIRIE_WINTER, 'high').coldShift).toBe(18);
     expect(deriveAcclimatization(CHICAGO_WINTER, 'indoor').coldShift).toBe(0);
     expect(deriveAcclimatization({ ...TEMPERATE, coolTemp: 44 }, 'high').coldShift).toBe(4);
+  });
+
+  it('softens mild cold rain to marginal for a cold-adapted rider, never the severe band', () => {
+    const adapted = resolveThresholds(CHICAGO_WINTER, THRESHOLDS, 'moderate');
+    expect(evaluateColdRainHazard(43, 60, null, THRESHOLDS)).toBe('poor');
+    expect(evaluateColdRainHazard(43, 60, null, adapted)).toBe('marginal');
+    expect(evaluateColdRainHazard(40, 60, null, adapted)).toBe('bad');
+    expect(resolveThresholds(MILD_WINTER, THRESHOLDS, 'high').COLD_RAIN.MILD).toBe('poor');
   });
 
   it('never shifts for a mild home or a baseline cached without coolTemp', () => {
@@ -219,11 +232,15 @@ describe('describeClimateAdjustment', () => {
   });
 
   it('gives the shifted range against the normal one, and humidity when it moved', () => {
-    const shift = deriveAcclimatization(GULF, 'high');
-    const lines = describeClimateAdjustment(GULF, 'high', 'fahrenheit');
+    const shift = deriveAcclimatization(GULF, 'moderate');
+    const lines = describeClimateAdjustment(GULF, 'moderate', 'fahrenheit');
     expect(lines[0]).toBe(`Ride days run 40–${82 + shift.tempShift}°F for you (normally 40–82°F).`);
     expect(lines[1]).toBe(
       `Humid days stay rideable up to a ${66 + shift.dewShift}°F dew point (normally 66°F).`,
+    );
+    // The high dial reaches the ceiling, one under the fixed 78°F hazard line.
+    expect(describeClimateAdjustment(GULF, 'high', 'fahrenheit')[1]).toBe(
+      'Humid days stay rideable up to a 77°F dew point (normally 66°F).',
     );
   });
 

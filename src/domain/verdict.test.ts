@@ -146,11 +146,11 @@ describe('getRideVerdict', () => {
     expect(getRideVerdict(weather, THRESHOLDS).status).toBe('no');
   });
 
-  it('offers no window on a day that is bad even at its best', () => {
+  it('names the least bad window on a day that is bad even at its best', () => {
     const weather = rainyMorning([day({ rainChance: 90 }, window(14, 17))]);
     const verdict = getRideVerdict(weather, THRESHOLDS);
     expect(verdict.status).toBe('no');
-    expect(verdict.message.timing).toBeNull();
+    expect(verdict.message.timing).toBe('Least bad 2 PM–5 PM');
   });
 
   it('rates the window on whichever end of its temperature range is worse', () => {

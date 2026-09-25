@@ -227,6 +227,7 @@ export const STATUS_MESSAGES = {
   NO_LEAD: 'Sit this one out:',
   CLEAR_UP: (time: string) => `Clears by ${time}`,
   BEST_WINDOW: (range: string) => `Best ${range}`,
+  LEAST_BAD_WINDOW: (range: string) => `Least bad ${range}`,
   UNTIL: (time: string) => `Until ${time}`,
   RIGHT_NOW: (issue: string) => `Right now: ${issue}.`,
   KIT_TODAY: 'Today’s kit',

@@ -43,7 +43,7 @@ npm run build:web      # expo export --platform web
 - Home screen widget: `targets/widget` (SwiftUI, generated into the Xcode project by `@bacons/apple-targets` on prebuild). It can't run TS scoring, so `useWidgetSync` builds a display-ready `WidgetSnapshot` (`src/utils/widgetSnapshot.ts`) and writes it to the `group.app.wheelyweather` App Group; `WheelyWidget.swift` decodes the same field names. Changing the payload means changing both sides. `targets/*/Assets.xcassets` is regenerated from `expo-target.config.js`.
 - Domain logic is framework-agnostic in `src/domain` / `src/utils`.
 - The verdict (home card and widget) comes from `getRideVerdict` (`src/domain/verdict.ts`): it rates today's best daylight ride window, or tomorrow's once no daylight is left. `getOverallStatus` is the building block it rates with, and the fallback when no window exists.
-- Thresholds are resolved per rider by `resolveThresholds` (`src/domain/acclimatization.ts`): the home climate's recent warm, humid and cool extremes, scaled by the exposure level, shift the comfort bands. Hazards currently stay fixed: the heat and dewpoint ceilings, freezing-precipitation weather codes, and the cold-rain rule.
+- Thresholds are resolved per rider by `resolveThresholds` (`src/domain/acclimatization.ts`): the home climate's recent warm, humid and cool extremes, scaled by the exposure level, shift the comfort bands. Home climate is auto-assigned to the first place a rider loads (`pickAutoHomeLocation`); clearing it stores a marker so it stays off. Hazards stay fixed: the heat and dewpoint ceilings, freezing-precipitation weather codes, and cold rain at or below 40°F (only the mild 40–45°F cold-rain band softens to marginal for cold-adapted riders).
 
 ## Forecast invariants
 
@@ -76,7 +76,7 @@ Each of these has caused a real bug when broken.
 ## Dependencies
 
 - **Dependabot never bumps the Expo families** (`expo*`, `@expo/*`, `react-native*`, `react`, `typescript`, `@sentry/react-native`, …); the SDK release train owns them. In every dependency sweep, also run `npx expo-doctor`; if its version-match check fails, run `npx expo install --fix` then `npm run check`. If `pod install` then complains about old podspecs, run `npm run ios:clean`.
-- **Never run `npm audit fix --force`.** Its "fixes" are multi-major downgrades of Expo and React Native. The standing audit findings trace to two build-time-only roots with no upstream fix (`image-size` under metro, `uuid` pinned by `xcode` under `@expo/config-plugins`); treat them as accepted.
+- **Never run `npm audit fix --force`.** Its "fixes" are multi-major downgrades of Expo and React Native. The standing audit findings trace to two build-time-only roots with no upstream fix (`image-size` under metro, `uuid@8` under `@bacons/apple-targets` → `@bacons/xcode`, which lists it but never imports it); treat them as accepted.
 - **Leave the npm install-script warnings alone.** The blocked scripts (`@sentry/cli`, `fsevents`, `unrs-resolver`) are fallbacks for binaries that already arrive via optional dependencies, so don't approve them. Never install with `--omit=optional`: that removes those binaries and breaks Sentry uploads in EAS builds.
 - `@types/node` tracks the Node major CI runs (24); bump it together with `ci.yml` and `engines`.
 

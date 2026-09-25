@@ -69,10 +69,20 @@ export function parseHomeLocation(raw: string | null): SavedLocation | null {
   }
 }
 
+/**
+ * True once the rider (or the one-time auto-assign) has decided the home
+ * location: the key holds either a location or a cleared marker. An absent
+ * key means home has never been set, which is when it may be auto-assigned.
+ */
+export function parseHomeLocationChosen(raw: string | null): boolean {
+  return raw != null;
+}
+
 export interface PersistedSettings {
   gearMode: GearMode;
   appearance: Appearance;
   homeLocation: SavedLocation | null;
+  homeLocationChosen: boolean;
   tempUnit: TempUnitPreference;
   exposureLevel: ExposureLevel;
 }
@@ -81,6 +91,7 @@ export const DEFAULT_SETTINGS: PersistedSettings = {
   gearMode: 'casual',
   appearance: 'system',
   homeLocation: null,
+  homeLocationChosen: false,
   tempUnit: 'auto',
   exposureLevel: DEFAULT_EXPOSURE_LEVEL,
 };

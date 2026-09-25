@@ -8,6 +8,7 @@ import {
   parseExposureLevel,
   parseGearMode,
   parseHomeLocation,
+  parseHomeLocationChosen,
   parseTempUnit,
   type PersistedSettings,
   type SavedLocation,
@@ -58,9 +59,13 @@ export async function saveHomeLocation(location: SavedLocation) {
   return normalized;
 }
 
-/** Clears the persisted home location. */
+/**
+ * Clears the persisted home location. Writes a cleared marker rather than
+ * removing the key, so a rider who turned home climate off isn't auto-assigned
+ * a home again on the next load.
+ */
 export async function clearHomeLocation() {
-  await AsyncStorage.removeItem(HOME_LOCATION_KEY);
+  await AsyncStorage.setItem(HOME_LOCATION_KEY, JSON.stringify({ version: 1, cleared: true }));
 }
 
 export interface RecentLocation {
@@ -151,6 +156,7 @@ export async function loadAllSettings(): Promise<PersistedSettings> {
       gearMode: parseGearMode(byKey.get(GEAR_MODE_KEY) ?? null),
       appearance: parseAppearance(byKey.get(APPEARANCE_KEY) ?? null),
       homeLocation: parseHomeLocation(byKey.get(HOME_LOCATION_KEY) ?? null),
+      homeLocationChosen: parseHomeLocationChosen(byKey.get(HOME_LOCATION_KEY) ?? null),
       tempUnit: parseTempUnit(byKey.get(TEMP_UNIT_KEY) ?? null),
       exposureLevel: parseExposureLevel(byKey.get(EXPOSURE_LEVEL_KEY) ?? null),
     };

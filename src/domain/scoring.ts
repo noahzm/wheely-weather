@@ -159,6 +159,7 @@ export const evaluateColdRainHazard = (
   temp: number | null | undefined,
   rainChance: number | null | undefined,
   code?: number | null,
+  thresholds: Thresholds = THRESHOLDS,
 ): Condition | null => {
   if (temp == null) return null;
   const isRainCode =
@@ -167,7 +168,7 @@ export const evaluateColdRainHazard = (
 
   if (temp <= COLD_RAIN_HAZARD.MAX_TEMP && isRainLikely) {
     if (temp <= COLD_RAIN_HAZARD.SEVERE_TEMP) return 'bad';
-    return 'poor';
+    return thresholds.COLD_RAIN.MILD;
   }
   return null;
 };
@@ -193,6 +194,7 @@ export const getOverallCondition = (
     weather.temperature,
     weather.rainChance,
     weather.weatherCode,
+    thresholds,
   );
   const conditions = [
     evaluateCondition(weather.temperature, 'temperature', thresholds),
@@ -256,7 +258,7 @@ export const getHourlyCondition = (
   { temperature, wind, gust, rain, precip, code, dewpoint }: HourlyConditionInput,
   thresholds: Thresholds = THRESHOLDS,
 ): Condition => {
-  const coldRainCondition = evaluateColdRainHazard(temperature, rain, code);
+  const coldRainCondition = evaluateColdRainHazard(temperature, rain, code, thresholds);
   return getCyclingCondition([
     evaluateCondition(temperature, 'temperature', thresholds),
     evaluateWind(wind, gust, thresholds),
@@ -299,7 +301,7 @@ export const getDailyCondition = (
   thresholds: Thresholds = THRESHOLDS,
 ): Condition => {
   const effectiveColdTemp = tempLow ?? tempHigh;
-  const coldRainCondition = evaluateColdRainHazard(effectiveColdTemp, rain, code);
+  const coldRainCondition = evaluateColdRainHazard(effectiveColdTemp, rain, code, thresholds);
   return getCyclingCondition([
     ...(tempLow == null ? [] : [evaluateCondition(tempLow, 'temperature', thresholds)]),
     ...(tempHigh == null ? [] : [evaluateCondition(tempHigh, 'temperature', thresholds)]),
@@ -366,6 +368,7 @@ export function calculateRideScore(
     weather.temperature,
     weather.rainChance,
     weather.weatherCode,
+    thresholds,
   );
 
   const allConditions = [

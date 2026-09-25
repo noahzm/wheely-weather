@@ -31,6 +31,8 @@ interface SettingsValue {
   gear: SettingTuple<GearMode>;
   appearance: SettingTuple<Appearance>;
   homeLocation: SettingTuple<SavedLocation | null>;
+  /** True once a home has been set or cleared; false means it may be auto-assigned. */
+  homeLocationChosen: boolean;
   tempUnit: SettingTuple<TempUnitPreference>;
   exposureLevel: SettingTuple<ExposureLevel>;
   /** True once the persisted values have been read from storage. */
@@ -82,10 +84,11 @@ export function SettingsProvider({ children }: Readonly<{ children: ReactNode }>
       homeLocation: [
         settings.homeLocation,
         (next: SavedLocation | null) => {
-          setSettings((current) => ({ ...current, homeLocation: next }));
+          setSettings((current) => ({ ...current, homeLocation: next, homeLocationChosen: true }));
           (next ? saveHomeLocation(next) : clearHomeLocation()).catch(swallowWriteError);
         },
       ],
+      homeLocationChosen: settings.homeLocationChosen,
       tempUnit: [
         settings.tempUnit,
         (next: TempUnitPreference) => {
@@ -127,6 +130,10 @@ export function useAppearance(): SettingTuple<Appearance> {
 
 export function useHomeLocation(): SettingTuple<SavedLocation | null> {
   return useSettings().homeLocation;
+}
+
+export function useHomeLocationChosen(): boolean {
+  return useSettings().homeLocationChosen;
 }
 
 export function useTempUnit(): SettingTuple<TempUnitPreference> {
