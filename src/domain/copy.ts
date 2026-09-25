@@ -414,15 +414,17 @@ export const GEAR_TIPS = {
   },
 };
 
+// Rain and daylight notes render as stickers beside the "Hour by hour" title, so
+// keep each to ~20 characters: longer ones wrap and push the chart down.
 export const RAIN_MESSAGES = {
   CLEARING: (time: string) => `Clears by ${time}`,
   THROUGHOUT: 'Rain throughout',
   WINDOW: (start: string, end: string) => `Rain ${start}–${end}`,
-  LATER: (time: string) => `Rain likely after ${time}`,
+  LATER: (time: string) => `Rain after ${time}`,
 };
 
 export const DAYLIGHT_MESSAGES = {
-  DARK_WARNING: 'Best ride window falls in dark hours. Front and rear lights essential.',
+  DARK_WARNING: 'After dark: lights on',
 };
 
 export const ALERT_MESSAGES = {

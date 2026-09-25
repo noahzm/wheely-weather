@@ -43,12 +43,12 @@ describe('Rain Timing Logic', () => {
     expect(getRainTiming(hourly)).toBe('Rain 12 AM–1 AM');
   });
 
-  it('returns "Rain likely after..." when rain starts later', () => {
+  it('returns "Rain after..." when rain starts later', () => {
     const hourly = [
       { hour: 10, rainChance: 0 },
       { hour: 11, rainChance: 50 },
     ];
-    expect(getRainTiming(hourly)).toBe('Rain likely after 11 AM');
+    expect(getRainTiming(hourly)).toBe('Rain after 11 AM');
   });
 
   it('returns "Rain throughout" when it rains the entire window', () => {
