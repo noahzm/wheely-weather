@@ -31,11 +31,11 @@ export function initSentry() {
     dsn,
     // The app handles precise location; never attach IP/device identifiers by default.
     sendDefaultPii: false,
-    // Performance tracing (forecast load timing, see `traceAsync`). Every
-    // production session while the app is on TestFlight with a handful of
-    // riders — a sample would yield almost no data. Lower it before a wide
-    // release. Dev builds send none, so simulator timings never skew the numbers.
-    tracesSampleRate: __DEV__ ? 0 : 1,
+    // Performance tracing (forecast load timing, see `traceAsync`). A fifth of
+    // production sessions now that the app is public: enough timing data without
+    // burning the Sentry quota. Dev builds send none, so simulator timings never
+    // skew the numbers.
+    tracesSampleRate: __DEV__ ? 0 : 0.2,
     beforeBreadcrumb(breadcrumb) {
       const url: unknown = breadcrumb.data?.url;
       if (typeof url !== 'string') return breadcrumb;
