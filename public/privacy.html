@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Privacy Policy · Wheely Weather</title>
+    <meta name="description" content="How Wheely Weather handles your location and data." />
+    <link rel="icon" href="/favicon.ico" />
+    <style>
+      @font-face {
+        font-family: 'Alte Haas Grotesk';
+        src: url('/fonts/AlteHaasGroteskRegular.woff2') format('woff2');
+        font-weight: 400;
+      }
+      @font-face {
+        font-family: 'Alte Haas Grotesk';
+        src: url('/fonts/AlteHaasGroteskBold.woff2') format('woff2');
+        font-weight: 700;
+      }
+      :root {
+        --background: #f4f4f6;
+        --paper: #ffffff;
+        --ink: #000000;
+        --accent: #f1bdf2;
+        --link: #2563eb;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --background: #000000;
+          --paper: #141416;
+          --ink: #ffffff;
+          --link: #60a5fa;
+        }
+      }
+      body {
+        margin: 0;
+        padding: 32px 16px 64px;
+        background: var(--background);
+        color: var(--ink);
+        font-family:
+          'Alte Haas Grotesk',
+          -apple-system,
+          system-ui,
+          sans-serif;
+        line-height: 1.55;
+      }
+      main {
+        max-width: 680px;
+        margin: 0 auto;
+        background: var(--paper);
+        border-radius: 26px;
+        padding: 28px 24px;
+      }
+      h1 {
+        margin-top: 0;
+        display: inline-block;
+        background: var(--accent);
+        color: #000000;
+        padding: 2px 10px;
+      }
+      h2 {
+        margin-top: 28px;
+        font-size: 1.15rem;
+      }
+      a {
+        color: var(--link);
+      }
+      .updated {
+        opacity: 0.7;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Privacy Policy</h1>
+      <p class="updated">Last updated September 24, 2026</p>
+
+      <p>
+        Wheely Weather is a weather app for cyclists. It has no accounts, no ads, and no tracking.
+        This page explains what little data it handles and where it goes.
+      </p>
+
+      <h2>Location</h2>
+      <p>
+        If you allow it, the app uses your device's location to show the forecast where you are. You
+        can instead search for a place, and the app works fully without location access.
+      </p>
+      <p>
+        Your coordinates are sent only to the weather and map services needed to answer that
+        request:
+      </p>
+      <ul>
+        <li>
+          On iPhone: Apple Weather (WeatherKit) and Apple Maps for forecasts, alerts and place
+          search, and <a href="https://open-meteo.com/en/terms">Open-Meteo</a> for air quality.
+        </li>
+        <li>
+          On the web: <a href="https://open-meteo.com/en/terms">Open-Meteo</a> for forecasts and air
+          quality, the US National Weather Service for alerts, and
+          <a href="https://osmfoundation.org/wiki/Privacy_Policy">OpenStreetMap Nominatim</a> for
+          place search, proxied through our own server, which keeps only short-lived request logs
+          for debugging (Cloudflare Workers Logs, deleted within days).
+        </li>
+      </ul>
+      <p>We do not keep a history of your locations or sell location data.</p>
+
+      <h2>Data stored on your device</h2>
+      <p>
+        Your settings, saved places, last location and a cached forecast are stored only on your
+        device (or in your browser). On iPhone, a summary of the forecast is shared with the Wheely
+        Weather home screen widget through an app group on the same device. Deleting the app removes
+        all of it.
+      </p>
+
+      <h2>Crash reports and diagnostics</h2>
+      <p>
+        The app sends crash reports and performance timings to
+        <a href="https://sentry.io/privacy/">Sentry</a> so bugs can be fixed. These reports do not
+        include your name, IP address or device identifiers, and coordinates are removed from them.
+        They are not used for advertising or tracking.
+      </p>
+
+      <h2>Children</h2>
+      <p>
+        The app does not knowingly collect personal information from anyone, including children.
+      </p>
+
+      <h2>Changes</h2>
+      <p>If this policy changes, the updated version will be posted here with a new date.</p>
+
+      <h2>Contact</h2>
+      <p>
+        Questions? Open an issue at
+        <a href="https://github.com/noahzm/wheely-weather/issues"
+          >github.com/noahzm/wheely-weather</a
+        >.
+      </p>
+
+      <p><a href="/">← Back to Wheely Weather</a></p>
+    </main>
+  </body>
+</html>
