@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { ActivityIndicator, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Stack } from 'expo-router';
+import type { SearchBarCommands } from 'react-native-screens';
 import Head from 'expo-router/head';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -84,28 +85,24 @@ function SearchField({
   );
 }
 
-function getScreenOptions(setQuery: (val: string) => void) {
-  if (isWeb) {
-    return { headerShown: false };
-  }
-  if (isIOS) {
-    return {
-      headerSearchBarOptions: {
-        placeholder: 'Search a city or place',
-        autoCapitalize: 'words' as const,
-        hideWhenScrolling: false,
-        onChangeText: (e: { nativeEvent: { text: string } }) => {
-          setQuery(e.nativeEvent.text);
-        },
-      },
-    };
-  }
-  return {};
+// iOS search bar config. The ref is attached where the options are built in
+// JSX: the React Compiler lint rejects passing a ref into a helper at render.
+function iosSearchBarOptions(setQuery: (val: string) => void) {
+  return {
+    placeholder: 'Search a city or place',
+    autoCapitalize: 'words' as const,
+    hideWhenScrolling: false,
+    onChangeText: (e: { nativeEvent: { text: string } }) => {
+      setQuery(e.nativeEvent.text);
+    },
+  };
 }
 
 export default function LocationSearchScreen() {
   const c = useWheelyColors();
   const insets = useSafeAreaInsets();
+  // Closes the native search bar once a place loads, so Search opens fresh.
+  const searchBarRef = useRef<SearchBarCommands>(null);
   const {
     query,
     setQuery,
@@ -123,7 +120,7 @@ export default function LocationSearchScreen() {
     handleSelect,
     handleTogglePin,
     handleToggleHome,
-  } = useLocationSearchScreen();
+  } = useLocationSearchScreen(() => searchBarRef.current?.cancelSearch());
 
   const listProps = {
     sections,
@@ -151,7 +148,13 @@ export default function LocationSearchScreen() {
           content="Search for a city or location to get today's cycling weather forecast."
         />
       </Head>
-      <Stack.Screen options={getScreenOptions(setQuery)} />
+      <Stack.Screen
+        options={
+          isIOS
+            ? { headerSearchBarOptions: { ...iosSearchBarOptions(setQuery), ref: searchBarRef } }
+            : { headerShown: !isWeb }
+        }
+      />
       <View style={styles.screen} collapsable={false}>
         {isIOS ? (
           <LocationSearchList {...listProps} />
