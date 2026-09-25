@@ -8,19 +8,30 @@ import { useWheelyColors } from '@/hooks/use-theme';
 import { Radius, Spacing, Type, type WheelyPalette } from '@/constants/theme';
 import { PlatformIcon } from './primitives';
 
+/** The section's title-to-card gap the sticker reaches across (`section.gap` on home). */
+const TITLE_GAP = Spacing.three;
+/** How deep the sticker dips into the card below its top border. */
+const CARD_OVERLAP = Spacing.three;
+
 function makeStyles(c: WheelyPalette) {
   return StyleSheet.create({
-    // Straddles the card's top border like the hero verdict's floating badges
-    // (`ride-verdict.tsx`): a fixed negative marginBottom pulls the card up
-    // underneath it by a constant amount, so the overlap depth stays the same
-    // no matter how many lines the message wraps to (unlike a `top` offset,
-    // which would let a two-line message dip further into the chart).
+    // Rendered as the "Hour by hour" title's right accessory, so the card keeps
+    // the same title gap as every other section. A fixed negative marginBottom
+    // drops it across that gap to straddle the card's top border by a constant
+    // depth however many lines it wraps to; the extra lines grow upward beside
+    // the title (it only takes the width the title leaves), never into the chart.
+    // The title row needs a zIndex above the card for this to paint on top.
     noteStickers: {
+      // SectionTitle's heading also grows (flexGrow 1), so an even split would
+      // wrap short notes early; this claims nearly all the width the title leaves.
+      flexGrow: 1000,
+      flexShrink: 1,
+      flexBasis: 0,
+      alignSelf: 'flex-end',
       alignItems: 'flex-end',
       gap: Spacing.one,
-      paddingHorizontal: Spacing.three,
-      marginBottom: -Spacing.three,
-      zIndex: 10,
+      paddingRight: Spacing.three,
+      marginBottom: -(TITLE_GAP + CARD_OVERLAP),
       pointerEvents: 'none',
     },
     noteSticker: {

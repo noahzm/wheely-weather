@@ -25,18 +25,23 @@ type VerdictStatus = 'yes' | 'maybe' | 'no';
 
 /** How far the timing chip hangs below the card's bottom edge. */
 const TIMING_BADGE_OVERHANG = 18;
+/** How far the star pill rises above the card's top edge. */
+const SCORE_BADGE_OVERHANG = 18;
 
 function makeStyles(c: WheelyPalette) {
   return StyleSheet.create({
+    // The star pill rises into the gap above the card rather than pushing it
+    // down, so the card edge lands the same distance under the title as every
+    // other section's card. This margin is only the sliver of overhang that
+    // doesn't fit in home's 16px gap, so the pill never overlaps what's above.
     verdictWrap: {
       position: 'relative',
       overflow: 'visible',
-      marginTop: Spacing.three,
-      marginBottom: Spacing.three,
+      marginTop: SCORE_BADGE_OVERHANG - Spacing.three,
     },
     badgeGroup: {
       position: 'absolute',
-      top: -18,
+      top: -SCORE_BADGE_OVERHANG,
       right: Spacing.three,
       zIndex: 10,
       flexDirection: 'row',
@@ -56,9 +61,10 @@ function makeStyles(c: WheelyPalette) {
       borderColor: c.border,
       transform: [{ rotate: '1deg' }],
     },
-    // Clears the timing chip's overhang, so an alert card directly below isn't covered.
+    // Clears the timing chip's overhang, so whatever sits below isn't covered.
+    // Spacing past that belongs to the screen (home's section gap / alert margin).
     verdictWrapWithBadge: {
-      marginBottom: Spacing.three + TIMING_BADGE_OVERHANG,
+      marginBottom: TIMING_BADGE_OVERHANG,
     },
     bottomBadgeGroup: {
       position: 'absolute',

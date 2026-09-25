@@ -46,6 +46,7 @@ import { useGearMode, useResolvedTempUnit } from '@/hooks/settings-context';
 import { useMinimumRefreshing } from '@/hooks/use-minimum-refreshing';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { GearStylePicker } from '@/components/wheely/gear-style-picker';
+import { HourlyNoteStickers } from '@/components/wheely/hourly-note-stickers';
 import { cityFromLocation } from '@/utils/locationTitle';
 import { formatUpdatedAgo } from '@/utils/timeFormat';
 import type { TempUnit } from '@/utils/temperature';
@@ -69,6 +70,14 @@ const headingStyles = StyleSheet.create({
     maxWidth: '100%',
   },
 });
+
+// Home spacing system: 16 (Spacing.three) from any title to its card's edge —
+// stickers and pills that straddle that edge rise into the gap rather than
+// pushing the card down — and SECTION_GAP between sections, measured from the
+// card edge. Not tighter: the
+// stamps that hang off a card's bottom (the hourly "Poor" burst) need room
+// above the next title.
+const SECTION_GAP = 28;
 
 const STAGGER_STEP_MS = 70;
 const STAGGER_DURATION_MS = 380;
@@ -223,9 +232,8 @@ function HomeSections({
 
   return (
     <Animated.View style={[styles.sectionsWrap, animatedStyle]}>
-      {/* Alerts belong to the verdict, so they group with it and skip the 36px
-          rhythm that separates the page's sections. The wrapper carries no gap
-          of its own — `RideVerdict`'s own `marginBottom` is the spacing. */}
+      {/* Alerts belong to the verdict, so they group with it and skip the
+          rhythm that separates the page's sections: a tighter margin of their own. */}
       <View>
         <Stagger order={1}>
           <RideVerdict
@@ -240,19 +248,33 @@ function HomeSections({
         </Stagger>
         {derived.alerts.length > 0 && (
           <Stagger order={2}>
-            <WeatherAlerts alerts={derived.alerts} />
+            <View style={styles.alerts}>
+              <WeatherAlerts alerts={derived.alerts} />
+            </View>
           </Stagger>
         )}
       </View>
 
       <Stagger order={3}>
         <View style={styles.section}>
-          <SectionTitle title="Hour by hour" />
+          {/* The notes ride in the title row (like the kit's style picker) and
+              straddle the card's top edge, so they don't push the card down. */}
+          <View style={styles.overlappingTitle}>
+            <SectionTitle
+              title="Hour by hour"
+              rightAccessory={
+                weather.hourly.length > 0 ? (
+                  <HourlyNoteStickers
+                    rainTiming={derived.rainTiming}
+                    daylightWarning={derived.daylightWarning}
+                  />
+                ) : null
+              }
+            />
+          </View>
           <HourlyForecast
             hourly={weather.hourly}
             pastHourly={weather.pastHourly}
-            rainTiming={derived.rainTiming}
-            daylightWarning={derived.daylightWarning}
             thresholds={thresholds}
             rideWindow={derived.rideWindow}
           />
@@ -550,13 +572,22 @@ function makeStyles(c: WheelyPalette) {
       ...contentColumnStyle,
       // Native: breathing room between the large-title header and the verdict card.
       marginTop: Platform.OS === 'web' ? WEB_TITLE_CONTENT_SPACING : Spacing.three,
-      gap: 36,
+      // Title-to-content spacing, same as a section title to its card: the
+      // verdict reserves its star pill's overhang, so this lands on the pill.
+      gap: Spacing.three,
     },
     sectionsWrap: {
-      gap: 36,
+      gap: SECTION_GAP,
+    },
+    alerts: {
+      marginTop: Spacing.three,
     },
     section: {
       gap: Spacing.three,
+    },
+    // Paints the title row's straddling accessory above the card that follows it.
+    overlappingTitle: {
+      zIndex: 1,
     },
     statusMessage: {
       color: c.mutedInk,

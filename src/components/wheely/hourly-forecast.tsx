@@ -30,7 +30,6 @@ import {
 } from '@/utils/hourlyChart';
 import { withAlpha } from '@/utils/colors';
 import { fullHourLabel } from '@/utils/timeFormat';
-import { HourlyNoteStickers } from './hourly-note-stickers';
 import { useHourlyForecastChart, type ChartHour } from './use-hourly-forecast-chart';
 
 function makeStyles(c: WheelyPalette) {
@@ -554,15 +553,11 @@ function HourlyChartShell({
 export function HourlyForecast({
   hourly,
   pastHourly,
-  rainTiming,
-  daylightWarning,
   thresholds,
   rideWindow = null,
 }: Readonly<{
   hourly: HourlyWeather[];
   pastHourly: HourlyWeather[];
-  rainTiming?: string | null;
-  daylightWarning?: string | null;
   thresholds?: Thresholds;
   /** The verdict's recommended window, shaded on the chart. */
   rideWindow?: { startHour: number; endHour: number } | null;
@@ -588,7 +583,6 @@ export function HourlyForecast({
 
   return (
     <View style={styles.hourlyWrap}>
-      <HourlyNoteStickers rainTiming={rainTiming} daylightWarning={daylightWarning} />
       <BrutalCard style={styles.hourlyCard}>
         <HourlyForecastBody
           key={`${nowIdx}-${data.length}`}
