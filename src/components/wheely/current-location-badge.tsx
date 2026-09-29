@@ -34,7 +34,7 @@ function makeStyles(c: WheelyPalette) {
  * content just below. Web renders the same arrow inline beside its own heading.
  *
  * The glyph matches the "Use Current Location" row on the search screen:
- * `location.fill` on iOS, Fluent `Navigation` elsewhere.
+ * `location.fill` on iOS, Bootstrap `Navigation` elsewhere.
  */
 export function CurrentLocationBadge() {
   const c = useWheelyColors();
@@ -44,7 +44,7 @@ export function CurrentLocationBadge() {
       {Platform.OS === 'ios' ? (
         <SymbolView name="location.fill" size={14} tintColor={c.mutedInk} />
       ) : (
-        <PlatformIcon icon={Navigation} size={14} color={c.mutedInk} strokeWidth={2.5} />
+        <PlatformIcon icon={Navigation} size={14} color={c.mutedInk} filled />
       )}
       <ThemedText style={styles.label}>Current Location</ThemedText>
     </View>

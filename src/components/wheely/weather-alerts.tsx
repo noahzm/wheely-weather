@@ -134,7 +134,7 @@ function AlertLeadingIcon({
   return Platform.OS === 'ios' ? (
     <SymbolView name={sfIcon} size={20} tintColor={color} />
   ) : (
-    <PlatformIcon icon={Icon} size={20} color={color} strokeWidth={2} />
+    <PlatformIcon icon={Icon} size={20} color={color} filled={sfIcon.endsWith('.fill')} />
   );
 }
 

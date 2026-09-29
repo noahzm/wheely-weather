@@ -176,7 +176,7 @@ export function PlatformIcon({
   );
 }
 
-export { KitGearIcon, GameGearIcon, type KitGearIconProps } from './kit-gear-icon';
+export { KitGearIcon, type KitGearIconProps } from './kit-gear-icon';
 
 /** Shared rounded button styles (not used for burst condition badges). */
 export function makeButtonStyles(c: WheelyPalette) {

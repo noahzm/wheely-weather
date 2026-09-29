@@ -102,13 +102,7 @@ export function ErrorState({
             style={styles.centerIcon}
           />
         ) : (
-          <PlatformIcon
-            icon={Icon}
-            size={42}
-            color={c.ink}
-            strokeWidth={2}
-            style={styles.centerIcon}
-          />
+          <PlatformIcon icon={Icon} size={42} color={c.ink} filled style={styles.centerIcon} />
         )}
         <SectionHeading style={styles.centerHeading}>
           {network ? 'Forecast unavailable' : 'Something went sideways'}
@@ -164,7 +158,7 @@ export function StaleDataNotice({
       {Platform.OS === 'ios' ? (
         <SymbolView name="exclamationmark.triangle.fill" size={16} tintColor={c.warning} />
       ) : (
-        <PlatformIcon icon={AlertTriangle} size={16} color={c.warning} strokeWidth={2} />
+        <PlatformIcon icon={AlertTriangle} size={16} color={c.warning} filled />
       )}
       <ThemedText style={styles.staleNoticeText} accessibilityLiveRegion="polite">
         {message}
@@ -201,7 +195,7 @@ function UseLocationButtonIcon({ busy, ink }: Readonly<{ busy: boolean; ink: str
   if (Platform.OS === 'ios') {
     return <SymbolView name="location.fill" size={14} tintColor={ink} />;
   }
-  return <PlatformIcon icon={MapPin} size={14} color={ink} strokeWidth={2.5} />;
+  return <PlatformIcon icon={MapPin} size={14} color={ink} filled />;
 }
 
 export function LocationPromptState({
@@ -221,13 +215,7 @@ export function LocationPromptState({
       {Platform.OS === 'ios' ? (
         <SymbolView name="location.fill" size={42} tintColor={c.ink} style={styles.centerIcon} />
       ) : (
-        <PlatformIcon
-          icon={MapPin}
-          size={42}
-          color={c.ink}
-          strokeWidth={2}
-          style={styles.centerIcon}
-        />
+        <PlatformIcon icon={MapPin} size={42} color={c.ink} filled style={styles.centerIcon} />
       )}
       <SectionHeading style={styles.centerHeading}>Where are you riding?</SectionHeading>
       <ThemedText style={styles.muted}>

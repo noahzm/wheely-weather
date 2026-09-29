@@ -120,7 +120,7 @@ export function PinnedLocationsBar({
                 icon={Navigation}
                 size={12}
                 color={followingDevice ? c.primaryInk : c.ink}
-                strokeWidth={2.5}
+                filled
               />
             )}
           </View>
@@ -155,7 +155,7 @@ export function PinnedLocationsBar({
                     icon={Pin}
                     size={12}
                     color={active ? c.primaryInk : c.mutedInk}
-                    strokeWidth={2}
+                    filled
                   />
                 )}
               </View>

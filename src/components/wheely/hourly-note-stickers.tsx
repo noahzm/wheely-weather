@@ -70,7 +70,7 @@ function HourlyNoteSticker({ icon, text }: Readonly<{ icon: SFSymbol; text: stri
       {Platform.OS === 'ios' ? (
         <SymbolView name={icon} size={13} tintColor={c.ink} />
       ) : (
-        <PlatformIcon icon={FallbackIcon} size={13} color={c.ink} strokeWidth={2.5} />
+        <PlatformIcon icon={FallbackIcon} size={13} color={c.ink} filled />
       )}
       <ThemedText style={styles.noteStickerText}>{text}</ThemedText>
     </View>

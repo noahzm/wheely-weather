@@ -132,13 +132,7 @@ function LocationRow({
         accessibilityState={{ selected: active }}
       >
         {isDevice && (
-          <PlatformIcon
-            icon={Navigation}
-            size={18}
-            color={c.ink}
-            strokeWidth={2.5}
-            style={styles.rowIcon}
-          />
+          <PlatformIcon icon={Navigation} size={18} color={c.ink} filled style={styles.rowIcon} />
         )}
         <View style={styles.rowContent}>
           <ThemedText

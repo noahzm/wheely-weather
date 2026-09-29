@@ -77,7 +77,7 @@ function rideSpecMetrics(
 ): RideSpecMetric[] {
   return [
     {
-      Icon: Droplets,
+      Icon: Droplet,
       sf: 'drop.fill',
       label: 'Rain Chance',
       value: formatPercent(weather.rainChance),
@@ -117,7 +117,7 @@ function rideSpecMetrics(
         weather.aqi == null ? undefined : evaluateCondition(weather.aqi, 'aqi', thresholds),
     },
     {
-      Icon: Droplet,
+      Icon: Droplets,
       sf: 'humidity.fill',
       label: 'Dewpoint',
       value: formatTemp(weather.dewpoint),
@@ -305,7 +305,7 @@ function MetricCell({
           {Platform.OS === 'ios' ? (
             <SymbolView name={sf as SFSymbol} size={18} tintColor={inkColor} />
           ) : (
-            <PlatformIcon icon={Icon} size={18} color={inkColor} strokeWidth={2} />
+            <PlatformIcon icon={Icon} size={18} color={inkColor} filled={sf.endsWith('.fill')} />
           )}
         </View>
         <ThemedText style={[styles.metricLabel, isSelected && { color: c.accentInk }]}>
