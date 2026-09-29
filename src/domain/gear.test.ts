@@ -365,10 +365,11 @@ describe('Gear Suggestions', () => {
       },
       'pro',
     );
-    const armWarmers = coolGear.wear.find((item) => item.label === 'Arm warmers');
-    const gilet = coolGear.wear.find((item) => item.label === 'Gilet');
-    expect(armWarmers?.icon).toBe('ArmWarmers');
-    expect(gilet?.icon).toBe('Gilet');
+    const icons = Object.fromEntries(coolGear.wear.map((item) => [item.label, item.icon]));
+    expect(icons['Short-sleeve jersey']).toBe('Jersey');
+    expect(icons['Arm warmers']).toBe('ArmWarmers');
+    expect(icons['Knee warmers']).toBe('KneeWarmers');
+    expect(icons.Gilet).toBe('Gilet');
 
     const rainGear = getGearSuggestion(
       {
@@ -381,7 +382,7 @@ describe('Gear Suggestions', () => {
     const shoeCovers = rainGear.bring.find((item) => item.label === 'Shoe covers');
     const rainJacket = rainGear.bring.find((item) => item.label === 'Rain jacket');
     expect(shoeCovers?.icon).toBe('ShoeCovers');
-    expect(rainJacket?.icon).toBe('Jacket');
+    expect(rainJacket?.icon).toBe('CyclingJacket');
 
     const windyGear = getGearSuggestion(
       {

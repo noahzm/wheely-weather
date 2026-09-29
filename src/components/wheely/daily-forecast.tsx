@@ -170,7 +170,7 @@ function DayRowDetail({
               {Platform.OS === 'ios' ? (
                 <SymbolView name="clock.fill" size={13} tintColor={c.ink} />
               ) : (
-                <PlatformIcon icon={Clock} size={13} color={c.ink} />
+                <PlatformIcon icon={Clock} size={13} color={c.ink} filled />
               )}
               <ThemedText style={styles.dayDetailPillText}>
                 {`${fullHourLabel(day.rideWindow.startHour)}–${fullHourLabel(day.rideWindow.endHour)} · ${formatTemp(day.rideWindow.tempLow)}–${formatTemp(day.rideWindow.tempHigh)}`}
@@ -191,7 +191,7 @@ function DayRowDetail({
             {Platform.OS === 'ios' ? (
               <SymbolView name="drop.fill" size={13} tintColor={c.ink} />
             ) : (
-              <PlatformIcon icon={CloudRain} size={13} color={c.ink} />
+              <PlatformIcon icon={CloudRain} size={13} color={c.ink} filled />
             )}
             <ThemedText style={styles.dayDetailPillText}>
               {`${formatPercent(day.rainChance)} rain`}
@@ -251,7 +251,7 @@ function DayRow({
                 tintColor={c.mutedInk}
               />
             ) : (
-              <PlatformIcon icon={DayIcon} size={20} color={c.mutedInk} strokeWidth={2} />
+              <PlatformIcon icon={DayIcon} size={20} color={c.mutedInk} filled />
             )}
           </View>
           <ThemedText style={styles.dayTemp} numberOfLines={1}>
