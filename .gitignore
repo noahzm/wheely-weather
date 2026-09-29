@@ -65,8 +65,8 @@ coverage/
 lighthouse-report.json
 *.lighthouseci/
 
-# Claude Code local overrides
-.claude/settings.local.json
+# Claude Code local config (tool-generated, untracked by design)
+.claude/
 
 # App Store listing (holds App Review contact details)
 store.config.json
