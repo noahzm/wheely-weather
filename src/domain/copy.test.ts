@@ -26,10 +26,17 @@ describe('verdict labels', () => {
 
   it('puts the start time in the headline when waiting for a later window', () => {
     vi.setSystemTime(new Date(2026, 8, 24, 9, 0, 0));
-    for (const location of ['A', 'B', 'Raleigh, NC', 'Philadelphia']) {
-      expect(getVerdictLabel('yes', location, '2 PM')).toMatch(/ 2 PM$/);
-      expect(getVerdictLabel('maybe', location, '2 PM')).toMatch(/ 2 PM$/);
+    const seen = { yes: new Set<string>(), maybe: new Set<string>() };
+    for (let i = 0; i < 200; i++) {
+      for (const status of ['yes', 'maybe'] as const) {
+        const label = getVerdictLabel(status, `Place ${i}`, '2 PM');
+        expect(label).toMatch(/ 2 PM$/);
+        seen[status].add(label);
+      }
     }
+    // Every headline in each wait pool is reachable.
+    expect(seen.yes.size).toBe(4);
+    expect(seen.maybe.size).toBe(3);
   });
 
   it('ignores the wait time on a no-go day', () => {
