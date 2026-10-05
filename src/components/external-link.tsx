@@ -4,7 +4,10 @@ import { type ComponentProps } from 'react';
 
 import { isSafeExternalUrl } from '@/utils/url';
 
-type Props = Omit<ComponentProps<typeof Link>, 'href'> & { href: Href & string };
+type Props = Omit<ComponentProps<typeof Link>, 'href'> & { href: string };
+
+// Unsafe URLs render as an inert link; '#' isn't a route, so typed routes need the cast.
+const BLOCKED_HREF = '#' as Href;
 
 export function ExternalLink({ href, ...rest }: Props) {
   const isSafe = isSafeExternalUrl(href);
@@ -14,7 +17,7 @@ export function ExternalLink({ href, ...rest }: Props) {
       target="_blank"
       rel="noopener noreferrer"
       {...rest}
-      href={isSafe ? href : '#'}
+      href={isSafe ? href : BLOCKED_HREF}
       onPress={(event) => {
         if (!isSafe) {
           event.preventDefault();

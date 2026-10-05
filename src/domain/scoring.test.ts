@@ -8,6 +8,7 @@ import {
   getOverallStatus,
   isColdTemp,
 } from './weather';
+import { makeWeather } from '@/test-utils/weather';
 
 describe('Weather Condition Evaluation', () => {
   // Reproduces the cycling-weather reference zone tables, mapped zone->condition:
@@ -99,24 +100,24 @@ describe('Weather Condition Evaluation', () => {
 
 describe('Overall Status Determination', () => {
   it('returns "no" for thunderstorms', () => {
-    const weather = { hasThunderstorms: true };
+    const weather = makeWeather({ hasThunderstorms: true });
     expect(getOverallStatus(weather)).toBe('no');
   });
 
   it('returns "no" if any condition is "bad" or "poor"', () => {
-    const weather = {
+    const weather = makeWeather({
       hasThunderstorms: false,
       temperature: 28, // bad (icy)
       windSpeed: 5,
       rainChance: 0,
       dewpoint: 50,
       aqi: 20,
-    };
+    });
     expect(getOverallStatus(weather)).toBe('no');
   });
 
   it('returns "no" when the weather code is severe even if raw metrics look fine', () => {
-    const weather = {
+    const weather = makeWeather({
       hasThunderstorms: false,
       temperature: 60,
       windSpeed: 5,
@@ -124,12 +125,12 @@ describe('Overall Status Determination', () => {
       dewpoint: 50,
       aqi: 20,
       weatherCode: 65, // heavy rain
-    };
+    });
     expect(getOverallStatus(weather)).toBe('no');
   });
 
   it('ignores UV for the verdict — it only drives sunscreen/kit advice', () => {
-    const weather = {
+    const weather = makeWeather({
       hasThunderstorms: false,
       temperature: 60,
       windSpeed: 5,
@@ -137,36 +138,36 @@ describe('Overall Status Determination', () => {
       dewpoint: 50,
       aqi: 20,
       uvIndex: 11, // extreme, but not a ride gate
-    };
+    });
     expect(getOverallStatus(weather)).toBe('yes');
   });
 
   it('returns "yes" when conditions are fair but comfortably rideable', () => {
-    const weather = {
+    const weather = makeWeather({
       hasThunderstorms: false,
       temperature: 60, // good
       windSpeed: 12, // fair
       rainChance: 0,
       dewpoint: 50,
       aqi: 20,
-    };
+    });
     expect(getOverallStatus(weather)).toBe('yes');
   });
 
   it('returns "maybe" when any condition is marginal', () => {
-    const weather = {
+    const weather = makeWeather({
       hasThunderstorms: false,
       temperature: 60,
       windSpeed: 20, // marginal
       rainChance: 0,
       dewpoint: 50,
       aqi: 20,
-    };
+    });
     expect(getOverallStatus(weather)).toBe('maybe');
   });
 
   it('returns "yes" if all conditions are "good"', () => {
-    const weather = {
+    const weather = makeWeather({
       hasThunderstorms: false,
       temperature: 60,
       windSpeed: 5,
@@ -174,12 +175,12 @@ describe('Overall Status Determination', () => {
       dewpoint: 50,
       aqi: 20,
       uvIndex: 1,
-    };
+    });
     expect(getOverallStatus(weather)).toBe('yes');
   });
 
   it('returns "maybe" for warm weather (85°F air temp)', () => {
-    const weather = {
+    const weather = makeWeather({
       hasThunderstorms: false,
       temperature: 85,
       feelsLike: 88,
@@ -187,12 +188,12 @@ describe('Overall Status Determination', () => {
       rainChance: 0,
       dewpoint: 63,
       aqi: 20,
-    };
+    });
     expect(getOverallStatus(weather)).toBe('maybe');
   });
 
   it('returns "no" for cold rain hypothermia hazard (temp <= 45°F and rain >= 40%)', () => {
-    const weather = {
+    const weather = makeWeather({
       hasThunderstorms: false,
       temperature: 42,
       feelsLike: 40,
@@ -200,7 +201,7 @@ describe('Overall Status Determination', () => {
       rainChance: 45,
       dewpoint: 38,
       aqi: 20,
-    };
+    });
     expect(getOverallStatus(weather)).toBe('no');
     // Below the trigger, a cool damp day is a judgment call, not a hazard.
     expect(getOverallStatus({ ...weather, rainChance: 35 })).not.toBe('no');
@@ -209,7 +210,7 @@ describe('Overall Status Determination', () => {
 
 describe('calculateRideScore', () => {
   it('returns high score (9 or 10 out of 10) for ideal riding weather', () => {
-    const weather = {
+    const weather = makeWeather({
       hasThunderstorms: false,
       temperature: 65,
       windSpeed: 5,
@@ -218,23 +219,23 @@ describe('calculateRideScore', () => {
       dewpoint: 48,
       aqi: 15,
       weatherCode: 0,
-    };
+    });
     const score = calculateRideScore(weather);
     expect(score).toBeGreaterThanOrEqual(9);
   });
 
   it('returns very low score (1/10) for thunderstorms', () => {
-    const weather = {
+    const weather = makeWeather({
       hasThunderstorms: true,
       temperature: 70,
       windSpeed: 10,
       rainChance: 50,
-    };
+    });
     expect(calculateRideScore(weather)).toBe(1);
   });
 
   it('never returns a high score when status is "no"', () => {
-    const weatherWithOneDealbreaker = {
+    const weatherWithOneDealbreaker = makeWeather({
       hasThunderstorms: false,
       temperature: 65, // ideal
       windSpeed: 35, // bad! (gusts/wind severe)
@@ -242,13 +243,13 @@ describe('calculateRideScore', () => {
       dewpoint: 50, // ideal
       aqi: 15, // ideal
       weatherCode: 0,
-    };
+    });
     const score = calculateRideScore(weatherWithOneDealbreaker);
     expect(score).toBeLessThanOrEqual(3);
   });
 
   it('returns score 8 for a fair rideable day', () => {
-    const fairWeather = {
+    const fairWeather = makeWeather({
       hasThunderstorms: false,
       temperature: 75, // fair warm
       windSpeed: 14, // fair wind
@@ -256,13 +257,13 @@ describe('calculateRideScore', () => {
       dewpoint: 62, // fair dew
       aqi: 15,
       weatherCode: 0,
-    };
+    });
     const score = calculateRideScore(fairWeather);
     expect(score).toBe(8);
   });
 
   it('returns score between 4 and 6 for a maybe day', () => {
-    const maybeWeather = {
+    const maybeWeather = makeWeather({
       hasThunderstorms: false,
       temperature: 85, // marginal heat
       feelsLike: 88,
@@ -271,7 +272,7 @@ describe('calculateRideScore', () => {
       dewpoint: 63,
       aqi: 15,
       weatherCode: 0,
-    };
+    });
     const score = calculateRideScore(maybeWeather);
     expect(score).toBeGreaterThanOrEqual(4);
     expect(score).toBeLessThanOrEqual(6);
@@ -295,7 +296,7 @@ describe('Rain amount', () => {
   });
 
   it('keeps a likely trace shower from forcing a rest day', () => {
-    const weather = {
+    const weather = makeWeather({
       hasThunderstorms: false,
       temperature: 65,
       feelsLike: 65,
@@ -303,7 +304,7 @@ describe('Rain amount', () => {
       rainChance: 70,
       dewpoint: 50,
       aqi: 20,
-    };
+    });
     expect(getOverallStatus({ ...weather, precipitation: 3 })).toBe('no');
     expect(getOverallStatus({ ...weather, precipitation: 0.5 })).toBe('maybe');
     expect(getOverallStatus({ ...weather, precipitation: 0.1 })).toBe('yes');
@@ -311,7 +312,7 @@ describe('Rain amount', () => {
 });
 
 describe('getCurrentCondition', () => {
-  const clear = {
+  const clear = makeWeather({
     temperature: 68,
     feelsLike: 68,
     windSpeed: 5,
@@ -325,7 +326,7 @@ describe('getCurrentCondition', () => {
     hourly: [],
     pastHourly: [],
     daily: [],
-  };
+  });
 
   it('matches the overall rating when nothing is falling', () => {
     expect(getCurrentCondition(clear)).toBe(getOverallCondition(clear));

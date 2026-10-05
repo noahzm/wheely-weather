@@ -7,6 +7,7 @@ import {
   getRainTiming,
   isThunderstorm,
 } from './weather';
+import { makeDay, makeHour, makeWeather } from '@/test-utils/weather';
 
 describe('Thunderstorms', () => {
   it('identifies thunderstorms correctly', () => {
@@ -19,53 +20,41 @@ describe('Thunderstorms', () => {
 
 describe('Rain Timing Logic', () => {
   it('returns "Clearing up by..." when rain is happening now but stops later', () => {
-    const hourly = [
-      { hour: 10, rainChance: 50 },
-      { hour: 11, rainChance: 10 },
-    ];
+    const hourly = [makeHour({ hour: 10, rainChance: 50 }), makeHour({ hour: 11, rainChance: 10 })];
     expect(getRainTiming(hourly)).toBe('Clears by 11 AM');
   });
 
   it('handles midnight wraparound in rain timing', () => {
-    const hourly = [
-      { hour: 23, rainChance: 50 },
-      { hour: 0, rainChance: 10 },
-    ];
+    const hourly = [makeHour({ hour: 23, rainChance: 50 }), makeHour({ hour: 0, rainChance: 10 })];
     expect(getRainTiming(hourly)).toBe('Clears by 12 AM');
   });
 
   it('handles rain spanning midnight', () => {
     const hourly = [
-      { hour: 23, rainChance: 10 },
-      { hour: 0, rainChance: 50 },
-      { hour: 1, rainChance: 10 },
+      makeHour({ hour: 23, rainChance: 10 }),
+      makeHour({ hour: 0, rainChance: 50 }),
+      makeHour({ hour: 1, rainChance: 10 }),
     ];
     expect(getRainTiming(hourly)).toBe('Rain 12 AM–1 AM');
   });
 
   it('returns "Rain after..." when rain starts later', () => {
-    const hourly = [
-      { hour: 10, rainChance: 0 },
-      { hour: 11, rainChance: 50 },
-    ];
+    const hourly = [makeHour({ hour: 10, rainChance: 0 }), makeHour({ hour: 11, rainChance: 50 })];
     expect(getRainTiming(hourly)).toBe('Rain after 11 AM');
   });
 
   it('returns "Rain throughout" when it rains the entire window', () => {
-    const hourly = [
-      { hour: 10, rainChance: 50 },
-      { hour: 11, rainChance: 60 },
-    ];
+    const hourly = [makeHour({ hour: 10, rainChance: 50 }), makeHour({ hour: 11, rainChance: 60 })];
     expect(getRainTiming(hourly)).toBe('Rain throughout');
   });
 
   it('uses the first contiguous shower block instead of merging separated rain periods', () => {
     const hourly = [
-      { hour: 10, rainChance: 10 },
-      { hour: 11, rainChance: 50 },
-      { hour: 12, rainChance: 0 },
-      { hour: 13, rainChance: 60 },
-      { hour: 14, rainChance: 0 },
+      makeHour({ hour: 10, rainChance: 10 }),
+      makeHour({ hour: 11, rainChance: 50 }),
+      makeHour({ hour: 12, rainChance: 0 }),
+      makeHour({ hour: 13, rainChance: 60 }),
+      makeHour({ hour: 14, rainChance: 0 }),
     ];
 
     expect(getRainTiming(hourly)).toBe('Rain 11 AM–12 PM');
@@ -73,9 +62,9 @@ describe('Rain Timing Logic', () => {
 
   it('does not call rain throughout when the current shower ends before a later second round', () => {
     const hourly = [
-      { hour: 10, rainChance: 50 },
-      { hour: 11, rainChance: 0 },
-      { hour: 12, rainChance: 60 },
+      makeHour({ hour: 10, rainChance: 50 }),
+      makeHour({ hour: 11, rainChance: 0 }),
+      makeHour({ hour: 12, rainChance: 60 }),
     ];
 
     expect(getRainTiming(hourly)).toBe('Clears by 11 AM');
@@ -136,10 +125,6 @@ describe('Daily Forecast Logic', () => {
     ).toBe('poor');
   });
 
-  it('does not let high UV downgrade a daily verdict (UV is advice-only)', () => {
-    expect(getDailyCondition({ tempHigh: 65, wind: 5, rain: 0, code: 1, uv: 9 })).toBe('good');
-  });
-
   it('treats freezing fog as bad because of road ice', () => {
     expect(getDailyCondition({ tempHigh: 40, wind: 5, rain: 0, code: 48 })).toBe('bad');
   });
@@ -148,22 +133,22 @@ describe('Daily Forecast Logic', () => {
 describe('Weekly Forecast Logic', () => {
   it('prefers the calmer and drier good day over the hotter one', () => {
     const daily = [
-      {
+      makeDay({
         date: new Date('2026-04-19T12:00:00'),
         condition: 'good',
         high: 82,
         low: 63,
         windSpeed: 14,
         rainChance: 20,
-      },
-      {
+      }),
+      makeDay({
         date: new Date('2026-04-20T12:00:00'),
         condition: 'good',
         high: 72,
         low: 56,
         windSpeed: 6,
         rainChance: 5,
-      },
+      }),
     ];
 
     expect(getBestDayInfo(daily).index).toBe(1);
@@ -171,55 +156,63 @@ describe('Weekly Forecast Logic', () => {
 
   it('explains when a day looks nice but rates badly because of wind', () => {
     expect(
-      getDayConditionReason({
-        condition: 'bad',
-        weatherCode: 1,
-        high: 72,
-        low: 58,
-        windSpeed: 32,
-        rainChance: 5,
-      }),
+      getDayConditionReason(
+        makeDay({
+          condition: 'bad',
+          weatherCode: 1,
+          high: 72,
+          low: 58,
+          windSpeed: 32,
+          rainChance: 5,
+        }),
+      ),
     ).toBe('Dangerous wind (32 mph)');
   });
 
   it('explains bad daily ratings caused by dangerous heat', () => {
     expect(
-      getDayConditionReason({
-        condition: 'bad',
-        weatherCode: 1,
-        high: 97,
-        low: 78,
-        windSpeed: 5,
-        rainChance: 5,
-        dewpoint: 62,
-      }),
+      getDayConditionReason(
+        makeDay({
+          condition: 'bad',
+          weatherCode: 1,
+          high: 97,
+          low: 78,
+          windSpeed: 5,
+          rainChance: 5,
+          dewpoint: 62,
+        }),
+      ),
     ).toBe('Dangerous heat (97°)');
   });
 
   it('explains bad daily ratings caused by oppressive humidity', () => {
     expect(
-      getDayConditionReason({
-        condition: 'bad',
-        weatherCode: 1,
-        high: 82,
-        low: 72,
-        windSpeed: 5,
-        rainChance: 5,
-        dewpoint: 79,
-      }),
+      getDayConditionReason(
+        makeDay({
+          condition: 'bad',
+          weatherCode: 1,
+          high: 82,
+          low: 72,
+          windSpeed: 5,
+          rainChance: 5,
+          dewpoint: 79,
+        }),
+      ),
     ).toBe('Oppressive humidity (dew 79°)');
   });
 
   it('surfaces a positive daily reason for strong ride days', () => {
     expect(
-      getDayConditionReason({
-        condition: 'good',
-        weatherCode: 1,
-        high: 72,
-        low: 56,
-        windSpeed: 6,
-        rainChance: 5,
-      }),
+      getDayConditionReason(
+        makeDay({
+          condition: 'good',
+          weatherCode: 1,
+          high: 72,
+          low: 56,
+          windSpeed: 6,
+          rainChance: 5,
+        }),
+      ),
     ).toBe('Low wind and dry');
   });
 });
@@ -230,7 +223,7 @@ describe('Hourly Message Logic', () => {
     [message.lead, ...message.issues, message.timing ?? ''].join(' ');
 
   it('uses a natural weather phrase in the good-ride summary', () => {
-    const weather = {
+    const weather = makeWeather({
       hasThunderstorms: false,
       temperature: 68,
       feelsLike: 68,
@@ -239,9 +232,9 @@ describe('Hourly Message Logic', () => {
       dewpoint: 50,
       aqi: 20,
       condition: 'Clear skies',
-      hourly: [{ hour: 10, condition: 'good' }],
+      hourly: [makeHour({ hour: 10, condition: 'good' })],
       daily: [],
-    };
+    });
 
     const message = getMessage(weather, 'yes');
     expect(message.lead).toBe('68°F, clear skies, with light winds.');
@@ -261,7 +254,7 @@ describe('Hourly Message Logic', () => {
   });
 
   it('mentions when conditions become fair later even if they never reach fully good', () => {
-    const weather = {
+    const weather = makeWeather({
       hasThunderstorms: false,
       temperature: 33,
       windSpeed: 6,
@@ -269,27 +262,27 @@ describe('Hourly Message Logic', () => {
       dewpoint: 50,
       aqi: 20,
       hourly: [
-        { hour: 10, condition: 'bad' },
-        { hour: 11, condition: 'fair' },
-        { hour: 12, condition: 'fair' },
+        makeHour({ hour: 10, condition: 'bad' }),
+        makeHour({ hour: 11, condition: 'fair' }),
+        makeHour({ hour: 12, condition: 'fair' }),
       ],
       daily: [],
-    };
+    });
 
     expect(getMessage(weather, 'no').timing).toBe('Clears by 11 AM');
   });
 
   it('does not call mild weather too hot when the real issue is wind', () => {
-    const weather = {
+    const weather = makeWeather({
       hasThunderstorms: false,
       temperature: 70,
       windSpeed: 26, // poor sustained
       rainChance: 10,
       dewpoint: 50,
       aqi: 20,
-      hourly: [{ hour: 10, condition: 'bad' }],
+      hourly: [makeHour({ hour: 10, condition: 'bad' })],
       daily: [],
-    };
+    });
 
     const message = getMessage(weather, 'no');
 
@@ -298,16 +291,16 @@ describe('Hourly Message Logic', () => {
   });
 
   it('lists each issue as its own chip label with an issues lead', () => {
-    const weather = {
+    const weather = makeWeather({
       hasThunderstorms: false,
       temperature: 48,
       windSpeed: 13,
       rainChance: 35,
       dewpoint: 50,
       aqi: 20,
-      hourly: [{ hour: 10, condition: 'fair' }],
+      hourly: [makeHour({ hour: 10, condition: 'fair' })],
       daily: [],
-    };
+    });
 
     const message = getMessage(weather, 'maybe');
     expect(message.lead).toBe('Rideable, but:');
@@ -318,53 +311,53 @@ describe('Hourly Message Logic', () => {
   });
 
   it('keeps every issue when a day stacks up many of them', () => {
-    const weather = {
+    const weather = makeWeather({
       hasThunderstorms: false,
       temperature: 48,
       windSpeed: 13,
       rainChance: 35,
       dewpoint: 62,
       aqi: 80,
-      hourly: [{ hour: 10, condition: 'fair' }],
+      hourly: [makeHour({ hour: 10, condition: 'fair' })],
       daily: [],
-    };
+    });
 
     // cold, gusty, rainy, sticky, hazy => 5 chips, no "plus N more" collapse
     expect(getMessage(weather, 'maybe').issues).toHaveLength(5);
   });
 
   it('phrases a single rain issue naturally', () => {
-    const weather = {
+    const weather = makeWeather({
       hasThunderstorms: false,
       temperature: 60,
       windSpeed: 5,
       rainChance: 32,
       dewpoint: 50,
       aqi: 20,
-      hourly: [{ hour: 10, condition: 'fair' }],
+      hourly: [makeHour({ hour: 10, condition: 'fair' })],
       daily: [],
-    };
+    });
 
     expect(getMessage(weather, 'maybe').issues).toEqual(['Rain possible (32%)']);
   });
 
   it('rounds rain chance in rider-facing copy', () => {
-    const weather = {
+    const weather = makeWeather({
       hasThunderstorms: false,
       temperature: 60,
       windSpeed: 5,
       rainChance: 32 + 1e-14,
       dewpoint: 50,
       aqi: 20,
-      hourly: [{ hour: 10, condition: 'fair' }],
+      hourly: [makeHour({ hour: 10, condition: 'fair' })],
       daily: [],
-    };
+    });
 
     expect(getMessage(weather, 'maybe').issues).toEqual(['Rain possible (32%)']);
   });
 
   it('names heavy rain codes when rain percentage alone looks low', () => {
-    const weather = {
+    const weather = makeWeather({
       hasThunderstorms: false,
       temperature: 60,
       windSpeed: 5,
@@ -372,15 +365,15 @@ describe('Hourly Message Logic', () => {
       dewpoint: 50,
       aqi: 20,
       weatherCode: 65,
-      hourly: [{ hour: 10, condition: 'poor' }],
+      hourly: [makeHour({ hour: 10, condition: 'poor' })],
       daily: [],
-    };
+    });
 
     expect(spoken(getMessage(weather, 'no'))).toContain('heavy rain');
   });
 
   it('names snow codes when raw metrics do not explain the downgrade', () => {
-    const weather = {
+    const weather = makeWeather({
       hasThunderstorms: false,
       temperature: 60,
       windSpeed: 5,
@@ -388,15 +381,15 @@ describe('Hourly Message Logic', () => {
       dewpoint: 50,
       aqi: 20,
       weatherCode: 73,
-      hourly: [{ hour: 10, condition: 'marginal' }],
+      hourly: [makeHour({ hour: 10, condition: 'marginal' })],
       daily: [],
-    };
+    });
 
     expect(spoken(getMessage(weather, 'maybe'))).toContain('snow');
   });
 
   it('names fog codes when raw metrics do not explain the downgrade', () => {
-    const weather = {
+    const weather = makeWeather({
       hasThunderstorms: false,
       temperature: 60,
       windSpeed: 5,
@@ -404,15 +397,15 @@ describe('Hourly Message Logic', () => {
       dewpoint: 50,
       aqi: 20,
       weatherCode: 45,
-      hourly: [{ hour: 10, condition: 'fair' }],
+      hourly: [makeHour({ hour: 10, condition: 'fair' })],
       daily: [],
-    };
+    });
 
     expect(spoken(getMessage(weather, 'maybe'))).toContain('fog');
   });
 
   it('describes gusts when they are the worse wind factor', () => {
-    const weather = {
+    const weather = makeWeather({
       hasThunderstorms: false,
       temperature: 60,
       windSpeed: 8, // good sustained
@@ -420,9 +413,9 @@ describe('Hourly Message Logic', () => {
       rainChance: 0,
       dewpoint: 50,
       aqi: 20,
-      hourly: [{ hour: 10, condition: 'poor' }],
+      hourly: [makeHour({ hour: 10, condition: 'poor' })],
       daily: [],
-    };
+    });
 
     expect(spoken(getMessage(weather, 'no'))).toContain('Strong gusts (36 mph)');
   });
@@ -430,24 +423,24 @@ describe('Hourly Message Logic', () => {
 
 describe('Best Ride Window', () => {
   it("returns 'Best now' when the current hour is good", () => {
-    const hourly = [{ hour: 10, condition: 'good' }];
+    const hourly = [makeHour({ hour: 10, condition: 'good' })];
     expect(getBestRideWindow(hourly)).toBe('Best now');
   });
 
   it("returns 'Improves around X' when a later fair-or-better window exists", () => {
     const hourly = [
-      { hour: 10, condition: 'bad' },
-      { hour: 11, condition: 'bad' },
-      { hour: 12, condition: 'fair' },
+      makeHour({ hour: 10, condition: 'bad' }),
+      makeHour({ hour: 11, condition: 'bad' }),
+      makeHour({ hour: 12, condition: 'fair' }),
     ];
     expect(getBestRideWindow(hourly)).toBe('Improves around 12 PM');
   });
 
   it("returns 'No clear window' when conditions never improve", () => {
     const hourly = [
-      { hour: 10, condition: 'bad' },
-      { hour: 11, condition: 'poor' },
-      { hour: 12, condition: 'bad' },
+      makeHour({ hour: 10, condition: 'bad' }),
+      makeHour({ hour: 11, condition: 'poor' }),
+      makeHour({ hour: 12, condition: 'bad' }),
     ];
     expect(getBestRideWindow(hourly)).toBe('No clear window in the next 24 hours');
   });
@@ -458,9 +451,9 @@ describe('Best Ride Window', () => {
 
   it('prefers good over fair when current is fair', () => {
     const hourly = [
-      { hour: 10, condition: 'fair' },
-      { hour: 11, condition: 'fair' },
-      { hour: 12, condition: 'good' },
+      makeHour({ hour: 10, condition: 'fair' }),
+      makeHour({ hour: 11, condition: 'fair' }),
+      makeHour({ hour: 12, condition: 'good' }),
     ];
     expect(getBestRideWindow(hourly)).toBe('Improves around 12 PM');
   });

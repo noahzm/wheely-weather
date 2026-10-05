@@ -1,19 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { getHourConditionReasons } from '../../utils/forecastHelpers';
+import { makeHour as makeBaseHour } from '@/test-utils/weather';
+import type { HourlyWeather } from '@/types/weather';
 
-function makeHour(overrides: Record<string, unknown> = {}) {
-  return {
-    hour: 10,
-    condition: 'good',
-    temperature: 65,
-    feelsLike: 65,
+function makeHour(overrides: Partial<HourlyWeather> = {}) {
+  return makeBaseHour({
     windSpeed: 6,
-    windGust: null,
     rainChance: 5,
     weatherCode: 1,
     dewpoint: 50,
     ...overrides,
-  };
+  });
 }
 
 describe('hourly chart reason integration', () => {

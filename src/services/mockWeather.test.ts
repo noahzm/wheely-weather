@@ -33,12 +33,12 @@ describe('mockWeather', () => {
 
     const rest = buildMockWeather('rest');
     expect(rest).not.toBeNull();
-    expect(rest?.nwsAlerts.length).toBe(0);
+    expect(rest?.nwsAlerts?.length).toBe(0);
 
     const alert = buildMockWeather('alert');
     expect(alert).not.toBeNull();
-    expect(alert?.nwsAlerts.length).toBe(1);
-    expect(alert?.nwsAlerts[0].severity).toBe('extreme');
+    expect(alert?.nwsAlerts?.length).toBe(1);
+    expect(alert?.nwsAlerts?.[0]?.severity).toBe('extreme');
 
     const unknown = buildMockWeather('unknown');
     expect(unknown).toBeNull();

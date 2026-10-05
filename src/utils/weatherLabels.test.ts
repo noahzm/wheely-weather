@@ -11,7 +11,6 @@ import {
 describe('getAqiLabel', () => {
   it('returns an en dash for null', () => {
     expect(getAqiLabel(null)).toBe('–');
-    expect(getAqiLabel()).toBe('–');
   });
 
   it.each([

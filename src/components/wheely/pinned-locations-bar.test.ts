@@ -4,23 +4,32 @@ import { sameCoords } from '@/utils/locationRows';
 import type { RecentLocation, SavedLocation } from '@/services/locationStorage';
 
 describe('PinnedLocationsBar helpers', () => {
-  const pins: RecentLocation[] = [
-    { label: 'Boulder, CO', displayName: 'United States', lat: 40.015, lon: -105.27 },
-    { label: 'Girona', displayName: 'Catalonia, Spain', lat: 41.979, lon: 2.821 },
-  ];
+  const boulder: RecentLocation = {
+    label: 'Boulder, CO',
+    displayName: 'United States',
+    lat: 40.015,
+    lon: -105.27,
+  };
+  const girona: RecentLocation = {
+    label: 'Girona',
+    displayName: 'Catalonia, Spain',
+    lat: 41.979,
+    lon: 2.821,
+  };
 
   it('formats locations into concise pill labels prioritizing city label', () => {
-    expect(resolveLocationChipName(pins[0])).toBe('Boulder');
-    expect(resolveLocationChipName(pins[1])).toBe('Girona');
+    expect(resolveLocationChipName(boulder)).toBe('Boulder');
+    expect(resolveLocationChipName(girona)).toBe('Girona');
   });
 
   it('correctly matches active location using coordinate identity', () => {
     const activeSaved: SavedLocation = {
-      displayName: 'Boulder, CO',
+      name: 'Boulder, CO',
       lat: 40.015,
       lon: -105.27,
+      source: 'manual',
     };
-    expect(sameCoords(pins[0], activeSaved)).toBe(true);
-    expect(sameCoords(pins[1], activeSaved)).toBe(false);
+    expect(sameCoords(boulder, activeSaved)).toBe(true);
+    expect(sameCoords(girona, activeSaved)).toBe(false);
   });
 });

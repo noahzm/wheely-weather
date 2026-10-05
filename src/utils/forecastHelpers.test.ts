@@ -6,36 +6,40 @@ import {
   getHourConditionReasons,
 } from './forecastHelpers';
 import { THRESHOLDS } from '../domain/constants';
+import { makeDay, makeHour } from '@/test-utils/weather';
+import type { DailyWeather, HourlyWeather } from '@/types/weather';
 
 // Local-constructed dates keep getDay()/getDate() stable regardless of the runner's TZ.
 const JUN_22 = new Date(2026, 5, 22); // Monday
 const JUN_24 = new Date(2026, 5, 24); // Wednesday
 
-const day = (overrides = {}) => ({
-  date: JUN_22,
-  condition: 'fair',
-  high: 72,
-  low: 55,
-  windSpeed: 6,
-  rainChance: 5,
-  weatherCode: 1,
-  dewpoint: 50,
-  feelsLike: 72,
-  ...overrides,
-});
+const day = (overrides: Partial<DailyWeather> = {}) =>
+  makeDay({
+    date: JUN_22,
+    condition: 'fair',
+    high: 72,
+    low: 55,
+    windSpeed: 6,
+    rainChance: 5,
+    weatherCode: 1,
+    dewpoint: 50,
+    feelsLike: 72,
+    ...overrides,
+  });
 
-const hour = (overrides = {}) => ({
-  hour: 10,
-  condition: 'fair',
-  temperature: 65,
-  feelsLike: 65,
-  windSpeed: 6,
-  windGust: null,
-  rainChance: 5,
-  weatherCode: 1,
-  dewpoint: 50,
-  ...overrides,
-});
+const hour = (overrides: Partial<HourlyWeather> = {}) =>
+  makeHour({
+    hour: 10,
+    condition: 'fair',
+    temperature: 65,
+    feelsLike: 65,
+    windSpeed: 6,
+    windGust: null,
+    rainChance: 5,
+    weatherCode: 1,
+    dewpoint: 50,
+    ...overrides,
+  });
 
 describe('dayLabel', () => {
   it('returns Today for index 0', () => {
@@ -106,7 +110,7 @@ describe('getDayConditionReason', () => {
   });
 
   // Exhaustive branch coverage: defaults are calm/dry/mild, each row trips one branch.
-  it.each([
+  it.each<[string, Partial<DailyWeather>]>([
     // bad, in priority order. Values are chosen to actually land in the tier the
     // row claims — the day reason now rates metrics against the same THRESHOLDS
     // table that rated the day, so an impossible pairing (a 'bad' day whose only

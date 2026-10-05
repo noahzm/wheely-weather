@@ -12,6 +12,7 @@ import {
 import { getMessage } from './ride-factors';
 import { getHourlyCondition } from './scoring';
 import { getHourConditionReasons } from '../utils/forecastHelpers';
+import { makeWeather } from '@/test-utils/weather';
 
 describe('home climate copy', () => {
   it('names the place turning it on would use, or asks for one', () => {
@@ -163,10 +164,7 @@ describe('hero and hourly drawer phrasing agree', () => {
 
     // 'maybe' is the branch that includes fair- and marginal-rated metrics,
     // which is exactly where the two surfaces used to diverge.
-    const heroIssues = getMessage(
-      { ...weather, hasThunderstorms: false, hourly: [], daily: [] },
-      'maybe',
-    ).issues;
+    const heroIssues = getMessage(makeWeather(weather), 'maybe').issues;
     const drawerReasons = getHourConditionReasons({
       ...weather,
       hour: 10,

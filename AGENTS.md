@@ -62,7 +62,7 @@ Each of these has caused a real bug when broken.
 - React Compiler is enabled (`app.json`): do not add manual `useMemo`/`useCallback` for performance-only reasons.
 - Reanimated shared values: use `.set()` / `.get()`, not `.value =` — the React Compiler lint rule (`react-hooks/immutability`) flags `.value` writes.
 - Sentry is DSN-gated (`EXPO_PUBLIC_SENTRY_DSN`). Source maps upload only from EAS production builds (`SENTRY_AUTH_TOKEN` is an EAS secret there); local native builds and the development/preview EAS environments set `SENTRY_DISABLE_AUTO_UPLOAD=true` (already in the npm scripts). `metro.config.js` must keep `getSentryExpoConfig`, which injects the debug IDs that tie events to uploaded maps.
-- ESLint type-aware linting uses `tsconfig.eslint.json` (includes test files), while `npm run typecheck` uses `tsconfig.json` (excludes them). A test file may pass typecheck but fail lint, or vice versa.
+- One `tsconfig.json` covers app code and tests, for both `tsc` and type-aware ESLint. Typed routes are on: `npm run typegen` (`expo customize tsconfig.json`) writes `.expo/types/router.d.ts` and `expo-env.d.ts`, both gitignored, and `lint`/`typecheck` run it first so CI checks the same route types as a dev machine.
 - `max-params` is 5: pass a function or an options object rather than a sixth argument.
 - Commits use conventional prefixes, with an optional scope (`fix(forecast): …`). The usual ones are `feat`, `fix`, `chore`, `docs`, `deps`, `ci`, but any standard prefix (`perf`, `refactor`, `test`, …) is fine.
 

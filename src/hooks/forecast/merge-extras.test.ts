@@ -21,7 +21,7 @@ function buildSnapshot(): ForecastSnapshot {
     isDeviceLocation: false,
     mockScenario: null,
     source: 'manual',
-    acclimatization: { homeBaseline: null, thresholds: THRESHOLDS },
+    acclimatization: { homeBaseline: null, thresholds: THRESHOLDS, exposureLevel: 'moderate' },
   };
 }
 

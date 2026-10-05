@@ -15,15 +15,5 @@
     }
   },
   "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],
-  "exclude": [
-    "node_modules",
-    "dist",
-    ".expo",
-    "**/*.test.js",
-    "**/*.test.ts",
-    "**/*.test.tsx",
-    "**/*.spec.js",
-    "**/*.spec.ts",
-    "**/*.spec.tsx"
-  ]
+  "exclude": ["node_modules", "dist", "web-build"]
 }

@@ -137,7 +137,7 @@ export function BottomNavBar() {
   if (Platform.OS !== 'web') return null;
 
   const tabSegment = segments.at(-1) ?? '';
-  const isHome = pathname === '/' || tabSegment === '(home)' || tabSegment === 'index';
+  const isHome = pathname === '/' || tabSegment === '(home)';
   const isLocation = pathname.startsWith('/location') || tabSegment === 'location';
   const isSettings = pathname.startsWith('/settings') || tabSegment === 'settings';
 

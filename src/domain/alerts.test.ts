@@ -1,36 +1,43 @@
 import { describe, expect, it } from 'vitest';
 import { getWeatherAlerts } from './weather';
+import { makeWeather } from '@/test-utils/weather';
 
 describe('Weather Alerts', () => {
   it('keeps the derived heat alert when the NWS alert is unrelated excessive weather', () => {
-    const alerts = getWeatherAlerts({
-      feelsLike: 105,
-      nwsAlerts: [{ type: 'nws', event: 'Excessive Rainfall Warning' }],
-    });
+    const alerts = getWeatherAlerts(
+      makeWeather({
+        feelsLike: 105,
+        nwsAlerts: [{ type: 'nws', severity: 'warning', event: 'Excessive Rainfall Warning' }],
+      }),
+    );
 
     expect(alerts.some((alert) => alert.type === 'heat')).toBe(true);
   });
 
   it('does not duplicate a heat alert when NWS already issued one', () => {
-    const alerts = getWeatherAlerts({
-      feelsLike: 105,
-      nwsAlerts: [{ type: 'nws', event: 'Heat Advisory' }],
-    });
+    const alerts = getWeatherAlerts(
+      makeWeather({
+        feelsLike: 105,
+        nwsAlerts: [{ type: 'nws', severity: 'warning', event: 'Heat Advisory' }],
+      }),
+    );
 
     expect(alerts.filter((alert) => alert.type === 'heat')).toHaveLength(0);
   });
 
   it('does not duplicate a heat alert when WeatherKit (iOS) already issued one', () => {
-    const alerts = getWeatherAlerts({
-      feelsLike: 105,
-      nwsAlerts: [{ type: 'weatherkit', severity: 'warning', event: 'Heat Advisory' }],
-    });
+    const alerts = getWeatherAlerts(
+      makeWeather({
+        feelsLike: 105,
+        nwsAlerts: [{ type: 'weatherkit', severity: 'warning', event: 'Heat Advisory' }],
+      }),
+    );
 
     expect(alerts.filter((alert) => alert.type === 'heat')).toHaveLength(0);
   });
 
   it('adds a warning-level heat alert when feels like is above 95F', () => {
-    const alerts = getWeatherAlerts({ feelsLike: 100 });
+    const alerts = getWeatherAlerts(makeWeather({ feelsLike: 100 }));
 
     expect(alerts).toContainEqual(
       expect.objectContaining({
@@ -43,15 +50,17 @@ describe('Weather Alerts', () => {
   });
 
   it('does not add a heat alert when feels like is 95F or below', () => {
-    const alerts = getWeatherAlerts({ feelsLike: 95 });
+    const alerts = getWeatherAlerts(makeWeather({ feelsLike: 95 }));
     expect(alerts.filter((alert) => alert.type === 'heat')).toHaveLength(0);
   });
 
   it('handles alerts with undefined event safely', () => {
-    const alerts = getWeatherAlerts({
-      feelsLike: 100,
-      nwsAlerts: [{ type: 'nws', headline: 'Some Notice' }],
-    });
+    const alerts = getWeatherAlerts(
+      makeWeather({
+        feelsLike: 100,
+        nwsAlerts: [{ type: 'nws', severity: 'warning', headline: 'Some Notice' }],
+      }),
+    );
     expect(alerts.some((alert) => alert.type === 'heat')).toBe(true);
   });
 });

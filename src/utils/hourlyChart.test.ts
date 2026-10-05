@@ -215,7 +215,9 @@ describe('chartSmoothYAtSegments', () => {
     ];
     const segments = buildChartSpline(data);
     expect(segments).toHaveLength(1);
-    const midX = (segments[0].x0 + segments[0].x1) / 2;
+    const [segment] = segments;
+    if (!segment) throw new Error('expected a segment');
+    const midX = (segment.x0 + segment.x1) / 2;
     const midY = chartSmoothYAtSegments(segments, midX);
     expect(midY).toBeGreaterThan(24);
     expect(midY).toBeLessThan(120);

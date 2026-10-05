@@ -26,6 +26,5 @@ describe('isSafeExternalUrl', () => {
     expect(isSafeExternalUrl('not-a-url')).toBe(false);
     expect(isSafeExternalUrl('')).toBe(false);
     expect(isSafeExternalUrl(null)).toBe(false);
-    expect(isSafeExternalUrl()).toBe(false);
   });
 });

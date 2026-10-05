@@ -7,10 +7,6 @@ const sonarjs = require('eslint-plugin-sonarjs');
 const prettierConfig = require('eslint-config-prettier');
 const path = require('node:path');
 
-// Type-aware linting reads a tsconfig that includes test files too (the build
-// tsconfig.json excludes them) so tests get the same strict coverage as source.
-const ESLINT_TSCONFIG = 'tsconfig.eslint.json';
-
 module.exports = defineConfig([
   // ── Ignores (generated/build output) ────────────────────────────────────
   {
@@ -35,7 +31,7 @@ module.exports = defineConfig([
     files: ['**/*.{ts,tsx}'],
     languageOptions: {
       parserOptions: {
-        project: ESLINT_TSCONFIG,
+        project: 'tsconfig.json',
         tsconfigRootDir: path.resolve(__dirname),
       },
     },

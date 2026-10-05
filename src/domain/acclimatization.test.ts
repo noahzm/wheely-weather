@@ -8,6 +8,7 @@ import {
 import { THRESHOLDS } from './constants';
 import { evaluateColdRainHazard } from './scoring';
 import { getOverallStatus, evaluateCondition } from './weather';
+import { makeWeather } from '@/test-utils/weather';
 
 const TEMPERATE = { warmTemp: 80, warmDewpoint: 60 };
 const PHOENIX = { warmTemp: 105, warmDewpoint: 58 };
@@ -113,7 +114,7 @@ describe('cold acclimatization', () => {
 
   it('lets a cold-adapted rider ride a dry freezing day, but not freezing rain', () => {
     const thresholds = resolveThresholds(CHICAGO_WINTER, THRESHOLDS, 'high');
-    const dryFreezing = {
+    const dryFreezing = makeWeather({
       hasThunderstorms: false,
       temperature: 28,
       feelsLike: 20,
@@ -121,7 +122,7 @@ describe('cold acclimatization', () => {
       rainChance: 0,
       dewpoint: 15,
       aqi: 20,
-    };
+    });
     expect(getOverallStatus(dryFreezing)).toBe('no');
     // Bands shift 12°F: rest day below 20°F, iffy 20–28°F, fair from 28°F.
     expect(getOverallStatus(dryFreezing, thresholds)).toBe('yes');
@@ -167,13 +168,13 @@ describe('applyAcclimatization', () => {
 });
 
 describe('acclimatization and the verdict', () => {
-  const base = {
+  const base = makeWeather({
     hasThunderstorms: false,
     windSpeed: 5,
     rainChance: 0,
     aqi: 20,
     uvIndex: 1,
-  };
+  });
 
   it('eases a borderline-hot day for an acclimatized rider', () => {
     const day = { ...base, temperature: 92, dewpoint: 68 };
