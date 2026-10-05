@@ -29,6 +29,28 @@ describe('Rain Timing Logic', () => {
     expect(getRainTiming(hourly)).toBe('Clears by 12 AM');
   });
 
+  it('says tomorrow when rain clears after midnight', () => {
+    const hourly = [
+      makeHour({ hour: 15, rainChance: 90 }),
+      makeHour({ hour: 23, rainChance: 90 }),
+      makeHour({ hour: 0, rainChance: 90 }),
+      makeHour({ hour: 9, rainChance: 90 }),
+      makeHour({ hour: 10, rainChance: 10 }),
+    ];
+    expect(getRainTiming(hourly)).toBe('Clears tomorrow 10 AM');
+  });
+
+  it('says tomorrow when rain starts or falls entirely after midnight', () => {
+    const later = [
+      makeHour({ hour: 20, rainChance: 0 }),
+      makeHour({ hour: 6, rainChance: 0 }),
+      makeHour({ hour: 7, rainChance: 60 }),
+    ];
+    expect(getRainTiming(later)).toBe('Rain after 7 AM tomorrow');
+    const window = [...later, makeHour({ hour: 8, rainChance: 10 })];
+    expect(getRainTiming(window)).toBe('Rain tomorrow 7 AM–8 AM');
+  });
+
   it('handles rain spanning midnight', () => {
     const hourly = [
       makeHour({ hour: 23, rainChance: 10 }),

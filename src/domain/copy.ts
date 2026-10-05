@@ -228,6 +228,7 @@ export const STATUS_MESSAGES = {
   CLEAR_UP: (time: string) => `Clears by ${time}`,
   BEST_WINDOW: (range: string) => `Best ${range}`,
   LEAST_BAD_WINDOW: (range: string) => `Least bad ${range}`,
+  BETTER_TOMORROW: (range: string) => `Better tomorrow ${range}`,
   UNTIL: (time: string) => `Until ${time}`,
   RIGHT_NOW: (issue: string) => `Right now: ${issue}.`,
   KIT_TODAY: 'Today’s kit',
@@ -419,9 +420,12 @@ export const GEAR_TIPS = {
 // keep each to ~20 characters: longer ones wrap and push the chart down.
 export const RAIN_MESSAGES = {
   CLEARING: (time: string) => `Clears by ${time}`,
+  CLEARING_TOMORROW: (time: string) => `Clears tomorrow ${time}`,
   THROUGHOUT: 'Rain throughout',
   WINDOW: (start: string, end: string) => `Rain ${start}–${end}`,
+  WINDOW_TOMORROW: (start: string, end: string) => `Rain tomorrow ${start}–${end}`,
   LATER: (time: string) => `Rain after ${time}`,
+  LATER_TOMORROW: (time: string) => `Rain after ${time} tomorrow`,
 };
 
 export const DAYLIGHT_MESSAGES = {

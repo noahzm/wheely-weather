@@ -291,14 +291,35 @@ export const getRainTiming = (hourly: HourlyWeather[] | undefined): string | nul
   if (!firstRain || !lastRain) return null;
   const isRainingNow = firstRainIdx === 0;
   const clearsUp = lastRainIdx < hourly.length - 1;
+  // The hours run 24 ahead, so a bare "10 AM" seen at 3 PM reads as already past.
+  // Times on the next day say so; midnight still reads as tonight.
+  const clearsTomorrow = isNextDay(hourly, lastRainIdx);
+  const startsTomorrow = firstRain.hour !== 0 && isNextDay(hourly, firstRainIdx);
+  const start = fullHourLabel(firstRain.hour);
+  const end = fullHourLabel(lastRain.hour + 1);
 
-  if (isRainingNow && clearsUp) return RAIN_MESSAGES.CLEARING(fullHourLabel(lastRain.hour + 1));
+  if (isRainingNow && clearsUp) {
+    return clearsTomorrow ? RAIN_MESSAGES.CLEARING_TOMORROW(end) : RAIN_MESSAGES.CLEARING(end);
+  }
   // THROUGHOUT means rain persists through the entire visible window, not necessarily the whole day.
   if (isRainingNow) return RAIN_MESSAGES.THROUGHOUT;
-  if (clearsUp)
-    return RAIN_MESSAGES.WINDOW(fullHourLabel(firstRain.hour), fullHourLabel(lastRain.hour + 1));
-  return RAIN_MESSAGES.LATER(fullHourLabel(firstRain.hour));
+  if (clearsUp) {
+    return startsTomorrow
+      ? RAIN_MESSAGES.WINDOW_TOMORROW(start, end)
+      : RAIN_MESSAGES.WINDOW(start, end);
+  }
+  return startsTomorrow ? RAIN_MESSAGES.LATER_TOMORROW(start) : RAIN_MESSAGES.LATER(start);
 };
+
+/** Whether the hour at `index` falls after midnight, counting from the first hour. */
+function isNextDay(hourly: HourlyWeather[], index: number): boolean {
+  for (let i = 1; i <= index; i++) {
+    const previous = hourly[i - 1];
+    const current = hourly[i];
+    if (previous && current && current.hour < previous.hour) return true;
+  }
+  return false;
+}
 
 export const getDaylightWarning = (
   hourly: HourlyWeather[] | undefined,

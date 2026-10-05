@@ -146,11 +146,36 @@ describe('getRideVerdict', () => {
     expect(getRideVerdict(weather, THRESHOLDS).status).toBe('no');
   });
 
-  it('names the least bad window on a day that is bad even at its best', () => {
+  it('names the least bad window on a day that is poor even at its best', () => {
+    const weather = rainyMorning([day({ rainChance: 70 }, window(14, 17))]);
+    const verdict = getRideVerdict(weather, THRESHOLDS);
+    expect(verdict).toMatchObject({ status: 'no', condition: 'poor' });
+    expect(verdict.message.timing).toBe('Least bad 2 PM–5 PM');
+  });
+
+  it('names no window when even the best one rates bad', () => {
     const weather = rainyMorning([day({ rainChance: 90 }, window(14, 17))]);
     const verdict = getRideVerdict(weather, THRESHOLDS);
-    expect(verdict.status).toBe('no');
-    expect(verdict.message.timing).toBe('Least bad 2 PM–5 PM');
+    expect(verdict).toMatchObject({ status: 'no', condition: 'bad', when: 'later' });
+    expect(verdict.message.timing).toBeNull();
+  });
+
+  it('points to tomorrow when today’s best window rates bad and tomorrow’s is better', () => {
+    const weather = rainyMorning([
+      day({ rainChance: 90 }, window(14, 17)),
+      day({ rainChance: 10 }, window(10, 13)),
+    ]);
+    const verdict = getRideVerdict(weather, THRESHOLDS);
+    expect(verdict).toMatchObject({ status: 'no', when: 'later' });
+    expect(verdict.message.timing).toBe('Better tomorrow 10 AM–1 PM');
+  });
+
+  it('names no window when tomorrow is just as bad', () => {
+    const weather = rainyMorning([
+      day({ rainChance: 90 }, window(14, 17)),
+      day({ rainChance: 95 }, window(10, 13)),
+    ]);
+    expect(getRideVerdict(weather, THRESHOLDS).message.timing).toBeNull();
   });
 
   it('rates the window on whichever end of its temperature range is worse', () => {

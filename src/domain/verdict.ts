@@ -87,20 +87,42 @@ const windowRange = ({ startHour, endHour }: { startHour: number; endHour: numbe
 /** Timing chip for the rated window; none when the best window is already underway. */
 function windowTiming(
   when: VerdictWhen,
-  status: RideStatus,
+  condition: Condition,
   window: { startHour: number; endHour: number },
+  betterTomorrow: { startHour: number; endHour: number } | null,
 ): string | null {
+  const status = conditionToStatus(condition);
   if (when === 'tomorrow') return MSG.TOMORROW_WINDOW(windowRange(window));
   // Waiting, the headline already names the start ("Ride at 2 PM").
   if (when === 'wait') return MSG.UNTIL(fullHourLabel(window.endHour));
   // On a "no" day the later window isn't a recommendation, but riders who have
   // to go (and riders in climates with long no-go seasons) still need to know
   // when it's least rough, so it's named without calling it good.
+  // A window rated bad still holds the day's worst hours (late in the day every
+  // remaining window can overlap them), so it isn't named; tomorrow's is, if better.
   if (when === 'later') {
     const range = windowRange(window);
-    return status === 'no' ? MSG.LEAST_BAD_WINDOW(range) : MSG.BEST_WINDOW(range);
+    if (status !== 'no') return MSG.BEST_WINDOW(range);
+    if (condition !== 'bad') return MSG.LEAST_BAD_WINDOW(range);
+    return betterTomorrow ? MSG.BETTER_TOMORROW(windowRange(betterTomorrow)) : null;
   }
   return null;
+}
+
+/** Tomorrow's window, when it rates better than `condition`. */
+function getBetterTomorrowWindow(
+  weather: Weather,
+  tomorrow: DailyWeather | undefined,
+  condition: Condition,
+  thresholds: Thresholds,
+): { startHour: number; endHour: number } | null {
+  if (!hasWindow(tomorrow)) return null;
+  const tomorrowCondition = getOverallCondition(
+    windowWeather(weather, tomorrow, false, thresholds),
+    thresholds,
+  );
+  if (RANK[tomorrowCondition] <= RANK[condition]) return null;
+  return { startHour: tomorrow.rideWindow.startHour, endHour: tomorrow.rideWindow.endHour };
 }
 
 /**
@@ -160,7 +182,14 @@ export function getRideVerdict(
     // current hour's trajectory rather than the stretch being rated.
     message: {
       ...message,
-      timing: windowTiming(when, status, window),
+      timing: windowTiming(
+        when,
+        condition,
+        window,
+        when === 'later' && condition === 'bad'
+          ? getBetterTomorrowWindow(weather, tomorrow, condition, thresholds)
+          : null,
+      ),
       now: when === 'wait' ? describeNow(weather, thresholds, tempUnit) : null,
     },
     when,
