@@ -2,7 +2,7 @@
 // See bootstrap-icon.tsx; path data lives in bootstrap-icon-paths.ts.
 import { bootstrapIcon } from './bootstrap-icon';
 
-export type { IconComponent, IconProps } from './bootstrap-icon';
+export type { IconComponent } from './bootstrap-icon';
 
 export const AlertTriangle = bootstrapIcon('AlertTriangle');
 export const Check = bootstrapIcon('Check');

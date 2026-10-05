@@ -8,7 +8,7 @@ import {
   type BootstrapPath,
 } from './bootstrap-icon-paths';
 
-export interface IconProps {
+interface IconProps {
   size?: number;
   color?: string;
   /**

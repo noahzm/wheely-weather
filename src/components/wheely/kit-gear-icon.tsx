@@ -14,7 +14,7 @@ import {
 import { KIT_ICON_PATHS } from './kit-icon-paths';
 import { resolveKitIcon, type KitWeatherKey } from './kit-icon-keys';
 
-export interface KitGearIconProps {
+interface KitGearIconProps {
   iconKey: string;
   size: number;
   color: string;

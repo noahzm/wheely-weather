@@ -24,7 +24,7 @@ import type { Condition, DailyWeather, RideStatus, VerdictMessage, Weather } fro
  * - `tomorrow`: no daylight left today, so tomorrow's best window
  * - `current`: no window at all (missing data), so the current conditions
  */
-export type VerdictWhen = 'now' | 'wait' | 'later' | 'tomorrow' | 'current';
+type VerdictWhen = 'now' | 'wait' | 'later' | 'tomorrow' | 'current';
 
 export interface RideVerdict {
   status: RideStatus;

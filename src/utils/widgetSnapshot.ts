@@ -39,7 +39,7 @@ export interface WidgetSnapshot {
   windowStarts: WindowStart | null;
 }
 
-export interface WindowStart {
+interface WindowStart {
   /** ISO 8601. */
   at: string;
   headline: string;

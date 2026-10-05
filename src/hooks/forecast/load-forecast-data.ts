@@ -120,7 +120,7 @@ async function loadForecastDataUntraced(
 
 // Device locations are stored without a name; once reverse geocoding resolves
 // one, persist it so later loads show the city immediately.
-export function persistResolvedDeviceName(result: Extract<ForecastLoadResult, { kind: 'loaded' }>) {
+function persistResolvedDeviceName(result: Extract<ForecastLoadResult, { kind: 'loaded' }>) {
   const { savedLocation, snapshot } = result;
   if (
     !snapshot.mockScenario &&

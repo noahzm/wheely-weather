@@ -14,7 +14,6 @@ import { setMemoryCachedForecast } from './snapshotMemoryCache';
 export {
   clearMemoryCachedForecasts,
   getMemoryCachedForecast,
-  getSnapshotLocationKey,
   setMemoryCachedForecast,
 } from './snapshotMemoryCache';
 

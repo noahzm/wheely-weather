@@ -7,7 +7,6 @@ export {
   getVerdictLabel,
 } from './copy';
 export {
-  calculateRideScore,
   evaluateCondition,
   evaluateRain,
   evaluateWind,
@@ -20,10 +19,4 @@ export {
   getRainTiming,
   getWeatherAlerts,
 } from './weather';
-export {
-  getRideKitTitle,
-  getRideVerdict,
-  getRideVerdictLabel,
-  type RideVerdict,
-  type VerdictWhen,
-} from './verdict';
+export { getRideKitTitle, getRideVerdict, getRideVerdictLabel, type RideVerdict } from './verdict';

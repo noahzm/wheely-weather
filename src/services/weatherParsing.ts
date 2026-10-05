@@ -113,7 +113,7 @@ interface NwsFeature {
 
 // Keep secondary lookups snappy so slower third-party APIs do not hold up first paint.
 // WeatherKit alerts (weatherService.ios.ts) use their own, longer budget.
-export const SECONDARY_FETCH_TIMEOUT_MS = 2500;
+const SECONDARY_FETCH_TIMEOUT_MS = 2500;
 // WeatherKit's first call on a fresh install involves authentication token
 // negotiation with Apple's servers plus a CLGeocoder reverse-geocode for
 // timezone resolution — easily 10-15 s, so the old 8 s ceiling timed out

@@ -9,13 +9,7 @@ import {
 
 import type { ForecastExtras } from '@/types/weather';
 
-export {
-  buildWeatherFromData,
-  fetchAqi,
-  fetchNwsAlerts,
-  SECONDARY_FETCH_TIMEOUT_MS,
-  FORECAST_FETCH_TIMEOUT_MS,
-} from './weatherParsing';
+export { buildWeatherFromData, fetchAqi, fetchNwsAlerts } from './weatherParsing';
 export type { OpenMeteoData } from './weatherParsing';
 export { REQUEST_TIMEOUT_ERROR } from './http';
 

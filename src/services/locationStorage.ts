@@ -17,7 +17,7 @@ import {
 
 import type { Appearance, ExposureLevel, GearMode, TempUnitPreference } from '@/types/settings';
 
-export { normalizeLocationRecord, type PersistedSettings } from './settingsCodec';
+export type { PersistedSettings } from './settingsCodec';
 export type { LocationSource, SavedLocation } from './settingsCodec';
 
 const LOCATION_KEY = 'ww_location';
