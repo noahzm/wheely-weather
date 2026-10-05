@@ -62,9 +62,9 @@ module.exports = defineConfig([
   },
 
   // ── JS files: non-type-checked strict rules ──────────────────────────────
-  // Config files, Expo config plugins, and the Cloudflare Worker (.mjs). The
-  // type-aware rules need a tsconfig covering these and would false-positive on
-  // untyped JS, so they get the non-type-checked strict preset instead.
+  // Config files and Expo config plugins. The type-aware rules need a tsconfig
+  // covering these and would false-positive on untyped JS, so they get the
+  // non-type-checked strict preset instead.
   ...tseslint.configs.strict.map((c) => ({
     ...c,
     files: ['**/*.{js,jsx,mjs,cjs}'],

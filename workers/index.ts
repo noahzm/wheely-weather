@@ -11,6 +11,11 @@ const ALLOWED_ORIGIN = 'https://wheelyweather.app';
 // Nominatim place queries are short; cap input size to blunt proxy abuse.
 const MAX_QUERY_LENGTH = 200;
 
+/** Bindings from wrangler.jsonc. */
+export interface Env {
+  ASSETS: { fetch(request: Request): Promise<Response> };
+}
+
 const SECURITY_HEADERS = {
   'X-Content-Type-Options': 'nosniff',
   'X-Frame-Options': 'DENY',
@@ -18,14 +23,14 @@ const SECURITY_HEADERS = {
   'Permissions-Policy': 'camera=(), microphone=(), geolocation=(self)',
 };
 
-function applySecurityHeaders(headers) {
+function applySecurityHeaders(headers: Headers) {
   for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
     headers.set(key, value);
   }
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
     if (url.pathname === '/api/geocode/search') {
@@ -67,9 +72,8 @@ export default {
  * be served a stale app shell after a deploy. Extensionless paths (/location,
  * /settings) reach here as SPA-fallback index.html responses, so treat any path
  * whose last segment has no file extension as a shell request too.
- * @param {string} pathname
  */
-function isHtmlShellRequest(pathname) {
+function isHtmlShellRequest(pathname: string) {
   if (pathname === '/') return true;
   if (
     pathname.endsWith('.html') ||
@@ -82,19 +86,22 @@ function isHtmlShellRequest(pathname) {
   return !lastSegment.includes('.');
 }
 
-/** @param {URL} url */
-function buildSearchUrl(url) {
+/** The Nominatim URL to proxy, or why the request can't be proxied. */
+type GeocodeTarget = { url: string } | { error: string };
+
+function buildSearchUrl(url: URL): GeocodeTarget {
   const q = url.searchParams.get('q')?.trim();
-  if (!q) return badRequest('Missing q parameter');
-  if (q.length > MAX_QUERY_LENGTH) return badRequest('Query too long');
-  return `${NOMINATIM_SEARCH}?q=${encodeURIComponent(q)}&format=json&addressdetails=1&limit=5`;
+  if (!q) return { error: 'Missing q parameter' };
+  if (q.length > MAX_QUERY_LENGTH) return { error: 'Query too long' };
+  return {
+    url: `${NOMINATIM_SEARCH}?q=${encodeURIComponent(q)}&format=json&addressdetails=1&limit=5`,
+  };
 }
 
-/** @param {URL} url */
-function buildReverseUrl(url) {
+function buildReverseUrl(url: URL): GeocodeTarget {
   const latStr = url.searchParams.get('lat');
   const lonStr = url.searchParams.get('lon');
-  if (!latStr || !lonStr) return badRequest('Missing lat or lon parameter');
+  if (!latStr || !lonStr) return { error: 'Missing lat or lon parameter' };
   const lat = Number(latStr);
   const lon = Number(lonStr);
   if (
@@ -105,17 +112,16 @@ function buildReverseUrl(url) {
     lon < -180 ||
     lon > 180
   ) {
-    return badRequest('Invalid coordinates');
+    return { error: 'Invalid coordinates' };
   }
-  return `${NOMINATIM_REVERSE}?lat=${lat}&lon=${lon}&format=json`;
+  return { url: `${NOMINATIM_REVERSE}?lat=${lat}&lon=${lon}&format=json` };
 }
 
-/**
- * @param {Request} request
- * @param {string | Response} nominatimUrl URL to proxy, or an error Response from the builder
- * @param {string} cacheControl
- */
-async function handleGeocode(request, nominatimUrl, cacheControl) {
+async function handleGeocode(
+  request: Request,
+  target: GeocodeTarget,
+  cacheControl: string,
+): Promise<Response> {
   if (request.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders() });
   }
@@ -129,10 +135,10 @@ async function handleGeocode(request, nominatimUrl, cacheControl) {
       },
     });
   }
-  if (nominatimUrl instanceof Response) return nominatimUrl;
+  if ('error' in target) return badRequest(target.error);
 
   try {
-    const res = await fetch(nominatimUrl, {
+    const res = await fetch(target.url, {
       headers: { 'User-Agent': USER_AGENT },
     });
 
@@ -165,8 +171,7 @@ async function handleGeocode(request, nominatimUrl, cacheControl) {
   }
 }
 
-/** @param {string} message */
-function badRequest(message) {
+function badRequest(message: string) {
   return new Response(JSON.stringify({ error: message }), {
     status: 400,
     headers: jsonHeaders(),

@@ -1,5 +1,12 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import worker from './index.mjs';
+import worker, { type Env } from './index';
+
+// API routes must never fall through to static assets.
+const apiEnv: Env = {
+  ASSETS: {
+    fetch: () => Promise.reject(new Error('API route reached ASSETS')),
+  },
+};
 
 describe('Cloudflare Worker geocode proxy', () => {
   const originalFetch = globalThis.fetch;
@@ -14,7 +21,7 @@ describe('Cloudflare Worker geocode proxy', () => {
       const request = new Request('https://wheelyweather.app/api/geocode/search?q=Boston', {
         method: 'OPTIONS',
       });
-      const response = await worker.fetch(request, {});
+      const response = await worker.fetch(request, apiEnv);
       expect(response.status).toBe(204);
       expect(response.headers.get('Access-Control-Allow-Origin')).toBe('https://wheelyweather.app');
       expect(response.headers.get('Access-Control-Allow-Methods')).toContain('GET');
@@ -26,27 +33,27 @@ describe('Cloudflare Worker geocode proxy', () => {
       const request = new Request('https://wheelyweather.app/api/geocode/search?q=Boston', {
         method: 'POST',
       });
-      const response = await worker.fetch(request, {});
+      const response = await worker.fetch(request, apiEnv);
       expect(response.status).toBe(405);
       expect(response.headers.get('Allow')).toBe('GET, OPTIONS');
-      const body = await response.json();
+      const body: unknown = await response.json();
       expect(body).toEqual({ error: 'Method not allowed' });
     });
 
     it('rejects missing q parameter with 400', async () => {
       const request = new Request('https://wheelyweather.app/api/geocode/search');
-      const response = await worker.fetch(request, {});
+      const response = await worker.fetch(request, apiEnv);
       expect(response.status).toBe(400);
-      const body = await response.json();
+      const body: unknown = await response.json();
       expect(body).toEqual({ error: 'Missing q parameter' });
     });
 
     it('rejects overly long queries with 400', async () => {
       const longQuery = 'a'.repeat(201);
       const request = new Request(`https://wheelyweather.app/api/geocode/search?q=${longQuery}`);
-      const response = await worker.fetch(request, {});
+      const response = await worker.fetch(request, apiEnv);
       expect(response.status).toBe(400);
-      const body = await response.json();
+      const body: unknown = await response.json();
       expect(body).toEqual({ error: 'Query too long' });
     });
 
@@ -60,7 +67,7 @@ describe('Cloudflare Worker geocode proxy', () => {
       );
 
       const request = new Request('https://wheelyweather.app/api/geocode/search?q=Boston');
-      const response = await worker.fetch(request, {});
+      const response = await worker.fetch(request, apiEnv);
       expect(response.status).toBe(200);
       expect(response.headers.get('Cache-Control')).toBe('public, max-age=3600');
       expect(response.headers.get('Access-Control-Allow-Origin')).toBe('https://wheelyweather.app');
@@ -70,7 +77,7 @@ describe('Cloudflare Worker geocode proxy', () => {
       expect(response.headers.get('Permissions-Policy')).toBe(
         'camera=(), microphone=(), geolocation=(self)',
       );
-      const data = await response.json();
+      const data: unknown = await response.json();
       expect(data).toEqual(mockNominatimResponse);
     });
 
@@ -80,11 +87,11 @@ describe('Cloudflare Worker geocode proxy', () => {
         .mockResolvedValue(new Response('Too Many Requests', { status: 429 }));
 
       const request = new Request('https://wheelyweather.app/api/geocode/search?q=Boston');
-      const response = await worker.fetch(request, {});
+      const response = await worker.fetch(request, apiEnv);
       expect(response.status).toBe(429);
       expect(response.headers.get('Cache-Control')).toBe('no-store');
-      const body = await response.json();
-      expect(body.error).toContain('Rate limited');
+      const body: unknown = await response.json();
+      expect(body).toEqual({ error: 'Rate limited. Try again shortly.' });
     });
 
     it('sets no-store on upstream server errors (e.g. 500)', async () => {
@@ -93,7 +100,7 @@ describe('Cloudflare Worker geocode proxy', () => {
         .mockResolvedValue(new Response('Internal Server Error', { status: 500 }));
 
       const request = new Request('https://wheelyweather.app/api/geocode/search?q=Boston');
-      const response = await worker.fetch(request, {});
+      const response = await worker.fetch(request, apiEnv);
       expect(response.status).toBe(500);
       expect(response.headers.get('Cache-Control')).toBe('no-store');
     });
@@ -102,10 +109,10 @@ describe('Cloudflare Worker geocode proxy', () => {
       globalThis.fetch = vi.fn().mockRejectedValue(new Error('Connection reset'));
 
       const request = new Request('https://wheelyweather.app/api/geocode/search?q=Boston');
-      const response = await worker.fetch(request, {});
+      const response = await worker.fetch(request, apiEnv);
       expect(response.status).toBe(502);
       expect(response.headers.get('Cache-Control')).toBe('no-store');
-      const body = await response.json();
+      const body: unknown = await response.json();
       expect(body).toEqual({ error: 'Geocoding service unavailable' });
     });
   });
@@ -113,9 +120,9 @@ describe('Cloudflare Worker geocode proxy', () => {
   describe('/api/geocode/reverse', () => {
     it('rejects missing lat or lon with 400', async () => {
       const request = new Request('https://wheelyweather.app/api/geocode/reverse?lat=42.36');
-      const response = await worker.fetch(request, {});
+      const response = await worker.fetch(request, apiEnv);
       expect(response.status).toBe(400);
-      const body = await response.json();
+      const body: unknown = await response.json();
       expect(body).toEqual({ error: 'Missing lat or lon parameter' });
     });
 
@@ -123,9 +130,9 @@ describe('Cloudflare Worker geocode proxy', () => {
       const request = new Request(
         'https://wheelyweather.app/api/geocode/reverse?lat=invalid&lon=-71.05',
       );
-      const response = await worker.fetch(request, {});
+      const response = await worker.fetch(request, apiEnv);
       expect(response.status).toBe(400);
-      const body = await response.json();
+      const body: unknown = await response.json();
       expect(body).toEqual({ error: 'Invalid coordinates' });
     });
 
@@ -133,9 +140,9 @@ describe('Cloudflare Worker geocode proxy', () => {
       const request = new Request(
         'https://wheelyweather.app/api/geocode/reverse?lat=95&lon=-71.05',
       );
-      const response = await worker.fetch(request, {});
+      const response = await worker.fetch(request, apiEnv);
       expect(response.status).toBe(400);
-      const body = await response.json();
+      const body: unknown = await response.json();
       expect(body).toEqual({ error: 'Invalid coordinates' });
     });
 
@@ -151,10 +158,10 @@ describe('Cloudflare Worker geocode proxy', () => {
       const request = new Request(
         'https://wheelyweather.app/api/geocode/reverse?lat=42.36&lon=-71.05',
       );
-      const response = await worker.fetch(request, {});
+      const response = await worker.fetch(request, apiEnv);
       expect(response.status).toBe(200);
       expect(response.headers.get('Cache-Control')).toBe('public, max-age=86400');
-      const data = await response.json();
+      const data: unknown = await response.json();
       expect(data).toEqual(mockResult);
     });
   });
