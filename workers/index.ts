@@ -23,12 +23,6 @@ const SECURITY_HEADERS = {
   'Permissions-Policy': 'camera=(), microphone=(), geolocation=(self)',
 };
 
-function applySecurityHeaders(headers: Headers) {
-  for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
-    headers.set(key, value);
-  }
-}
-
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -40,51 +34,12 @@ export default {
       return handleGeocode(request, buildReverseUrl(url), REVERSE_CACHE_CONTROL);
     }
 
-    const response = await env.ASSETS.fetch(request);
-    if (response.status === 200) {
-      const pathname = url.pathname;
-      if (pathname.includes('/_expo/static/') || pathname.includes('/assets/')) {
-        const headers = new Headers(response.headers);
-        headers.set('Cache-Control', 'public, max-age=31536000, immutable');
-        applySecurityHeaders(headers);
-        return new Response(response.body, {
-          status: response.status,
-          statusText: response.statusText,
-          headers,
-        });
-      } else if (isHtmlShellRequest(pathname)) {
-        const headers = new Headers(response.headers);
-        headers.set('Cache-Control', 'public, max-age=0, must-revalidate');
-        applySecurityHeaders(headers);
-        return new Response(response.body, {
-          status: response.status,
-          statusText: response.statusText,
-          headers,
-        });
-      }
-    }
-    return response;
+    // Only /api/* runs the Worker first (wrangler.jsonc); pages and files are
+    // served from dist/ directly, with headers from public/_headers. An unknown
+    // /api/ path falls through to the assets' SPA fallback.
+    return env.ASSETS.fetch(request);
   },
 };
-
-/**
- * HTML shell requests must not be heuristically cached, or a returning user can
- * be served a stale app shell after a deploy. Extensionless paths (/location,
- * /settings) reach here as SPA-fallback index.html responses, so treat any path
- * whose last segment has no file extension as a shell request too.
- */
-function isHtmlShellRequest(pathname: string) {
-  if (pathname === '/') return true;
-  if (
-    pathname.endsWith('.html') ||
-    pathname.endsWith('robots.txt') ||
-    pathname.endsWith('favicon.ico')
-  ) {
-    return true;
-  }
-  const lastSegment = pathname.slice(pathname.lastIndexOf('/') + 1);
-  return !lastSegment.includes('.');
-}
 
 /** The Nominatim URL to proxy, or why the request can't be proxied. */
 type GeocodeTarget = { url: string } | { error: string };

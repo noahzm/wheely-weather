@@ -166,62 +166,15 @@ describe('Cloudflare Worker geocode proxy', () => {
     });
   });
 
-  describe('Static asset & SPA shell handling', () => {
-    it('sets immutable caching on static assets', async () => {
-      const fakeAssetFetch = vi.fn().mockResolvedValue(
-        new Response('console.log(1)', {
-          status: 200,
-          headers: new Headers({ 'Content-Type': 'application/javascript' }),
-        }),
-      );
+  describe('other paths', () => {
+    it('hands non-geocode requests to the static assets unchanged', async () => {
+      const assetResponse = new Response('<!DOCTYPE html><html></html>', { status: 200 });
+      const fakeAssetFetch = vi.fn().mockResolvedValue(assetResponse);
 
-      const request = new Request('https://wheelyweather.app/_expo/static/js/web/index-123.js');
+      const request = new Request('https://wheelyweather.app/api/unknown');
       const response = await worker.fetch(request, { ASSETS: { fetch: fakeAssetFetch } });
-      expect(response.status).toBe(200);
-      expect(response.headers.get('Cache-Control')).toBe('public, max-age=31536000, immutable');
-      expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
-    });
-
-    it('sets no-cache revalidate on HTML shell requests', async () => {
-      const fakeAssetFetch = vi.fn().mockResolvedValue(
-        new Response('<!DOCTYPE html><html></html>', {
-          status: 200,
-          headers: new Headers({ 'Content-Type': 'text/html' }),
-        }),
-      );
-
-      const request = new Request('https://wheelyweather.app/location');
-      const response = await worker.fetch(request, { ASSETS: { fetch: fakeAssetFetch } });
-      expect(response.status).toBe(200);
-      expect(response.headers.get('Cache-Control')).toBe('public, max-age=0, must-revalidate');
-      expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
-      expect(response.headers.get('X-Frame-Options')).toBe('DENY');
-      expect(response.headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
-      expect(response.headers.get('Permissions-Policy')).toBe(
-        'camera=(), microphone=(), geolocation=(self)',
-      );
-    });
-
-    it('sets no-cache revalidate on robots.txt and favicon.ico', async () => {
-      const fakeAssetFetch = vi.fn().mockResolvedValue(
-        new Response('User-agent: *', {
-          status: 200,
-          headers: new Headers({ 'Content-Type': 'text/plain' }),
-        }),
-      );
-
-      const request = new Request('https://wheelyweather.app/robots.txt');
-      const response = await worker.fetch(request, { ASSETS: { fetch: fakeAssetFetch } });
-      expect(response.status).toBe(200);
-      expect(response.headers.get('Cache-Control')).toBe('public, max-age=0, must-revalidate');
-    });
-
-    it('passes through non-200 asset responses unchanged', async () => {
-      const fakeAssetFetch = vi.fn().mockResolvedValue(new Response('Not Found', { status: 404 }));
-
-      const request = new Request('https://wheelyweather.app/non-existent.png');
-      const response = await worker.fetch(request, { ASSETS: { fetch: fakeAssetFetch } });
-      expect(response.status).toBe(404);
+      expect(fakeAssetFetch).toHaveBeenCalledWith(request);
+      expect(response).toBe(assetResponse);
     });
   });
 });

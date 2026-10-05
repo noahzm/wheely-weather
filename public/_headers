@@ -1,0 +1,16 @@
+# Cloudflare static-asset headers. wrangler.jsonc runs the Worker first only
+# for /api/*, so pages and files are served straight from dist/ and never reach
+# it; these rules are what set their headers. The Worker sets its own on /api/*.
+
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(self)
+
+# Content-hashed filenames: a new build ships new names, so cache for good.
+/_expo/static/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
