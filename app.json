@@ -51,6 +51,7 @@
     },
     "plugins": [
       "./plugins/withDevLauncherSceneDelegateFix.js",
+      "./plugins/withCompilationCache.js",
       "@bacons/apple-targets",
       [
         "expo-router",
