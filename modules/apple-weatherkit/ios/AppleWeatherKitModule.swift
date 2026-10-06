@@ -145,6 +145,13 @@ public class AppleWeatherKitModule: Module {
       Task {
         do {
           let location = CLLocation(latitude: lat, longitude: lon)
+          // Asking for alerts where WeatherKit has no alert coverage fails with a
+          // 400 (WHEELY-WEATHER-G), so check coverage first and return none.
+          let availability = try await WeatherService.shared.weather(for: location, including: .availability)
+          guard availability.alertAvailability == .available else {
+            promise.resolve([])
+            return
+          }
           let alerts = try await WeatherService.shared.weather(for: location, including: .alerts)
           let results: [[String: Any?]] = (alerts ?? []).map { alert in
             [
