@@ -17,6 +17,11 @@ updates:
         patterns:
           - 'vitest*'
           - '@vitest/*'
+      # Advisories often land in bursts; one PR per burst instead of one per package.
+      security:
+        applies-to: security-updates
+        patterns:
+          - '*'
     ignore:
       # Expo manages these package families through the SDK release train.
       - dependency-name: 'expo'
