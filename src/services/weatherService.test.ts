@@ -224,7 +224,7 @@ describe('buildWeatherFromData — rain amount', () => {
     const weather = buildWeatherFromData(data, THRESHOLDS);
     expect(weather.precipitation).toBeCloseTo(0.1);
     expect(weather.hourly[0]?.precipitation).toBeCloseTo(0.1);
-    expect(weather.hourly[1]?.condition).toBe('fair');
+    expect(weather.hourly[1]?.condition).toBe('marginal');
   });
 
   it('rates on chance alone when the provider sends no amount', () => {

@@ -122,8 +122,9 @@ const betterCondition = (a: Condition, b: Condition): Condition => (RANK[a] >= R
 
 /**
  * Rates rain on its chance, capped by the expected amount: a likely trace
- * shower is at worst "fair", likely light rain at worst "marginal". Heavier or
- * unknown amounts keep the chance-based rating.
+ * shower is at worst "fair" (or "marginal" once it's near-certain, since hours
+ * of drizzle still soak the road), likely light rain at worst "marginal".
+ * Heavier or unknown amounts keep the chance-based rating.
  */
 export const evaluateRain = (
   chance: number,
@@ -132,7 +133,10 @@ export const evaluateRain = (
 ): Condition => {
   const byChance = evaluateCondition(chance, 'rainChance', thresholds);
   if (amountMm == null) return byChance;
-  if (amountMm < RAIN_AMOUNT_MM.TRACE) return betterCondition(byChance, 'fair');
+  if (amountMm < RAIN_AMOUNT_MM.TRACE) {
+    const traceCap = chance >= thresholds.RAIN_CHANCE.BAD ? 'marginal' : 'fair';
+    return betterCondition(byChance, traceCap);
+  }
   if (amountMm < RAIN_AMOUNT_MM.LIGHT) return betterCondition(byChance, 'marginal');
   return byChance;
 };

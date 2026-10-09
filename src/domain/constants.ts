@@ -88,7 +88,9 @@ export type Thresholds = typeof THRESHOLDS;
 // Expected precipitation per hour (mm), from the forecast model. Chance alone
 // can't tell a passing sprinkle from a soaking: a high chance of a trace amount
 // is capped so it can't make a rest day on its own. Below TRACE the most it
-// can rate is "fair"; below LIGHT (light rain is under 2.5 mm/h) "marginal".
+// can rate is "fair" ("marginal" once the chance reaches RAIN_CHANCE.BAD, so
+// near-certain drizzle isn't a clear go); below LIGHT (light rain is under
+// 2.5 mm/h) "marginal".
 // Unknown amounts fall back to chance alone.
 export const RAIN_AMOUNT_MM = {
   TRACE: 0.2,

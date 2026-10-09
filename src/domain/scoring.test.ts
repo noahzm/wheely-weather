@@ -285,9 +285,15 @@ describe('Rain amount', () => {
   });
 
   it('caps a likely trace amount at fair and likely light rain at marginal', () => {
-    expect(evaluateRain(80, 0.1)).toBe('fair');
+    expect(evaluateRain(70, 0.1)).toBe('fair');
     expect(evaluateRain(80, 0.6)).toBe('marginal');
     expect(evaluateRain(80, 2.5)).toBe('bad');
+  });
+
+  it('caps near-certain trace rain at marginal, not fair', () => {
+    expect(evaluateRain(75, 0.1)).toBe('marginal');
+    expect(evaluateRain(92, 0.15)).toBe('marginal');
+    expect(evaluateRain(74, 0.15)).toBe('fair');
   });
 
   it('never makes a low chance worse because of the amount', () => {
