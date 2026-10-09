@@ -1,16 +1,109 @@
-import type { ReactNode } from 'react';
-import { Platform, Text, View } from 'react-native';
+import { useState, type ReactNode } from 'react';
+import {
+  Platform,
+  StyleSheet,
+  Text,
+  View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  type ViewStyle,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, X } from './icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useWheelyColors } from '@/hooks/use-theme';
 import { Fonts, FontWeightBlack, Spacing, TRANSPARENT, Type } from '@/constants/theme';
+import { withAlpha } from '@/utils/colors';
 import { contentColumnStyle, screenGutterStyle } from './content-column';
+import { GlassChrome } from './glass-chrome';
 import { HapticPressable, PlatformIcon } from './primitives';
 
 const HEADER_SIDE = 36;
 export const WEB_TITLE_CONTENT_SPACING = Spacing.three;
+// The iOS navigation bar's height below the status bar.
+const COMPACT_BAR_HEIGHT = 44;
+// Scroll distance at which the large title has slid under the compact bar.
+const COLLAPSE_OFFSET = 36;
+
+/**
+ * Tracks whether a screen's large title has scrolled away, so the compact
+ * title bar can take over as iOS's collapsing navigation bar does. State only
+ * flips at the threshold, so scrolling doesn't re-render the screen.
+ */
+export function useWebTitleCollapse() {
+  const [collapsed, setCollapsed] = useState(false);
+  const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const next = event.nativeEvent.contentOffset.y > COLLAPSE_OFFSET;
+    if (next !== collapsed) setCollapsed(next);
+  };
+  return { collapsed, onScroll };
+}
+
+/**
+ * The collapsed navigation bar: a glass strip with a centered title that
+ * fades in over the top of the screen once the large title scrolls away.
+ * Render it after the screen's ScrollView, inside the same container.
+ */
+export function WebCompactTitleBar({
+  title,
+  visible,
+}: Readonly<{
+  title: string;
+  visible: boolean;
+}>) {
+  const insets = useSafeAreaInsets();
+  const c = useWheelyColors();
+  if (Platform.OS !== 'web') return null;
+  return (
+    <View
+      pointerEvents="none"
+      aria-hidden={!visible}
+      style={[
+        compactStyles.bar,
+        { opacity: visible ? 1 : 0, transition: 'opacity 0.2s ease' } as ViewStyle,
+      ]}
+    >
+      <GlassChrome
+        style={[
+          compactStyles.glass,
+          { paddingTop: insets.top, borderBottomColor: withAlpha(c.ink, 0.12) },
+        ]}
+      >
+        <View style={compactStyles.row}>
+          <Text numberOfLines={1} style={[compactStyles.title, { color: c.ink }]}>
+            {title}
+          </Text>
+        </View>
+      </GlassChrome>
+    </View>
+  );
+}
+
+const compactStyles = StyleSheet.create({
+  bar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 5,
+  },
+  glass: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  row: {
+    height: COMPACT_BAR_HEIGHT,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.six,
+  },
+  title: {
+    fontFamily: Fonts.city,
+    fontWeight: FontWeightBlack,
+    fontSize: Type.body.fontSize,
+    lineHeight: Type.body.lineHeight,
+  },
+});
 
 export function WebScreenTitle({ children }: Readonly<{ children: string }>) {
   const c = useWheelyColors();
@@ -51,9 +144,12 @@ export function WebScreenHeader({
   const c = useWheelyColors();
   const isClose = variant === 'close';
   const isTitleOnly = variant === 'title';
-  const titleWrapStyle = isTitleOnly
-    ? { alignSelf: 'flex-start' as const, alignItems: 'flex-start' as const }
-    : { flex: 1, alignItems: 'center' as const };
+  // minWidth 0 lets a long title shrink to its ellipsis instead of overflowing.
+  const titleWrapStyle = {
+    flex: 1,
+    minWidth: 0,
+    alignItems: isTitleOnly ? ('flex-start' as const) : ('center' as const),
+  };
 
   if (Platform.OS !== 'web') {
     return null;

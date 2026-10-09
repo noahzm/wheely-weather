@@ -13,18 +13,26 @@ import {
   WebScreenTitle,
   bottomNavBarHeight,
 } from '@/components/wheely';
-import { WEB_TITLE_CONTENT_SPACING } from '@/components/wheely/web-screen-header';
+import {
+  WEB_TITLE_CONTENT_SPACING,
+  WebCompactTitleBar,
+  useWebTitleCollapse,
+} from '@/components/wheely/web-screen-header';
 import { ScreenGutter } from '@/components/wheely/content-column';
-import { BrutalCard, HapticPressable, PlatformIcon } from '@/components/wheely/primitives';
+import { HapticPressable, PlatformIcon } from '@/components/wheely/primitives';
+import { ThemedText } from '@/components/themed-text';
 import { LocationSearchList } from '@/components/wheely/location-search-list';
 import { useLocationSearchScreen } from '@/hooks/use-location-search-screen';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Fonts, Spacing, TRANSPARENT, Type } from '@/constants/theme';
+import { Fonts, Radius, Spacing, TRANSPARENT, Type } from '@/constants/theme';
 import { withAlpha } from '@/utils/colors';
 
 const isWeb = Platform.OS === 'web';
 const isIOS = Platform.OS === 'ios';
+const SEARCH_FIELD_HEIGHT = 44;
 
+// Styled after the iOS search bar: a filled capsule with no outline, a clear
+// button inside, and Cancel beside it while the field is in use.
 function SearchField({
   query,
   onQueryChange,
@@ -32,23 +40,16 @@ function SearchField({
   query: string;
   onQueryChange: (text: string) => void;
 }>) {
-  // Card contents render on the card's paper surface.
   const c = useWheelyColors();
+  const inputRef = useRef<TextInput>(null);
   const [focused, setFocused] = useState(false);
+  const showCancel = focused || query.length > 0;
   return (
-    <BrutalCard
-      small
-      style={[
-        styles.searchCard,
-        focused && {
-          borderColor: c.accent,
-          borderWidth: 2,
-        },
-      ]}
-    >
-      <View style={styles.searchRow}>
-        <PlatformIcon icon={Search} size={18} color={c.mutedInk} strokeWidth={2.5} />
+    <View style={styles.searchBar}>
+      <View style={[styles.searchField, { backgroundColor: withAlpha(c.ink, 0.1) }]}>
+        <PlatformIcon icon={Search} size={17} color={c.mutedInk} strokeWidth={2.5} />
         <TextInput
+          ref={inputRef}
           value={query}
           onChangeText={onQueryChange}
           placeholder="Search a city or place"
@@ -57,6 +58,7 @@ function SearchField({
           autoCapitalize="words"
           autoCorrect={false}
           returnKeyType="search"
+          enterKeyHint="search"
           accessibilityLabel="Search for a location"
           underlineColorAndroid="transparent"
           cursorColor={c.accent}
@@ -76,12 +78,26 @@ function SearchField({
             accessibilityRole="button"
             accessibilityLabel="Clear search"
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            style={[styles.clearButton, { backgroundColor: withAlpha(c.ink, 0.4) }]}
           >
-            <PlatformIcon icon={X} size={18} color={c.mutedInk} strokeWidth={2.5} />
+            <PlatformIcon icon={X} size={10} color={c.background} strokeWidth={3} />
           </HapticPressable>
         )}
       </View>
-    </BrutalCard>
+      {showCancel && (
+        <HapticPressable
+          onPress={() => {
+            onQueryChange('');
+            inputRef.current?.blur();
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Cancel search"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <ThemedText style={[styles.cancelText, { color: c.ink }]}>Cancel</ThemedText>
+        </HapticPressable>
+      )}
+    </View>
   );
 }
 
@@ -101,6 +117,7 @@ function iosSearchBarOptions(setQuery: (val: string) => void) {
 export default function LocationSearchScreen() {
   const c = useWheelyColors();
   const insets = useSafeAreaInsets();
+  const titleCollapse = useWebTitleCollapse();
   // Closes the native search bar once a place loads, so Search opens fresh.
   const searchBarRef = useRef<SearchBarCommands>(null);
   const {
@@ -164,6 +181,8 @@ export default function LocationSearchScreen() {
             contentInsetAdjustmentBehavior="automatic"
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
+            onScroll={isWeb ? titleCollapse.onScroll : undefined}
+            scrollEventThrottle={16}
             contentContainerStyle={
               isWeb
                 ? [styles.scrollContentWeb, { paddingBottom: bottomNavBarHeight(insets.bottom) }]
@@ -183,6 +202,7 @@ export default function LocationSearchScreen() {
             </WebContentColumn>
           </ScrollView>
         )}
+        {isWeb && <WebCompactTitleBar title="Search" visible={titleCollapse.collapsed} />}
         {busy && !isIOS && (
           <View style={[styles.busyOverlay, { backgroundColor: withAlpha(c.shadow, 0.15) }]}>
             <ActivityIndicator color={c.accent} size="large" />
@@ -214,20 +234,38 @@ const styles = StyleSheet.create({
   scrollInner: {
     gap: WEB_TITLE_CONTENT_SPACING,
   },
-  searchCard: {
-    paddingVertical: Spacing.two,
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
   },
-  searchRow: {
+  searchField: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.two,
+    height: SEARCH_FIELD_HEIGHT,
+    borderRadius: Radius.pill,
+    paddingHorizontal: Spacing.three,
   },
   searchInput: {
     flex: 1,
+    minWidth: 0,
+    height: '100%',
     fontSize: Type.body.fontSize,
     fontFamily: Fonts.body,
-    paddingVertical: Spacing.one,
     ...(isWeb ? ({ outlineStyle: 'none' } as object) : null),
+  },
+  clearButton: {
+    width: 18,
+    height: 18,
+    borderRadius: Radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelText: {
+    fontFamily: Fonts.body,
+    ...Type.body,
   },
   busyOverlay: {
     ...StyleSheet.absoluteFill,

@@ -74,6 +74,8 @@ function renderRootChrome(stack: ReactNode): ReactNode {
     left: 0,
     right: 0,
     zIndex: 10,
+    // The floating bar leaves gaps beside it; taps there reach the page.
+    pointerEvents: 'box-none' as const,
   };
 
   if (Platform.OS === 'web') {

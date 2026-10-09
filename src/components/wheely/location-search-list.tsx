@@ -1,20 +1,17 @@
 // Default (Android / web) location search list. iOS is shadowed by location-search-list.ios.tsx
 // with a native SwiftUI List.
+import { Fragment } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn, FadeOut, useReducedMotion } from 'react-native-reanimated';
-import { Check, ChevronRight, House, Navigation, Pin } from './icons';
+import { Check, House, Navigation, Pin } from './icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { Fonts, Radius, Spacing, Type } from '@/constants/theme';
+import { withAlpha } from '@/utils/colors';
 
-import {
-  BrutalCard,
-  HapticPressable,
-  PlatformIcon,
-  PressedOpacity,
-  SectionTitle,
-} from './primitives';
+import { HapticPressable, PlatformIcon, PressedOpacity } from './primitives';
+import { GROUPED_ROW_MIN_HEIGHT, useGroupedListStyles } from './grouped-list';
 import {
   homeAccessibilityLabel,
   isActive,
@@ -35,8 +32,7 @@ function PinButton({ pinned, onPress }: Readonly<{ pinned: boolean; onPress: () 
       onPress={onPress}
       style={({ pressed }) => [
         pinButtonStyles.fallback,
-        { borderColor: c.border },
-        pressed && pinButtonStyles.pressed,
+        pressed && { backgroundColor: withAlpha(c.ink, 0.08) },
       ]}
       accessibilityRole="button"
       accessibilityLabel={pinAccessibilityLabel(pinned)}
@@ -61,8 +57,7 @@ function HomeButton({ home, onPress }: Readonly<{ home: boolean; onPress: () => 
       onPress={onPress}
       style={({ pressed }) => [
         pinButtonStyles.fallback,
-        { borderColor: c.border },
-        pressed && pinButtonStyles.pressed,
+        pressed && { backgroundColor: withAlpha(c.ink, 0.08) },
       ]}
       accessibilityRole="button"
       accessibilityLabel={homeAccessibilityLabel(home)}
@@ -84,12 +79,8 @@ const pinButtonStyles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: Radius.pill,
-    borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  pressed: {
-    opacity: PressedOpacity,
   },
 });
 
@@ -117,70 +108,78 @@ function LocationRow({
   onToggleHome: () => void;
 }>) {
   const c = useWheelyColors();
+  const listStyles = useGroupedListStyles();
   const isDevice = item._kind === 'device';
   const isAction = isDevice;
   const showSub = !isAction && !!item.displayName && !item.displayName.startsWith(item.label);
 
   return (
-    <View style={[styles.row, { borderColor: c.border }, !isLast && styles.rowDivider]}>
-      <HapticPressable
-        style={({ pressed }) => [styles.rowMain, pressed && styles.rowPressed]}
-        onPress={onSelect}
-        disabled={busy}
-        accessibilityRole="button"
-        accessibilityLabel={item.label}
-        accessibilityState={{ selected: active }}
-      >
-        {isDevice && (
-          <PlatformIcon icon={Navigation} size={18} color={c.ink} filled style={styles.rowIcon} />
-        )}
-        <View style={styles.rowContent}>
-          <ThemedText
-            style={[
-              styles.rowLabel,
-              isAction && styles.rowLabelAction,
-              active && styles.rowLabelActive,
-              { color: c.ink },
-            ]}
-            numberOfLines={1}
-          >
-            {item.label}
-          </ThemedText>
-          {showSub && (
-            <ThemedText style={[styles.rowSub, { color: c.mutedInk }]} numberOfLines={1}>
-              {item.displayName}
+    <Fragment>
+      <View style={styles.row}>
+        <HapticPressable
+          style={({ pressed }) => [styles.rowMain, pressed && styles.rowPressed]}
+          onPress={onSelect}
+          disabled={busy}
+          accessibilityRole="button"
+          accessibilityLabel={item.label}
+          accessibilityState={{ selected: active }}
+        >
+          {isDevice && (
+            <PlatformIcon icon={Navigation} size={18} color={c.ink} filled style={styles.rowIcon} />
+          )}
+          <View style={styles.rowContent}>
+            <ThemedText
+              style={[
+                styles.rowLabel,
+                isAction && styles.rowLabelAction,
+                active && styles.rowLabelActive,
+                { color: c.ink },
+              ]}
+              numberOfLines={1}
+            >
+              {item.label}
             </ThemedText>
-          )}
-          {verdict && (
-            <View style={styles.verdictRow}>
-              <View
-                style={[
-                  styles.verdictDot,
-                  {
-                    backgroundColor: verdict.waiting ? c.accent : c.condition[verdict.condition].bg,
-                    borderColor: c.border,
-                  },
-                ]}
-              />
+            {showSub && (
               <ThemedText style={[styles.rowSub, { color: c.mutedInk }]} numberOfLines={1}>
-                {verdict.label}
+                {item.displayName}
               </ThemedText>
-            </View>
+            )}
+            {verdict && (
+              <View style={styles.verdictRow}>
+                <View
+                  style={[
+                    styles.verdictDot,
+                    {
+                      backgroundColor: verdict.waiting
+                        ? c.accent
+                        : c.condition[verdict.condition].bg,
+                      borderColor: c.border,
+                    },
+                  ]}
+                />
+                <ThemedText style={[styles.rowSub, { color: c.mutedInk }]} numberOfLines={1}>
+                  {verdict.label}
+                </ThemedText>
+              </View>
+            )}
+          </View>
+          {/* Only the place on screen gets a mark, like the iOS list's checkmark;
+            a chevron beside the home and pin buttons read as clutter. */}
+          {active && (
+            <PlatformIcon
+              icon={Check}
+              size={16}
+              color={c.accent}
+              strokeWidth={3}
+              style={styles.chevron}
+            />
           )}
-        </View>
-        {!isAction && (
-          <PlatformIcon
-            icon={active ? Check : ChevronRight}
-            size={16}
-            color={active ? c.accent : c.mutedInk}
-            strokeWidth={active ? 3 : 2.5}
-            style={styles.chevron}
-          />
-        )}
-      </HapticPressable>
-      {!isAction && <HomeButton home={home} onPress={onToggleHome} />}
-      {!isAction && <PinButton pinned={pinned} onPress={onTogglePin} />}
-    </View>
+        </HapticPressable>
+        {!isAction && <HomeButton home={home} onPress={onToggleHome} />}
+        {!isAction && <PinButton pinned={pinned} onPress={onTogglePin} />}
+      </View>
+      {!isLast && <View style={listStyles.separator} />}
+    </Fragment>
   );
 }
 
@@ -200,8 +199,8 @@ export function LocationSearchList({
   onTogglePin,
   onToggleHome,
 }: Readonly<LocationSearchListProps>) {
-  // Styles the message-card contents; rows resolve the card scheme via context.
   const c = useWheelyColors();
+  const listStyles = useGroupedListStyles();
   const reduceMotion = useReducedMotion();
   const entering = reduceMotion ? undefined : FadeIn.duration(200);
   const exiting = reduceMotion ? undefined : FadeOut.duration(150);
@@ -209,12 +208,12 @@ export function LocationSearchList({
   return (
     <>
       {isSearching && !!message && (
-        <BrutalCard small>
+        <View style={[listStyles.card, styles.messageCard]}>
           <View style={styles.messageRow}>
             {isLoading && <ActivityIndicator size="small" color={c.ink} />}
             <ThemedText style={[styles.messageText, { color: c.mutedInk }]}>{message}</ThemedText>
           </View>
-        </BrutalCard>
+        </View>
       )}
 
       {sections.map((section) => {
@@ -226,8 +225,12 @@ export function LocationSearchList({
             exiting={exiting}
             style={styles.sectionGroup}
           >
-            {section.title ? <SectionTitle title={section.title} /> : null}
-            <BrutalCard style={styles.sectionCard}>
+            {section.title ? (
+              <ThemedText style={listStyles.header} accessibilityRole="header">
+                {section.title}
+              </ThemedText>
+            ) : null}
+            <View style={listStyles.card}>
               {section.data.map((item, idx) => (
                 <Animated.View
                   key={item._kind ?? `${item.lat}-${item.lon}`}
@@ -254,7 +257,7 @@ export function LocationSearchList({
                   />
                 </Animated.View>
               ))}
-            </BrutalCard>
+            </View>
             {section.id === 'options' && !!deviceMessage && (
               <ThemedText
                 style={[styles.deviceMessage, { color: c.mutedInk }]}
@@ -277,11 +280,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: Spacing.two,
   },
+  messageCard: {
+    padding: Spacing.three,
+  },
   deviceMessage: {
     ...Type.caption,
     fontFamily: Fonts.body,
-    paddingHorizontal: Spacing.two,
-    paddingTop: Spacing.two,
+    paddingHorizontal: Spacing.three + Spacing.one,
   },
   messageText: {
     fontSize: Type.body.fontSize,
@@ -291,26 +296,19 @@ const styles = StyleSheet.create({
   sectionGroup: {
     gap: Spacing.two,
   },
-  sectionCard: {
-    padding: 0,
-    gap: 0,
-    overflow: 'hidden',
-  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: 14,
-    minHeight: 52,
-    gap: Spacing.two,
+    paddingLeft: Spacing.three + Spacing.one,
+    paddingRight: Spacing.two,
+    paddingVertical: Spacing.two + Spacing.one,
+    minHeight: GROUPED_ROW_MIN_HEIGHT,
+    gap: Spacing.one,
   },
   rowMain: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  rowDivider: {
-    borderBottomWidth: 1,
   },
   rowPressed: {
     opacity: PressedOpacity,

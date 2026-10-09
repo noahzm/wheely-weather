@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -11,68 +11,30 @@ import { ThemedText } from '@/components/themed-text';
 import { CLIMATE_MESSAGES, describeClimateAdjustment } from '@/domain';
 import { useResolvedTempUnit } from '@/hooks/settings-context';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Fonts, Spacing, Type, type WheelyPalette } from '@/constants/theme';
+import { Fonts, Radius, Type, WheelyTheme, type WheelyPalette } from '@/constants/theme';
 import type { ExposureLevel } from '@/types/settings';
 import type { HomeBaseline } from '@/types/weather';
+import { withAlpha } from '@/utils/colors';
 import { selectionFeedback } from '@/utils/haptics';
-import { ChevronRight } from './icons';
-import { BrutalCard, PressedOpacity, SectionTitle } from './primitives';
+import { GroupedLinkRow, GroupedRow, GroupedSection, useGroupedListStyles } from './grouped-list';
 import { RNSegmentedPicker } from './rn-segmented-picker';
 import { EXPOSURE_LABELS, EXPOSURE_VALUES } from './settings-form.types';
 
+// iOS switch geometry.
+const SWITCH_WIDTH = 51;
+const SWITCH_HEIGHT = 31;
+const SWITCH_PADDING = 2;
+const THUMB_SIZE = SWITCH_HEIGHT - SWITCH_PADDING * 2;
+// The thumb is white in both schemes, as on iOS; a shadow lifts it off a light track.
+const THUMB_COLOR = WheelyTheme.light.paper;
+const THUMB_SHADOW = `0 2px 4px ${withAlpha(WheelyTheme.light.shadow, 0.2)}`;
+
 function makeStyles(c: WheelyPalette) {
   return StyleSheet.create({
-    group: {
-      gap: Spacing.two,
-    },
-    card: {
-      padding: Spacing.four,
-      gap: Spacing.three,
-    },
-    toggleRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: Spacing.three,
-    },
-    toggleLabel: {
-      flex: 1,
-      color: c.ink,
-      fontFamily: Fonts.body,
-      ...Type.body,
-    },
-    pickerContainer: {
-      gap: Spacing.two,
-    },
     pickerLabel: {
-      color: c.ink,
-      fontFamily: Fonts.heading,
-      ...Type.caption,
-    },
-    exposureHelpText: {
       color: c.mutedInk,
       fontFamily: Fonts.body,
       ...Type.small,
-    },
-    hint: {
-      color: c.mutedInk,
-      fontFamily: Fonts.body,
-      ...Type.small,
-    },
-    homeRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: Spacing.two,
-    },
-    homeRowPressed: {
-      opacity: PressedOpacity,
-    },
-    homeValue: {
-      flex: 1,
-      color: c.mutedInk,
-      fontFamily: Fonts.body,
-      ...Type.body,
-      textAlign: 'right',
     },
   });
 }
@@ -99,7 +61,7 @@ function RNSwitch({
   }, [value, progress]);
 
   const thumbStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: progress.value * 20 }],
+    transform: [{ translateX: progress.value * (SWITCH_WIDTH - SWITCH_HEIGHT) }],
   }));
 
   return (
@@ -116,11 +78,11 @@ function RNSwitch({
       accessibilityState={{ checked: value, disabled }}
       accessibilityLabel={accessibilityLabel}
       style={{
-        width: 44,
-        height: 24,
-        borderRadius: 12,
-        backgroundColor: value ? c.accent : c.border,
-        padding: 2,
+        width: SWITCH_WIDTH,
+        height: SWITCH_HEIGHT,
+        borderRadius: Radius.pill,
+        backgroundColor: value ? c.accent : withAlpha(c.ink, 0.16),
+        padding: SWITCH_PADDING,
         justifyContent: 'center',
         opacity: disabled ? 0.5 : 1,
       }}
@@ -128,10 +90,11 @@ function RNSwitch({
       <Animated.View
         style={[
           {
-            width: 20,
-            height: 20,
-            borderRadius: 10,
-            backgroundColor: value ? c.accentInk : c.paper,
+            width: THUMB_SIZE,
+            height: THUMB_SIZE,
+            borderRadius: Radius.pill,
+            backgroundColor: THUMB_COLOR,
+            boxShadow: THUMB_SHADOW,
           },
           thumbStyle,
         ]}
@@ -141,10 +104,10 @@ function RNSwitch({
 }
 
 /**
- * Home-climate control. The toggle adapts ratings to the rider's home, whose
- * recent climate sets their acclimatization baseline; the Home row names that
- * place and opens search to change it. Off, the verdict uses the reference
- * defaults.
+ * Home-climate control, laid out like the iOS form's section: the toggle
+ * adapts ratings to the rider's home, whose recent climate sets their
+ * acclimatization baseline; the Home row names that place and opens search to
+ * change it. The footer explains the effect (on) or how to turn it on (off).
  */
 export function HomeClimateSection({
   homeLabel,
@@ -171,6 +134,7 @@ export function HomeClimateSection({
 }>) {
   const c = useWheelyColors();
   const styles = makeStyles(c);
+  const listStyles = useGroupedListStyles();
 
   const unit = useResolvedTempUnit();
   // What the setting does, in ride-day temperatures; shared with the iOS form.
@@ -178,60 +142,43 @@ export function HomeClimateSection({
     ...describeClimateAdjustment(homeBaseline, exposureLevel, unit, homeLabel),
     ...(homeAutoFromSearch ? [CLIMATE_MESSAGES.AUTO_FROM_SEARCH] : []),
   ].join(' ');
+  const footer = homeLabel ? adjustment : CLIMATE_MESSAGES.HINT_OFF(activeLabel);
 
   return (
-    <View style={styles.group}>
-      <SectionTitle title="Home climate" />
-      <BrutalCard style={styles.card}>
-        <View style={styles.toggleRow}>
-          <ThemedText style={styles.toggleLabel} numberOfLines={2}>
-            {CLIMATE_MESSAGES.TOGGLE}
-          </ThemedText>
-          <RNSwitch
-            value={!!homeLabel}
-            disabled={!homeLabel && !canSetHome}
-            accessibilityLabel={CLIMATE_MESSAGES.TOGGLE}
-            onValueChange={(v) => {
-              if (v) onSetHome();
-              else onClearHome();
-            }}
+    <GroupedSection title="Home climate" footer={footer}>
+      <GroupedRow>
+        <ThemedText style={listStyles.rowLabel} numberOfLines={2}>
+          {CLIMATE_MESSAGES.TOGGLE}
+        </ThemedText>
+        <RNSwitch
+          value={!!homeLabel}
+          disabled={!homeLabel && !canSetHome}
+          accessibilityLabel={CLIMATE_MESSAGES.TOGGLE}
+          onValueChange={(v) => {
+            if (v) onSetHome();
+            else onClearHome();
+          }}
+        />
+      </GroupedRow>
+      {homeLabel ? (
+        <GroupedLinkRow
+          label={CLIMATE_MESSAGES.LOCATION}
+          value={homeLabel}
+          accessibilityLabel={`${CLIMATE_MESSAGES.LOCATION}: ${homeLabel}. Change`}
+          onPress={onChangeHome}
+        />
+      ) : null}
+      {homeLabel ? (
+        <GroupedRow stacked>
+          <ThemedText style={styles.pickerLabel}>{CLIMATE_MESSAGES.QUESTION}</ThemedText>
+          <RNSegmentedPicker
+            values={EXPOSURE_VALUES}
+            labels={EXPOSURE_LABELS}
+            selectedValue={exposureLevel}
+            onSelect={onExposureChange}
           />
-        </View>
-
-        {!!homeLabel && (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`${CLIMATE_MESSAGES.LOCATION}: ${homeLabel}. Change`}
-            onPress={onChangeHome}
-            style={({ pressed }) => [styles.homeRow, pressed && styles.homeRowPressed]}
-          >
-            <ThemedText style={styles.toggleLabel}>{CLIMATE_MESSAGES.LOCATION}</ThemedText>
-            <ThemedText style={styles.homeValue} numberOfLines={1}>
-              {homeLabel}
-            </ThemedText>
-            <ChevronRight size={18} color={c.mutedInk} />
-          </Pressable>
-        )}
-
-        {!!homeLabel && (
-          <View style={styles.pickerContainer}>
-            <ThemedText style={styles.pickerLabel}>{CLIMATE_MESSAGES.QUESTION}</ThemedText>
-            <RNSegmentedPicker
-              values={EXPOSURE_VALUES}
-              labels={EXPOSURE_LABELS}
-              selectedValue={exposureLevel}
-              onSelect={onExposureChange}
-            />
-            <ThemedText style={styles.exposureHelpText} accessibilityLiveRegion="polite">
-              {adjustment}
-            </ThemedText>
-          </View>
-        )}
-
-        {!homeLabel && (
-          <ThemedText style={styles.hint}>{CLIMATE_MESSAGES.HINT_OFF(activeLabel)}</ThemedText>
-        )}
-      </BrutalCard>
-    </View>
+        </GroupedRow>
+      ) : null}
+    </GroupedSection>
   );
 }

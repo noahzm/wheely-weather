@@ -44,11 +44,18 @@ body,
   scrollbar-color: var(--wheely-border, rgba(128, 128, 128, 0.45)) transparent;
 }
 
-/* Controls read as buttons, not text. */
+/* No grey flash on tap in mobile Safari; pressed states come from the app. */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Controls read as buttons, not text, and don't open the long-press callout. */
 [role='button'],
-[role='tab'] {
+[role='tab'],
+[role='link'] {
   user-select: none;
   -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 /* Poster selection + focus styling carried over from the original site. */
@@ -65,4 +72,56 @@ body,
 input:focus-visible,
 textarea:focus-visible {
   outline: none;
+}
+
+/* Mouse users: a pointer and a faint tint over anything clickable, like the
+   hover highlight on iPadOS and macOS controls. The tint is the element's own
+   text color, so it darkens on light surfaces and lightens on dark ones. Only
+   for real pointers, so touch screens never get a stuck hover state. */
+@media (hover: hover) and (pointer: fine) {
+  [role='button'],
+  [role='tab'],
+  [role='link'],
+  [role='radio'],
+  [role='switch'] {
+    cursor: pointer;
+  }
+
+  [role='button']::after,
+  [role='tab']::after,
+  [role='link']::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background-color: currentColor;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+  }
+
+  [role='button']:hover::after,
+  [role='tab']:hover::after,
+  [role='link']:hover::after {
+    opacity: 0.06;
+  }
+
+  [aria-disabled='true'] {
+    cursor: default;
+  }
+
+  [aria-disabled='true']:hover::after {
+    opacity: 0;
+  }
+}
+
+/* Reduce Motion: the Reanimated animations check it themselves; this covers
+   the CSS transitions (title bar fade, chevron turn, tab highlight slide). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }

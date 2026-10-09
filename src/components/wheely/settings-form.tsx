@@ -1,14 +1,13 @@
 // Default (Android / web) settings body. iOS is shadowed by settings-form.ios.tsx
-// with a native SwiftUI Form; here we reuse the cross-platform community
-// SegmentedControl inside the app's BrutalCard surfaces.
-import { Platform, ScrollView, StyleSheet, View } from 'react-native';
+// with a native SwiftUI inset-grouped List; this mirrors its sections with the
+// grouped-list pieces.
+import { Platform, ScrollView, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Spacing, TRANSPARENT } from '@/constants/theme';
-import { SectionTitle } from './primitives';
+import { GroupedRow, GroupedSection } from './grouped-list';
 import { WebContentColumn } from './content-column';
 import { webBottomInset } from './bottom-nav-chrome';
-import { WEB_TITLE_CONTENT_SPACING } from './web-screen-header';
 import { HomeClimateSection } from './settings-home-section';
 import { CreditsSection } from './settings-credits-section';
 import { RNSegmentedPicker } from './rn-segmented-picker';
@@ -28,13 +27,9 @@ const styles = StyleSheet.create({
   contentWeb: {
     width: '100%',
     alignItems: 'center',
-    paddingTop: WEB_TITLE_CONTENT_SPACING,
   },
   form: {
-    gap: Spacing.four,
-  },
-  group: {
-    gap: Spacing.three,
+    gap: Spacing.five,
   },
 });
 
@@ -53,29 +48,33 @@ export function SettingsForm({
   onSetHome,
   onClearHome,
   onChangeHome,
+  webHeader,
+  onScroll,
 }: Readonly<SettingsFormProps>) {
   const insets = useSafeAreaInsets();
   const form = (
     <>
-      <View style={styles.group}>
-        <SectionTitle title="Appearance" />
-        <RNSegmentedPicker
-          values={APPEARANCE_VALUES}
-          labels={APPEARANCE_LABELS}
-          selectedValue={appearance}
-          onSelect={onAppearanceChange}
-        />
-      </View>
+      <GroupedSection title="Appearance">
+        <GroupedRow stacked>
+          <RNSegmentedPicker
+            values={APPEARANCE_VALUES}
+            labels={APPEARANCE_LABELS}
+            selectedValue={appearance}
+            onSelect={onAppearanceChange}
+          />
+        </GroupedRow>
+      </GroupedSection>
 
-      <View style={styles.group}>
-        <SectionTitle title="Units" />
-        <RNSegmentedPicker
-          values={TEMP_UNIT_VALUES}
-          labels={TEMP_UNIT_LABELS}
-          selectedValue={tempUnit}
-          onSelect={onTempUnitChange}
-        />
-      </View>
+      <GroupedSection title="Units">
+        <GroupedRow stacked>
+          <RNSegmentedPicker
+            values={TEMP_UNIT_VALUES}
+            labels={TEMP_UNIT_LABELS}
+            selectedValue={tempUnit}
+            onSelect={onTempUnitChange}
+          />
+        </GroupedRow>
+      </GroupedSection>
 
       <HomeClimateSection
         homeLabel={homeLabel}
@@ -98,13 +97,18 @@ export function SettingsForm({
     <ScrollView
       style={{ backgroundColor: TRANSPARENT }}
       contentInsetAdjustmentBehavior="automatic"
+      onScroll={onScroll}
+      scrollEventThrottle={16}
       contentContainerStyle={
         Platform.OS === 'web'
           ? [styles.contentWeb, { paddingBottom: webBottomInset(insets.bottom) }]
           : styles.content
       }
     >
-      <WebContentColumn innerStyle={styles.form}>{form}</WebContentColumn>
+      <WebContentColumn innerStyle={styles.form}>
+        {webHeader}
+        {form}
+      </WebContentColumn>
     </ScrollView>
   );
 }

@@ -31,5 +31,11 @@ export function useWebDocumentTheme(isDark: boolean) {
     root.dataset.theme = isDark ? 'dark' : 'light';
     root.dataset.appearance = appearance;
     root.dataset.systemScheme = systemScheme;
+    // The static tags pick a color by system scheme; an appearance override
+    // can disagree, so pin every tag to the resolved background.
+    for (const meta of globalThis.document.querySelectorAll('meta[name="theme-color"]')) {
+      meta.setAttribute('content', palette.background);
+      meta.removeAttribute('media');
+    }
   }, [appearance, isDark, systemScheme]);
 }

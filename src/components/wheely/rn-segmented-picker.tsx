@@ -8,49 +8,50 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
-import { Fonts, Spacing, Type, type WheelyPalette } from '@/constants/theme';
-import { useWheelyColors } from '@/hooks/use-theme';
+import { Fonts, Radius, Spacing, Type, type WheelyPalette } from '@/constants/theme';
+import { useColorSchemeName, useWheelyColors } from '@/hooks/use-theme';
+import { withAlpha } from '@/utils/colors';
 import { selectionFeedback } from '@/utils/haptics';
 
-const CONTAINER_PADDING = 4;
-const INDICATOR_INSET = 2; // Horizontal padding inside each segment slot
+// Styled after the iOS segmented control: a grey capsule track with a raised
+// thumb (white in light mode, a lighter grey in dark), not a colored fill.
+const CONTAINER_PADDING = 2;
+const INDICATOR_INSET = 0; // Horizontal padding inside each segment slot
 
-function makeStyles(c: WheelyPalette) {
+function makeStyles(c: WheelyPalette, scheme: 'light' | 'dark') {
   return StyleSheet.create({
     container: {
       flexDirection: 'row',
-      backgroundColor: c.background,
-      borderColor: c.border,
-      borderWidth: 1,
-      borderRadius: 10,
+      backgroundColor: withAlpha(c.ink, scheme === 'dark' ? 0.14 : 0.07),
+      borderRadius: Radius.pill,
       padding: CONTAINER_PADDING,
       position: 'relative',
     },
     segment: {
       flex: 1,
-      paddingVertical: Spacing.two,
+      paddingVertical: Spacing.two - Spacing.half,
       paddingHorizontal: Spacing.two,
       alignItems: 'center',
       justifyContent: 'center',
-      borderRadius: 6,
+      borderRadius: Radius.pill,
       zIndex: 2,
     },
     indicator: {
       position: 'absolute',
       top: CONTAINER_PADDING + INDICATOR_INSET,
       bottom: CONTAINER_PADDING + INDICATOR_INSET,
-      backgroundColor: c.accent,
-      borderRadius: 6,
+      backgroundColor: scheme === 'dark' ? withAlpha(c.ink, 0.3) : c.paper,
+      borderRadius: Radius.pill,
+      boxShadow: `0 2px 6px ${withAlpha(c.shadow, scheme === 'dark' ? 0 : 0.14)}`,
       zIndex: 1,
     },
     text: {
-      color: c.mutedInk,
+      color: c.ink,
       fontFamily: Fonts.body,
       ...Type.caption,
     },
     textActive: {
-      color: c.accentInk,
-      fontFamily: Fonts.heading,
+      fontFamily: Fonts.bold,
     },
   });
 }
@@ -67,7 +68,7 @@ export function RNSegmentedPicker<T extends string>({
   onSelect: (value: T) => void;
 }>) {
   const c = useWheelyColors();
-  const styles = makeStyles(c);
+  const styles = makeStyles(c, useColorSchemeName());
 
   const activeIndex = Math.max(0, values.indexOf(selectedValue));
   const count = values.length;

@@ -5,6 +5,7 @@ import { bootstrapIcon } from './bootstrap-icon';
 export type { IconComponent } from './bootstrap-icon';
 
 export const AlertTriangle = bootstrapIcon('AlertTriangle');
+export const ArrowUpRight = bootstrapIcon('ArrowUpRight');
 export const Check = bootstrapIcon('Check');
 export const ChevronDown = bootstrapIcon('ChevronDown');
 export const ChevronLeft = bootstrapIcon('ChevronLeft');

@@ -1,3 +1,6 @@
+import type { ReactNode } from 'react';
+import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
+
 import type { Appearance, ExposureLevel, TempUnitPreference } from '@/types/settings';
 import type { HomeBaseline } from '@/types/weather';
 
@@ -36,4 +39,8 @@ export interface SettingsFormProps {
   onSetHome: () => void;
   /** Clear the home location (verdict reverts to reference defaults). */
   onClearHome: () => void;
+  /** Web: the large title, rendered inside the scroll so it can collapse. */
+  webHeader?: ReactNode;
+  /** Web: drives the compact title bar (useWebTitleCollapse). */
+  onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
 }

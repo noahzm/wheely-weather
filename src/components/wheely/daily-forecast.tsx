@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { SymbolView, type SFSymbol } from 'expo-symbols';
-import { ChevronDown, Clock, CloudRain, Wind, type IconComponent } from './icons';
+import { ChevronRight, Clock, CloudRain, Wind, type IconComponent } from './icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { CONDITION_DISPLAY } from '@/domain';
@@ -19,6 +19,7 @@ import {
   Type,
   type WheelyPalette,
 } from '@/constants/theme';
+import { withAlpha } from '@/utils/colors';
 import type { Thresholds } from '@/domain/constants';
 import type { DailyWeather } from '@/types/weather';
 import { AnimatedExpand, useExpandAnimation } from './animated-expand';
@@ -237,7 +238,12 @@ function DayRow({
         accessibilityRole="button"
         accessibilityLabel={`${rowA11yLabel}. Tap to ${isExpanded ? 'collapse' : 'expand'} details.`}
         accessibilityState={{ expanded: isExpanded }}
-        style={[styles.dayRowHeader, best && styles.dayRowBest]}
+        style={({ pressed }) => [
+          styles.dayRowHeader,
+          best && styles.dayRowBest,
+          // The grey flash of a tapped iOS list row.
+          pressed && Platform.OS === 'web' && { backgroundColor: withAlpha(c.ink, 0.08) },
+        ]}
       >
         <View style={styles.dayRowMain}>
           <View style={styles.dayLabelCell}>
@@ -273,8 +279,14 @@ function DayRow({
                 tintColor={c.mutedInk}
               />
             ) : (
-              <View style={isExpanded && { transform: [{ rotate: '180deg' }] }}>
-                <PlatformIcon icon={ChevronDown} size={16} color={c.mutedInk} strokeWidth={2.5} />
+              // › turning to ⌄, like the iOS row's chevron.right / chevron.down.
+              <View
+                style={[
+                  { transform: [{ rotate: isExpanded ? '90deg' : '0deg' }] },
+                  Platform.OS === 'web' && ({ transition: 'transform 0.2s ease' } as object),
+                ]}
+              >
+                <PlatformIcon icon={ChevronRight} size={14} color={c.mutedInk} strokeWidth={2.5} />
               </View>
             )}
           </View>

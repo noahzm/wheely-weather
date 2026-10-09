@@ -29,7 +29,11 @@ import {
   WebScreenTitle,
   bottomNavBarHeight,
 } from '@/components/wheely';
-import { WEB_TITLE_CONTENT_SPACING } from '@/components/wheely/web-screen-header';
+import {
+  WEB_TITLE_CONTENT_SPACING,
+  WebCompactTitleBar,
+  useWebTitleCollapse,
+} from '@/components/wheely/web-screen-header';
 import { HapticPressable, PlatformIcon, SectionTitle } from '@/components/wheely/primitives';
 import { ThemedText } from '@/components/themed-text';
 import {
@@ -56,6 +60,7 @@ import { Spacing, TRANSPARENT, Type, type WheelyPalette } from '@/constants/them
 
 const isWeb = Platform.OS === 'web';
 const isIOS = Platform.OS === 'ios';
+const PLACE_FADE_MS = 260;
 
 // Web tab switches remount this screen, so play the entrance stagger only on
 // the first home mount per session; native tabs keep the screen mounted.
@@ -173,9 +178,7 @@ function WebCityHeading({ city, following }: Readonly<{ city: string; following:
           }
           style={({ pressed }) => [headingStyles.cityRow, pressed && { opacity: 0.7 }]}
         >
-          {following && (
-            <PlatformIcon icon={Navigation} size={20} color={c.ink} strokeWidth={2.5} />
-          )}
+          {following && <PlatformIcon icon={Navigation} size={20} color={c.ink} filled />}
           <WebScreenTitle>{city}</WebScreenTitle>
         </HapticPressable>
       }
@@ -207,16 +210,30 @@ function HomeSections({
   derived,
   thresholds,
   refreshing = false,
+  placeKey,
 }: Readonly<{
   weather: Weather;
   derived: HomeState;
   thresholds: AcclimatizationContext['thresholds'];
   refreshing?: boolean;
+  /** The place the forecast is for; a change fades the new place's sections in. */
+  placeKey: string;
 }>) {
   const c = useWheelyColors();
   const styles = useMemo(() => makeStyles(c), [c]);
   const reduceMotion = useReducedMotion();
   const sectionsOpacity = useSharedValue(1);
+  const [shownPlace, setShownPlace] = useState(placeKey);
+
+  // Web: switching places swaps every section at once, so fade the new
+  // forecast in. Native tabs keep their own transitions.
+  if (shownPlace !== placeKey) {
+    setShownPlace(placeKey);
+    if (isWeb && !reduceMotion) {
+      sectionsOpacity.set(0);
+      sectionsOpacity.set(withTiming(1, { duration: PLACE_FADE_MS }));
+    }
+  }
 
   useEffect(() => {
     if (reduceMotion) {
@@ -422,6 +439,24 @@ function HomeLocationPromptScreen({
   );
 }
 
+function homeRefreshControl({
+  refreshing,
+  onRefresh,
+  title,
+  c,
+}: Readonly<{ refreshing: boolean; onRefresh: () => void; title?: string; c: WheelyPalette }>) {
+  return (
+    <RefreshControl
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+      title={title}
+      titleColor={c.mutedInk}
+      colors={[c.primary, c.accent]}
+      progressBackgroundColor={c.paper}
+    />
+  );
+}
+
 function HomeContent({
   forecast,
   sections,
@@ -449,6 +484,7 @@ function HomeContent({
 }>) {
   const c = useWheelyColors();
   const showRefreshing = useMinimumRefreshing(forecast.refreshing);
+  const titleCollapse = useWebTitleCollapse();
   if (forecast.loading) {
     return <LoadingState />;
   }
@@ -487,16 +523,14 @@ function HomeContent({
       <ScrollView
         style={[styles.scroll, scrollHostStyle]}
         contentInsetAdjustmentBehavior="automatic"
-        refreshControl={
-          <RefreshControl
-            refreshing={showRefreshing}
-            onRefresh={forecast.refresh}
-            title={refreshTitle}
-            titleColor={c.mutedInk}
-            colors={[c.primary, c.accent]}
-            progressBackgroundColor={c.paper}
-          />
-        }
+        onScroll={isWeb ? titleCollapse.onScroll : undefined}
+        scrollEventThrottle={16}
+        refreshControl={homeRefreshControl({
+          refreshing: showRefreshing,
+          onRefresh: forecast.refresh,
+          title: refreshTitle,
+          c,
+        })}
         contentContainerStyle={[
           styles.scrollContent,
           bottomNavInset != null && { paddingBottom: bottomNavInset },
@@ -532,6 +566,7 @@ function HomeContent({
                 derived={sections.derived}
                 thresholds={sections.thresholds}
                 refreshing={forecast.refreshing}
+                placeKey={`${forecast.snapshot?.mockScenario ?? ''}|${forecast.snapshot?.location ?? ''}`}
               />
             )}
             {webUpdatedText !== null && (
@@ -542,6 +577,9 @@ function HomeContent({
           </View>
         </View>
       </ScrollView>
+      {isWeb && city.length > 0 && (
+        <WebCompactTitleBar title={city} visible={titleCollapse.collapsed} />
+      )}
     </View>
   );
 }

@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import Head from 'expo-router/head';
 
 import { SettingsForm, WebScreenHeader, WebScreenTitle } from '@/components/wheely';
+import { WebCompactTitleBar, useWebTitleCollapse } from '@/components/wheely/web-screen-header';
 import {
   useAppearance,
   useExposureLevel,
@@ -32,6 +33,7 @@ export default function SettingsScreen() {
 
   const homeLocationAuto = useHomeLocationAuto();
   const router = useRouter();
+  const titleCollapse = useWebTitleCollapse();
   // The place turning home climate on would use, named in the off-state hint.
   const activeLabel = active ? toHomeLocation(active, forecast.snapshot?.location).name : null;
   // A GPS-based auto home is a safe guess; one from a search might be a trip.
@@ -60,10 +62,17 @@ export default function SettingsScreen() {
         />
       </Head>
       <View style={{ flex: 1, backgroundColor: TRANSPARENT }} collapsable={false}>
-        {isWeb && (
-          <WebScreenHeader variant="title" title={<WebScreenTitle>Settings</WebScreenTitle>} />
-        )}
         <SettingsForm
+          webHeader={
+            isWeb ? (
+              <WebScreenHeader
+                variant="title"
+                withScreenGutter={false}
+                title={<WebScreenTitle>Settings</WebScreenTitle>}
+              />
+            ) : undefined
+          }
+          onScroll={isWeb ? titleCollapse.onScroll : undefined}
           appearance={appearance}
           onAppearanceChange={setAppearance}
           tempUnit={tempUnit}
@@ -79,6 +88,7 @@ export default function SettingsScreen() {
           onClearHome={onClearHome}
           onChangeHome={onChangeHome}
         />
+        {isWeb && <WebCompactTitleBar title="Settings" visible={titleCollapse.collapsed} />}
       </View>
     </>
   );

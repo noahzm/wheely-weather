@@ -34,6 +34,7 @@ import { getMetricExplainer, type MetricExplainer } from '@/utils/metricExplaine
 import { useWheelyColors } from '@/hooks/use-theme';
 import { useTemperatureDisplay } from '@/hooks/use-temperature-display';
 import { FontWeightBlack, Fonts, Spacing, Type, type WheelyPalette } from '@/constants/theme';
+import { withAlpha } from '@/utils/colors';
 import type { Weather } from '@/types/weather';
 import { AnimatedExpand, useExpandAnimation } from './animated-expand';
 import {
@@ -292,7 +293,9 @@ function MetricCell({
           borderBottomWidth: hasBottomBorder ? 1 : 0,
         },
         isSelected && styles.metricCellActive,
-        pressed && { opacity: 0.75 },
+        // Web gets the grey flash of a tapped iOS list row; native keeps the dim.
+        pressed &&
+          (Platform.OS === 'web' ? { backgroundColor: withAlpha(c.ink, 0.08) } : { opacity: 0.75 }),
       ]}
     >
       <View style={styles.metricLabelRow}>
