@@ -3,11 +3,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { THRESHOLDS } from '../src/domain/constants';
 import { buildWeatherFromData } from '../src/services/weatherParsing';
 import {
+  alertCountry,
   fetchWeatherKitForecast,
   hasWeatherKitCredentials,
   resetWeatherKitToken,
   restConditionToWmoCode,
   toOpenMeteoData,
+  toWeatherAlerts,
   utcOffsetSeconds,
   weatherKitToken,
   weatherKitUrl,
@@ -148,9 +150,65 @@ describe('weatherKitUrl', () => {
     const url = new URL(weatherKitUrl(35.78, -78.64, ZONE, NOW));
     expect(url.pathname).toBe('/api/v1/weather/en/35.78/-78.64');
     expect(url.searchParams.get('timezone')).toBe(ZONE);
-    expect(url.searchParams.get('dataSets')).toBe('currentWeather,forecastHourly,forecastDaily');
     expect(url.searchParams.get('hourlyStart')).toBe('2026-10-10T06:00:00.000Z');
     expect(url.searchParams.get('hourlyEnd')).toBe('2026-10-18T19:00:00.000Z');
+  });
+
+  it('adds alerts, with the country they require, in the US and Canada', () => {
+    const us = new URL(weatherKitUrl(35.78, -78.64, ZONE, NOW)).searchParams;
+    expect(us.get('dataSets')).toBe('currentWeather,forecastHourly,forecastDaily,weatherAlerts');
+    expect(us.get('country')).toBe('US');
+    const ca = new URL(weatherKitUrl(43.65, -79.38, 'America/Toronto', NOW)).searchParams;
+    expect(ca.get('country')).toBe('CA');
+  });
+
+  it('skips alerts where the country is unknown', () => {
+    const url = new URL(weatherKitUrl(51.5, -0.13, 'Europe/London', NOW));
+    expect(url.searchParams.get('dataSets')).toBe('currentWeather,forecastHourly,forecastDaily');
+    expect(url.searchParams.has('country')).toBe(false);
+  });
+});
+
+describe('alertCountry', () => {
+  it('reads the country from the zone', () => {
+    expect(alertCountry('America/Indiana/Indianapolis')).toBe('US');
+    expect(alertCountry('Pacific/Honolulu')).toBe('US');
+    expect(alertCountry('America/Vancouver')).toBe('CA');
+    expect(alertCountry('America/Mexico_City')).toBeNull();
+  });
+});
+
+describe('toWeatherAlerts', () => {
+  it('maps REST alert summaries like the iOS module', () => {
+    const alerts = toWeatherAlerts({
+      weatherAlerts: {
+        alerts: [
+          {
+            description: 'Hurricane Warning',
+            severity: 'extreme',
+            source: 'National Weather Service',
+            detailsUrl: 'https://weatherkit.apple.com/alertDetails/index.html?ids=1',
+            expireTime: '2026-10-10T02:15:00Z',
+          },
+        ],
+      },
+    });
+    expect(alerts).toEqual([
+      {
+        type: 'weatherkit',
+        severity: 'extreme',
+        event: 'Hurricane Warning',
+        headline: 'Hurricane Warning',
+        description: 'National Weather Service',
+        message: 'Hurricane Warning',
+        expires: '2026-10-10T02:15:00Z',
+        detailsUrl: 'https://weatherkit.apple.com/alertDetails/index.html?ids=1',
+      },
+    ]);
+  });
+
+  it('returns none when the response has no alerts', () => {
+    expect(toWeatherAlerts({})).toEqual([]);
   });
 });
 
@@ -251,12 +309,13 @@ describe('fetchWeatherKitForecast', () => {
     const fetchMock = vi.fn(() => Promise.resolve(Response.json(makeResponse())));
     vi.stubGlobal('fetch', fetchMock);
 
-    const data = await fetchWeatherKitForecast(env, 35.78, -78.64, NOW);
+    const { forecast, alerts } = await fetchWeatherKitForecast(env, 35.78, -78.64, NOW);
 
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
     expect(new URL(url).searchParams.get('timezone')).toBe(ZONE);
     expect((init.headers as Record<string, string>).Authorization).toMatch(/^Bearer /);
-    expect(data.current?.time).toBe('2026-10-10T14:20');
+    expect(forecast.current?.time).toBe('2026-10-10T14:20');
+    expect(alerts).toEqual([]);
   });
 
   it('throws on an upstream error', async () => {

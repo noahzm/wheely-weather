@@ -1,13 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  fetchAqi,
-  fetchNwsAlerts,
-  fetchOpenMeteoData,
-  fetchWeatherExtras,
-  type OpenMeteoData,
-} from './weatherService';
-import { fetchWeatherKitProxyForecast } from './weatherParsing';
+import { fetchOpenMeteoData, fetchWeatherExtras, type OpenMeteoData } from './weatherService';
+import { fetchAqi, fetchForecastBundle, fetchNwsAlerts } from './weatherFetch';
 
 // Covers the network layer around the (separately tested) parsing: URL
 // construction, HTTP error handling, and the fail-soft behavior of the
@@ -91,27 +85,33 @@ describe('fetchOpenMeteoData', () => {
   });
 });
 
-describe('fetchWeatherKitProxyForecast', () => {
-  it('requests the forecast from the site Worker', async () => {
-    const fetchMock = stubFetchJson(makePayload());
+describe('fetchForecastBundle', () => {
+  it('requests the bundle from the site Worker', async () => {
+    const fetchMock = stubFetchJson({ forecast: makePayload(), alerts: [], aqi: 31 });
 
-    const data = await fetchWeatherKitProxyForecast(40.7, -74);
+    const bundle = await fetchForecastBundle(40.7, -74);
 
-    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/weather?lat=40.7&lon=-74');
-    expect(data.current?.temperature_2m).toBe(60);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/forecast?lat=40.7&lon=-74');
+    expect(bundle.forecast.current?.temperature_2m).toBe(60);
+    expect(bundle.aqi).toBe(31);
+  });
+
+  it('fills in missing alerts and AQI', async () => {
+    stubFetchJson({ forecast: makePayload() });
+    const bundle = await fetchForecastBundle(40.7, -74);
+    expect(bundle.alerts).toEqual([]);
+    expect(bundle.aqi).toBeNull();
   });
 
   it('throws on a non-OK response so the caller can fall back', async () => {
     stubFetchJson({}, false);
-    await expect(fetchWeatherKitProxyForecast(40.7, -74)).rejects.toThrow(
-      'WeatherKit proxy error 500',
-    );
+    await expect(fetchForecastBundle(40.7, -74)).rejects.toThrow('Forecast proxy error 500');
   });
 
-  it('throws when the payload has no current block', async () => {
-    stubFetchJson({ hourly: {}, daily: {} });
-    await expect(fetchWeatherKitProxyForecast(40.7, -74)).rejects.toThrow(
-      'WeatherKit proxy missing current data',
+  it('throws when the forecast has no current block', async () => {
+    stubFetchJson({ forecast: { hourly: {}, daily: {} } });
+    await expect(fetchForecastBundle(40.7, -74)).rejects.toThrow(
+      'Forecast proxy missing current data',
     );
   });
 });

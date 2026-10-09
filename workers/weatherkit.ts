@@ -6,7 +6,9 @@
 import tzLookup from '@photostructure/tz-lookup';
 
 import { weatherKitConditionToWmoCode } from '../src/domain/weatherkit-codes';
+import { mapWeatherKitAlert } from '../src/services/weatherkitAlertMapping';
 import type { OpenMeteoData } from '../src/services/weatherParsing';
+import type { WeatherAlert } from '../src/types/weather';
 
 export interface WeatherKitSecrets {
   WEATHERKIT_TEAM_ID?: string;
@@ -66,10 +68,97 @@ interface RestDay {
   daytimeForecast?: { windSpeed?: number };
 }
 
+interface RestAlert {
+  /** The alert's name, e.g. "Flood Watch". */
+  description: string;
+  severity: string;
+  source: string;
+  areaName?: string;
+  detailsUrl: string;
+  expireTime: string;
+}
+
 export interface WeatherKitRestResponse {
   currentWeather?: RestCurrent;
   forecastHourly?: { hours: RestHour[] };
   forecastDaily?: { days: RestDay[] };
+  weatherAlerts?: { alerts?: RestAlert[] };
+}
+
+/** What the Worker gets from one WeatherKit request. */
+export interface WeatherKitResult {
+  forecast: OpenMeteoData;
+  /** Empty when there are none, or when the location's country is unknown. */
+  alerts: WeatherAlert[];
+}
+
+// REST alerts need the location's country (`country=`), and a wrong one just
+// returns none. The Worker infers it from the IANA zone, which covers the
+// US and Canada — the launch markets, and more than the NWS feed it replaced.
+const US_ZONE_PREFIXES = ['America/Indiana/', 'America/Kentucky/', 'America/North_Dakota/'];
+const US_ZONES = new Set([
+  'America/Adak',
+  'America/Anchorage',
+  'America/Boise',
+  'America/Chicago',
+  'America/Denver',
+  'America/Detroit',
+  'America/Juneau',
+  'America/Los_Angeles',
+  'America/Menominee',
+  'America/Metlakatla',
+  'America/New_York',
+  'America/Nome',
+  'America/Phoenix',
+  'America/Sitka',
+  'America/Yakutat',
+  'Pacific/Honolulu',
+]);
+const CA_ZONES = new Set([
+  'America/Atikokan',
+  'America/Blanc-Sablon',
+  'America/Cambridge_Bay',
+  'America/Creston',
+  'America/Dawson',
+  'America/Dawson_Creek',
+  'America/Edmonton',
+  'America/Fort_Nelson',
+  'America/Glace_Bay',
+  'America/Goose_Bay',
+  'America/Halifax',
+  'America/Inuvik',
+  'America/Iqaluit',
+  'America/Moncton',
+  'America/Rankin_Inlet',
+  'America/Regina',
+  'America/Resolute',
+  'America/St_Johns',
+  'America/Swift_Current',
+  'America/Toronto',
+  'America/Vancouver',
+  'America/Whitehorse',
+  'America/Winnipeg',
+]);
+
+/** The country to ask for alerts in, or null outside the US and Canada. */
+export function alertCountry(timeZone: string): 'US' | 'CA' | null {
+  if (US_ZONES.has(timeZone) || US_ZONE_PREFIXES.some((p) => timeZone.startsWith(p))) return 'US';
+  if (CA_ZONES.has(timeZone)) return 'CA';
+  return null;
+}
+
+/** Same shape the iOS module's alerts take, so both platforms read alike. */
+export function toWeatherAlerts(response: WeatherKitRestResponse): WeatherAlert[] {
+  return (response.weatherAlerts?.alerts ?? []).map((alert) =>
+    mapWeatherKitAlert({
+      summary: alert.description,
+      severity: alert.severity,
+      source: alert.source,
+      region: alert.areaName ?? null,
+      detailsURL: alert.detailsUrl,
+      expirationDate: alert.expireTime,
+    }),
+  );
 }
 
 /**
@@ -264,22 +353,24 @@ export function resetWeatherKitToken(): void {
 
 export function weatherKitUrl(lat: number, lon: number, timeZone: string, now: Date): string {
   const hourStart = Math.floor(now.getTime() / HOUR_MS) * HOUR_MS;
+  const country = alertCountry(timeZone);
   const params = new URLSearchParams({
-    dataSets: 'currentWeather,forecastHourly,forecastDaily',
+    dataSets: `currentWeather,forecastHourly,forecastDaily${country ? ',weatherAlerts' : ''}`,
     timezone: timeZone,
     hourlyStart: new Date(hourStart - PAST_HOURS * HOUR_MS).toISOString(),
     hourlyEnd: new Date(hourStart + (FORECAST_DAYS * 24 + 1) * HOUR_MS).toISOString(),
   });
+  if (country) params.set('country', country);
   return `${WEATHERKIT_API}/${lat}/${lon}?${params.toString()}`;
 }
 
-/** Fetches and reshapes a WeatherKit forecast; throws on any failure. */
+/** Fetches and reshapes a WeatherKit forecast and its alerts; throws on any failure. */
 export async function fetchWeatherKitForecast(
   env: Credentials,
   lat: number,
   lon: number,
   now: Date = new Date(),
-): Promise<OpenMeteoData> {
+): Promise<WeatherKitResult> {
   const timeZone = tzLookup(lat, lon);
   const token = await weatherKitToken(env, now.getTime());
   const res = await fetch(weatherKitUrl(lat, lon, timeZone, now), {
@@ -287,5 +378,5 @@ export async function fetchWeatherKitForecast(
   });
   if (!res.ok) throw new Error(`WeatherKit ${res.status}`);
   const body = (await res.json()) as WeatherKitRestResponse;
-  return toOpenMeteoData(body, timeZone, now);
+  return { forecast: toOpenMeteoData(body, timeZone, now), alerts: toWeatherAlerts(body) };
 }

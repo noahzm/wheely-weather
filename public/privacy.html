@@ -95,12 +95,13 @@
           search, and <a href="https://open-meteo.com/en/terms">Open-Meteo</a> for air quality.
         </li>
         <li>
-          On the web: Apple Weather (WeatherKit) for forecasts and
+          On the web: Apple Weather (WeatherKit) for forecasts and alerts,
+          <a href="https://open-meteo.com/en/terms">Open-Meteo</a> for air quality, and
           <a href="https://osmfoundation.org/wiki/Privacy_Policy">OpenStreetMap Nominatim</a> for
-          place search, both proxied through our own server, which rounds forecast coordinates to
+          place search, all proxied through our own server, which rounds forecast coordinates to
           about 1 km and keeps only short-lived request logs for debugging (Cloudflare Workers Logs,
-          deleted within days); <a href="https://open-meteo.com/en/terms">Open-Meteo</a> for air
-          quality and as a backup forecast source; and the US National Weather Service for alerts.
+          deleted within days). If our server can't be reached, your browser asks Open-Meteo for the
+          forecast and air quality and the US National Weather Service for alerts directly.
         </li>
       </ul>
       <p>We do not keep a history of your locations or sell location data.</p>

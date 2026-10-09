@@ -3,8 +3,8 @@
 // `OpenMeteoData` wire format `buildWeatherFromData` (unchanged, imported
 // from weatherParsing.ts) already normalizes — see weatherkit-codes.ts for
 // the condition-code translation. AQI stays on Open-Meteo (WeatherKit has no
-// AQI data). Note: this file must import shared parsing from weatherParsing.ts,
-// not weatherService.ts — Metro's platform resolution would resolve
+// AQI data). Note: this file must import shared code from weatherParsing.ts and
+// weatherFetch.ts, not weatherService.ts — Metro's platform resolution would resolve
 // `./weatherService` back to this very file on iOS, causing infinite recursion.
 // The module returns null until a native rebuild links it — forecasts are
 // unavailable in that state (no Open-Meteo fallback), matching how
@@ -15,13 +15,14 @@ import { weatherKitConditionToWmoCode } from '../domain/weatherkit-codes';
 import { withTimeout } from './http';
 import { captureError, traceAsync } from './telemetry';
 import { mapWeatherKitAlert } from './weatherkitAlertMapping';
-import { fetchAqi, FORECAST_FETCH_TIMEOUT_MS, type OpenMeteoData } from './weatherParsing';
+import { fetchAqi, FORECAST_FETCH_TIMEOUT_MS } from './weatherFetch';
+import { type OpenMeteoData } from './weatherParsing';
 
 import type { ForecastExtras, WeatherAlert } from '@/types/weather';
 
 import type { WeatherKitForecastResult } from '../../modules/apple-weatherkit/src/AppleWeatherKit.types';
 
-export { buildWeatherFromData, fetchAqi, fetchNwsAlerts } from './weatherParsing';
+export { buildWeatherFromData } from './weatherParsing';
 export type { OpenMeteoData } from './weatherParsing';
 export { REQUEST_TIMEOUT_ERROR } from './http';
 

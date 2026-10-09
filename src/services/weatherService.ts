@@ -1,14 +1,10 @@
 import { type Thresholds } from '../domain/constants';
-import {
-  fetchAqi,
-  fetchNwsAlerts,
-  fetchOpenMeteoForecast,
-  type OpenMeteoData,
-} from './weatherParsing';
+import { fetchAqi, fetchNwsAlerts, fetchOpenMeteoForecast } from './weatherFetch';
+import { type OpenMeteoData } from './weatherParsing';
 
 import type { ForecastExtras } from '@/types/weather';
 
-export { buildWeatherFromData, fetchAqi, fetchNwsAlerts } from './weatherParsing';
+export { buildWeatherFromData } from './weatherParsing';
 export type { OpenMeteoData } from './weatherParsing';
 export { REQUEST_TIMEOUT_ERROR } from './http';
 

@@ -1,3 +1,4 @@
+import { fetchAqi, type ForecastBundle } from '../src/services/weatherFetch';
 import {
   fetchWeatherKitForecast,
   hasWeatherKitCredentials,
@@ -11,8 +12,10 @@ const USER_AGENT = 'WheelyWeather/1.0 (https://wheelyweather.app; contact@wheely
 const SEARCH_CACHE_CONTROL = 'public, max-age=3600';
 const REVERSE_CACHE_CONTROL = 'public, max-age=86400';
 // Forecasts change slowly; a shared edge cache keeps WeatherKit calls within
-// the developer-account quota.
-const WEATHER_CACHE_CONTROL = 'public, max-age=600';
+// the developer-account quota. A bundle missing its AQI (Open-Meteo timed out)
+// is kept only briefly so the next visitor gets another try.
+const FORECAST_CACHE_CONTROL = 'public, max-age=600';
+const PARTIAL_FORECAST_CACHE_CONTROL = 'public, max-age=60';
 
 // Only the app's own origin may read proxied responses cross-origin. Native
 // clients call Nominatim and WeatherKit directly, so the API only serves the
@@ -43,8 +46,8 @@ export default {
     if (url.pathname === '/api/geocode/reverse') {
       return handleGeocode(request, buildReverseUrl(url), REVERSE_CACHE_CONTROL);
     }
-    if (url.pathname === '/api/weather') {
-      return handleWeather(request, url, env);
+    if (url.pathname === '/api/forecast') {
+      return handleForecast(request, url, env);
     }
 
     // Only /api/* runs the Worker first (wrangler.jsonc); pages and files are
@@ -99,7 +102,12 @@ function edgeCache(): Cache | null {
   return storage?.default ?? null;
 }
 
-async function handleWeather(request: Request, url: URL, env: Env): Promise<Response> {
+/**
+ * One response with everything the web app's forecast needs: WeatherKit's
+ * forecast and alerts (a single Apple request) plus Open-Meteo's AQI, fetched
+ * side by side at the edge and cached together.
+ */
+async function handleForecast(request: Request, url: URL, env: Env): Promise<Response> {
   if (request.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders() });
   }
@@ -114,15 +122,21 @@ async function handleWeather(request: Request, url: URL, env: Env): Promise<Resp
   // is coarser than that anyway.
   const lat = Math.round(coords.lat * 100) / 100;
   const lon = Math.round(coords.lon * 100) / 100;
-  const cacheKey = new Request(`${url.origin}/api/weather?lat=${lat}&lon=${lon}`);
+  const cacheKey = new Request(`${url.origin}/api/forecast?lat=${lat}&lon=${lon}`);
   const cache = edgeCache();
   const cached = await cache?.match(cacheKey);
   if (cached) return cached;
 
   try {
-    const data = await fetchWeatherKitForecast(env, lat, lon);
-    const response = new Response(JSON.stringify(data), {
-      headers: { ...jsonHeaders(), 'Cache-Control': WEATHER_CACHE_CONTROL },
+    // AQI never rejects; it resolves null on failure or after its timeout.
+    const [{ forecast, alerts }, aqi] = await Promise.all([
+      fetchWeatherKitForecast(env, lat, lon),
+      fetchAqi(lat, lon),
+    ]);
+    const bundle: ForecastBundle = { forecast, alerts, aqi };
+    const cacheControl = aqi == null ? PARTIAL_FORECAST_CACHE_CONTROL : FORECAST_CACHE_CONTROL;
+    const response = new Response(JSON.stringify(bundle), {
+      headers: { ...jsonHeaders(), 'Cache-Control': cacheControl },
     });
     await cache?.put(cacheKey, response.clone());
     return response;

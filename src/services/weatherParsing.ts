@@ -1,16 +1,18 @@
 import {
   getWeatherDescription,
-  getWeatherCodeCondition,
   isThunderstorm,
   getHourlyCondition,
   getDailyCondition,
 } from '../domain/weather';
-import { RANK } from '../domain/scoring';
+import {
+  selectBestRideWindows,
+  type DailyRideWindow,
+  type RideWindowHour,
+} from '../domain/ride-window';
 import type { Thresholds } from '../domain/constants';
-import { fetchWithTimeout } from './http';
 import { normalizePercent } from '../utils/percent';
 
-import type { DailyWeather, HourlyWeather, Weather, WeatherAlert } from '@/types/weather';
+import type { DailyWeather, HourlyWeather, Weather } from '@/types/weather';
 
 interface DaylightHours {
   sunriseHour: number;
@@ -20,31 +22,6 @@ interface DaylightHours {
 interface TempRange {
   min: number;
   max: number;
-}
-
-interface DailyRideWindow {
-  startHour: number;
-  endHour: number;
-  tempLow: number;
-  tempHigh: number;
-  windSpeed: number;
-  windGust: number | null;
-  rainChance: number;
-  precipitation: number | null;
-  dewpoint: number | null;
-  weatherCode: number | null;
-  condition: DailyWeather['condition'];
-}
-
-interface RideWindowHour {
-  hour: number;
-  temperature: number;
-  windSpeed: number;
-  windGust: number | null;
-  rainChance: number;
-  precipitation: number | null;
-  dewpoint: number | null;
-  weatherCode: number | null;
 }
 
 interface DailyParseContext {
@@ -100,26 +77,6 @@ export interface OpenMeteoData {
   hourly: OpenMeteoHourly;
   daily: OpenMeteoDaily;
 }
-
-interface NwsFeature {
-  properties: {
-    severity?: string;
-    event?: string;
-    headline?: string;
-    description?: string;
-    instruction?: string;
-    expires?: string;
-  };
-}
-
-// Keep secondary lookups snappy so slower third-party APIs do not hold up first paint.
-// WeatherKit alerts (weatherService.ios.ts) use their own, longer budget.
-const SECONDARY_FETCH_TIMEOUT_MS = 2500;
-// WeatherKit's first call on a fresh install involves authentication token
-// negotiation with Apple's servers plus a CLGeocoder reverse-geocode for
-// timezone resolution — easily 10-15 s, so the old 8 s ceiling timed out
-// before the data could arrive (TestFlight "Can't connect" symptom).
-export const FORECAST_FETCH_TIMEOUT_MS = 20_000;
 
 /** Normalizes a forecast timestamp down to the hourly format used by hourly.time. */
 function toHourlyTimeKey(timeStr: string | null | undefined): string | null {
@@ -266,121 +223,7 @@ function buildDaytimeAggregates(
   return { dewpointByDate, daytimeTempByDate };
 }
 
-const DAILY_RIDE_WINDOW_HOURS = 3;
-// Late in the day, today's window may shrink to what daylight is left, down to
-// this many hours. Without it a winter afternoon (sunset ~5 PM) had no window
-// from 2 PM on, and the verdict jumped to tomorrow hours too early.
-const MIN_TODAY_WINDOW_HOURS = 2;
-
-function getWorstWeatherCode(codes: (number | null)[]): number | null {
-  let worstCode: number | null = null;
-  let worstRank = Infinity;
-  for (const code of codes) {
-    if (code == null) continue;
-    const rank = RANK[getWeatherCodeCondition(code)];
-    if (rank < worstRank) {
-      worstCode = code;
-      worstRank = rank;
-    }
-  }
-  return worstCode;
-}
-
-function scoreRideWindow(window: DailyRideWindow): number {
-  const avgTemp = (window.tempLow + window.tempHigh) / 2;
-  const gust = window.windGust ?? window.windSpeed;
-  return (
-    RANK[window.condition] * 1000 -
-    window.rainChance * 2 -
-    window.windSpeed * 3 -
-    gust +
-    Math.max(0, 20 - Math.abs(avgTemp - 68))
-  );
-}
-
-function buildRideWindowCandidate(
-  hours: RideWindowHour[],
-  thresholds: Thresholds,
-): DailyRideWindow | null {
-  if (hours.length === 0) return null;
-  const first = hours[0];
-  const last = hours.at(-1);
-  if (!first || !last) return null;
-  if (last.hour - first.hour !== hours.length - 1) return null;
-
-  const temperatures = hours.map((hour) => hour.temperature);
-  const windSpeed = Math.max(...hours.map((hour) => hour.windSpeed));
-  const gusts = hours.map((hour) => hour.windGust).filter((gust): gust is number => gust != null);
-  const windGust = gusts.length > 0 ? Math.max(...gusts) : null;
-  const rainChance = Math.max(...hours.map((hour) => hour.rainChance));
-  // Worst hour's amount, matching the worst-case chance above; unknown if any
-  // hour lacks it, so a partial series can't understate the rain.
-  const amounts = hours.map((hour) => hour.precipitation);
-  const precipitation = amounts.every((amount): amount is number => amount != null)
-    ? Math.max(...amounts)
-    : null;
-  const dewpoints = hours
-    .map((hour) => hour.dewpoint)
-    .filter((dewpoint): dewpoint is number => dewpoint != null);
-  const dewpoint = dewpoints.length > 0 ? Math.max(...dewpoints) : null;
-  const weatherCode = getWorstWeatherCode(hours.map((hour) => hour.weatherCode));
-  const tempLow = Math.min(...temperatures);
-  const tempHigh = Math.max(...temperatures);
-
-  return {
-    startHour: first.hour,
-    endHour: last.hour + 1,
-    tempLow,
-    tempHigh,
-    windSpeed,
-    windGust,
-    rainChance,
-    precipitation,
-    dewpoint,
-    weatherCode,
-    condition: getDailyCondition(
-      {
-        tempLow,
-        tempHigh,
-        wind: windSpeed,
-        gust: windGust,
-        rain: rainChance,
-        precip: precipitation,
-        code: weatherCode,
-        dewpoint,
-      },
-      thresholds,
-    ),
-  };
-}
-
-function selectBestRideWindow(
-  hours: RideWindowHour[],
-  thresholds: Thresholds,
-  minHours: number = DAILY_RIDE_WINDOW_HOURS,
-): DailyRideWindow | null {
-  if (hours.length < minHours) return null;
-  const windowHours = Math.min(DAILY_RIDE_WINDOW_HOURS, hours.length);
-
-  let best: DailyRideWindow | null = null;
-  let bestScore = -Infinity;
-  for (let start = 0; start <= hours.length - windowHours; start++) {
-    const candidate = buildRideWindowCandidate(hours.slice(start, start + windowHours), thresholds);
-    if (!candidate) continue;
-    const score = scoreRideWindow(candidate);
-    if (score > bestScore) {
-      best = candidate;
-      bestScore = score;
-    }
-  }
-  return best;
-}
-
-/**
- * Finds each date's best contiguous three-hour daylight window. Metrics within
- * a candidate stay worst-case so its rating remains honest, but a brief rough
- * hour no longer condemns an otherwise rideable day.
- */
+/** Groups the remaining daylight hours by date and picks each date's best ride window. */
 function buildBestRideWindows(
   data: OpenMeteoData,
   daylightByDate: Record<string, DaylightHours>,
@@ -415,15 +258,7 @@ function buildBestRideWindows(
     hoursByDate[date] = dateHours;
   }
 
-  const today = currentHourKey.slice(0, 10);
-  const bestByDate: Record<string, DailyRideWindow> = {};
-  for (const [date, hours] of Object.entries(hoursByDate)) {
-    const minHours = date === today ? MIN_TODAY_WINDOW_HOURS : DAILY_RIDE_WINDOW_HOURS;
-    const best = selectBestRideWindow(hours, thresholds, minHours);
-    if (best) bestByDate[date] = best;
-  }
-
-  return bestByDate;
+  return selectBestRideWindows(hoursByDate, currentHourKey.slice(0, 10), thresholds);
 }
 
 function buildFallbackDailyWeather(
@@ -556,114 +391,6 @@ function parseDaylightHours(data: OpenMeteoData): DaylightHours | null {
     sunriseHour: Number.parseInt(sunrise.slice(11, 13), 10),
     sunsetHour: Number.parseInt(sunset.slice(11, 13), 10),
   };
-}
-
-/** Maps NWS severity strings to our severity levels. */
-const NWS_SEVERITY: Record<string, WeatherAlert['severity']> = {
-  Extreme: 'extreme',
-  Severe: 'extreme',
-  Moderate: 'warning',
-  Minor: 'warning',
-  Unknown: 'warning',
-};
-
-/**
- * Fetches active NWS alerts for the given coordinates.
- * US-only (api.weather.gov); returns an empty array for non-US locations or on failure.
- */
-export async function fetchNwsAlerts(lat: number, lon: number): Promise<WeatherAlert[]> {
-  try {
-    const res = await fetchWithTimeout(
-      `https://api.weather.gov/alerts/active?point=${lat},${lon}`,
-      {
-        headers: {
-          'User-Agent': 'WheelyWeather/1.0',
-          Accept: 'application/geo+json',
-        },
-      },
-      SECONDARY_FETCH_TIMEOUT_MS,
-    );
-    if (!res.ok) return [];
-    const data = (await res.json()) as { features?: NwsFeature[] };
-    const features = data.features ?? [];
-    return features.map((f) => {
-      const p = f.properties;
-      return {
-        type: 'nws',
-        severity: p.severity ? (NWS_SEVERITY[p.severity] ?? 'warning') : 'warning',
-        event: p.event,
-        headline: p.headline,
-        description: p.description,
-        instruction: p.instruction,
-        expires: p.expires,
-      };
-    });
-  } catch {
-    /* empty */
-  }
-  return [];
-}
-
-/**
- * Fetches the raw Open-Meteo forecast payload. Split from parsing so the
- * network round-trip can run in parallel with resolving the acclimatization
- * thresholds that parsing needs.
- */
-export async function fetchOpenMeteoForecast(lat: number, lon: number): Promise<OpenMeteoData> {
-  const res = await fetchWithTimeout(
-    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
-      `&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,wind_gusts_10m,dewpoint_2m,wind_direction_10m` +
-      `&hourly=temperature_2m,apparent_temperature,precipitation_probability,precipitation,wind_speed_10m,wind_gusts_10m,weather_code,dewpoint_2m,uv_index` +
-      `&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max,wind_gusts_10m_max,apparent_temperature_max,weather_code,sunset,sunrise,uv_index_max` +
-      `&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto&forecast_days=8&past_hours=12`,
-    {},
-    FORECAST_FETCH_TIMEOUT_MS,
-  );
-  if (!res.ok) throw new Error('Weather API error');
-  const data = (await res.json()) as OpenMeteoData;
-  if (!data.current) throw new Error('Weather API missing current data');
-  return data;
-}
-
-// Leaves room inside FORECAST_FETCH_TIMEOUT_MS for the Open-Meteo fallback.
-const WEATHERKIT_PROXY_TIMEOUT_MS = 8000;
-
-/**
- * Fetches the WeatherKit forecast through the site's /api/weather Worker
- * (workers/weatherkit.ts), already reshaped into `OpenMeteoData`. Web only:
- * the relative URL needs the deployed site's origin.
- */
-export async function fetchWeatherKitProxyForecast(
-  lat: number,
-  lon: number,
-): Promise<OpenMeteoData> {
-  const res = await fetchWithTimeout(
-    `/api/weather?lat=${lat}&lon=${lon}`,
-    {},
-    WEATHERKIT_PROXY_TIMEOUT_MS,
-  );
-  if (!res.ok) throw new Error(`WeatherKit proxy error ${res.status}`);
-  const data = (await res.json()) as OpenMeteoData;
-  if (!data.current) throw new Error('WeatherKit proxy missing current data');
-  return data;
-}
-
-/** Fetches the current US AQI from the Open-Meteo air quality API. Returns null on failure. */
-export async function fetchAqi(lat: number, lon: number): Promise<number | null> {
-  try {
-    const res = await fetchWithTimeout(
-      `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=us_aqi`,
-      {},
-      SECONDARY_FETCH_TIMEOUT_MS,
-    );
-    if (res.ok) {
-      const data = (await res.json()) as { current?: { us_aqi?: number } };
-      return data.current?.us_aqi ?? null;
-    }
-  } catch {
-    /* empty */
-  }
-  return null;
 }
 
 /**

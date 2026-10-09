@@ -167,7 +167,7 @@ describe('Cloudflare Worker geocode proxy', () => {
     });
   });
 
-  describe('/api/weather', () => {
+  describe('/api/forecast', () => {
     const weatherEnv: Env = {
       ...apiEnv,
       WEATHERKIT_TEAM_ID: 'TEAM123',
@@ -177,36 +177,62 @@ describe('Cloudflare Worker geocode proxy', () => {
     };
 
     it('returns 503 until the WeatherKit secrets are set', async () => {
-      const request = new Request('https://wheelyweather.app/api/weather?lat=35.78&lon=-78.64');
+      const request = new Request('https://wheelyweather.app/api/forecast?lat=35.78&lon=-78.64');
       const response = await worker.fetch(request, apiEnv);
       expect(response.status).toBe(503);
       expect(response.headers.get('Cache-Control')).toBe('no-store');
     });
 
     it('rejects invalid coordinates with 400', async () => {
-      const request = new Request('https://wheelyweather.app/api/weather?lat=95&lon=-78.64');
+      const request = new Request('https://wheelyweather.app/api/forecast?lat=95&lon=-78.64');
       const response = await worker.fetch(request, weatherEnv);
       expect(response.status).toBe(400);
     });
 
     it('rejects unsupported HTTP methods with 405', async () => {
-      const request = new Request('https://wheelyweather.app/api/weather?lat=35.78&lon=-78.64', {
+      const request = new Request('https://wheelyweather.app/api/forecast?lat=35.78&lon=-78.64', {
         method: 'POST',
       });
       const response = await worker.fetch(request, weatherEnv);
       expect(response.status).toBe(405);
     });
 
-    it('returns the forecast for rounded coordinates with a short cache lifetime', async () => {
-      const forecast = vi
+    const forecast = { hourly: {}, daily: {} };
+    const alerts = [{ type: 'weatherkit', severity: 'warning', event: 'Flood Watch' }];
+
+    function stubAqi(body: unknown, ok = true) {
+      globalThis.fetch = vi.fn(() =>
+        Promise.resolve(new Response(JSON.stringify(body), { status: ok ? 200 : 500 })),
+      );
+    }
+
+    it('bundles forecast, alerts and AQI for rounded coordinates', async () => {
+      const fetchForecast = vi
         .spyOn(weatherkit, 'fetchWeatherKitForecast')
-        .mockResolvedValue({ hourly: {}, daily: {} } as never);
-      const request = new Request('https://wheelyweather.app/api/weather?lat=35.7796&lon=-78.6382');
+        .mockResolvedValue({ forecast, alerts } as never);
+      stubAqi({ current: { us_aqi: 37 } });
+      const request = new Request(
+        'https://wheelyweather.app/api/forecast?lat=35.7796&lon=-78.6382',
+      );
       const response = await worker.fetch(request, weatherEnv);
       expect(response.status).toBe(200);
       expect(response.headers.get('Cache-Control')).toBe('public, max-age=600');
       expect(response.headers.get('Access-Control-Allow-Origin')).toBe('https://wheelyweather.app');
-      expect(forecast).toHaveBeenCalledWith(weatherEnv, 35.78, -78.64);
+      expect(fetchForecast).toHaveBeenCalledWith(weatherEnv, 35.78, -78.64);
+      expect(await response.json()).toEqual({ forecast, alerts, aqi: 37 });
+    });
+
+    it('caches a bundle without AQI only briefly', async () => {
+      vi.spyOn(weatherkit, 'fetchWeatherKitForecast').mockResolvedValue({
+        forecast,
+        alerts: [],
+      } as never);
+      stubAqi({}, false);
+      const request = new Request('https://wheelyweather.app/api/forecast?lat=35.78&lon=-78.64');
+      const response = await worker.fetch(request, weatherEnv);
+      expect(response.status).toBe(200);
+      expect(response.headers.get('Cache-Control')).toBe('public, max-age=60');
+      expect(await response.json()).toEqual({ forecast, alerts: [], aqi: null });
     });
 
     it('returns 502 when WeatherKit fails', async () => {
@@ -214,7 +240,7 @@ describe('Cloudflare Worker geocode proxy', () => {
       vi.spyOn(weatherkit, 'fetchWeatherKitForecast').mockRejectedValue(
         new Error('WeatherKit 401'),
       );
-      const request = new Request('https://wheelyweather.app/api/weather?lat=35.78&lon=-78.64');
+      const request = new Request('https://wheelyweather.app/api/forecast?lat=35.78&lon=-78.64');
       const response = await worker.fetch(request, weatherEnv);
       expect(response.status).toBe(502);
       expect(response.headers.get('Cache-Control')).toBe('no-store');
