@@ -64,6 +64,95 @@ function useScrollSelection(
   return { selectedIdx, syncSelectionFromScroll, selectionHapticEnabledRef };
 }
 
+/**
+ * The glide: an eased scroll to an hour, driven frame by frame on web. Its own
+ * scrollTo calls fire scroll events too; mistaken for the user scrolling, they
+ * cancelled every tap-to-select glide after one frame, and the idle snap then
+ * landed on the next hour. `isProgrammaticScroll` recognizes that echo.
+ */
+function useGlide(params: {
+  scrollRef: RefObject<Animated.ScrollView | null>;
+  publishScrollOffset: (offsetX: number, haptic: boolean) => void;
+  setIsScrollIdle: (idle: boolean) => void;
+}) {
+  const { scrollRef, publishScrollOffset, setIsScrollIdle } = params;
+  const magnetFrameRef = useRef<number | null>(null);
+  const isMagnetAnimatingRef = useRef(false);
+  const programmaticXRef = useRef<number | null>(null);
+
+  const cancelMagnetAnimation = useCallback(() => {
+    if (magnetFrameRef.current != null) {
+      cancelAnimationFrame(magnetFrameRef.current);
+      magnetFrameRef.current = null;
+    }
+    isMagnetAnimatingRef.current = false;
+  }, []);
+
+  const scrollProgrammatically = useCallback(
+    (x: number) => {
+      programmaticXRef.current = x;
+      scrollRef.current?.scrollTo({ x, animated: false });
+    },
+    [scrollRef],
+  );
+
+  const isProgrammaticScroll = useCallback((offsetX: number) => {
+    const expected = programmaticXRef.current;
+    return expected != null && Math.abs(offsetX - expected) < 1;
+  }, []);
+
+  const finishSnap = useCallback(
+    (target: number) => {
+      cancelMagnetAnimation();
+      publishScrollOffset(target, false);
+      scrollProgrammatically(target);
+      setIsScrollIdle(true);
+    },
+    [cancelMagnetAnimation, publishScrollOffset, scrollProgrammatically, setIsScrollIdle],
+  );
+
+  const animateSnapTo = useCallback(
+    (from: number, to: number) => {
+      cancelMagnetAnimation();
+      isMagnetAnimatingRef.current = true;
+      setIsScrollIdle(false);
+      const startTime = performance.now();
+
+      const step = (now: number) => {
+        const t = Math.min(1, (now - startTime) / SNAP_ANIM_MS);
+        const x = from + (to - from) * easeOutCubic(t);
+        publishScrollOffset(x, false);
+        scrollProgrammatically(x);
+
+        if (t < 1) {
+          magnetFrameRef.current = requestAnimationFrame(step);
+          return;
+        }
+
+        magnetFrameRef.current = null;
+        finishSnap(to);
+      };
+
+      magnetFrameRef.current = requestAnimationFrame(step);
+    },
+    [
+      cancelMagnetAnimation,
+      finishSnap,
+      publishScrollOffset,
+      scrollProgrammatically,
+      setIsScrollIdle,
+    ],
+  );
+
+  return {
+    isMagnetAnimatingRef,
+    cancelMagnetAnimation,
+    isProgrammaticScroll,
+    finishSnap,
+    animateSnapTo,
+  };
+}
+
 /** Web-only magnetized snapping: glides the scroller to the nearest hour. */
 function useWebMagnetSnap(params: {
   isWeb: boolean;
@@ -75,21 +164,12 @@ function useWebMagnetSnap(params: {
   publishScrollOffset: (offsetX: number, haptic: boolean) => void;
   setIsScrollIdle: (idle: boolean) => void;
 }) {
-  const {
-    isWeb,
-    viewportWidth,
-    maxIndex,
-    snapOffsets,
-    scrollRef,
-    liveScrollXRef,
-    publishScrollOffset,
-    setIsScrollIdle,
-  } = params;
+  const { isWeb, viewportWidth, maxIndex, snapOffsets, liveScrollXRef } = params;
 
   const wheelIdleRafRef = useRef<number | null>(null);
   const wheelIdleFramesRef = useRef(0);
-  const magnetFrameRef = useRef<number | null>(null);
-  const isMagnetAnimatingRef = useRef(false);
+  const glide = useGlide(params);
+  const { isMagnetAnimatingRef, cancelMagnetAnimation, finishSnap, animateSnapTo } = glide;
 
   const clampScrollOffset = useCallback(
     (offsetX: number) => {
@@ -106,51 +186,6 @@ function useWebMagnetSnap(params: {
     }
     wheelIdleFramesRef.current = 0;
   }, []);
-
-  const cancelMagnetAnimation = useCallback(() => {
-    if (magnetFrameRef.current != null) {
-      cancelAnimationFrame(magnetFrameRef.current);
-      magnetFrameRef.current = null;
-    }
-    isMagnetAnimatingRef.current = false;
-  }, []);
-
-  const finishSnap = useCallback(
-    (target: number) => {
-      cancelMagnetAnimation();
-      publishScrollOffset(target, false);
-      scrollRef.current?.scrollTo({ x: target, animated: false });
-      setIsScrollIdle(true);
-    },
-    [cancelMagnetAnimation, publishScrollOffset, scrollRef, setIsScrollIdle],
-  );
-
-  const animateSnapTo = useCallback(
-    (from: number, to: number) => {
-      cancelMagnetAnimation();
-      isMagnetAnimatingRef.current = true;
-      setIsScrollIdle(false);
-      const startTime = performance.now();
-
-      const step = (now: number) => {
-        const t = Math.min(1, (now - startTime) / SNAP_ANIM_MS);
-        const x = from + (to - from) * easeOutCubic(t);
-        publishScrollOffset(x, false);
-        scrollRef.current?.scrollTo({ x, animated: false });
-
-        if (t < 1) {
-          magnetFrameRef.current = requestAnimationFrame(step);
-          return;
-        }
-
-        magnetFrameRef.current = null;
-        finishSnap(to);
-      };
-
-      magnetFrameRef.current = requestAnimationFrame(step);
-    },
-    [cancelMagnetAnimation, finishSnap, publishScrollOffset, scrollRef, setIsScrollIdle],
-  );
 
   const snapToNearestOffset = useCallback(
     (offsetX: number) => {
@@ -182,7 +217,7 @@ function useWebMagnetSnap(params: {
     };
 
     wheelIdleRafRef.current = requestAnimationFrame(tick);
-  }, [cancelWheelIdleSnap, isWeb, liveScrollXRef, snapToNearestOffset]);
+  }, [cancelWheelIdleSnap, isMagnetAnimatingRef, isWeb, liveScrollXRef, snapToNearestOffset]);
 
   useEffect(() => {
     return () => {
@@ -198,6 +233,7 @@ function useWebMagnetSnap(params: {
     cancelMagnetAnimation,
     cancelWheelIdleSnap,
     animateSnapTo,
+    isProgrammaticScroll: glide.isProgrammaticScroll,
     isMagnetAnimatingRef,
   };
 }
@@ -290,6 +326,7 @@ function useScrollGestureHandlers(params: {
   cancelWheelIdleSnap: () => void;
   setIsScrollIdle: (idle: boolean) => void;
   isMagnetAnimatingRef: RefObject<boolean>;
+  isProgrammaticScroll: (offsetX: number) => boolean;
   selectionHapticEnabledRef: RefObject<boolean>;
 }) {
   const {
@@ -303,6 +340,7 @@ function useScrollGestureHandlers(params: {
     cancelWheelIdleSnap,
     setIsScrollIdle,
     isMagnetAnimatingRef,
+    isProgrammaticScroll,
     selectionHapticEnabledRef,
   } = params;
   const [isScrolling, setIsScrolling] = useState(false);
@@ -338,6 +376,8 @@ function useScrollGestureHandlers(params: {
 
   const onWebScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      // The glide already published this offset; only a real scroll interrupts it.
+      if (isProgrammaticScroll(event.nativeEvent.contentOffset.x)) return;
       if (isMagnetAnimatingRef.current) {
         cancelMagnetAnimation();
       }
@@ -351,6 +391,7 @@ function useScrollGestureHandlers(params: {
       cancelMagnetAnimation,
       clampScrollOffset,
       isMagnetAnimatingRef,
+      isProgrammaticScroll,
       publishScrollOffset,
       scheduleWheelSnapAfterIdle,
       setIsScrollIdle,
@@ -489,6 +530,7 @@ export function useHourlyScrollPicker(
     cancelWheelIdleSnap: webMagnetSnap.cancelWheelIdleSnap,
     setIsScrollIdle,
     isMagnetAnimatingRef: webMagnetSnap.isMagnetAnimatingRef,
+    isProgrammaticScroll: webMagnetSnap.isProgrammaticScroll,
     selectionHapticEnabledRef,
   });
 
