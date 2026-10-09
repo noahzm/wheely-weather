@@ -190,7 +190,7 @@ export function BottomNavBar() {
             icon={CloudSun}
             active={isHome}
             onPress={() => {
-              if (!isHome) router.dismissTo('/');
+              if (!isHome) router.navigate('/');
             }}
             styles={styles}
             c={c}
@@ -200,7 +200,7 @@ export function BottomNavBar() {
             icon={Settings}
             active={isSettings}
             onPress={() => {
-              if (!isSettings) router.dismissTo('/settings');
+              if (!isSettings) router.navigate('/settings');
             }}
             styles={styles}
             c={c}
@@ -215,7 +215,7 @@ export function BottomNavBar() {
           showLabel={false}
           ownHighlight
           onPress={() => {
-            if (!isLocation) router.dismissTo('/location');
+            if (!isLocation) router.navigate('/location');
           }}
           styles={styles}
           c={c}

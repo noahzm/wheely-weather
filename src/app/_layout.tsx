@@ -1,6 +1,6 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect } from 'react';
 import { Appearance, Platform, View } from 'react-native';
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, Slot, Stack, ThemeProvider } from 'expo-router';
 import Head from 'expo-router/head';
 import { StatusBar } from 'expo-status-bar';
 import * as SystemUI from 'expo-system-ui';
@@ -14,6 +14,7 @@ import { ColorSchemeOverrideContext } from '@/hooks/use-theme';
 import { SettingsProvider, useAppearance } from '@/hooks/settings-context';
 import { ForecastProvider } from '@/hooks/forecast-context';
 import { useWebDocumentTheme } from '@/hooks/use-web-document-theme';
+import { useWebScrollMemory } from '@/hooks/use-web-scroll-memory';
 import { initSentry, sentryEnabled } from '@/services/telemetry';
 
 // Runs once at module load, before the first render — a no-op until
@@ -50,15 +51,6 @@ function navigationTheme(isDark: boolean) {
 function stackScreenOptions(isDark: boolean) {
   const palette = WheelyTheme[isDark ? 'dark' : 'light'];
 
-  if (Platform.OS === 'web') {
-    return {
-      contentStyle: { backgroundColor: 'transparent' as const },
-      headerStyle: { backgroundColor: 'transparent' as const },
-      headerTintColor: palette.ink,
-      headerBackTitleStyle: { fontFamily: Fonts.heading },
-    };
-  }
-
   return {
     contentStyle: { backgroundColor: palette.background },
     headerStyle: { backgroundColor: 'transparent' as const },
@@ -67,9 +59,11 @@ function stackScreenOptions(isDark: boolean) {
   };
 }
 
-function renderRootChrome(stack: ReactNode): ReactNode {
+function WebRootChrome() {
+  useWebScrollMemory();
   const bottomNavWrapStyle = {
-    position: 'absolute' as const,
+    // Pinned to the window: the document scrolls, not a container.
+    position: 'fixed' as unknown as 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
@@ -78,18 +72,16 @@ function renderRootChrome(stack: ReactNode): ReactNode {
     pointerEvents: 'box-none' as const,
   };
 
-  if (Platform.OS === 'web') {
-    return (
-      <View style={{ flex: 1 }}>
-        {stack}
-        <View style={bottomNavWrapStyle}>
-          <BottomNavBar />
-        </View>
+  // Slot, not a Stack: a web stack wraps each screen in a window-height card,
+  // and the page has to grow with its content for the document to scroll.
+  return (
+    <View style={{ flex: 1 }}>
+      <Slot />
+      <View style={bottomNavWrapStyle}>
+        <BottomNavBar />
       </View>
-    );
-  }
-
-  return <>{stack}</>;
+    </View>
+  );
 }
 
 function RootLayout() {
@@ -132,11 +124,14 @@ function ThemedRoot() {
     Appearance.setColorScheme(override ?? 'unspecified');
   }, [override]);
 
-  const stack = (
-    <Stack screenOptions={stackScreenOptions(isDark)}>
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-    </Stack>
-  );
+  const navigator =
+    Platform.OS === 'web' ? (
+      <WebRootChrome />
+    ) : (
+      <Stack screenOptions={stackScreenOptions(isDark)}>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      </Stack>
+    );
 
   return (
     <ColorSchemeOverrideContext.Provider value={override}>
@@ -150,7 +145,7 @@ function ThemedRoot() {
         </Head>
         <StatusBar style={isDark ? 'light' : 'dark'} />
         <AnimatedSplashOverlay />
-        <ForecastProvider>{renderRootChrome(stack)}</ForecastProvider>
+        <ForecastProvider>{navigator}</ForecastProvider>
       </ThemeProvider>
     </ColorSchemeOverrideContext.Provider>
   );

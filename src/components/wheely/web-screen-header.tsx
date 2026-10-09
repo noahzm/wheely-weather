@@ -1,13 +1,5 @@
-import { useState, type ReactNode } from 'react';
-import {
-  Platform,
-  StyleSheet,
-  Text,
-  View,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
-  type ViewStyle,
-} from 'react-native';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Platform, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, X } from './icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -28,22 +20,29 @@ const COLLAPSE_OFFSET = 36;
 
 /**
  * Tracks whether a screen's large title has scrolled away, so the compact
- * title bar can take over as iOS's collapsing navigation bar does. State only
+ * title bar can take over as iOS's collapsing navigation bar does. The page
+ * scrolls as a document on web, so this listens to the window; state only
  * flips at the threshold, so scrolling doesn't re-render the screen.
  */
 export function useWebTitleCollapse() {
   const [collapsed, setCollapsed] = useState(false);
-  const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const next = event.nativeEvent.contentOffset.y > COLLAPSE_OFFSET;
-    if (next !== collapsed) setCollapsed(next);
-  };
-  return { collapsed, onScroll };
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const update = () => {
+      setCollapsed(globalThis.scrollY > COLLAPSE_OFFSET);
+    };
+    update();
+    globalThis.addEventListener('scroll', update, { passive: true });
+    return () => {
+      globalThis.removeEventListener('scroll', update);
+    };
+  }, []);
+  return collapsed;
 }
 
 /**
  * The collapsed navigation bar: a glass strip with a centered title that
- * fades in over the top of the screen once the large title scrolls away.
- * Render it after the screen's ScrollView, inside the same container.
+ * fades in over the top of the window once the large title scrolls away.
  */
 export function WebCompactTitleBar({
   title,
@@ -82,7 +81,8 @@ export function WebCompactTitleBar({
 
 const compactStyles = StyleSheet.create({
   bar: {
-    position: 'absolute',
+    // Pinned to the window, which is what scrolls on web.
+    position: 'fixed' as unknown as 'absolute',
     top: 0,
     left: 0,
     right: 0,
@@ -125,9 +125,9 @@ export function WebScreenTitle({ children }: Readonly<{ children: string }>) {
 }
 
 function dismissScreen(router: ReturnType<typeof useRouter>) {
-  // Always land on home: back() could return to another tab, and on the web
-  // stack it can also strand duplicate screens (see bottom-nav-chrome).
-  router.dismissTo('/');
+  // Always land on home: web renders one screen at a time, so there is no
+  // stack to pop, and back() could return to another tab.
+  router.navigate('/');
 }
 
 export function WebScreenHeader({

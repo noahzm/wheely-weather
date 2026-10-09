@@ -117,7 +117,7 @@ function iosSearchBarOptions(setQuery: (val: string) => void) {
 export default function LocationSearchScreen() {
   const c = useWheelyColors();
   const insets = useSafeAreaInsets();
-  const titleCollapse = useWebTitleCollapse();
+  const titleCollapsed = useWebTitleCollapse();
   // Closes the native search bar once a place loads, so Search opens fresh.
   const searchBarRef = useRef<SearchBarCommands>(null);
   const {
@@ -181,8 +181,6 @@ export default function LocationSearchScreen() {
             contentInsetAdjustmentBehavior="automatic"
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
-            onScroll={isWeb ? titleCollapse.onScroll : undefined}
-            scrollEventThrottle={16}
             contentContainerStyle={
               isWeb
                 ? [styles.scrollContentWeb, { paddingBottom: bottomNavBarHeight(insets.bottom) }]
@@ -202,7 +200,7 @@ export default function LocationSearchScreen() {
             </WebContentColumn>
           </ScrollView>
         )}
-        {isWeb && <WebCompactTitleBar title="Search" visible={titleCollapse.collapsed} />}
+        {isWeb && <WebCompactTitleBar title="Search" visible={titleCollapsed} />}
         {busy && !isIOS && (
           <View style={[styles.busyOverlay, { backgroundColor: withAlpha(c.shadow, 0.15) }]}>
             <ActivityIndicator color={c.accent} size="large" />

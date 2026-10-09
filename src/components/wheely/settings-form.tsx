@@ -49,7 +49,6 @@ export function SettingsForm({
   onClearHome,
   onChangeHome,
   webHeader,
-  onScroll,
 }: Readonly<SettingsFormProps>) {
   const insets = useSafeAreaInsets();
   const form = (
@@ -97,8 +96,6 @@ export function SettingsForm({
     <ScrollView
       style={{ backgroundColor: TRANSPARENT }}
       contentInsetAdjustmentBehavior="automatic"
-      onScroll={onScroll}
-      scrollEventThrottle={16}
       contentContainerStyle={
         Platform.OS === 'web'
           ? [styles.contentWeb, { paddingBottom: webBottomInset(insets.bottom) }]

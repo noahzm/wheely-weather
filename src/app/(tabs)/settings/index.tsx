@@ -33,7 +33,7 @@ export default function SettingsScreen() {
 
   const homeLocationAuto = useHomeLocationAuto();
   const router = useRouter();
-  const titleCollapse = useWebTitleCollapse();
+  const titleCollapsed = useWebTitleCollapse();
   // The place turning home climate on would use, named in the off-state hint.
   const activeLabel = active ? toHomeLocation(active, forecast.snapshot?.location).name : null;
   // A GPS-based auto home is a safe guess; one from a search might be a trip.
@@ -72,7 +72,6 @@ export default function SettingsScreen() {
               />
             ) : undefined
           }
-          onScroll={isWeb ? titleCollapse.onScroll : undefined}
           appearance={appearance}
           onAppearanceChange={setAppearance}
           tempUnit={tempUnit}
@@ -88,7 +87,7 @@ export default function SettingsScreen() {
           onClearHome={onClearHome}
           onChangeHome={onChangeHome}
         />
-        {isWeb && <WebCompactTitleBar title="Settings" visible={titleCollapse.collapsed} />}
+        {isWeb && <WebCompactTitleBar title="Settings" visible={titleCollapsed} />}
       </View>
     </>
   );

@@ -23,6 +23,21 @@
   --font-bold: 'AlteHaasGrotesk_Bold', 'Helvetica Neue', Arial, sans-serif;
 }
 
+/* The document is the scroller (not a full-window container, Expo's default
+   ScrollViewStyleReset), so Safari can collapse its toolbar, pull to refresh,
+   and scroll to top on a status-bar tap. #root grows with the page. */
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
 html,
 body,
 #root {
@@ -30,8 +45,6 @@ body,
   background-color: var(--wheely-background, #ffffff);
   color: var(--wheely-ink, #161310);
   color-scheme: light dark;
-  /* App-like feel: no rubber-band past the edges of the document. */
-  overscroll-behavior-y: none;
   transition:
     background-color 0.3s ease,
     color 0.3s ease,

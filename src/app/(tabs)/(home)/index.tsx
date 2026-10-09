@@ -484,7 +484,7 @@ function HomeContent({
 }>) {
   const c = useWheelyColors();
   const showRefreshing = useMinimumRefreshing(forecast.refreshing);
-  const titleCollapse = useWebTitleCollapse();
+  const titleCollapsed = useWebTitleCollapse();
   if (forecast.loading) {
     return <LoadingState />;
   }
@@ -523,8 +523,6 @@ function HomeContent({
       <ScrollView
         style={[styles.scroll, scrollHostStyle]}
         contentInsetAdjustmentBehavior="automatic"
-        onScroll={isWeb ? titleCollapse.onScroll : undefined}
-        scrollEventThrottle={16}
         refreshControl={homeRefreshControl({
           refreshing: showRefreshing,
           onRefresh: forecast.refresh,
@@ -577,9 +575,7 @@ function HomeContent({
           </View>
         </View>
       </ScrollView>
-      {isWeb && city.length > 0 && (
-        <WebCompactTitleBar title={city} visible={titleCollapse.collapsed} />
-      )}
+      {isWeb && city.length > 0 && <WebCompactTitleBar title={city} visible={titleCollapsed} />}
     </View>
   );
 }

@@ -1,4 +1,3 @@
-import { ScrollViewStyleReset } from 'expo-router/html';
 import { type PropsWithChildren } from 'react';
 
 import { WheelyTheme } from '@/constants/theme';
@@ -53,7 +52,6 @@ export default function Root({ children }: Readonly<PropsWithChildren>) {
           content="Scores how good today's weather is for a bike ride — hourly forecast, kit guide, and a plain-language ride verdict."
         />
         <script dangerouslySetInnerHTML={{ __html: themeBootstrapScript }} />
-        <ScrollViewStyleReset />
       </head>
       <body>{children}</body>
     </html>

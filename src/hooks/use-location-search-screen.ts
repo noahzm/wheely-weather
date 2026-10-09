@@ -36,13 +36,9 @@ export function useLocationSearchScreen(onPlaceChosen?: () => void) {
   const goToHome = useCallback(() => {
     setQuery('');
     onPlaceChosen?.();
-    // On web the tabs render as a Stack; navigate() pushes a duplicate home
-    // screen instead of unwinding, so dismiss back to it. Native tabs switch.
-    if (Platform.OS === 'web') {
-      router.dismissTo('/');
-    } else {
-      router.navigate('/(tabs)/(home)');
-    }
+    // Web renders one screen at a time (Slot layouts), so a plain navigate
+    // switches pages like a link; native tabs switch.
+    router.navigate(Platform.OS === 'web' ? '/' : '/(tabs)/(home)');
   }, [router, onPlaceChosen]);
 
   const choosePlace = useCallback(
