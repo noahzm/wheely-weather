@@ -7,6 +7,7 @@ import {
   fetchWeatherExtras,
   type OpenMeteoData,
 } from './weatherService';
+import { fetchWeatherKitProxyForecast } from './weatherParsing';
 
 // Covers the network layer around the (separately tested) parsing: URL
 // construction, HTTP error handling, and the fail-soft behavior of the
@@ -87,6 +88,31 @@ describe('fetchOpenMeteoData', () => {
   it('throws when the payload has no current block', async () => {
     stubFetchJson({ hourly: {}, daily: {} });
     await expect(fetchOpenMeteoData(40.7, -74)).rejects.toThrow('Weather API missing current data');
+  });
+});
+
+describe('fetchWeatherKitProxyForecast', () => {
+  it('requests the forecast from the site Worker', async () => {
+    const fetchMock = stubFetchJson(makePayload());
+
+    const data = await fetchWeatherKitProxyForecast(40.7, -74);
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/weather?lat=40.7&lon=-74');
+    expect(data.current?.temperature_2m).toBe(60);
+  });
+
+  it('throws on a non-OK response so the caller can fall back', async () => {
+    stubFetchJson({}, false);
+    await expect(fetchWeatherKitProxyForecast(40.7, -74)).rejects.toThrow(
+      'WeatherKit proxy error 500',
+    );
+  });
+
+  it('throws when the payload has no current block', async () => {
+    stubFetchJson({ hourly: {}, daily: {} });
+    await expect(fetchWeatherKitProxyForecast(40.7, -74)).rejects.toThrow(
+      'WeatherKit proxy missing current data',
+    );
   });
 });
 

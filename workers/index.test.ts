@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import worker, { type Env } from './index';
+import * as weatherkit from './weatherkit';
 
 // API routes must never fall through to static assets.
 const apiEnv: Env = {
@@ -163,6 +164,60 @@ describe('Cloudflare Worker geocode proxy', () => {
       expect(response.headers.get('Cache-Control')).toBe('public, max-age=86400');
       const data: unknown = await response.json();
       expect(data).toEqual(mockResult);
+    });
+  });
+
+  describe('/api/weather', () => {
+    const weatherEnv: Env = {
+      ...apiEnv,
+      WEATHERKIT_TEAM_ID: 'TEAM123',
+      WEATHERKIT_SERVICE_ID: 'app.wheelyweather.weatherkit',
+      WEATHERKIT_KEY_ID: 'KEY456',
+      WEATHERKIT_PRIVATE_KEY: 'unused: fetchWeatherKitForecast is mocked',
+    };
+
+    it('returns 503 until the WeatherKit secrets are set', async () => {
+      const request = new Request('https://wheelyweather.app/api/weather?lat=35.78&lon=-78.64');
+      const response = await worker.fetch(request, apiEnv);
+      expect(response.status).toBe(503);
+      expect(response.headers.get('Cache-Control')).toBe('no-store');
+    });
+
+    it('rejects invalid coordinates with 400', async () => {
+      const request = new Request('https://wheelyweather.app/api/weather?lat=95&lon=-78.64');
+      const response = await worker.fetch(request, weatherEnv);
+      expect(response.status).toBe(400);
+    });
+
+    it('rejects unsupported HTTP methods with 405', async () => {
+      const request = new Request('https://wheelyweather.app/api/weather?lat=35.78&lon=-78.64', {
+        method: 'POST',
+      });
+      const response = await worker.fetch(request, weatherEnv);
+      expect(response.status).toBe(405);
+    });
+
+    it('returns the forecast for rounded coordinates with a short cache lifetime', async () => {
+      const forecast = vi
+        .spyOn(weatherkit, 'fetchWeatherKitForecast')
+        .mockResolvedValue({ hourly: {}, daily: {} } as never);
+      const request = new Request('https://wheelyweather.app/api/weather?lat=35.7796&lon=-78.6382');
+      const response = await worker.fetch(request, weatherEnv);
+      expect(response.status).toBe(200);
+      expect(response.headers.get('Cache-Control')).toBe('public, max-age=600');
+      expect(response.headers.get('Access-Control-Allow-Origin')).toBe('https://wheelyweather.app');
+      expect(forecast).toHaveBeenCalledWith(weatherEnv, 35.78, -78.64);
+    });
+
+    it('returns 502 when WeatherKit fails', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      vi.spyOn(weatherkit, 'fetchWeatherKitForecast').mockRejectedValue(
+        new Error('WeatherKit 401'),
+      );
+      const request = new Request('https://wheelyweather.app/api/weather?lat=35.78&lon=-78.64');
+      const response = await worker.fetch(request, weatherEnv);
+      expect(response.status).toBe(502);
+      expect(response.headers.get('Cache-Control')).toBe('no-store');
     });
   });
 

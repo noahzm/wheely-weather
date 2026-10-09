@@ -66,7 +66,8 @@ interface OpenMeteoHourly {
   /** Expected amount per hour, mm. Optional: older cached payloads lack it. */
   precipitation?: (number | null)[];
   weather_code: number[];
-  dewpoint_2m: number[];
+  /** Null where a source omits it (WeatherKit REST marks it optional). */
+  dewpoint_2m: (number | null)[];
   uv_index?: (number | null)[];
 }
 
@@ -601,6 +602,50 @@ export async function fetchNwsAlerts(lat: number, lon: number): Promise<WeatherA
     /* empty */
   }
   return [];
+}
+
+/**
+ * Fetches the raw Open-Meteo forecast payload. Split from parsing so the
+ * network round-trip can run in parallel with resolving the acclimatization
+ * thresholds that parsing needs.
+ */
+export async function fetchOpenMeteoForecast(lat: number, lon: number): Promise<OpenMeteoData> {
+  const res = await fetchWithTimeout(
+    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+      `&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,wind_gusts_10m,dewpoint_2m,wind_direction_10m` +
+      `&hourly=temperature_2m,apparent_temperature,precipitation_probability,precipitation,wind_speed_10m,wind_gusts_10m,weather_code,dewpoint_2m,uv_index` +
+      `&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max,wind_gusts_10m_max,apparent_temperature_max,weather_code,sunset,sunrise,uv_index_max` +
+      `&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto&forecast_days=8&past_hours=12`,
+    {},
+    FORECAST_FETCH_TIMEOUT_MS,
+  );
+  if (!res.ok) throw new Error('Weather API error');
+  const data = (await res.json()) as OpenMeteoData;
+  if (!data.current) throw new Error('Weather API missing current data');
+  return data;
+}
+
+// Leaves room inside FORECAST_FETCH_TIMEOUT_MS for the Open-Meteo fallback.
+const WEATHERKIT_PROXY_TIMEOUT_MS = 8000;
+
+/**
+ * Fetches the WeatherKit forecast through the site's /api/weather Worker
+ * (workers/weatherkit.ts), already reshaped into `OpenMeteoData`. Web only:
+ * the relative URL needs the deployed site's origin.
+ */
+export async function fetchWeatherKitProxyForecast(
+  lat: number,
+  lon: number,
+): Promise<OpenMeteoData> {
+  const res = await fetchWithTimeout(
+    `/api/weather?lat=${lat}&lon=${lon}`,
+    {},
+    WEATHERKIT_PROXY_TIMEOUT_MS,
+  );
+  if (!res.ok) throw new Error(`WeatherKit proxy error ${res.status}`);
+  const data = (await res.json()) as OpenMeteoData;
+  if (!data.current) throw new Error('WeatherKit proxy missing current data');
+  return data;
 }
 
 /** Fetches the current US AQI from the Open-Meteo air quality API. Returns null on failure. */
