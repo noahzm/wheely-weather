@@ -1,5 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
-import { Platform, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+// Native hourly chart scrolling: the ScrollView snaps to hours itself
+// (`snapToOffsets`), and a UI-thread worklet tracks the hour under the needle.
+// Web drives scrolling from JS instead (use-hourly-scroll-picker.web.ts).
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
+import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 import Animated, {
   useAnimatedScrollHandler,
   useSharedValue,
@@ -9,234 +12,15 @@ import { scheduleOnRN } from 'react-native-worklets';
 
 import {
   CHART_SCROLL_UNSET,
-  chartClampScrollOffset,
-  chartContentPadding,
   chartIndexFromScrollOffset,
-  chartNearestSnapOffset,
   chartScrollOffsetForIndex,
-  chartSnapOffsets,
 } from '@/utils/hourlyChart';
 import { selectionFeedback } from '@/utils/haptics';
-
-/** Duration of the web magnet glide (ms). */
-const SNAP_ANIM_MS = 340;
-/** Wheel/trackpad: wait this many frames after last scroll before magnetizing. */
-const WHEEL_IDLE_FRAMES = 2;
-
-function easeOutCubic(t: number): number {
-  return 1 - (1 - t) ** 3;
-}
-
-function useScrollSelection(
-  nowIdx: number,
-  maxIndex: number,
-  viewportWidth: number,
-  onSelectedChange?: (nextIdx: number, prevIdx: number) => void,
-) {
-  const [selectedIdx, setSelectedIdx] = useState(nowIdx);
-  const selectedIdxRef = useRef(nowIdx);
-  const selectionHapticEnabledRef = useRef(false);
-
-  const applySelection = useCallback(
-    (idx: number, haptic: boolean) => {
-      const clamped = Math.min(Math.max(0, idx), maxIndex);
-      const prevIdx = selectedIdxRef.current;
-      if (clamped === prevIdx) return;
-      selectedIdxRef.current = clamped;
-      setSelectedIdx(clamped);
-      onSelectedChange?.(clamped, prevIdx);
-      if (haptic) selectionFeedback();
-    },
-    [maxIndex, onSelectedChange],
-  );
-
-  const syncSelectionFromScroll = useCallback(
-    (offsetX: number, haptic: boolean) => {
-      if (viewportWidth <= 0) return;
-      applySelection(
-        chartIndexFromScrollOffset(offsetX, viewportWidth, maxIndex),
-        haptic && selectionHapticEnabledRef.current,
-      );
-    },
-    [applySelection, maxIndex, viewportWidth],
-  );
-
-  return { selectedIdx, syncSelectionFromScroll, selectionHapticEnabledRef };
-}
-
-/**
- * The glide: an eased scroll to an hour, driven frame by frame on web. Its own
- * scrollTo calls fire scroll events too; mistaken for the user scrolling, they
- * cancelled every tap-to-select glide after one frame, and the idle snap then
- * landed on the next hour. `isProgrammaticScroll` recognizes that echo.
- */
-function useGlide(params: {
-  scrollRef: RefObject<Animated.ScrollView | null>;
-  publishScrollOffset: (offsetX: number, haptic: boolean) => void;
-  setIsScrollIdle: (idle: boolean) => void;
-}) {
-  const { scrollRef, publishScrollOffset, setIsScrollIdle } = params;
-  const magnetFrameRef = useRef<number | null>(null);
-  const isMagnetAnimatingRef = useRef(false);
-  const programmaticXRef = useRef<number | null>(null);
-
-  const cancelMagnetAnimation = useCallback(() => {
-    if (magnetFrameRef.current != null) {
-      cancelAnimationFrame(magnetFrameRef.current);
-      magnetFrameRef.current = null;
-    }
-    isMagnetAnimatingRef.current = false;
-  }, []);
-
-  const scrollProgrammatically = useCallback(
-    (x: number) => {
-      programmaticXRef.current = x;
-      scrollRef.current?.scrollTo({ x, animated: false });
-    },
-    [scrollRef],
-  );
-
-  const isProgrammaticScroll = useCallback((offsetX: number) => {
-    const expected = programmaticXRef.current;
-    return expected != null && Math.abs(offsetX - expected) < 1;
-  }, []);
-
-  const finishSnap = useCallback(
-    (target: number) => {
-      cancelMagnetAnimation();
-      publishScrollOffset(target, false);
-      scrollProgrammatically(target);
-      setIsScrollIdle(true);
-    },
-    [cancelMagnetAnimation, publishScrollOffset, scrollProgrammatically, setIsScrollIdle],
-  );
-
-  const animateSnapTo = useCallback(
-    (from: number, to: number) => {
-      cancelMagnetAnimation();
-      isMagnetAnimatingRef.current = true;
-      setIsScrollIdle(false);
-      const startTime = performance.now();
-
-      const step = (now: number) => {
-        const t = Math.min(1, (now - startTime) / SNAP_ANIM_MS);
-        const x = from + (to - from) * easeOutCubic(t);
-        publishScrollOffset(x, false);
-        scrollProgrammatically(x);
-
-        if (t < 1) {
-          magnetFrameRef.current = requestAnimationFrame(step);
-          return;
-        }
-
-        magnetFrameRef.current = null;
-        finishSnap(to);
-      };
-
-      magnetFrameRef.current = requestAnimationFrame(step);
-    },
-    [
-      cancelMagnetAnimation,
-      finishSnap,
-      publishScrollOffset,
-      scrollProgrammatically,
-      setIsScrollIdle,
-    ],
-  );
-
-  return {
-    isMagnetAnimatingRef,
-    cancelMagnetAnimation,
-    isProgrammaticScroll,
-    finishSnap,
-    animateSnapTo,
-  };
-}
-
-/** Web-only magnetized snapping: glides the scroller to the nearest hour. */
-function useWebMagnetSnap(params: {
-  isWeb: boolean;
-  viewportWidth: number;
-  maxIndex: number;
-  snapOffsets: number[];
-  scrollRef: RefObject<Animated.ScrollView | null>;
-  liveScrollXRef: RefObject<number>;
-  publishScrollOffset: (offsetX: number, haptic: boolean) => void;
-  setIsScrollIdle: (idle: boolean) => void;
-}) {
-  const { isWeb, viewportWidth, maxIndex, snapOffsets, liveScrollXRef } = params;
-
-  const wheelIdleRafRef = useRef<number | null>(null);
-  const wheelIdleFramesRef = useRef(0);
-  const glide = useGlide(params);
-  const { isMagnetAnimatingRef, cancelMagnetAnimation, finishSnap, animateSnapTo } = glide;
-
-  const clampScrollOffset = useCallback(
-    (offsetX: number) => {
-      if (viewportWidth <= 0) return Math.max(0, offsetX);
-      return chartClampScrollOffset(offsetX, viewportWidth, maxIndex);
-    },
-    [maxIndex, viewportWidth],
-  );
-
-  const cancelWheelIdleSnap = useCallback(() => {
-    if (wheelIdleRafRef.current != null) {
-      cancelAnimationFrame(wheelIdleRafRef.current);
-      wheelIdleRafRef.current = null;
-    }
-    wheelIdleFramesRef.current = 0;
-  }, []);
-
-  const snapToNearestOffset = useCallback(
-    (offsetX: number) => {
-      if (!isWeb || viewportWidth <= 0 || snapOffsets.length === 0) return;
-      const clamped = clampScrollOffset(offsetX);
-      const nearest = chartNearestSnapOffset(clamped, snapOffsets);
-      if (Math.abs(clamped - nearest) < 0.5 && Math.abs(offsetX - clamped) < 0.5) {
-        finishSnap(nearest);
-        return;
-      }
-      animateSnapTo(clamped, nearest);
-    },
-    [animateSnapTo, clampScrollOffset, finishSnap, isWeb, viewportWidth, snapOffsets],
-  );
-
-  const scheduleWheelSnapAfterIdle = useCallback(() => {
-    if (!isWeb || isMagnetAnimatingRef.current) return;
-    cancelWheelIdleSnap();
-    wheelIdleFramesRef.current = 0;
-
-    const tick = () => {
-      wheelIdleFramesRef.current += 1;
-      if (wheelIdleFramesRef.current < WHEEL_IDLE_FRAMES) {
-        wheelIdleRafRef.current = requestAnimationFrame(tick);
-        return;
-      }
-      wheelIdleRafRef.current = null;
-      snapToNearestOffset(liveScrollXRef.current);
-    };
-
-    wheelIdleRafRef.current = requestAnimationFrame(tick);
-  }, [cancelWheelIdleSnap, isMagnetAnimatingRef, isWeb, liveScrollXRef, snapToNearestOffset]);
-
-  useEffect(() => {
-    return () => {
-      cancelMagnetAnimation();
-      cancelWheelIdleSnap();
-    };
-  }, [cancelMagnetAnimation, cancelWheelIdleSnap]);
-
-  return {
-    clampScrollOffset,
-    snapToNearestOffset,
-    scheduleWheelSnapAfterIdle,
-    cancelMagnetAnimation,
-    cancelWheelIdleSnap,
-    animateSnapTo,
-    isProgrammaticScroll: glide.isProgrammaticScroll,
-    isMagnetAnimatingRef,
-  };
-}
+import {
+  useChartViewport,
+  useScrollSelection,
+  type HourlyScrollPicker,
+} from './hourly-scroll-selection';
 
 /**
  * Centers the "Now" hour once on mount. iOS can apply the first scrollTo
@@ -248,12 +32,9 @@ function useInitialChartScroll(params: {
   count: number;
   maxIndex: number;
   viewportWidth: number;
-  isWeb: boolean;
   scrollRef: RefObject<Animated.ScrollView | null>;
   scrollX: SharedValue<number>;
   lastNotifiedIdx: SharedValue<number>;
-  liveScrollXRef: RefObject<number>;
-  setLiveScrollX: (x: number) => void;
   syncSelectionFromScroll: (offsetX: number, haptic: boolean) => void;
   selectionHapticEnabledRef: RefObject<boolean>;
 }) {
@@ -262,12 +43,9 @@ function useInitialChartScroll(params: {
     count,
     maxIndex,
     viewportWidth,
-    isWeb,
     scrollRef,
     scrollX,
     lastNotifiedIdx,
-    liveScrollXRef,
-    setLiveScrollX,
     syncSelectionFromScroll,
     selectionHapticEnabledRef,
   } = params;
@@ -279,10 +57,6 @@ function useInitialChartScroll(params: {
     scrollRef.current?.scrollTo({ x, animated: false });
     scrollX.set(x);
     lastNotifiedIdx.set(nowIdx);
-    if (isWeb) {
-      liveScrollXRef.current = x;
-      setLiveScrollX(x);
-    }
     syncSelectionFromScroll(x, false);
   }, [
     viewportWidth,
@@ -290,12 +64,9 @@ function useInitialChartScroll(params: {
     maxIndex,
     count,
     syncSelectionFromScroll,
-    isWeb,
     scrollRef,
     scrollX,
     lastNotifiedIdx,
-    liveScrollXRef,
-    setLiveScrollX,
   ]);
 
   useEffect(() => {
@@ -304,161 +75,56 @@ function useInitialChartScroll(params: {
     applyInitialScroll();
   }, [viewportWidth, count, applyInitialScroll]);
 
-  const reassertInitialScroll = useCallback(() => {
+  return useCallback(() => {
     if (!hasInitialScroll.current || selectionHapticEnabledRef.current) return;
     applyInitialScroll();
   }, [applyInitialScroll, selectionHapticEnabledRef]);
-
-  // Web lays out synchronously and wheel scrolls never set the drag flag, so
-  // the re-assert is native-only; web keeps its position across relayouts.
-  return { onContentSizeChange: isWeb ? undefined : reassertInitialScroll };
 }
 
-/** Wires the ScrollView gesture callbacks to selection + magnet-snap logic. */
-function useScrollGestureHandlers(params: {
-  isWeb: boolean;
-  syncSelectionFromScroll: (offsetX: number, haptic: boolean) => void;
-  snapToNearestOffset: (offsetX: number) => void;
-  clampScrollOffset: (offsetX: number) => number;
-  publishScrollOffset: (offsetX: number, haptic: boolean) => void;
-  scheduleWheelSnapAfterIdle: () => void;
-  cancelMagnetAnimation: () => void;
-  cancelWheelIdleSnap: () => void;
-  setIsScrollIdle: (idle: boolean) => void;
-  isMagnetAnimatingRef: RefObject<boolean>;
-  isProgrammaticScroll: (offsetX: number) => boolean;
-  selectionHapticEnabledRef: RefObject<boolean>;
-}) {
-  const {
-    isWeb,
-    syncSelectionFromScroll,
-    snapToNearestOffset,
-    clampScrollOffset,
-    publishScrollOffset,
-    scheduleWheelSnapAfterIdle,
-    cancelMagnetAnimation,
-    cancelWheelIdleSnap,
-    setIsScrollIdle,
-    isMagnetAnimatingRef,
-    isProgrammaticScroll,
-    selectionHapticEnabledRef,
-  } = params;
+/** Drag and momentum callbacks: they re-sync the selection as a safety net. */
+function useDragHandlers(
+  syncSelectionFromScroll: (offsetX: number, haptic: boolean) => void,
+  selectionHapticEnabledRef: RefObject<boolean>,
+) {
   const [isScrolling, setIsScrolling] = useState(false);
 
   const onScrollBeginDrag = useCallback(() => {
     selectionHapticEnabledRef.current = true;
     setIsScrolling(true);
-    setIsScrollIdle(false);
-    cancelMagnetAnimation();
-    cancelWheelIdleSnap();
-  }, [cancelMagnetAnimation, cancelWheelIdleSnap, selectionHapticEnabledRef, setIsScrollIdle]);
+  }, [selectionHapticEnabledRef]);
 
   const onScrollEndDrag = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
       syncSelectionFromScroll(event.nativeEvent.contentOffset.x, false);
-      if (isWeb) snapToNearestOffset(event.nativeEvent.contentOffset.x);
       const velocityX = event.nativeEvent.velocity?.x ?? 0;
-      if (Math.abs(velocityX) < 0.01) {
-        setIsScrolling(false);
-      }
+      if (Math.abs(velocityX) < 0.01) setIsScrolling(false);
     },
-    [isWeb, snapToNearestOffset, syncSelectionFromScroll],
+    [syncSelectionFromScroll],
   );
 
   const onMomentumScrollEnd = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
       syncSelectionFromScroll(event.nativeEvent.contentOffset.x, false);
-      if (isWeb) snapToNearestOffset(event.nativeEvent.contentOffset.x);
       setIsScrolling(false);
     },
-    [isWeb, snapToNearestOffset, syncSelectionFromScroll],
+    [syncSelectionFromScroll],
   );
 
-  const onWebScroll = useCallback(
-    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      // The glide already published this offset; only a real scroll interrupts it.
-      if (isProgrammaticScroll(event.nativeEvent.contentOffset.x)) return;
-      if (isMagnetAnimatingRef.current) {
-        cancelMagnetAnimation();
-      }
-
-      const offsetX = clampScrollOffset(event.nativeEvent.contentOffset.x);
-      publishScrollOffset(offsetX, true);
-      setIsScrollIdle(false);
-      scheduleWheelSnapAfterIdle();
-    },
-    [
-      cancelMagnetAnimation,
-      clampScrollOffset,
-      isMagnetAnimatingRef,
-      isProgrammaticScroll,
-      publishScrollOffset,
-      scheduleWheelSnapAfterIdle,
-      setIsScrollIdle,
-    ],
-  );
-
-  return { isScrolling, onScrollBeginDrag, onScrollEndDrag, onMomentumScrollEnd, onWebScroll };
-}
-
-function useScrollToIndex(params: {
-  maxIndex: number;
-  viewportWidth: number;
-  isWeb: boolean;
-  cancelWheelIdleSnap: () => void;
-  liveScrollXRef: RefObject<number>;
-  animateSnapTo: (from: number, to: number) => void;
-  scrollRef: RefObject<Animated.ScrollView | null>;
-}) {
-  const {
-    maxIndex,
-    viewportWidth,
-    isWeb,
-    cancelWheelIdleSnap,
-    liveScrollXRef,
-    animateSnapTo,
-    scrollRef,
-  } = params;
-
-  return useCallback(
-    (targetIdx: number) => {
-      const clamped = Math.min(Math.max(0, targetIdx), maxIndex);
-      if (viewportWidth <= 0) return;
-      const targetOffset = chartScrollOffsetForIndex(clamped, viewportWidth, maxIndex);
-      selectionFeedback();
-      if (isWeb) {
-        cancelWheelIdleSnap();
-        const current = liveScrollXRef.current;
-        if (Math.abs(current - targetOffset) > 1) {
-          animateSnapTo(current, targetOffset);
-        }
-      } else {
-        scrollRef.current?.scrollTo({ x: targetOffset, animated: true });
-      }
-    },
-    [animateSnapTo, cancelWheelIdleSnap, isWeb, liveScrollXRef, maxIndex, scrollRef, viewportWidth],
-  );
+  return { isScrolling, onScrollBeginDrag, onScrollEndDrag, onMomentumScrollEnd };
 }
 
 export function useHourlyScrollPicker(
   nowIdx: number,
   count: number,
   onSelectedChange?: (nextIdx: number, prevIdx: number) => void,
-) {
-  const maxIndex = Math.max(0, count - 1);
-  const [viewportWidth, setViewportWidth] = useState(0);
-  const [liveScrollX, setLiveScrollX] = useState(-1);
-  const [isScrollIdle, setIsScrollIdle] = useState(true);
-  const isWeb = Platform.OS === 'web';
+): HourlyScrollPicker {
+  const { viewportWidth, onViewportLayout, maxIndex, contentPadding, snapOffsets } =
+    useChartViewport(count);
   const scrollRef = useRef<Animated.ScrollView>(null);
   const scrollX = useSharedValue(CHART_SCROLL_UNSET);
   // Last index dispatched to React from the scroll worklet, so the UI→JS hop
   // happens once per hour-crossing instead of on every scroll frame.
   const lastNotifiedIdx = useSharedValue(-1);
-  const liveScrollXRef = useRef(-1);
-
-  const contentPadding = viewportWidth > 0 ? chartContentPadding(viewportWidth) : 0;
-  const snapOffsets = useMemo(() => chartSnapOffsets(count, viewportWidth), [count, viewportWidth]);
 
   const { selectedIdx, syncSelectionFromScroll, selectionHapticEnabledRef } = useScrollSelection(
     nowIdx,
@@ -467,72 +133,32 @@ export function useHourlyScrollPicker(
     onSelectedChange,
   );
 
-  const publishScrollOffset = useCallback(
-    (offsetX: number, haptic: boolean) => {
-      scrollX.set(offsetX);
-      liveScrollXRef.current = offsetX;
-      setLiveScrollX(offsetX);
-      syncSelectionFromScroll(offsetX, haptic);
-    },
-    [scrollX, syncSelectionFromScroll],
-  );
-
-  const webMagnetSnap = useWebMagnetSnap({
-    isWeb,
-    viewportWidth,
-    maxIndex,
-    snapOffsets,
-    scrollRef,
-    liveScrollXRef,
-    publishScrollOffset,
-    setIsScrollIdle,
-  });
-
-  const scrollToIndex = useScrollToIndex({
-    maxIndex,
-    viewportWidth,
-    isWeb,
-    cancelWheelIdleSnap: webMagnetSnap.cancelWheelIdleSnap,
-    liveScrollXRef,
-    animateSnapTo: webMagnetSnap.animateSnapTo,
-    scrollRef,
-  });
-
-  const { onContentSizeChange } = useInitialChartScroll({
+  const onContentSizeChange = useInitialChartScroll({
     nowIdx,
     count,
     maxIndex,
     viewportWidth,
-    isWeb,
     scrollRef,
     scrollX,
     lastNotifiedIdx,
-    liveScrollXRef,
-    setLiveScrollX,
     syncSelectionFromScroll,
     selectionHapticEnabledRef,
   });
 
-  const onViewportLayout = useCallback((width: number) => {
-    if (width > 0) {
-      setViewportWidth((prev) => (prev === width ? prev : width));
-    }
-  }, []);
+  const dragHandlers = useDragHandlers(syncSelectionFromScroll, selectionHapticEnabledRef);
 
-  const gestureHandlers = useScrollGestureHandlers({
-    isWeb,
-    syncSelectionFromScroll,
-    snapToNearestOffset: webMagnetSnap.snapToNearestOffset,
-    clampScrollOffset: webMagnetSnap.clampScrollOffset,
-    publishScrollOffset,
-    scheduleWheelSnapAfterIdle: webMagnetSnap.scheduleWheelSnapAfterIdle,
-    cancelMagnetAnimation: webMagnetSnap.cancelMagnetAnimation,
-    cancelWheelIdleSnap: webMagnetSnap.cancelWheelIdleSnap,
-    setIsScrollIdle,
-    isMagnetAnimatingRef: webMagnetSnap.isMagnetAnimatingRef,
-    isProgrammaticScroll: webMagnetSnap.isProgrammaticScroll,
-    selectionHapticEnabledRef,
-  });
+  const scrollToIndex = useCallback(
+    (targetIdx: number) => {
+      if (viewportWidth <= 0) return;
+      const clamped = Math.min(Math.max(0, targetIdx), maxIndex);
+      selectionFeedback();
+      scrollRef.current?.scrollTo({
+        x: chartScrollOffsetForIndex(clamped, viewportWidth, maxIndex),
+        animated: true,
+      });
+    },
+    [maxIndex, viewportWidth],
+  );
 
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -550,20 +176,17 @@ export function useHourlyScrollPicker(
   return {
     scrollRef,
     scrollX,
-    liveScrollX,
-    isScrollIdle,
+    liveScrollX: -1,
+    isScrollIdle: true,
     selectedIdx,
     viewportWidth,
     contentPadding,
     snapOffsets,
-    scrollHandler: isWeb ? undefined : scrollHandler,
-    onWebScroll: isWeb ? gestureHandlers.onWebScroll : undefined,
+    scrollHandler,
+    onWebScroll: undefined,
     onViewportLayout,
     onContentSizeChange,
     scrollToIndex,
-    onScrollBeginDrag: gestureHandlers.onScrollBeginDrag,
-    onScrollEndDrag: gestureHandlers.onScrollEndDrag,
-    onMomentumScrollEnd: gestureHandlers.onMomentumScrollEnd,
-    isScrolling: gestureHandlers.isScrolling,
+    ...dragHandlers,
   };
 }
