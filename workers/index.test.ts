@@ -15,6 +15,7 @@ describe('Cloudflare Worker geocode proxy', () => {
   afterEach(() => {
     globalThis.fetch = originalFetch;
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   describe('OPTIONS preflight', () => {
@@ -206,6 +207,20 @@ describe('Cloudflare Worker geocode proxy', () => {
       );
     }
 
+    /** A stand-in for Workers' `caches.default`, keyed by URL. */
+    function stubEdgeCache() {
+      const entries = new Map<string, Response>();
+      const cache = {
+        match: vi.fn((key: Request) => Promise.resolve(entries.get(key.url)?.clone())),
+        put: vi.fn((key: Request, response: Response) => {
+          entries.set(key.url, response);
+          return Promise.resolve();
+        }),
+      };
+      vi.stubGlobal('caches', { default: cache });
+      return { cache, entries };
+    }
+
     it('bundles forecast, alerts and AQI for rounded coordinates', async () => {
       const fetchForecast = vi
         .spyOn(weatherkit, 'fetchWeatherKitForecast')
@@ -216,13 +231,32 @@ describe('Cloudflare Worker geocode proxy', () => {
       );
       const response = await worker.fetch(request, weatherEnv);
       expect(response.status).toBe(200);
-      expect(response.headers.get('Cache-Control')).toBe('public, max-age=600');
+      expect(response.headers.get('Cache-Control')).toBe('no-cache');
       expect(response.headers.get('Access-Control-Allow-Origin')).toBe('https://wheelyweather.app');
       expect(fetchForecast).toHaveBeenCalledWith(weatherEnv, 35.78, -78.64);
       expect(await response.json()).toEqual({ forecast, alerts, aqi: 37 });
     });
 
+    it('caches a bundle at the edge, after responding', async () => {
+      const { entries } = stubEdgeCache();
+      vi.spyOn(weatherkit, 'fetchWeatherKitForecast').mockResolvedValue({
+        forecast,
+        alerts,
+      } as never);
+      stubAqi({ current: { us_aqi: 37 } });
+      const waitUntil = vi.fn();
+      const request = new Request(
+        'https://wheelyweather.app/api/forecast?lat=35.7796&lon=-78.6382',
+      );
+      const response = await worker.fetch(request, weatherEnv, { waitUntil });
+      expect(response.headers.get('Cache-Control')).toBe('no-cache');
+      expect(waitUntil).toHaveBeenCalledTimes(1);
+      const stored = entries.get('https://wheelyweather.app/api/forecast?lat=35.78&lon=-78.64');
+      expect(stored?.headers.get('Cache-Control')).toBe('public, max-age=600');
+    });
+
     it('caches a bundle without AQI only briefly', async () => {
+      const { entries } = stubEdgeCache();
       vi.spyOn(weatherkit, 'fetchWeatherKitForecast').mockResolvedValue({
         forecast,
         alerts: [],
@@ -231,8 +265,26 @@ describe('Cloudflare Worker geocode proxy', () => {
       const request = new Request('https://wheelyweather.app/api/forecast?lat=35.78&lon=-78.64');
       const response = await worker.fetch(request, weatherEnv);
       expect(response.status).toBe(200);
-      expect(response.headers.get('Cache-Control')).toBe('public, max-age=60');
+      expect(response.headers.get('Cache-Control')).toBe('no-cache');
       expect(await response.json()).toEqual({ forecast, alerts: [], aqi: null });
+      const stored = entries.get('https://wheelyweather.app/api/forecast?lat=35.78&lon=-78.64');
+      expect(stored?.headers.get('Cache-Control')).toBe('public, max-age=60');
+    });
+
+    // Cloudflare raises a short max-age to the zone's Browser Cache TTL (4 h by
+    // default) on cache hits; the Worker must set the browser header itself.
+    it('serves edge hits with the browser cache header, not the stored one', async () => {
+      const { cache } = stubEdgeCache();
+      const hit = new Response(JSON.stringify({ forecast, alerts: [], aqi: 37 }), {
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=14400' },
+      });
+      cache.match.mockResolvedValueOnce(hit);
+      const fetchForecast = vi.spyOn(weatherkit, 'fetchWeatherKitForecast');
+      const request = new Request('https://wheelyweather.app/api/forecast?lat=35.78&lon=-78.64');
+      const response = await worker.fetch(request, weatherEnv);
+      expect(response.headers.get('Cache-Control')).toBe('no-cache');
+      expect(await response.json()).toEqual({ forecast, alerts: [], aqi: 37 });
+      expect(fetchForecast).not.toHaveBeenCalled();
     });
 
     it('returns 502 when WeatherKit fails', async () => {

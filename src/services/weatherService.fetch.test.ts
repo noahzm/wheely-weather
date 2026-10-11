@@ -92,6 +92,8 @@ describe('fetchForecastBundle', () => {
     const bundle = await fetchForecastBundle(40.7, -74);
 
     expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/forecast?lat=40.7&lon=-74');
+    // Skips the browser's HTTP cache; the Worker's edge cache does the caching.
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ cache: 'no-cache' });
     expect(bundle.forecast.current?.temperature_2m).toBe(60);
     expect(bundle.aqi).toBe(31);
   });

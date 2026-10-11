@@ -110,9 +110,11 @@ export interface ForecastBundle {
  * `OpenMeteoData`. Web only: the relative URL needs the deployed site's origin.
  */
 export async function fetchForecastBundle(lat: number, lon: number): Promise<ForecastBundle> {
+  // The edge cache already spares WeatherKit, so always revalidate: earlier
+  // Worker responses left browsers holding a bundle for hours (workers/index.ts).
   const res = await fetchWithTimeout(
     `/api/forecast?lat=${lat}&lon=${lon}`,
-    {},
+    { cache: 'no-cache' },
     FORECAST_PROXY_TIMEOUT_MS,
   );
   if (!res.ok) throw new Error(`Forecast proxy error ${res.status}`);

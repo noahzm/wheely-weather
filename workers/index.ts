@@ -16,6 +16,12 @@ const REVERSE_CACHE_CONTROL = 'public, max-age=86400';
 // is kept only briefly so the next visitor gets another try.
 const FORECAST_CACHE_CONTROL = 'public, max-age=600';
 const PARTIAL_FORECAST_CACHE_CONTROL = 'public, max-age=60';
+// Those TTLs are for the edge only. Cloudflare's zone Browser Cache TTL (4 h
+// by default) raises any shorter max-age on a response read back from the
+// cache, which pinned browsers to one bundle for hours: reloads, stale
+// refreshes and pull-to-refresh all got it back. Browsers revalidate instead,
+// and the edge cache answers.
+const BROWSER_FORECAST_CACHE_CONTROL = 'no-cache';
 
 // Only the app's own origin may read proxied responses cross-origin. Native
 // clients call Nominatim and WeatherKit directly, so the API only serves the
@@ -23,6 +29,11 @@ const PARTIAL_FORECAST_CACHE_CONTROL = 'public, max-age=60';
 const ALLOWED_ORIGIN = 'https://wheelyweather.app';
 // Nominatim place queries are short; cap input size to blunt proxy abuse.
 const MAX_QUERY_LENGTH = 200;
+
+/** The part of the Workers `ExecutionContext` the API uses. */
+interface Context {
+  waitUntil(promise: Promise<unknown>): void;
+}
 
 /** Bindings from wrangler.jsonc, plus the WeatherKit secrets. */
 export interface Env extends WeatherKitSecrets {
@@ -37,7 +48,7 @@ const SECURITY_HEADERS = {
 };
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx?: Context): Promise<Response> {
     const url = new URL(request.url);
 
     if (url.pathname === '/api/geocode/search') {
@@ -47,7 +58,7 @@ export default {
       return handleGeocode(request, buildReverseUrl(url), REVERSE_CACHE_CONTROL);
     }
     if (url.pathname === '/api/forecast') {
-      return handleForecast(request, url, env);
+      return handleForecast(request, url, env, ctx);
     }
 
     // Only /api/* runs the Worker first (wrangler.jsonc); pages and files are
@@ -107,7 +118,12 @@ function edgeCache(): Cache | null {
  * forecast and alerts (a single Apple request) plus Open-Meteo's AQI, fetched
  * side by side at the edge and cached together.
  */
-async function handleForecast(request: Request, url: URL, env: Env): Promise<Response> {
+async function handleForecast(
+  request: Request,
+  url: URL,
+  env: Env,
+  ctx?: Context,
+): Promise<Response> {
   if (request.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders() });
   }
@@ -125,7 +141,11 @@ async function handleForecast(request: Request, url: URL, env: Env): Promise<Res
   const cacheKey = new Request(`${url.origin}/api/forecast?lat=${lat}&lon=${lon}`);
   const cache = edgeCache();
   const cached = await cache?.match(cacheKey);
-  if (cached) return cached;
+  if (cached) {
+    const response = new Response(cached.body, cached);
+    response.headers.set('Cache-Control', BROWSER_FORECAST_CACHE_CONTROL);
+    return response;
+  }
 
   try {
     // AQI never rejects; it resolves null on failure or after its timeout.
@@ -134,12 +154,21 @@ async function handleForecast(request: Request, url: URL, env: Env): Promise<Res
       fetchAqi(lat, lon),
     ]);
     const bundle: ForecastBundle = { forecast, alerts, aqi };
-    const cacheControl = aqi == null ? PARTIAL_FORECAST_CACHE_CONTROL : FORECAST_CACHE_CONTROL;
-    const response = new Response(JSON.stringify(bundle), {
-      headers: { ...jsonHeaders(), 'Cache-Control': cacheControl },
+    const body = JSON.stringify(bundle);
+    if (cache) {
+      const edgeCacheControl =
+        aqi == null ? PARTIAL_FORECAST_CACHE_CONTROL : FORECAST_CACHE_CONTROL;
+      const stored = cache.put(
+        cacheKey,
+        new Response(body, { headers: { ...jsonHeaders(), 'Cache-Control': edgeCacheControl } }),
+      );
+      // Store after responding; outside the Workers runtime there's no context.
+      if (ctx) ctx.waitUntil(stored);
+      else await stored;
+    }
+    return new Response(body, {
+      headers: { ...jsonHeaders(), 'Cache-Control': BROWSER_FORECAST_CACHE_CONTROL },
     });
-    await cache?.put(cacheKey, response.clone());
-    return response;
   } catch (error) {
     console.error('WeatherKit forecast failed', error);
     return errorResponse(502, 'Weather service unavailable');

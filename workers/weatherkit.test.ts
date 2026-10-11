@@ -174,6 +174,8 @@ describe('alertCountry', () => {
     expect(alertCountry('America/Indiana/Indianapolis')).toBe('US');
     expect(alertCountry('Pacific/Honolulu')).toBe('US');
     expect(alertCountry('America/Vancouver')).toBe('CA');
+    expect(alertCountry('America/Puerto_Rico')).toBe('PR');
+    expect(alertCountry('America/St_Thomas')).toBe('VI');
     expect(alertCountry('America/Mexico_City')).toBeNull();
   });
 });
@@ -315,6 +317,26 @@ describe('fetchWeatherKitForecast', () => {
     expect(new URL(url).searchParams.get('timezone')).toBe(ZONE);
     expect((init.headers as Record<string, string>).Authorization).toMatch(/^Bearer /);
     expect(forecast.current?.time).toBe('2026-10-10T14:20');
+    expect(alerts).toEqual([]);
+  });
+
+  it('retries without alerts when Apple rejects the alert request', async () => {
+    const { env } = await makeCredentials();
+    const fetchMock = vi.fn((url: string) =>
+      Promise.resolve(
+        new URL(url).searchParams.has('country')
+          ? new Response('no alert coverage', { status: 400 })
+          : Response.json(makeResponse()),
+      ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { forecast, alerts } = await fetchWeatherKitForecast(env, 18.47, -66.11, NOW);
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const retry = new URL(fetchMock.mock.calls[1]?.[0] ?? '').searchParams;
+    expect(retry.get('dataSets')).toBe('currentWeather,forecastHourly,forecastDaily');
+    expect(forecast.current).toBeDefined();
     expect(alerts).toEqual([]);
   });
 

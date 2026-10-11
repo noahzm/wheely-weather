@@ -94,7 +94,8 @@ export interface WeatherKitResult {
 
 // REST alerts need the location's country (`country=`), and a wrong one just
 // returns none. The Worker infers it from the IANA zone, which covers the
-// US and Canada — the launch markets, and more than the NWS feed it replaced.
+// US and Canada (the launch markets) plus the US Caribbean territories the
+// NWS feed it replaced also covered. Those take their own ISO codes.
 const US_ZONE_PREFIXES = ['America/Indiana/', 'America/Kentucky/', 'America/North_Dakota/'];
 const US_ZONES = new Set([
   'America/Adak',
@@ -140,11 +141,18 @@ const CA_ZONES = new Set([
   'America/Winnipeg',
 ]);
 
-/** The country to ask for alerts in, or null outside the US and Canada. */
-export function alertCountry(timeZone: string): 'US' | 'CA' | null {
+type AlertCountry = 'US' | 'CA' | 'PR' | 'VI';
+
+const TERRITORY_ZONES: Record<string, AlertCountry> = {
+  'America/Puerto_Rico': 'PR',
+  'America/St_Thomas': 'VI',
+};
+
+/** The country to ask for alerts in, or null outside the covered regions. */
+export function alertCountry(timeZone: string): AlertCountry | null {
   if (US_ZONES.has(timeZone) || US_ZONE_PREFIXES.some((p) => timeZone.startsWith(p))) return 'US';
   if (CA_ZONES.has(timeZone)) return 'CA';
-  return null;
+  return TERRITORY_ZONES[timeZone] ?? null;
 }
 
 /** Same shape the iOS module's alerts take, so both platforms read alike. */
@@ -351,9 +359,15 @@ export function resetWeatherKitToken(): void {
   cachedToken = null;
 }
 
-export function weatherKitUrl(lat: number, lon: number, timeZone: string, now: Date): string {
+/** The request URL; alerts are included when `country` is known. */
+export function weatherKitUrl(
+  lat: number,
+  lon: number,
+  timeZone: string,
+  now: Date,
+  country: AlertCountry | null = alertCountry(timeZone),
+): string {
   const hourStart = Math.floor(now.getTime() / HOUR_MS) * HOUR_MS;
-  const country = alertCountry(timeZone);
   const params = new URLSearchParams({
     dataSets: `currentWeather,forecastHourly,forecastDaily${country ? ',weatherAlerts' : ''}`,
     timezone: timeZone,
@@ -373,9 +387,13 @@ export async function fetchWeatherKitForecast(
 ): Promise<WeatherKitResult> {
   const timeZone = tzLookup(lat, lon);
   const token = await weatherKitToken(env, now.getTime());
-  const res = await fetch(weatherKitUrl(lat, lon, timeZone, now), {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const init = { headers: { Authorization: `Bearer ${token}` } };
+  let res = await fetch(weatherKitUrl(lat, lon, timeZone, now), init);
+  // Asking for alerts where Apple has none fails the whole request with a 400
+  // (iOS hit it as WHEELY-WEATHER-G); the forecast alone still comes through.
+  if (res.status === 400 && alertCountry(timeZone)) {
+    res = await fetch(weatherKitUrl(lat, lon, timeZone, now, null), init);
+  }
   if (!res.ok) throw new Error(`WeatherKit ${res.status}`);
   const body = (await res.json()) as WeatherKitRestResponse;
   return { forecast: toOpenMeteoData(body, timeZone, now), alerts: toWeatherAlerts(body) };
