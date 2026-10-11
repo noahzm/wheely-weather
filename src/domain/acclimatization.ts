@@ -23,6 +23,10 @@ const REF_COOL = 50;
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
+/** Caps a shifted line `steps` degrees under the hazard: poor 1, marginal 2, fair 3. */
+const belowCeiling = (value: number, ceiling: number, steps: number) =>
+  Math.min(value, ceiling - steps);
+
 /**
  * Derives how much warmer, muggier and colder conditions a home-acclimatized
  * rider tolerates, relative to the base (temperate) thresholds. Riders who have
@@ -63,8 +67,10 @@ export const deriveAcclimatization = (
  * Applies an acclimatization shift to the comfort dials only (hot-side air
  * temperature + dew point). The hard hazard ceiling (`BAD_MAX` / `BAD`) never
  * moves, and shifted thresholds are clamped strictly below it, so a genuinely
- * dangerous day still rates "bad" even for an acclimatized rider. Go/no-go gates
- * (wind, AQI, rain, UV) are returned untouched.
+ * dangerous day still rates "bad" even for an acclimatized rider. They clamp a
+ * degree apart (`belowCeiling`), so a large shift can't squeeze a band out: a
+ * shared clamp once took the dew point from "fair" to "poor" with no "iffy" in
+ * between. Go/no-go gates (wind, AQI, rain, UV) are returned untouched.
  *
  * The cold side shifts down as a whole, `BAD_MIN` included: the reference's
  * 32°F floor is a comfort line, not a hazard, since ice is rated separately by
@@ -80,17 +86,15 @@ export const applyAcclimatization = (
   if (!tempShift && !dewShift && !coldShift) return base;
 
   const t = base.TEMPERATURE;
-  const tempCeiling = t.BAD_MAX - 1;
   const d = base.DEWPOINT;
-  const dewCeiling = d.BAD - 1;
 
   return {
     ...base,
     TEMPERATURE: {
       ...t,
-      FAIR_MAX: Math.min(t.FAIR_MAX + tempShift, tempCeiling),
-      MARGINAL_MAX: Math.min(t.MARGINAL_MAX + tempShift, tempCeiling),
-      POOR_MAX: Math.min(t.POOR_MAX + tempShift, tempCeiling),
+      FAIR_MAX: belowCeiling(t.FAIR_MAX + tempShift, t.BAD_MAX, 3),
+      MARGINAL_MAX: belowCeiling(t.MARGINAL_MAX + tempShift, t.BAD_MAX, 2),
+      POOR_MAX: belowCeiling(t.POOR_MAX + tempShift, t.BAD_MAX, 1),
       BAD_MIN: t.BAD_MIN - coldShift,
       POOR_MIN: t.POOR_MIN - coldShift,
       MARGINAL_MIN: t.MARGINAL_MIN - coldShift,
@@ -98,9 +102,9 @@ export const applyAcclimatization = (
     },
     DEWPOINT: {
       ...d,
-      FAIR: Math.min(d.FAIR + dewShift, dewCeiling),
-      MARGINAL: Math.min(d.MARGINAL + dewShift, dewCeiling),
-      POOR: Math.min(d.POOR + dewShift, dewCeiling),
+      FAIR: belowCeiling(d.FAIR + dewShift, d.BAD, 3),
+      MARGINAL: belowCeiling(d.MARGINAL + dewShift, d.BAD, 2),
+      POOR: belowCeiling(d.POOR + dewShift, d.BAD, 1),
     },
     // Cold-adapted riders take the mild cold-rain band as marginal, not poor.
     COLD_RAIN: coldShift > 0 ? { MILD: 'marginal' } : base.COLD_RAIN,

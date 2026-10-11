@@ -165,6 +165,30 @@ describe('applyAcclimatization', () => {
     expect(adjusted.TEMPERATURE.POOR_MAX).toBeLessThan(THRESHOLDS.TEMPERATURE.BAD_MAX);
     expect(adjusted.DEWPOINT.POOR).toBeLessThan(THRESHOLDS.DEWPOINT.BAD);
   });
+
+  it('keeps every band between fair and the hazard, however far the dials move', () => {
+    const adjusted = applyAcclimatization(THRESHOLDS, {
+      tempShift: 50,
+      dewShift: 50,
+      coldShift: 0,
+    });
+    const dew = (value: number) => evaluateCondition(value, 'dewpoint', adjusted);
+    expect([75, 75.5, 76.5, 77.5, 78.5].map((value) => dew(value))).toEqual([
+      'good',
+      'fair',
+      'marginal',
+      'poor',
+      'bad',
+    ]);
+    const temp = (value: number) => evaluateCondition(value, 'temperature', adjusted);
+    expect([92, 92.5, 93.5, 94.5, 95].map((value) => temp(value))).toEqual([
+      'good',
+      'fair',
+      'marginal',
+      'poor',
+      'bad',
+    ]);
+  });
 });
 
 describe('acclimatization and the verdict', () => {
@@ -239,9 +263,9 @@ describe('describeClimateAdjustment', () => {
     expect(lines[1]).toBe(
       `Humid days stay rideable up to a ${66 + shift.dewShift}°F dew point (normally 66°F).`,
     );
-    // The high dial reaches the ceiling, one under the fixed 78°F hazard line.
+    // The high dial reaches its clamp, two under the fixed 78°F hazard line.
     expect(describeClimateAdjustment(GULF, 'high', 'fahrenheit')[1]).toBe(
-      'Humid days stay rideable up to a 77°F dew point (normally 66°F).',
+      'Humid days stay rideable up to a 76°F dew point (normally 66°F).',
     );
   });
 
