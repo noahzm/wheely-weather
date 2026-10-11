@@ -46,9 +46,13 @@ describe('dayLabel', () => {
     expect(dayLabel(JUN_24, 0)).toBe('Today');
   });
 
+  it('returns Tomorrow for index 1', () => {
+    expect(dayLabel(JUN_22, 1)).toBe('Tomorrow');
+  });
+
   it('returns a short weekday + date for later days', () => {
     expect(dayLabel(JUN_24, 3)).toBe('Wed 24');
-    expect(dayLabel(JUN_22, 1)).toBe('Mon 22');
+    expect(dayLabel(JUN_22, 2)).toBe('Mon 22');
   });
 });
 

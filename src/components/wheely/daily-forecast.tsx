@@ -5,6 +5,7 @@ import { ChevronRight, Clock, CloudRain, Wind, type IconComponent } from './icon
 
 import { ThemedText } from '@/components/themed-text';
 import { CONDITION_DISPLAY } from '@/domain';
+import { DAYLIGHT_MESSAGES } from '@/domain/copy';
 import { dayLabel, getBestDayInfo, formatPercent } from '@/utils';
 import { getDayConditionReason } from '@/utils/forecastHelpers';
 import { fullHourLabel } from '@/utils/timeFormat';
@@ -64,7 +65,8 @@ function makeStyles(c: WheelyPalette, scheme: 'light' | 'dark' = 'light') {
       alignItems: 'center',
       gap: Spacing.two,
     },
-    dayLabelCell: { width: 72 },
+    // Fits "Tomorrow"; the label shrinks a little on the narrowest phones.
+    dayLabelCell: { width: 98 },
     dayLabel: {
       color: c.ink,
       fontFamily: Fonts.bold,
@@ -229,7 +231,11 @@ function DayRow({
   const { format: formatTemp } = useTemperatureDisplay();
   const tempUnit = useResolvedTempUnit();
   const condition = asCondition(day.condition);
-  const rowA11yLabel = `${dayLabel(day.date, index)}: high ${formatTemp(day.high)}, low ${formatTemp(day.low)}, ${CONDITION_DISPLAY[condition]}${best ? ', Best bet' : ''}`;
+  // After sunset Today has no ride window left, and its rating would describe
+  // hours already gone, so it shows a neutral "Done" instead.
+  const dayDone = day.rideWindowUnavailable === true;
+  const ratingLabel = dayDone ? DAYLIGHT_MESSAGES.DAY_DONE_A11Y : CONDITION_DISPLAY[condition];
+  const rowA11yLabel = `${dayLabel(day.date, index)}: high ${formatTemp(day.high)}, low ${formatTemp(day.low)}, ${ratingLabel}${best ? ', Best bet' : ''}`;
 
   return (
     <View style={[styles.dayRowContainer, last && styles.dayRowLast]}>
@@ -247,7 +253,14 @@ function DayRow({
       >
         <View style={styles.dayRowMain}>
           <View style={styles.dayLabelCell}>
-            <ThemedText style={styles.dayLabel}>{dayLabel(day.date, index)}</ThemedText>
+            <ThemedText
+              style={styles.dayLabel}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.85}
+            >
+              {dayLabel(day.date, index)}
+            </ThemedText>
           </View>
           <View style={styles.weatherGlyph}>
             {Platform.OS === 'ios' ? (
@@ -264,7 +277,11 @@ function DayRow({
             {formatTemp(day.high)}
             <ThemedText style={styles.dayLow}>/{formatTemp(day.low)}</ThemedText>
           </ThemedText>
-          <ConditionPill condition={condition}>{CONDITION_DISPLAY[condition]}</ConditionPill>
+          {dayDone ? (
+            <ConditionPill>{DAYLIGHT_MESSAGES.DAY_DONE}</ConditionPill>
+          ) : (
+            <ConditionPill condition={condition}>{CONDITION_DISPLAY[condition]}</ConditionPill>
+          )}
           <View style={styles.daySpacer} />
           {best ? (
             <View accessibilityRole="text" accessibilityLabel="Best bet">

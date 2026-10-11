@@ -438,6 +438,9 @@ export const RAIN_MESSAGES = {
 
 export const DAYLIGHT_MESSAGES = {
   DARK_WARNING: 'After dark: lights on',
+  // The week list's Today pill once no daylight is left to ride in.
+  DAY_DONE: 'Done',
+  DAY_DONE_A11Y: 'no daylight left to ride',
 };
 
 export const ALERT_MESSAGES = {

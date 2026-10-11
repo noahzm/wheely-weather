@@ -538,12 +538,15 @@ export function Chip({
   );
 }
 
+/** A rating pill; without a `condition` it's a neutral grey pill that rates nothing. */
 export function ConditionPill({
   condition,
   children,
-}: Readonly<{ condition: Condition; children: string }>) {
+}: Readonly<{ condition?: Condition; children: string }>) {
   const c = useWheelyColors();
-  const colors = c.condition[condition];
+  const colors = condition
+    ? c.condition[condition]
+    : { bg: withAlpha(c.ink, 0.1), ink: c.mutedInk };
   return (
     <View
       style={{

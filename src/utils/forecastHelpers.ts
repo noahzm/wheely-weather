@@ -24,6 +24,8 @@ const SNOW_CODES = new Set([71, 73, 75, 77, 85, 86]);
 /** Returns "Today" for index 0, otherwise a short label like "Mon 24". */
 export function dayLabel(date: Date | string, index: number): string {
   if (index === 0) return 'Today';
+  // Matches the verdict and kit, which already say "Tomorrow".
+  if (index === 1) return 'Tomorrow';
   const d = new Date(date);
   const weekday = DAY_NAMES_SHORT[d.getDay()];
   const num = d.getDate();
