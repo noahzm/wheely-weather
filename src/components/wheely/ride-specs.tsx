@@ -435,10 +435,11 @@ export function RideSpecs({
   thresholds = THRESHOLDS,
 }: Readonly<{ weather: Weather; thresholds?: typeof THRESHOLDS }>) {
   const { c, styles, columns } = useStyles();
-  const { format: formatTemp } = useTemperatureDisplay();
+  const { format: formatTemp, unit } = useTemperatureDisplay();
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
   const metrics = rideSpecMetrics(weather, thresholds, formatTemp);
-  const explainer = selectedLabel ? getMetricExplainer(selectedLabel) : null;
+  // The tip quotes the same thresholds the cells are rated with, in the rider's unit.
+  const explainer = selectedLabel ? getMetricExplainer(selectedLabel, { thresholds, unit }) : null;
 
   const rows = useMemo(() => {
     const chunked: RideSpecMetric[][] = [];
