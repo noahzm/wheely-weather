@@ -8,7 +8,7 @@ export {
   getOverallStatus,
   isColdTemp,
 } from './scoring';
-export { getWeatherCodeCondition, getWeatherDescription, isThunderstorm } from './weather-codes';
+export { getWeatherDescription, isThunderstorm } from './weather-codes';
 export {
   getBestRideWindow,
   getDaylightWarning,

@@ -1,4 +1,4 @@
-const { withPodfile, withXcodeProject } = require('@expo/config-plugins');
+const { withPodfile, withXcodeProject } = require('expo/config-plugins');
 
 // Turns on Xcode's compilation cache (`COMPILATION_CACHE_ENABLE_CACHING`, Xcode 26+) for the
 // app and every pod. It caches each compiled file by its inputs, so results survive what

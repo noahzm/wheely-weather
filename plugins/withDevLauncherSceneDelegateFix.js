@@ -1,4 +1,4 @@
-const { withAppDelegate } = require('@expo/config-plugins');
+const { withAppDelegate } = require('expo/config-plugins');
 
 // This project's Info.plist declares a scene-based `UIApplicationSceneManifest` (added via
 // `expo.ios.infoPlist` in app.json, required so the app doesn't assert-crash at launch on

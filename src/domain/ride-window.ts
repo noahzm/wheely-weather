@@ -34,11 +34,11 @@ export interface DailyRideWindow {
   condition: DailyWeather['condition'];
 }
 
-export const DAILY_RIDE_WINDOW_HOURS = 3;
+const DAILY_RIDE_WINDOW_HOURS = 3;
 // Late in the day, today's window may shrink to what daylight is left, down to
 // this many hours. Without it a winter afternoon (sunset ~5 PM) had no window
 // from 2 PM on, and the verdict jumped to tomorrow hours too early.
-export const MIN_TODAY_WINDOW_HOURS = 2;
+const MIN_TODAY_WINDOW_HOURS = 2;
 
 function getWorstWeatherCode(codes: (number | null)[]): number | null {
   let worstCode: number | null = null;
