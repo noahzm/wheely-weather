@@ -1,5 +1,24 @@
 /** Header title helpers for the weather screen. */
 
+import { abbreviateUSState } from './us-states';
+
+/**
+ * A reverse-geocoded place as "City, ST" (US states abbreviated to match
+ * MapKit search labels), the city alone without a region, or "Your Location"
+ * without a city.
+ */
+export function formatPlaceLabel(place: {
+  city?: string | null;
+  region?: string | null;
+  countryCode?: string | null;
+}): string {
+  const { city, region } = place;
+  if (!city) return 'Your Location';
+  if (!region) return city;
+  const isUS = place.countryCode?.toLowerCase() === 'us';
+  return `${city}, ${isUS ? abbreviateUSState(region) : region}`;
+}
+
 /** First component of a "City, Region, Country" label. */
 export function cityFromLocation(location: string | null | undefined): string {
   return location?.split(',')[0]?.trim() ?? '';

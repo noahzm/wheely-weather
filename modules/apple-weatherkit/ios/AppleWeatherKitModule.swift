@@ -2,6 +2,52 @@ import ExpoModulesCore
 import WeatherKit
 import CoreLocation
 
+/// The parts of a reverse-geocoded placemark the app uses.
+struct Place: Sendable {
+  let timeZone: TimeZone?
+  let locality: String?
+  let subAdministrativeArea: String?
+  let administrativeArea: String?
+  let isoCountryCode: String?
+}
+
+/// Reverse geocodes per ~1 km coordinate cell. JS asks for the forecast (time
+/// zone) and the place name side by side, so a lookup in flight is shared
+/// rather than repeated: Apple throttles apps that geocode in bursts. Only
+/// successful geocodes are kept, so a transient failure can't poison a cell.
+actor PlaceCache {
+  private var places: [String: Place] = [:]
+  private var pending: [String: Task<Place?, Never>] = [:]
+
+  func place(for location: CLLocation) async -> Place? {
+    let key = String(
+      format: "%.2f,%.2f",
+      location.coordinate.latitude,
+      location.coordinate.longitude
+    )
+    if let cached = places[key] { return cached }
+    if let task = pending[key] { return await task.value }
+    let task = Task<Place?, Never> {
+      guard let placemark = try? await CLGeocoder().reverseGeocodeLocation(location).first else {
+        return nil
+      }
+      return Place(
+        timeZone: placemark.timeZone,
+        locality: placemark.locality,
+        subAdministrativeArea: placemark.subAdministrativeArea,
+        administrativeArea: placemark.administrativeArea,
+        isoCountryCode: placemark.isoCountryCode
+      )
+    }
+    pending[key] = task
+    let place = await task.value
+    pending[key] = nil
+    // A placemark without a time zone would pin the cell to the device's zone.
+    if let place, place.timeZone != nil { places[key] = place }
+    return place
+  }
+}
+
 // Bridges Apple WeatherKit into the app's Open-Meteo-shaped wire format
 // (src/services/weatherService.ts's `OpenMeteoData`), so the existing
 // normalization pipeline runs unchanged for iOS. Condition is bridged as
@@ -170,6 +216,23 @@ public class AppleWeatherKitModule: Module {
       }
     }
 
+    // The rider's place name, from the same cached reverse geocode that gives
+    // the forecast its time zone, so naming a place costs no extra request (and
+    // coordinates stay with Apple). Null when the geocode fails.
+    AsyncFunction("place") { (lat: Double, lon: Double, promise: Promise) in
+      Task {
+        let place = await Self.places.place(for: CLLocation(latitude: lat, longitude: lon))
+        promise.resolve(place.map { place -> [String: Any?] in
+          [
+            "locality": place.locality,
+            "subAdministrativeArea": place.subAdministrativeArea,
+            "administrativeArea": place.administrativeArea,
+            "isoCountryCode": place.isoCountryCode,
+          ]
+        })
+      }
+    }
+
     AsyncFunction("attribution") { (promise: Promise) in
       Task {
         do {
@@ -215,28 +278,10 @@ public class AppleWeatherKitModule: Module {
   // existing parser (weatherService.ts) relies on for hour/date matching.
   // WeatherKit has no timezone-aware string output, so resolve one via
   // reverse geocoding and format Dates into the same naive convention.
-  // The geocode is a network round trip, so results are cached per ~1 km
-  // coordinate cell — only successful geocodes, never the device-timezone
-  // fallback, so a transient failure can't poison a location forever.
-  private static let timeZoneCache = NSCache<NSString, NSTimeZone>()
+  private static let places = PlaceCache()
 
   private static func resolveTimeZone(for location: CLLocation) async -> TimeZone {
-    let key = String(
-      format: "%.2f,%.2f",
-      location.coordinate.latitude,
-      location.coordinate.longitude
-    ) as NSString
-    if let cached = Self.timeZoneCache.object(forKey: key) {
-      return cached as TimeZone
-    }
-    let geocoder = CLGeocoder()
-    if let placemarks = try? await geocoder.reverseGeocodeLocation(location),
-      let timeZone = placemarks.first?.timeZone
-    {
-      Self.timeZoneCache.setObject(timeZone as NSTimeZone, forKey: key)
-      return timeZone
-    }
-    return TimeZone.current
+    await Self.places.place(for: location)?.timeZone ?? TimeZone.current
   }
 
   private static func makeFormatter(timeZone: TimeZone, dateOnly: Bool) -> DateFormatter {

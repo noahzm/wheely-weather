@@ -4,11 +4,14 @@ import type {
   WeatherKitAlert,
   WeatherKitAttribution,
   WeatherKitForecastResult,
+  WeatherKitPlace,
 } from './AppleWeatherKit.types';
 
 declare class AppleWeatherKitModule extends NativeModule<Record<string, never>> {
   forecast(lat: number, lon: number): Promise<WeatherKitForecastResult>;
   alerts(lat: number, lon: number): Promise<WeatherKitAlert[]>;
+  /** Shares the forecast's cached reverse geocode; null when it fails. */
+  place(lat: number, lon: number): Promise<WeatherKitPlace | null>;
   attribution(): Promise<WeatherKitAttribution>;
 }
 

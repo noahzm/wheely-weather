@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { cityFromLocation, resolveLocationChipName } from './locationTitle';
+import { cityFromLocation, formatPlaceLabel, resolveLocationChipName } from './locationTitle';
 
 describe('cityFromLocation', () => {
   it('takes the first component of a comma-separated label', () => {
@@ -53,5 +53,39 @@ describe('resolveLocationChipName', () => {
 
   it('falls back to Location when both are empty', () => {
     expect(resolveLocationChipName({})).toBe('Location');
+  });
+});
+
+describe('formatPlaceLabel', () => {
+  it('abbreviates US states, whatever case the country code is in', () => {
+    expect(formatPlaceLabel({ city: 'Raleigh', region: 'North Carolina', countryCode: 'us' })).toBe(
+      'Raleigh, NC',
+    );
+    expect(formatPlaceLabel({ city: 'Cary', region: 'North Carolina', countryCode: 'US' })).toBe(
+      'Cary, NC',
+    );
+  });
+
+  it('keeps a region that is already abbreviated', () => {
+    expect(formatPlaceLabel({ city: 'Durham', region: 'NC', countryCode: 'US' })).toBe(
+      'Durham, NC',
+    );
+  });
+
+  it('leaves regions outside the US alone', () => {
+    expect(formatPlaceLabel({ city: 'Toronto', region: 'Ontario', countryCode: 'CA' })).toBe(
+      'Toronto, Ontario',
+    );
+    expect(formatPlaceLabel({ city: 'Georgia', region: 'Georgia', countryCode: null })).toBe(
+      'Georgia, Georgia',
+    );
+  });
+
+  it('falls back to the city alone, then to "Your Location"', () => {
+    expect(formatPlaceLabel({ city: 'Monaco', region: null })).toBe('Monaco');
+    expect(formatPlaceLabel({ city: null, region: 'Nunavut', countryCode: 'CA' })).toBe(
+      'Your Location',
+    );
+    expect(formatPlaceLabel({})).toBe('Your Location');
   });
 });

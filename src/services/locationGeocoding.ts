@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 
 import { fetchWithTimeout } from './http';
 
-import { abbreviateUSState } from '@/utils/us-states';
+import { formatPlaceLabel } from '@/utils/locationTitle';
 import type { LocationSearchResult } from '@/types/weather';
 
 interface NominatimResult {
@@ -98,11 +98,12 @@ export async function fetchLocationName(lat: number, lon: number): Promise<strin
     const res = await fetchWithTimeout(reverseUrl, fetchOptions, SECONDARY_FETCH_TIMEOUT_MS);
     const data = (await res.json()) as NominatimResult;
     if (data.address) {
-      const city =
-        data.address.city ?? data.address.town ?? data.address.village ?? data.address.county;
-      const state = data.address.state;
-      const region = data.address.country_code === 'us' && state ? abbreviateUSState(state) : state;
-      return city && region ? `${city}, ${region}` : (city ?? 'Your Location');
+      const { city, town, village, county, state } = data.address;
+      return formatPlaceLabel({
+        city: city ?? town ?? village ?? county,
+        region: state,
+        countryCode: data.address.country_code,
+      });
     }
   } catch {
     /* empty */

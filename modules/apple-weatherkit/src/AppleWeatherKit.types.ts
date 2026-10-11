@@ -62,3 +62,11 @@ export interface WeatherKitAttribution {
   logoDarkURL: string;
   legalPageURL: string;
 }
+
+/** The reverse-geocoded placemark fields the app names places with. */
+export interface WeatherKitPlace {
+  locality: string | null;
+  subAdministrativeArea: string | null;
+  administrativeArea: string | null;
+  isoCountryCode: string | null;
+}
