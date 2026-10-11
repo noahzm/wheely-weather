@@ -1,7 +1,8 @@
 import * as Sentry from '@sentry/react-native';
 
-// Set via EXPO_PUBLIC_SENTRY_DSN (see .env.example). Unset in local dev by
-// default, so `initSentry` is a no-op until a DSN is configured — nothing
+// Set via EXPO_PUBLIC_SENTRY_DSN (see .env.example). Dev builds never report,
+// even with the DSN in .env: simulator App Hangs (the dev bundle is slow) and
+// mid-edit errors made up most of the project's events and buried real ones.
 const dsn: string | undefined =
   typeof process.env.EXPO_PUBLIC_SENTRY_DSN === 'string' &&
   process.env.EXPO_PUBLIC_SENTRY_DSN.length > 0
@@ -9,12 +10,13 @@ const dsn: string | undefined =
     : undefined;
 
 /**
- * Whether Sentry has a DSN to report to. `Sentry.wrap` should only be applied
- * when this is true — wrapping without a configured client leaves the
+ * Whether Sentry reports: a DSN is set and this isn't a dev build. The native
+ * SDK (App Hangs, crashes) starts from `Sentry.init`, so this gates it too.
+ * `Sentry.wrap` should only be applied when this is true — wrapping without a configured client leaves the
  * app-start profiler with nothing to report to, which logs a spurious
  * "Sentry.wrap was called before Sentry.init" warning on every launch.
  */
-export const sentryEnabled = Boolean(dsn);
+export const sentryEnabled = Boolean(dsn) && !__DEV__;
 
 // Precise coordinates ride in request URLs (Open-Meteo latitude/longitude,
 // Nominatim lat/lon, NWS /points/{lat},{lon}), and Sentry's default fetch/XHR
@@ -26,16 +28,15 @@ const COORD_POINTS_PATH = /(\/points\/)[-0-9.,]+/gi;
 
 /** Call once from the root layout, before anything else renders. */
 export function initSentry() {
-  if (!dsn) return;
+  if (!sentryEnabled) return;
   Sentry.init({
     dsn,
     // The app handles precise location; never attach IP/device identifiers by default.
     sendDefaultPii: false,
     // Performance tracing (forecast load timing, see `traceAsync`). A fifth of
     // production sessions now that the app is public: enough timing data without
-    // burning the Sentry quota. Dev builds send none, so simulator timings never
-    // skew the numbers.
-    tracesSampleRate: __DEV__ ? 0 : 0.2,
+    // burning the Sentry quota.
+    tracesSampleRate: 0.2,
     beforeBreadcrumb(breadcrumb) {
       const url: unknown = breadcrumb.data?.url;
       if (typeof url !== 'string') return breadcrumb;
