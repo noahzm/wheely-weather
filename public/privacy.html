@@ -73,7 +73,7 @@
   <body>
     <main>
       <h1>Privacy Policy</h1>
-      <p class="updated">Last updated September 24, 2026</p>
+      <p class="updated">Last updated October 10, 2026</p>
 
       <p>
         Wheely Weather is a weather app for cyclists. It has no accounts, no ads, and no tracking.
@@ -91,17 +91,21 @@
       </p>
       <ul>
         <li>
-          On iPhone: Apple Weather (WeatherKit) and Apple Maps for forecasts, alerts and place
-          search, and <a href="https://open-meteo.com/en/terms">Open-Meteo</a> for air quality.
+          On iPhone: Apple Weather (WeatherKit) and Apple Maps for forecasts, alerts, place names
+          and place search, and <a href="https://open-meteo.com/en/terms">Open-Meteo</a> for air
+          quality and your home climate (recent weather where you set your home, used to tune the
+          ride ratings).
         </li>
         <li>
           On the web: Apple Weather (WeatherKit) for forecasts and alerts,
           <a href="https://open-meteo.com/en/terms">Open-Meteo</a> for air quality, and
           <a href="https://osmfoundation.org/wiki/Privacy_Policy">OpenStreetMap Nominatim</a> for
-          place search, all proxied through our own server, which rounds forecast coordinates to
-          about 1 km and keeps only short-lived request logs for debugging (Cloudflare Workers Logs,
-          deleted within days). If our server can't be reached, your browser asks Open-Meteo for the
-          forecast and air quality and the US National Weather Service for alerts directly.
+          place names and place search, all proxied through our own server, which rounds coordinates
+          (to about 1 km for forecasts and 100 m for place names) and keeps only short-lived request
+          logs for debugging (Cloudflare Workers Logs, deleted within days). Your browser asks
+          Open-Meteo for your home climate directly. If our server can't be reached, it also asks
+          Open-Meteo for the forecast and air quality and the US National Weather Service for alerts
+          directly.
         </li>
       </ul>
       <p>We do not keep a history of your locations or sell location data.</p>
