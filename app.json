@@ -123,7 +123,8 @@
           "organization": "noah-michaels",
           "project": "wheely-weather"
         }
-      ]
+      ],
+      "expo-background-task"
     ],
     "experiments": {
       "typedRoutes": true,

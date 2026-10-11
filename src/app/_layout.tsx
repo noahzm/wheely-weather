@@ -13,6 +13,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ColorSchemeOverrideContext } from '@/hooks/use-theme';
 import { SettingsProvider, useAppearance } from '@/hooks/settings-context';
 import { ForecastProvider } from '@/hooks/forecast-context';
+import { registerBackgroundRefresh } from '@/hooks/forecast/register-background-refresh';
 import { useWebDocumentTheme } from '@/hooks/use-web-document-theme';
 import { useWebScrollMemory } from '@/hooks/use-web-scroll-memory';
 import { initSentry, sentryEnabled } from '@/services/telemetry';
@@ -20,6 +21,8 @@ import { initSentry, sentryEnabled } from '@/services/telemetry';
 // Runs once at module load, before the first render — a no-op until
 // EXPO_PUBLIC_SENTRY_DSN is configured (see .env.example).
 initSentry();
+// iOS only: keeps the home screen widget on a recent forecast.
+registerBackgroundRefresh();
 
 function navigationTheme(isDark: boolean) {
   const base = isDark ? DarkTheme : DefaultTheme;
