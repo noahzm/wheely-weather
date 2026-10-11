@@ -1,4 +1,4 @@
-import { WET_ROADS_THRESHOLD } from './constants';
+import { RAIN_AMOUNT_MM, UV_GEAR, WET_ROADS_THRESHOLD } from './constants';
 import { GEAR_TIPS } from './copy';
 
 import type { GearSuggestion, GearTip, GearTipItem, HourlyWeather, Weather } from '@/types/weather';
@@ -8,6 +8,8 @@ interface RideWindow {
   maxTemp: number;
   maxWind: number;
   maxRain: number;
+  /** Heaviest expected hourly amount (mm); null if any hour lacks one. */
+  maxPrecip: number | null;
   maxDewpoint: number;
   maxUv: number;
 }
@@ -31,6 +33,9 @@ interface GearTipSet {
 }
 
 const RIDE_WINDOW_HOURS = 3;
+// Above this, even the coolest hour is hot: wind is relief, not a reason to pack
+// a windbreaker.
+const WINDBREAKER_MAX_TEMP = 80;
 
 /** The verdict's ride window, as local hours [start, end). */
 export interface RideHours {
@@ -48,11 +53,29 @@ function selectRideHours(weather: Weather, rideHours: RideHours | null): HourlyW
   return weather.hourly.filter((h) => h.hour >= rideHours.startHour && h.hour < rideHours.endHour);
 }
 
-/** Hours before the ride: the past, plus any forecast hours before a later window. */
-function selectHoursBeforeRide(weather: Weather, rideHours: RideHours | null): HourlyWeather[] {
-  if (!rideHours) return weather.pastHourly;
-  const startIndex = weather.hourly.findIndex((h) => h.hour === rideHours.startHour);
-  return [...weather.pastHourly, ...weather.hourly.slice(0, Math.max(startIndex, 0))];
+interface BeforeRide {
+  /** The last `WET_ROADS_THRESHOLD.RECENT_HOURS` hours before the ride starts. */
+  hours: HourlyWeather[];
+  /** How many hours from now the ride starts (0 when it starts now). */
+  hoursUntilRide: number;
+}
+
+/** The hours just before the ride: past hours, then any forecast hours before a later window. */
+function selectHoursBeforeRide(weather: Weather, rideHours: RideHours | null): BeforeRide {
+  const startIndex = rideHours
+    ? weather.hourly.findIndex((h) => h.hour === rideHours.startHour)
+    : 0;
+  const hoursUntilRide = Math.max(startIndex, 0);
+  const hours = [...weather.pastHourly, ...weather.hourly.slice(0, hoursUntilRide)].slice(
+    -WET_ROADS_THRESHOLD.RECENT_HOURS,
+  );
+  return { hours, hoursUntilRide };
+}
+
+/** The heaviest expected amount, or null when any hour lacks one (so it can't understate rain). */
+function maxPrecipitation(hours: { precipitation?: number | null }[]): number | null {
+  const amounts = hours.map((h) => h.precipitation);
+  return amounts.every((amount): amount is number => amount != null) ? Math.max(...amounts) : null;
 }
 
 function getRideWindow(weather: Weather, rideHours: RideHours | null): RideWindow {
@@ -75,6 +98,7 @@ function getRideWindow(weather: Weather, rideHours: RideHours | null): RideWindo
       upcoming.length > 0
         ? Math.max(...upcoming.map((h) => h.rainChance))
         : startConditions.rainChance,
+    maxPrecip: maxPrecipitation(upcoming.length > 0 ? upcoming : [startConditions]),
     maxDewpoint:
       upcoming.length > 0
         ? Math.max(...upcoming.map((h) => h.dewpoint ?? 0))
@@ -98,13 +122,20 @@ function getTemperatureTips(w: RideWindow, tipsSet: GearTipSet): GearTip[] {
   return tips;
 }
 
-function hasWetRoads(weather: Weather, w: RideWindow, before: HourlyWeather[]): boolean {
+function hasWetRoads(weather: Weather, w: RideWindow, before: BeforeRide): boolean {
   if (w.maxRain > 30) return false;
   const code = weather.weatherCode;
-  const isWetCode = code != null && [51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code);
-  // "Recent" rain means rain before the ride starts: the past hours, plus the
-  // forecast hours ahead of a later window (rain now, dry ride at noon).
-  const recentRain = before.some((h) => h.rainChance >= WET_ROADS_THRESHOLD.RECENT_RAIN_CHANCE);
+  // Rain falling now only wets a ride that starts within the lookback.
+  const isWetCode =
+    code != null &&
+    [51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code) &&
+    before.hoursUntilRide < WET_ROADS_THRESHOLD.RECENT_HOURS;
+  // "Recent" rain means rain in the hours just before the ride starts: the past
+  // hours, plus the forecast hours ahead of a later window (rain now, dry ride
+  // at noon).
+  const recentRain = before.hours.some(
+    (h) => h.rainChance >= WET_ROADS_THRESHOLD.RECENT_RAIN_CHANCE,
+  );
   return isWetCode || recentRain;
 }
 
@@ -113,18 +144,21 @@ function buildSupportingTips(
   w: RideWindow,
   tipsSet: GearTipSet,
   weather: Weather,
-  before: HourlyWeather[],
+  before: BeforeRide,
 ): GearTip[] {
   const tips: GearTip[] = [];
+  // A likely trace is a passing sprinkle, as the rating treats it: a light
+  // layer covers it, not a rain jacket.
+  const traceOnly = w.maxPrecip != null && w.maxPrecip < RAIN_AMOUNT_MM.TRACE;
 
   if (w.maxTemp - w.minTemp >= 15) tips.push(tipsSet.TEMP_SWING);
-  if (w.maxRain > 50) tips.push(tipsSet.RAIN_HIGH);
+  if (w.maxRain > 50 && !traceOnly) tips.push(tipsSet.RAIN_HIGH);
   else if (w.maxRain > 30) tips.push(tipsSet.RAIN_POSSIBLE);
   else if (hasWetRoads(weather, w, before) && tipsSet.WET_ROADS) tips.push(tipsSet.WET_ROADS);
 
-  if (w.maxWind > 15) tips.push(tipsSet.WINDY);
-  if (w.maxUv >= 8) tips.push(tipsSet.UV_EXTREME);
-  else if (w.maxUv >= 6) tips.push(tipsSet.UV_HIGH);
+  if (w.maxWind > 15 && w.minTemp <= WINDBREAKER_MAX_TEMP) tips.push(tipsSet.WINDY);
+  if (w.maxUv >= UV_GEAR.SUNGLASSES) tips.push(tipsSet.UV_EXTREME);
+  else if (w.maxUv >= UV_GEAR.SUNSCREEN) tips.push(tipsSet.UV_HIGH);
   if (w.maxDewpoint > 65) tips.push(tipsSet.MUGGY);
 
   return tips;
@@ -161,7 +195,7 @@ function getGearTips(
   w: RideWindow,
   tipsSet: GearTipSet,
   weather: Weather,
-  before: HourlyWeather[],
+  before: BeforeRide,
 ): GearSuggestion {
   const temperatureTips = getTemperatureTips(w, tipsSet);
   const supportingTips = buildSupportingTips(w, tipsSet, weather, before);

@@ -317,6 +317,92 @@ describe('Gear Suggestions', () => {
     });
   });
 
+  describe('wet roads only from recent rain', () => {
+    const hr = (hour: number, rainChance: number) =>
+      makeHour({ hour, temperature: 65, windSpeed: 5, rainChance, dewpoint: 50, uv: 0 });
+    // Showers at 8 PM, then dry overnight and all morning; ride 3–6 PM tomorrow.
+    const overnight = {
+      ...base,
+      rainChance: 60,
+      hourly: [hr(20, 60), ...Array.from({ length: 19 }, (_, i) => hr((21 + i) % 24, 0))],
+    };
+    const tomorrowAfternoon = { startHour: 15, endHour: 18 };
+    const fenders = /shoe covers or fenders|wet road shell/i;
+
+    it('ignores rain that ended many hours before the ride', () => {
+      expect(matchesItem(getGearSuggestion(overnight, 'pro', tomorrowAfternoon), fenders)).toBe(
+        false,
+      );
+    });
+
+    it('ignores rain falling now when the ride is much later', () => {
+      const rainingNow = { ...overnight, weatherCode: 61, hourly: overnight.hourly.slice(1) };
+      expect(matchesItem(getGearSuggestion(rainingNow, 'pro', tomorrowAfternoon), fenders)).toBe(
+        false,
+      );
+    });
+
+    it('still counts rain within a few hours of the ride', () => {
+      const lateShower = {
+        ...overnight,
+        hourly: overnight.hourly.map((h) => (h.hour === 12 ? { ...h, rainChance: 60 } : h)),
+      };
+      expect(matchesItem(getGearSuggestion(lateShower, 'pro', tomorrowAfternoon), fenders)).toBe(
+        true,
+      );
+    });
+  });
+
+  it('packs a light layer, not a rain jacket, for a likely trace', () => {
+    const trace = (precipitation: number | null) => ({
+      ...base,
+      rainChance: 70,
+      precipitation,
+      hourly: [
+        makeHour({
+          temperature: 72,
+          windSpeed: 5,
+          rainChance: 70,
+          precipitation,
+          dewpoint: 50,
+          uv: 0,
+        }),
+      ],
+    });
+    const sprinkle = getGearSuggestion(trace(0.1), 'casual');
+    expect(matchesItem(sprinkle, /rain jacket/i)).toBe(false);
+    expect(matchesItem(sprinkle, /quick-dry layer/i)).toBe(true);
+    // A real amount, or an unknown one, still calls for the jacket.
+    expect(matchesItem(getGearSuggestion(trace(1.5), 'casual'), /rain jacket/i)).toBe(true);
+    expect(matchesItem(getGearSuggestion(trace(null), 'casual'), /rain jacket/i)).toBe(true);
+  });
+
+  it('adds sunscreen from UV 3, and sunglasses from 8', () => {
+    const sunny = (uv: number) =>
+      getGearSuggestion(
+        {
+          ...base,
+          hourly: [makeHour({ temperature: 72, windSpeed: 5, rainChance: 0, dewpoint: 50, uv })],
+        },
+        'casual',
+      );
+    expect(matchesItem(sunny(2), /sunscreen/i)).toBe(false);
+    expect(matchesItem(sunny(4), /sunscreen/i)).toBe(true);
+    expect(matchesItem(sunny(4), /sunglasses/i)).toBe(false);
+    expect(matchesItem(sunny(8), /sunglasses/i)).toBe(true);
+  });
+
+  it('skips the windbreaker when even the coolest hour is hot', () => {
+    const windy = (temperature: number) => ({
+      ...base,
+      temperature,
+      windSpeed: 20,
+      hourly: [makeHour({ temperature, windSpeed: 20, rainChance: 0, dewpoint: 50, uv: 0 })],
+    });
+    expect(matchesItem(getGearSuggestion(windy(92), 'casual'), /windbreaker/i)).toBe(false);
+    expect(matchesItem(getGearSuggestion(windy(80), 'casual'), /windbreaker/i)).toBe(true);
+  });
+
   it('does not treat upcoming rain chance as wet roads', () => {
     const gear = getGearSuggestion(
       {

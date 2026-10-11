@@ -106,9 +106,18 @@ export const COLD_RAIN_HAZARD = {
   MIN_RAIN_CHANCE: 40,
 };
 
+// UV levels where the kit adds sun protection (WHO: protect from UV 3).
+export const UV_GEAR = {
+  SUNSCREEN: 3,
+  SUNGLASSES: 8,
+};
+
 // Thresholds for post-rain wet road spray detection.
 export const WET_ROADS_THRESHOLD = {
   RECENT_RAIN_CHANCE: 30,
+  // Only rain this many hours before the ride counts: roads dry, and without a
+  // limit last night's shower put fenders in the kit for tomorrow afternoon.
+  RECENT_HOURS: 6,
 };
 
 // Labels map 1:1 to the rating's real meaning. "Fair" remains distinct from
