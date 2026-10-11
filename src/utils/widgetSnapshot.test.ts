@@ -5,7 +5,9 @@ import type { ForecastSnapshot } from '@/services/forecastSnapshot';
 import { buildMockWeather } from '@/services/mockWeather';
 import { DEFAULT_EXPOSURE_LEVEL } from '@/types/settings';
 
-import { buildWidgetSnapshot, windowStartTime } from './widgetSnapshot';
+import { buildWeatherFromData, type OpenMeteoData } from '@/services/weatherParsing';
+
+import { buildWidgetSnapshot, upcomingForecasts, WIDGET_HOURS_AHEAD } from './widgetSnapshot';
 
 const FETCHED_AT = new Date('2026-09-23T14:00:00Z');
 
@@ -79,19 +81,11 @@ describe('buildWidgetSnapshot', () => {
   it('is not waiting on a plain ride day', () => {
     const widget = buildWidgetSnapshot(buildSnapshot('ride'), 'fahrenheit');
     expect(widget?.waiting).toBe(false);
-    expect(widget?.windowStarts).toBeNull();
   });
 
-  it('schedules the switch to the go verdict for when a waited-for window opens', () => {
-    // The wait mock's window opens three hours after the fetch hour.
-    const widget = buildWidgetSnapshot(buildSnapshot('wait'), 'fahrenheit');
-    expect(widget?.windowStarts).toMatchObject({
-      at: '2026-09-23T17:00:00.000Z',
-      detail: 'Mostly clear',
-      symbol: 'sun.max.fill',
-    });
-    // The plain ride-day headline, not "Wait till …".
-    expect(widget?.windowStarts?.headline).not.toMatch(/(AM|PM)$/);
+  it('has no upcoming verdicts without a raw forecast to re-rate', () => {
+    // Mocks, and snapshots restored from the disk cache, carry no payload.
+    expect(buildWidgetSnapshot(buildSnapshot('ride'), 'fahrenheit')?.upcoming).toEqual([]);
   });
 
   it('flags a forecast that follows the device location', () => {
@@ -115,21 +109,104 @@ describe('buildWidgetSnapshot', () => {
   });
 });
 
-describe('windowStartTime', () => {
-  const weather = buildMockWeather('ride');
-  if (!weather) throw new Error('mock weather fixture missing');
-  const fetchedAt = new Date('2026-09-23T14:25:00Z');
-  const firstHour = weather.hourly[0]?.hour ?? 0;
+/**
+ * A two-day forecast fetched at 2 PM (UTC, to keep times readable): raining
+ * through 3 PM, then dry. Sunset is 7 PM, so today's best window is 4–7 PM.
+ */
+function makeForecastData(hourCount = 36): OpenMeteoData {
+  const time = Array.from({ length: hourCount }, (_, i) => {
+    const date = new Date(Date.UTC(2026, 8, 23, 14 + i));
+    return date.toISOString().slice(0, 16);
+  });
+  const raining = (i: number) => i < 2;
+  return {
+    utc_offset_seconds: 0,
+    current: {
+      time: '2026-09-23T14:00',
+      temperature_2m: 66,
+      apparent_temperature: 66,
+      wind_speed_10m: 5,
+      wind_gusts_10m: 8,
+      dewpoint_2m: 50,
+      weather_code: 63,
+      wind_direction_10m: 180,
+    },
+    hourly: {
+      time,
+      temperature_2m: time.map(() => 68),
+      apparent_temperature: time.map(() => 68),
+      wind_speed_10m: time.map(() => 5),
+      wind_gusts_10m: time.map(() => 8),
+      precipitation_probability: time.map((_, i) => (raining(i) ? 95 : 0)),
+      precipitation: time.map((_, i) => (raining(i) ? 3 : 0)),
+      weather_code: time.map((_, i) => (raining(i) ? 63 : 1)),
+      dewpoint_2m: time.map(() => 50),
+      uv_index: time.map(() => 3),
+    },
+    daily: {
+      time: ['2026-09-23', '2026-09-24'],
+      sunrise: ['2026-09-23T07:00', '2026-09-24T07:00'],
+      sunset: ['2026-09-23T19:00', '2026-09-24T19:00'],
+      apparent_temperature_max: [70, 70],
+      temperature_2m_max: [70, 70],
+      temperature_2m_min: [55, 55],
+      wind_speed_10m_max: [8, 8],
+      wind_gusts_10m_max: [12, 12],
+      precipitation_probability_max: [95, 0],
+      weather_code: [63, 1],
+      uv_index_max: [5, 5],
+    },
+  };
+}
 
-  it('counts hours from the top of the fetch hour', () => {
-    const inTwo = (firstHour + 2) % 24;
-    expect(windowStartTime(weather, inTwo, fetchedAt)?.toISOString()).toBe(
-      '2026-09-23T16:00:00.000Z',
-    );
+function snapshotFromForecast(data: OpenMeteoData, aqi: number | null = null): ForecastSnapshot {
+  const weather = { ...buildWeatherFromData(data, THRESHOLDS), aqi };
+  return { ...buildSnapshot('ride'), weather, forecastData: data };
+}
+
+describe('upcoming verdicts', () => {
+  it('rates each of the next hours, starting at the top of each hour', () => {
+    const widget = buildWidgetSnapshot(snapshotFromForecast(makeForecastData()), 'fahrenheit');
+    expect(widget?.upcoming).toHaveLength(WIDGET_HOURS_AHEAD);
+    expect(widget?.upcoming[0]?.at).toBe('2026-09-23T15:00:00.000Z');
+    expect(widget?.upcoming.at(-1)?.at).toBe('2026-09-24T02:00:00.000Z');
   });
 
-  it('is null for a window already open or not in the hourly data', () => {
-    expect(windowStartTime(weather, firstHour, fetchedAt)).toBeNull();
-    expect(windowStartTime({ ...weather, hourly: [] }, 12, fetchedAt)).toBeNull();
+  it('switches from waiting to go once the dry window opens', () => {
+    const widget = buildWidgetSnapshot(snapshotFromForecast(makeForecastData()), 'fahrenheit');
+    expect(widget).toMatchObject({ status: 'yes', waiting: true });
+    expect(widget?.headline).toMatch(/4 PM$/);
+    // Still raining at 3 PM; the window opens at 4.
+    expect(widget?.upcoming[0]).toMatchObject({ waiting: true });
+    expect(widget?.upcoming[1]).toMatchObject({
+      at: '2026-09-23T16:00:00.000Z',
+      status: 'yes',
+      waiting: false,
+      symbol: 'sun.max.fill',
+    });
+    expect(widget?.upcoming[1]?.headline).not.toMatch(/(AM|PM)$/);
+  });
+
+  it("moves on to tomorrow's window after sunset", () => {
+    const widget = buildWidgetSnapshot(snapshotFromForecast(makeForecastData()), 'fahrenheit');
+    // 8 PM: no daylight left today.
+    expect(widget?.upcoming[5]?.detail).toMatch(/^Tomorrow/);
+  });
+
+  it('counts the new date as today after midnight', () => {
+    const widget = buildWidgetSnapshot(snapshotFromForecast(makeForecastData()), 'fahrenheit');
+    // 1 AM: the 7–10 AM window is today's now, not tomorrow's.
+    expect(widget?.upcoming[10]?.at).toBe('2026-09-24T01:00:00.000Z');
+    expect(widget?.upcoming[10]?.detail).toBe('Best 7 AM–10 AM');
+  });
+
+  it("carries today's AQI into the hours ahead", () => {
+    const upcoming = upcomingForecasts(snapshotFromForecast(makeForecastData(), 160));
+    expect(upcoming[0]?.weather.aqi).toBe(160);
+  });
+
+  it('stops where the hourly data ends', () => {
+    const upcoming = upcomingForecasts(snapshotFromForecast(makeForecastData(5)));
+    expect(upcoming).toHaveLength(4);
   });
 });

@@ -3,6 +3,7 @@ import {
   buildWeatherFromData,
   fetchOpenMeteoData,
   fetchWeatherExtras,
+  type OpenMeteoData,
 } from '@/services/weatherService';
 import { fetchLocationName } from '@/services/locationGeocoding';
 import { buildMockWeather, getMockLocationLabel } from '@/services/mockWeather';
@@ -33,6 +34,12 @@ export interface ForecastSnapshot {
   mockScenario: string | null;
   source: 'manual' | 'device' | 'mock';
   acclimatization: AcclimatizationContext;
+  /**
+   * The payload `weather` was parsed from, so the widget can rate the hours
+   * ahead (`forecastFromHour`). Memory only: the disk cache doesn't store it,
+   * and mocks have none.
+   */
+  forecastData?: OpenMeteoData;
 }
 
 interface ForecastSnapshotResult {
@@ -132,6 +139,7 @@ export async function getForecastSnapshot({
       mockScenario,
       source: savedLocation.source,
       acclimatization: { homeBaseline, thresholds, exposureLevel },
+      forecastData: data,
     },
     extras,
   };

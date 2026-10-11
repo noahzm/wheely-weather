@@ -434,6 +434,59 @@ function mergeNowObservation(
   return [merged, ...hourly.slice(1)];
 }
 
+/** The daily series from `start` on, every array cut alike. */
+function dailyFrom(daily: OpenMeteoDaily, start: number): OpenMeteoDaily {
+  if (start <= 0) return daily;
+  return Object.fromEntries(
+    Object.entries(daily).map(([key, values]) => [key, (values as unknown[]).slice(start)]),
+  ) as unknown as OpenMeteoDaily;
+}
+
+/**
+ * The payload as it reads `hoursAhead` hours after it was fetched: that hour's
+ * forecast stands in for the observation, so `buildWeatherFromData` rates it
+ * as "now", with today's ride window chosen from the hours still left then.
+ * Past midnight, the days already over are dropped, so the new date reads as
+ * today rather than tomorrow.
+ * The home screen widget steps through these, since it can't fetch or rate a
+ * forecast itself. Null when the hourly data doesn't reach that far.
+ */
+export function forecastFromHour(data: OpenMeteoData, hoursAhead: number): OpenMeteoData | null {
+  const { current, hourly } = data;
+  if (!current) return null;
+  const nowIdx = hourly.time.indexOf(
+    toHourlyTimeKey(current.time) ?? currentHourStrForLocation(data),
+  );
+  if (nowIdx === -1) return null;
+  const i = nowIdx + hoursAhead;
+  const time = hourly.time[i];
+  const temperature = hourly.temperature_2m[i];
+  const feelsLike = hourly.apparent_temperature[i];
+  const wind = hourly.wind_speed_10m[i];
+  const code = hourly.weather_code[i];
+  if (time == null || temperature == null || feelsLike == null || wind == null || code == null) {
+    return null;
+  }
+  const today = time.slice(0, 10);
+  const firstDay = data.daily.time.findIndex((date) => date >= today);
+  return {
+    ...data,
+    daily: dailyFrom(data.daily, firstDay === -1 ? data.daily.time.length : firstDay),
+    current: {
+      time,
+      temperature_2m: temperature,
+      apparent_temperature: feelsLike,
+      wind_speed_10m: wind,
+      wind_gusts_10m: hourly.wind_gusts_10m?.[i] ?? null,
+      // A source may omit an hour's dewpoint; the observation's is the nearest reading.
+      dewpoint_2m: hourly.dewpoint_2m[i] ?? current.dewpoint_2m,
+      weather_code: code,
+      // Hourly forecasts carry no wind direction.
+      wind_direction_10m: null,
+    },
+  };
+}
+
 /**
  * Assembles the unified weather object used by the UI from a raw Open-Meteo
  * (or WeatherKit, reshaped by weatherService.ios.ts) payload, rating conditions

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { THRESHOLDS } from '../domain/constants';
 
+import { forecastFromHour } from './weatherParsing';
 import { buildWeatherFromData, type OpenMeteoData } from './weatherService';
 
 // This covers the Open-Meteo parsing layer inside buildWeatherFromData —
@@ -558,5 +559,66 @@ describe('buildWeatherFromData — daylight (sunrise/sunset) extraction', () => 
     const weather = buildWeatherFromData(data, THRESHOLDS);
 
     expect(weather.daylight).toBeNull();
+  });
+});
+
+describe('forecastFromHour', () => {
+  const dayHours = Array.from({ length: 24 }, (_, i) => hourTime('2024-01-15', i));
+  const data = makeOpenMeteoData({
+    hourly: {
+      time: dayHours,
+      // Mild mornings, chilly afternoons: the morning is the day's best ride.
+      temperature_2m: dayHours.map((_, i) => (i < 12 ? 66 + (i % 3) : 45)),
+      dewpoint_2m: dayHours.map((_, i) => (i === 9 ? null : 30 + i)),
+    },
+  });
+
+  it("puts that hour's forecast in place of the observation", () => {
+    const shifted = forecastFromHour(data, 3);
+    expect(shifted?.current).toMatchObject({
+      time: hourTime('2024-01-15', 5),
+      temperature_2m: 68,
+      dewpoint_2m: 35,
+      wind_gusts_10m: 8,
+      wind_direction_10m: null,
+    });
+    // The rest of the payload is untouched.
+    expect(shifted?.hourly).toBe(data.hourly);
+  });
+
+  it("keeps the observation's dewpoint where the hour has none", () => {
+    expect(forecastFromHour(data, 7)?.current?.dewpoint_2m).toBe(45);
+  });
+
+  it('rates that hour as now, with the ride window from the hours left then', () => {
+    expect(buildWeatherFromData(data, THRESHOLDS).daily[0]?.rideWindow?.startHour).toBeLessThan(14);
+    const shifted = forecastFromHour(data, 12);
+    if (!shifted) throw new Error('expected a shifted payload');
+    const weather = buildWeatherFromData(shifted, THRESHOLDS);
+    expect(weather.hourly[0]?.hour).toBe(14);
+    expect(weather.temperature).toBe(45);
+    expect(weather.daily[0]?.rideWindow?.startHour).toBeGreaterThanOrEqual(14);
+  });
+
+  it('drops the days already over once the hour passes midnight', () => {
+    const twoDays = makeOpenMeteoData({
+      hourly: {
+        time: [...dayHours, ...Array.from({ length: 24 }, (_, i) => hourTime('2024-01-16', i))],
+      },
+      daily: { time: ['2024-01-15', '2024-01-16'], temperature_2m_max: [68, 50] },
+    });
+    const shifted = forecastFromHour(twoDays, 23);
+    expect(shifted?.current?.time).toBe(hourTime('2024-01-16', 1));
+    expect(shifted?.daily.time).toEqual(['2024-01-16']);
+    expect(shifted?.daily.temperature_2m_max).toEqual([50]);
+    // The same day stays whole.
+    expect(forecastFromHour(twoDays, 3)?.daily).toBe(twoDays.daily);
+  });
+
+  it('is null past the hourly data, or without a current hour to count from', () => {
+    expect(forecastFromHour(data, 22)).toBeNull();
+    expect(forecastFromHour({ ...data, current: undefined }, 1)).toBeNull();
+    const unknownNow = makeOpenMeteoData({ current: { time: '2030-01-01T00:00' } });
+    expect(forecastFromHour(unknownNow, 1)).toBeNull();
   });
 });

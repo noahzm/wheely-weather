@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 
 import { useResolvedTempUnit } from '@/hooks/settings-context';
 import type { ForecastSnapshot } from '@/services/forecastSnapshot';
@@ -11,12 +12,13 @@ import { buildWidgetSnapshot } from '@/utils/widgetSnapshot';
  * snapshot (its weather and its own location label), never paired with
  * `savedLocation`, so a mid-switch render can't mislabel it. Mock previews are
  * dropped by `buildWidgetSnapshot`. Re-runs on unit changes so the widget
- * follows the setting.
+ * follows the setting. iOS only: no other platform has a widget, and the
+ * payload re-rates the forecast for each hour ahead.
  */
 export function useWidgetSync(snapshot: ForecastSnapshot | null): void {
   const tempUnit = useResolvedTempUnit();
   useEffect(() => {
-    if (!snapshot) return;
+    if (Platform.OS !== 'ios' || !snapshot) return;
     const widget = buildWidgetSnapshot(snapshot, tempUnit);
     if (widget) publishWidgetSnapshot(widget);
   }, [snapshot, tempUnit]);

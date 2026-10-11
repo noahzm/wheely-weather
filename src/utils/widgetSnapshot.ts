@@ -2,21 +2,19 @@ import {
   formatIssuesAsSentence,
   getRideVerdict,
   getRideVerdictLabel,
-  getVerdictLabel,
   type RideVerdict,
 } from '@/domain';
+import { applyAirQualityToToday } from '@/domain/air-quality';
+import type { Thresholds } from '@/domain/constants';
 import type { ForecastSnapshot } from '@/services/forecastSnapshot';
+import { buildWeatherFromData, forecastFromHour } from '@/services/weatherParsing';
 import type { Condition, RideStatus, Weather } from '@/types/weather';
 
 import { formatTemperature, type TempUnit } from './temperature';
 import { weatherSfSymbol } from './weatherSymbols';
 
-/**
- * What the iOS home screen widget shows. The widget can't run the TypeScript
- * scoring, so the app rates the forecast and hands over display-ready strings.
- * Field names are decoded by `targets/widget/WheelyWidget.swift` — keep in sync.
- */
-export interface WidgetSnapshot {
+/** One verdict as the widget shows it. */
+interface WidgetVerdict {
   status: RideStatus;
   /** The rating behind `status`, so the widget's color matches the card. */
   condition: Condition;
@@ -24,42 +22,38 @@ export interface WidgetSnapshot {
   detail: string;
   temperature: string;
   symbol: string;
-  location: string;
   /** Bad now but good later today, so the widget uses the wait color. */
   waiting: boolean;
+}
+
+/** A verdict the widget switches to at `at` (ISO 8601). */
+export interface UpcomingVerdict extends WidgetVerdict {
+  at: string;
+}
+
+/**
+ * What the iOS home screen widget shows. The widget can't run the TypeScript
+ * scoring, so the app rates the forecast and hands over display-ready strings.
+ * Field names are decoded by `targets/widget/WheelyWidget.swift` — keep in sync.
+ */
+export interface WidgetSnapshot extends WidgetVerdict {
+  location: string;
   /** Following the device's location, so the widget shows the location arrow. */
   isCurrentLocation: boolean;
   /** When the forecast was fetched (ISO 8601), so the widget can flag stale data. */
   updatedAt: string;
   /**
-   * While waiting: when the window opens and what to show from then on. The
-   * widget only updates when the app runs, so without this "Wait till 12 PM"
-   * would still be up at 2 PM.
+   * The verdict for each of the next hours, rated from this same forecast as
+   * the app would rate it then. The widget only updates when the app runs, so
+   * without these a morning check left it gray from mid-morning on. Empty for a
+   * snapshot restored from disk, which has no raw forecast to re-rate.
    */
-  windowStarts: WindowStart | null;
+  upcoming: UpcomingVerdict[];
 }
 
-interface WindowStart {
-  /** ISO 8601. */
-  at: string;
-  headline: string;
-  detail: string;
-  symbol: string;
-}
-
-/**
- * When the window opens, as an absolute time. `hourly[0]` is the hour the
- * forecast was fetched in (the location's local time), so the window opens that
- * many hours after the top of the fetch hour. Exact for whole-hour UTC offsets;
- * a half-hour zone could be 30 minutes off, which the widget tolerates.
- */
-export function windowStartTime(weather: Weather, startHour: number, fetchedAt: Date): Date | null {
-  const hoursAhead = weather.hourly.findIndex((h) => h.hour === startHour);
-  if (hoursAhead <= 0) return null;
-  const topOfHour = new Date(fetchedAt);
-  topOfHour.setMinutes(0, 0, 0);
-  return new Date(topOfHour.getTime() + hoursAhead * 60 * 60 * 1000);
-}
+/** How many hours ahead the widget's timeline reaches. */
+export const WIDGET_HOURS_AHEAD = 12;
+const HOUR_MS = 60 * 60 * 1000;
 
 /** The one line of reasoning a small widget has room for. */
 function widgetDetail(verdict: RideVerdict): string {
@@ -75,21 +69,51 @@ function widgetDetail(verdict: RideVerdict): string {
     : formatIssuesAsSentence(message.issues) || message.lead;
 }
 
-/** What the widget switches to once a waited-for window opens: the go-now verdict. */
-function buildWindowStart(verdict: RideVerdict, snapshot: ForecastSnapshot): WindowStart | null {
-  if (verdict.when !== 'wait' || !verdict.window) return null;
-  const at = windowStartTime(snapshot.weather, verdict.window.startHour, snapshot.lastUpdated);
-  if (!at) return null;
-  const { status, rated } = verdict;
+function buildVerdict(
+  weather: Weather,
+  location: string,
+  thresholds: Thresholds,
+  tempUnit: TempUnit,
+): WidgetVerdict {
+  const verdict = getRideVerdict(weather, thresholds, tempUnit);
   return {
-    at: at.toISOString(),
-    headline: getVerdictLabel(status, snapshot.location),
-    detail:
-      status === 'yes'
-        ? rated.condition
-        : formatIssuesAsSentence(verdict.message.issues) || verdict.message.lead,
-    symbol: weatherSfSymbol(rated.weatherCode),
+    status: verdict.status,
+    condition: verdict.condition,
+    headline: getRideVerdictLabel(verdict, location),
+    detail: widgetDetail(verdict),
+    temperature: formatTemperature(weather.temperature, tempUnit),
+    symbol: weatherSfSymbol(verdict.weatherCode),
+    waiting: verdict.when === 'wait',
   };
+}
+
+/**
+ * The snapshot's forecast as it will read at each of the next `hours` hours
+ * (`forecastFromHour`), with today's AQI carried over as the snapshot has it.
+ * Entry `k` starts `k` hours after the top of the fetch hour: exact for
+ * whole-hour UTC offsets, up to 30 minutes off in a half-hour zone.
+ */
+export function upcomingForecasts(
+  snapshot: ForecastSnapshot,
+  hours: number = WIDGET_HOURS_AHEAD,
+): { at: Date; weather: Weather }[] {
+  const data = snapshot.forecastData;
+  if (!data) return [];
+  const { thresholds } = snapshot.acclimatization;
+  const { aqi, nwsAlerts } = snapshot.weather;
+  const topOfHour = new Date(snapshot.lastUpdated);
+  topOfHour.setMinutes(0, 0, 0);
+  const upcoming: { at: Date; weather: Weather }[] = [];
+  for (let k = 1; k <= hours; k++) {
+    const later = forecastFromHour(data, k);
+    if (!later) break;
+    const weather = applyAirQualityToToday(
+      { ...buildWeatherFromData(later, thresholds), aqi, nwsAlerts },
+      thresholds,
+    );
+    upcoming.push({ at: new Date(topOfHour.getTime() + k * HOUR_MS), weather });
+  }
+  return upcoming;
 }
 
 /** Builds the widget payload, mirroring the home screen's verdict card. Mock previews return null. */
@@ -100,19 +124,14 @@ export function buildWidgetSnapshot(
   if (snapshot.mockScenario) return null;
   const { weather, location } = snapshot;
   const { thresholds } = snapshot.acclimatization;
-  const verdict = getRideVerdict(weather, thresholds, tempUnit);
-  const { status } = verdict;
   return {
-    status,
-    condition: verdict.condition,
-    headline: getRideVerdictLabel(verdict, location),
-    waiting: verdict.when === 'wait',
-    detail: widgetDetail(verdict),
-    temperature: formatTemperature(weather.temperature, tempUnit),
-    symbol: weatherSfSymbol(verdict.weatherCode),
+    ...buildVerdict(weather, location, thresholds, tempUnit),
     location,
     isCurrentLocation: snapshot.isDeviceLocation,
     updatedAt: snapshot.lastUpdated.toISOString(),
-    windowStarts: buildWindowStart(verdict, snapshot),
+    upcoming: upcomingForecasts(snapshot).map(({ at, weather: later }) => ({
+      at: at.toISOString(),
+      ...buildVerdict(later, location, thresholds, tempUnit),
+    })),
   };
 }
