@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { buildMockWeather } from '../../services/mockWeather';
 import { THRESHOLDS } from '../../domain/constants';
 
-import { mergeExtrasWhenReady } from './merge-extras';
+import { applyExtras, mergeExtrasWhenReady } from './merge-extras';
 
 import type { ForecastSnapshot } from '@/services/forecastSnapshot';
 import type { ForecastExtras } from '@/types/weather';
@@ -108,5 +108,21 @@ describe('mergeExtrasWhenReady', () => {
     expect(merged).toHaveLength(1);
     expect(merged[0]?.weather.aqi).toBe(42);
     expect(updaters[0]?.(buildState(snapshot)).snapshot).toBe(merged[0]);
+  });
+});
+
+describe('applyExtras', () => {
+  it('returns null for an empty or missing patch', () => {
+    const snapshot = buildSnapshot();
+    expect(applyExtras(snapshot, null)).toBeNull();
+    expect(applyExtras(snapshot, { aqi: null, nwsAlerts: [] })).toBeNull();
+  });
+
+  it('patches the extras into a copy, leaving the original alone', () => {
+    const snapshot = buildSnapshot();
+    const merged = applyExtras(snapshot, { aqi: 42, nwsAlerts: [] });
+    expect(merged?.weather.aqi).toBe(42);
+    expect(merged?.location).toBe('Portland');
+    expect(snapshot.weather.aqi).not.toBe(42);
   });
 });
