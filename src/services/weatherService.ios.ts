@@ -9,10 +9,12 @@
 // The module returns null until a native rebuild links it — forecasts are
 // unavailable in that state (no Open-Meteo fallback), matching how
 // locationSearch.ios.ts treats MapKit search.
+import { AppState } from 'react-native';
+
 import AppleWeatherKitModule from '../../modules/apple-weatherkit/src/AppleWeatherKitModule';
 import { type Thresholds } from '../domain/constants';
 import { weatherKitConditionToWmoCode } from '../domain/weatherkit-codes';
-import { withTimeout } from './http';
+import { REQUEST_TIMEOUT_ERROR, withTimeout } from './http';
 import { captureError, traceAsync } from './telemetry';
 import { mapWeatherKitAlert } from './weatherkitAlertMapping';
 import { fetchAqi, FORECAST_FETCH_TIMEOUT_MS } from './weatherFetch';
@@ -100,7 +102,13 @@ async function fetchWeatherKitAlerts(lat: number, lon: number): Promise<WeatherA
     );
     return alerts.map((alert) => mapWeatherKitAlert(alert));
   } catch (error) {
-    captureError(error, { where: 'fetchWeatherKitAlerts' });
+    // A refresh cut short by backgrounding fires its timer only when iOS next
+    // wakes the app, often hours later; that isn't a slow request.
+    const suspended =
+      error instanceof Error &&
+      error.message === REQUEST_TIMEOUT_ERROR &&
+      AppState.currentState !== 'active';
+    if (!suspended) captureError(error, { where: 'fetchWeatherKitAlerts' });
     return [];
   }
 }
