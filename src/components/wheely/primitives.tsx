@@ -538,11 +538,15 @@ export function Chip({
   );
 }
 
-/** A rating pill; without a `condition` it's a neutral grey pill that rates nothing. */
+/**
+ * A rating pill; without a `condition` it's a neutral grey pill that rates nothing.
+ * `large` sets a fixed minimum width so a column of pills lines up.
+ */
 export function ConditionPill({
   condition,
+  large = false,
   children,
-}: Readonly<{ condition?: Condition; children: string }>) {
+}: Readonly<{ condition?: Condition; large?: boolean; children: string }>) {
   const c = useWheelyColors();
   const colors = condition
     ? c.condition[condition]
@@ -554,11 +558,12 @@ export function ConditionPill({
         borderRadius: Radius.none,
         backgroundColor: colors.bg,
         paddingHorizontal: 7,
-        paddingVertical: 3,
+        paddingVertical: large ? 4 : 3,
+        ...(large ? { minWidth: 56, alignItems: 'center' as const } : null),
       }}
     >
       <ThemedText
-        type="micro"
+        type={large ? 'small' : 'micro'}
         style={{
           color: colors.ink,
         }}

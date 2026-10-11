@@ -65,8 +65,10 @@ function makeStyles(c: WheelyPalette, scheme: 'light' | 'dark' = 'light') {
       alignItems: 'center',
       gap: Spacing.two,
     },
-    // Fits "Tomorrow"; the label shrinks a little on the narrowest phones.
-    dayLabelCell: { width: 98 },
+    // Fits "Tomorrow"; the label shrinks a little on the narrowest phones. The
+    // best-bet tag sits under the day name, so no column gives up width for it.
+    dayLabelCell: { width: 98, gap: Spacing.half },
+    bestTag: { paddingHorizontal: 6, paddingVertical: 1 },
     dayLabel: {
       color: c.ink,
       fontFamily: Fonts.bold,
@@ -74,16 +76,18 @@ function makeStyles(c: WheelyPalette, scheme: 'light' | 'dark' = 'light') {
       ...Type.body,
     },
     weatherGlyph: { width: 22, alignItems: 'center' },
+    // Body size, not heading: the rating, not the temperature, leads the row.
     dayTemp: {
       color: c.ink,
-      width: 82,
       fontFamily: Fonts.bold,
       fontWeight: FontWeightBlack,
-      ...Type.heading,
+      ...Type.body,
       ...(Platform.OS === 'web' ? ({ whiteSpace: 'nowrap' } as object) : null),
     },
     dayLow: { color: c.mutedInk, fontSize: Type.small.fontSize },
-    daySpacer: { flex: 1 },
+    // The ratings form a column at the right, beside the chevron. Pushed there by
+    // its margin; a spacer view would cost the row another gap.
+    ratingCell: { marginLeft: 'auto' },
     chevronWrap: {
       width: 16,
       alignItems: 'center',
@@ -261,6 +265,13 @@ function DayRow({
             >
               {dayLabel(day.date, index)}
             </ThemedText>
+            {best ? (
+              <View accessibilityRole="text" accessibilityLabel="Best bet">
+                <Chip accent style={styles.bestTag}>
+                  Best bet
+                </Chip>
+              </View>
+            ) : null}
           </View>
           <View style={styles.weatherGlyph}>
             {Platform.OS === 'ios' ? (
@@ -277,17 +288,16 @@ function DayRow({
             {formatTemp(day.high)}
             <ThemedText style={styles.dayLow}>/{formatTemp(day.low)}</ThemedText>
           </ThemedText>
-          {dayDone ? (
-            <ConditionPill>{DAYLIGHT_MESSAGES.DAY_DONE}</ConditionPill>
-          ) : (
-            <ConditionPill condition={condition}>{CONDITION_DISPLAY[condition]}</ConditionPill>
-          )}
-          <View style={styles.daySpacer} />
-          {best ? (
-            <View accessibilityRole="text" accessibilityLabel="Best bet">
-              <Chip accent>Best</Chip>
-            </View>
-          ) : null}
+          {/* The pill aligns itself to the top; this wrapper lets the row center it. */}
+          <View style={styles.ratingCell}>
+            {dayDone ? (
+              <ConditionPill large>{DAYLIGHT_MESSAGES.DAY_DONE}</ConditionPill>
+            ) : (
+              <ConditionPill condition={condition} large>
+                {CONDITION_DISPLAY[condition]}
+              </ConditionPill>
+            )}
+          </View>
           <View style={styles.chevronWrap}>
             {Platform.OS === 'ios' ? (
               <SymbolView
