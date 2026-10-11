@@ -75,21 +75,8 @@ const collectMessageIssues = (
   };
 
   const temp = formatTemperature(weather.temperature, tempUnit, { withUnitLabel: true });
-  addIssue(weather.temperature, 'temperature', (tier) =>
-    isColdTemp(weather.temperature)
-      ? ISSUE_PHRASES.COLD(temp, tier)
-      : ISSUE_PHRASES.HEAT(temp, tier),
-  );
-  const gustDriven = isGustDriven(weather.windSpeed, weather.windGust);
-  addIssue(
-    weather.windSpeed,
-    'windSpeed',
-    (tier) =>
-      gustDriven
-        ? ISSUE_PHRASES.GUSTS(Math.round(weather.windGust ?? weather.windSpeed), tier)
-        : ISSUE_PHRASES.WIND(Math.round(weather.windSpeed), tier),
-    evaluateWind(weather.windSpeed, weather.windGust, thresholds),
-  );
+  // Rain leads among equally rated issues: it's what riders plan around, and
+  // the card's icon often shows it.
   const coldRainCondition = evaluateColdRainHazard(
     weather.temperature,
     weather.rainChance,
@@ -110,6 +97,21 @@ const collectMessageIssues = (
       evaluateRain(weather.rainChance, weather.precipitation, thresholds),
     );
   }
+  addIssue(weather.temperature, 'temperature', (tier) =>
+    isColdTemp(weather.temperature)
+      ? ISSUE_PHRASES.COLD(temp, tier)
+      : ISSUE_PHRASES.HEAT(temp, tier),
+  );
+  const gustDriven = isGustDriven(weather.windSpeed, weather.windGust);
+  addIssue(
+    weather.windSpeed,
+    'windSpeed',
+    (tier) =>
+      gustDriven
+        ? ISSUE_PHRASES.GUSTS(Math.round(weather.windGust ?? weather.windSpeed), tier)
+        : ISSUE_PHRASES.WIND(Math.round(weather.windSpeed), tier),
+    evaluateWind(weather.windSpeed, weather.windGust, thresholds),
+  );
   const weatherCodeIssue = getWeatherCodeIssue(weather.weatherCode, status);
   const precipitationAlreadyExplainsWeather =
     weatherCodeIssue &&
@@ -129,7 +131,8 @@ const collectMessageIssues = (
   }
   // Worst first, so the issue that set the rating leads: a "maybe" set by a
   // muggy dew point read "Warm…, breezy…, rain possible…, muggy…, and moderate
-  // air quality…". The sort is stable, so equal ratings keep the order above.
+  // air quality…". The sort is stable, so equal ratings keep the order above:
+  // rain, temperature, wind, sky, dew point, air.
   return [...issues]
     .sort((a, b) => RANK[a.rating] - RANK[b.rating])
     .slice(0, MAX_MESSAGE_ISSUES)

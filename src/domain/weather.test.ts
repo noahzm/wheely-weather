@@ -329,7 +329,7 @@ describe('Hourly Message Logic', () => {
     // 48°F rates `fair` (the 40-50 band), so it is phrased "Cool". The hero used
     // to collapse fair->marginal and overstate it as "Chilly" while the hourly
     // drawer said "Cool" for the same rating; both now share `issuePhraseTier`.
-    expect(message.issues).toEqual(['Cool (48°F)', 'Breezy (13 mph)', 'Rain possible (35%)']);
+    expect(message.issues).toEqual(['Rain possible (35%)', 'Cool (48°F)', 'Breezy (13 mph)']);
   });
 
   it('names only the three worst issues when a day stacks up many of them', () => {
@@ -362,7 +362,8 @@ describe('Hourly Message Logic', () => {
       daily: [],
     });
     const { issues } = getMessage(weather, 'maybe');
-    expect(issues).toEqual(['Muggy (dew 70°F)', 'Warm (80°F)', 'Breezy (12 mph)']);
+    // Rain leads the equally rated issues.
+    expect(issues).toEqual(['Muggy (dew 70°F)', 'Rain possible (31%)', 'Warm (80°F)']);
   });
 
   it('phrases a single rain issue naturally', () => {
