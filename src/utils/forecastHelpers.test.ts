@@ -228,7 +228,7 @@ describe('getHourConditionReasons', () => {
 
   it('names air quality when it set the hour rating', () => {
     expect(getHourConditionReasons(hour({ condition: 'poor', aqi: 160 }))).toEqual([
-      'Poor air (AQI 160)',
+      'Unhealthy air (AQI 160)',
     ]);
   });
 
@@ -335,7 +335,7 @@ describe('getHourConditionReasons', () => {
       getHourConditionReasons(
         hour({ condition: 'bad', temperature: 35, rainChance: 80, weatherCode: 65 }),
       ),
-    ).toEqual(['Freezing rain risk (35°F, 80%)']);
+    ).toEqual(['Near-freezing rain (35°F, 80%)']);
 
     // When rain expected (80%) is present, generic heavy rain code is suppressed
     expect(

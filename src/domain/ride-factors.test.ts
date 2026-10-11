@@ -195,7 +195,7 @@ describe('getMessage', () => {
       daily: [],
     } as unknown as Weather;
     const msg = getMessage(weather, 'no').issues.join(' ');
-    expect(msg).toMatch(/Freezing rain risk|Cold rain risk/i);
+    expect(msg).toMatch(/Near-freezing rain|Cold rain risk/i);
   });
 });
 

@@ -1,3 +1,6 @@
+import { THRESHOLDS, type Thresholds } from '../domain/constants';
+import { evaluateCondition } from '../domain/scoring';
+
 import type { Condition } from '@/types/weather';
 
 // Human-friendly labels for weather metrics used in the UI.
@@ -13,14 +16,26 @@ export const getAqiLabel = (aqi: number | null | undefined): string => {
   return 'Hazardous';
 };
 
-/** Returns comfort description for a dew point temperature (°F). */
-export const getDewpointLabel = (dp: number | null | undefined): string => {
+const DEWPOINT_LABELS: Record<Condition, string> = {
+  good: 'Comfortable',
+  fair: 'Humid',
+  marginal: 'Muggy',
+  poor: 'Very humid',
+  bad: 'Oppressive',
+};
+
+/**
+ * Comfort word for a dew point (°F), from its rating under `thresholds`: the
+ * same bands and words as the verdict's humidity phrases, so the card can't
+ * say "Oppressive" beside a verdict that says "Humid".
+ */
+export const getDewpointLabel = (
+  dp: number | null | undefined,
+  thresholds: Thresholds = THRESHOLDS,
+): string => {
   if (dp == null) return '–';
-  if (dp < 50) return 'Dry';
-  if (dp < 60) return 'Comfortable';
-  if (dp < 65) return 'Noticeable';
-  if (dp < 70) return 'Muggy';
-  return 'Oppressive';
+  const rating = evaluateCondition(dp, 'dewpoint', thresholds);
+  return rating === 'good' && dp < 50 ? 'Dry' : DEWPOINT_LABELS[rating];
 };
 
 /** Converts compass wind direction degrees (0–360) to 8-point cardinal label (e.g. 'NE'). */

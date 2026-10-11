@@ -97,13 +97,18 @@ export const WEATHER_DESCRIPTIONS: Record<number, string> = {
   2: 'Partly cloudy',
   3: 'Overcast',
   45: 'Foggy',
-  48: 'Foggy',
+  // Freezing fog leaves rime ice on the road, so it's named as such.
+  48: 'Freezing fog',
   51: 'Light drizzle',
   53: 'Drizzle',
   55: 'Heavy drizzle',
+  56: 'Light freezing drizzle',
+  57: 'Freezing drizzle',
   61: 'Light rain',
   63: 'Rain',
   65: 'Heavy rain',
+  66: 'Light freezing rain',
+  67: 'Freezing rain',
   71: 'Light snow',
   73: 'Snow',
   75: 'Heavy snow',
@@ -185,9 +190,11 @@ export const ISSUE_PHRASES = {
       marginal: `Chilly (${tempLabel})`,
       fair: `Cool (${tempLabel})`,
     })[tier],
+  // Rated bad from 40°F down. Not "freezing rain": that's rain freezing on
+  // contact, which the weather codes report (and rate) separately.
   COLD_RAIN: (tempLabel: string, pct: string, tier: IssueTier): string =>
     tier === 'bad'
-      ? `Freezing rain risk (${tempLabel}, ${pct})`
+      ? `Near-freezing rain (${tempLabel}, ${pct})`
       : `Cold rain risk (${tempLabel}, ${pct})`,
   HUMIDITY: (dewLabel: string, tier: IssueTier): string =>
     ({
@@ -196,12 +203,13 @@ export const ISSUE_PHRASES = {
       marginal: `Muggy (dew ${dewLabel})`,
       fair: `Humid (dew ${dewLabel})`,
     })[tier],
+  // The US EPA's category names for each band (getAqiLabel), shortened to fit.
   AQI: (aqi: number, tier: IssueTier): string =>
     ({
-      bad: `Hazardous air (AQI ${aqi})`,
-      poor: `Poor air (AQI ${aqi})`,
-      marginal: `Hazy (AQI ${aqi})`,
-      fair: `Hazy (AQI ${aqi})`,
+      bad: aqi > 300 ? `Hazardous air (AQI ${aqi})` : `Very unhealthy air (AQI ${aqi})`,
+      poor: `Unhealthy air (AQI ${aqi})`,
+      marginal: `Air unhealthy for some (AQI ${aqi})`,
+      fair: `Moderate air quality (AQI ${aqi})`,
     })[tier],
 };
 
@@ -433,10 +441,12 @@ export const DAYLIGHT_MESSAGES = {
 };
 
 export const ALERT_MESSAGES = {
+  // Worded after the NWS heat index bands: above 103°F heat exhaustion is likely
+  // and heat stroke possible; 90–103°F, exhaustion is possible with exertion.
   HEAT_EXTREME: (tempLabel: string) =>
-    `Feels like ${tempLabel}. Serious heat-stroke risk. Not a ride day.`,
+    `Feels like ${tempLabel}. Heat exhaustion likely and heat stroke possible. Not a ride day.`,
   HEAT_WARNING: (tempLabel: string) =>
-    `Feels like ${tempLabel}. High risk of heat exhaustion. Ride early, or ride indoors.`,
+    `Feels like ${tempLabel}. Heat exhaustion possible on a hard ride. Ride early, or ride indoors.`,
 };
 
 /** Capitalizes the first character of a string, preserving the remainder. */

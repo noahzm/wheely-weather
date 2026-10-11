@@ -8,6 +8,9 @@ import {
   getUvCondition,
 } from './weatherLabels';
 
+import { applyAcclimatization } from '../domain/acclimatization';
+import { THRESHOLDS } from '../domain/constants';
+
 describe('getAqiLabel', () => {
   it('returns an en dash for null', () => {
     expect(getAqiLabel(null)).toBe('–');
@@ -32,18 +35,31 @@ describe('getDewpointLabel', () => {
     expect(getDewpointLabel(null)).toBe('–');
   });
 
-  // Boundaries are exclusive upper bounds (`< 50`, `< 60`, ...).
+  // Follows the dew point rating (THRESHOLDS.DEWPOINT: fair above 58, marginal
+  // above 66, poor above 74, bad above 78), in the verdict's own words.
   it.each([
     [49, 'Dry'],
     [50, 'Comfortable'],
-    [59, 'Comfortable'],
-    [60, 'Noticeable'],
-    [64, 'Noticeable'],
-    [65, 'Muggy'],
-    [69, 'Muggy'],
-    [70, 'Oppressive'],
+    [58, 'Comfortable'],
+    [59, 'Humid'],
+    [66, 'Humid'],
+    [67, 'Muggy'],
+    [74, 'Muggy'],
+    [75, 'Very humid'],
+    [79, 'Oppressive'],
   ])('maps dewpoint %i to %s', (dp, label) => {
     expect(getDewpointLabel(dp)).toBe(label);
+  });
+
+  it("moves with the rider's acclimatized thresholds", () => {
+    const humidHome = applyAcclimatization(THRESHOLDS, {
+      tempShift: 0,
+      dewShift: 9,
+      coldShift: 0,
+    });
+    expect(getDewpointLabel(66, humidHome)).toBe('Comfortable');
+    expect(getDewpointLabel(70)).toBe('Muggy');
+    expect(getDewpointLabel(70, humidHome)).toBe('Humid');
   });
 });
 

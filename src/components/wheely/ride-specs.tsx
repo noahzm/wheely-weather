@@ -122,7 +122,7 @@ function rideSpecMetrics(
       sf: 'humidity.fill',
       label: 'Dewpoint',
       value: formatTemp(weather.dewpoint),
-      qualifier: getDewpointLabel(weather.dewpoint),
+      qualifier: getDewpointLabel(weather.dewpoint, thresholds),
       condition: evaluateCondition(weather.dewpoint, 'dewpoint', thresholds),
     },
     {

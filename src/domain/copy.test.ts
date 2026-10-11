@@ -114,13 +114,18 @@ describe('shared issue phrases', () => {
     expect(ISSUE_PHRASES.RAIN('25%', 'fair')).toBe('Rain possible (25%)');
     expect(ISSUE_PHRASES.GUSTS(42, 'bad')).toBe('Dangerous gusts (42 mph)');
     expect(ISSUE_PHRASES.GUSTS(36, 'poor')).toBe('Strong gusts (36 mph)');
-    expect(ISSUE_PHRASES.AQI(220, 'bad')).toBe('Hazardous air (AQI 220)');
+    // The EPA's names: 201–300 is "very unhealthy", only 301+ "hazardous".
+    expect(ISSUE_PHRASES.AQI(220, 'bad')).toBe('Very unhealthy air (AQI 220)');
+    expect(ISSUE_PHRASES.AQI(320, 'bad')).toBe('Hazardous air (AQI 320)');
+    expect(ISSUE_PHRASES.AQI(72, 'fair')).toBe('Moderate air quality (AQI 72)');
+    // Cold rain above freezing isn't "freezing rain".
+    expect(ISSUE_PHRASES.COLD_RAIN('38°F', '60%', 'bad')).toBe('Near-freezing rain (38°F, 60%)');
     expect(ISSUE_PHRASES.HEAT('97°F', 'bad')).toBe('Dangerous heat (97°F)');
     expect(ISSUE_PHRASES.COLD('30°F', 'bad')).toBe('Freezing (30°F)');
     expect(ISSUE_PHRASES.HUMIDITY('76°F', 'bad')).toBe('Oppressive humidity (dew 76°F)');
     expect(ISSUE_PHRASES.HUMIDITY('62°F', 'marginal')).toBe('Muggy (dew 62°F)');
-    expect(ISSUE_PHRASES.AQI(160, 'poor')).toBe('Poor air (AQI 160)');
-    expect(ISSUE_PHRASES.AQI(80, 'marginal')).toBe('Hazy (AQI 80)');
+    expect(ISSUE_PHRASES.AQI(160, 'poor')).toBe('Unhealthy air (AQI 160)');
+    expect(ISSUE_PHRASES.AQI(120, 'marginal')).toBe('Air unhealthy for some (AQI 120)');
   });
 
   it('maps a rating to its tier verbatim, and good to no issue', () => {
