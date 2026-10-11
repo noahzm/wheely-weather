@@ -54,6 +54,34 @@ actor PlaceCache {
 // WeatherKit's raw `WeatherCondition.rawValue` string (e.g. "heavyRain"),
 // not a WMO code — the WMO translation is a pure, unit-tested TS function
 // (src/domain/weatherkit-codes.ts) applied in weatherService.ios.ts, not here.
+/// Whether WeatherKit has alerts for a ~10 km cell. Coverage follows country
+/// and region lines and doesn't change, so each cell is looked up once per
+/// launch rather than with a second WeatherKit call before every alert request.
+actor AlertCoverageCache {
+  private var covered: [String: Bool] = [:]
+
+  func isCovered(_ location: CLLocation) async throws -> Bool {
+    let key = String(
+      format: "%.1f,%.1f",
+      location.coordinate.latitude,
+      location.coordinate.longitude
+    )
+    if let cached = covered[key] { return cached }
+    let availability = try await WeatherService.shared.weather(for: location, including: .availability)
+    switch availability.alertAvailability {
+    case .available:
+      covered[key] = true
+      return true
+    case .unsupported:
+      covered[key] = false
+      return false
+    default:
+      // Temporarily unavailable: no alerts now, but ask again next time.
+      return false
+    }
+  }
+}
+
 public class AppleWeatherKitModule: Module {
   public func definition() -> ModuleDefinition {
     Name("AppleWeatherKit")
@@ -193,8 +221,7 @@ public class AppleWeatherKitModule: Module {
           let location = CLLocation(latitude: lat, longitude: lon)
           // Asking for alerts where WeatherKit has no alert coverage fails with a
           // 400 (WHEELY-WEATHER-G), so check coverage first and return none.
-          let availability = try await WeatherService.shared.weather(for: location, including: .availability)
-          guard availability.alertAvailability == .available else {
+          guard try await Self.alertCoverage.isCovered(location) else {
             promise.resolve([])
             return
           }
@@ -279,6 +306,7 @@ public class AppleWeatherKitModule: Module {
   // WeatherKit has no timezone-aware string output, so resolve one via
   // reverse geocoding and format Dates into the same naive convention.
   private static let places = PlaceCache()
+  private static let alertCoverage = AlertCoverageCache()
 
   private static func resolveTimeZone(for location: CLLocation) async -> TimeZone {
     await Self.places.place(for: location)?.timeZone ?? TimeZone.current
