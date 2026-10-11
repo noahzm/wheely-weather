@@ -11,6 +11,14 @@ const USER_AGENT = 'WheelyWeather/1.0 (https://wheelyweather.app; contact@wheely
 
 const SEARCH_CACHE_CONTROL = 'public, max-age=3600';
 const REVERSE_CACHE_CONTROL = 'public, max-age=86400';
+// Nominatim's usage policy requires caching results. Its answers are cached at
+// the edge for as long as browsers keep them, so a place looked up by one rider
+// is answered from the cache for the next.
+const SEARCH_EDGE_TTL_S = 3600;
+const REVERSE_EDGE_TTL_S = 86_400;
+// Reverse lookups only name the town: round to ~100 m so nearby riders share
+// cache entries and Nominatim never sees a precise position.
+const REVERSE_COORD_DECIMALS = 3;
 // Forecasts change slowly; a shared edge cache keeps WeatherKit calls within
 // the developer-account quota. A bundle missing its AQI (Open-Meteo timed out)
 // is kept only briefly so the next visitor gets another try.
@@ -52,10 +60,16 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname === '/api/geocode/search') {
-      return handleGeocode(request, buildSearchUrl(url), SEARCH_CACHE_CONTROL);
+      return handleGeocode(request, buildSearchUrl(url), {
+        cacheControl: SEARCH_CACHE_CONTROL,
+        edgeTtl: SEARCH_EDGE_TTL_S,
+      });
     }
     if (url.pathname === '/api/geocode/reverse') {
-      return handleGeocode(request, buildReverseUrl(url), REVERSE_CACHE_CONTROL);
+      return handleGeocode(request, buildReverseUrl(url), {
+        cacheControl: REVERSE_CACHE_CONTROL,
+        edgeTtl: REVERSE_EDGE_TTL_S,
+      });
     }
     if (url.pathname === '/api/forecast') {
       return handleForecast(request, url, env, ctx);
@@ -104,8 +118,15 @@ function parseCoordinates(url: URL): Coordinates {
 function buildReverseUrl(url: URL): GeocodeTarget {
   const coords = parseCoordinates(url);
   if ('error' in coords) return coords;
-  return { url: `${NOMINATIM_REVERSE}?lat=${coords.lat}&lon=${coords.lon}&format=json` };
+  const lat = coords.lat.toFixed(REVERSE_COORD_DECIMALS);
+  const lon = coords.lon.toFixed(REVERSE_COORD_DECIMALS);
+  return { url: `${NOMINATIM_REVERSE}?lat=${lat}&lon=${lon}&format=json` };
 }
+
+/** `fetch` options plus the Workers-only `cf` cache controls. */
+type EdgeCachedInit = RequestInit & {
+  cf: { cacheEverything: boolean; cacheTtlByStatus: Record<string, number> };
+};
 
 /** Workers' shared edge cache; absent outside the Workers runtime (tests). */
 function edgeCache(): Cache | null {
@@ -178,7 +199,7 @@ async function handleForecast(
 async function handleGeocode(
   request: Request,
   target: GeocodeTarget,
-  cacheControl: string,
+  { cacheControl, edgeTtl }: { cacheControl: string; edgeTtl: number },
 ): Promise<Response> {
   if (request.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders() });
@@ -187,9 +208,12 @@ async function handleGeocode(
   if ('error' in target) return badRequest(target.error);
 
   try {
-    const res = await fetch(target.url, {
+    const init: EdgeCachedInit = {
       headers: { 'User-Agent': USER_AGENT },
-    });
+      // JSON isn't cached by default; only successful answers are kept.
+      cf: { cacheEverything: true, cacheTtlByStatus: { '200-299': edgeTtl, '300-599': -1 } },
+    };
+    const res = await fetch(target.url, init);
 
     if (res.status === 429) {
       return new Response(JSON.stringify({ error: 'Rate limited. Try again shortly.' }), {

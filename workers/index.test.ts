@@ -81,6 +81,10 @@ describe('Cloudflare Worker geocode proxy', () => {
       );
       const data: unknown = await response.json();
       expect(data).toEqual(mockNominatimResponse);
+      // Nominatim's policy requires caching: successful answers stay at the edge.
+      expect(vi.mocked(globalThis.fetch).mock.calls[0]?.[1]).toMatchObject({
+        cf: { cacheEverything: true, cacheTtlByStatus: { '200-299': 3600, '300-599': -1 } },
+      });
     });
 
     it('handles 429 rate limit with no-store', async () => {
@@ -158,11 +162,17 @@ describe('Cloudflare Worker geocode proxy', () => {
       );
 
       const request = new Request(
-        'https://wheelyweather.app/api/geocode/reverse?lat=42.36&lon=-71.05',
+        'https://wheelyweather.app/api/geocode/reverse?lat=42.360081&lon=-71.058884',
       );
       const response = await worker.fetch(request, apiEnv);
       expect(response.status).toBe(200);
       expect(response.headers.get('Cache-Control')).toBe('public, max-age=86400');
+      // Rounded to ~100 m before it leaves for Nominatim, and cached for a day.
+      const [upstream, init] = vi.mocked(globalThis.fetch).mock.calls[0] ?? [];
+      expect(upstream).toBe(
+        'https://nominatim.openstreetmap.org/reverse?lat=42.360&lon=-71.059&format=json',
+      );
+      expect(init).toMatchObject({ cf: { cacheTtlByStatus: { '200-299': 86_400 } } });
       const data: unknown = await response.json();
       expect(data).toEqual(mockResult);
     });
