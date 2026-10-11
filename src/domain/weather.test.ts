@@ -332,7 +332,7 @@ describe('Hourly Message Logic', () => {
     expect(message.issues).toEqual(['Cool (48°F)', 'Breezy (13 mph)', 'Rain possible (35%)']);
   });
 
-  it('keeps every issue when a day stacks up many of them', () => {
+  it('names only the three worst issues when a day stacks up many of them', () => {
     const weather = makeWeather({
       hasThunderstorms: false,
       temperature: 48,
@@ -344,8 +344,25 @@ describe('Hourly Message Logic', () => {
       daily: [],
     });
 
-    // cold, gusty, rainy, sticky, hazy => 5 chips, no "plus N more" collapse
-    expect(getMessage(weather, 'maybe').issues).toHaveLength(5);
+    // Cool, breezy, rain possible, humid, moderate AQI: five issues, three named.
+    // The rest stay in the Right now card and the hourly chart.
+    expect(getMessage(weather, 'maybe').issues).toHaveLength(3);
+  });
+
+  it('names the issue that set the rating first', () => {
+    // Warm, breezy and a possible shower are fair; the dew point is marginal.
+    const weather = makeWeather({
+      hasThunderstorms: false,
+      temperature: 80,
+      windSpeed: 12,
+      rainChance: 31,
+      dewpoint: 70,
+      aqi: 54,
+      hourly: [makeHour({ hour: 10, condition: 'marginal' })],
+      daily: [],
+    });
+    const { issues } = getMessage(weather, 'maybe');
+    expect(issues).toEqual(['Muggy (dew 70°F)', 'Warm (80°F)', 'Breezy (12 mph)']);
   });
 
   it('phrases a single rain issue naturally', () => {

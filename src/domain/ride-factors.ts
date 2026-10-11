@@ -45,13 +45,20 @@ import type {
  * the shared ISSUE_PHRASES table so the hero chips and the hourly chart drawer
  * describe the same metric with the same words.
  */
+// The verdict names at most this many issues: the worst ones, which decide it.
+// The rest stay in the "Right now" card and the hourly chart.
+const MAX_MESSAGE_ISSUES = 3;
+
 const collectMessageIssues = (
   weather: Weather,
   status: RideStatus,
   thresholds: Thresholds,
   tempUnit: TempUnit = 'fahrenheit',
 ): string[] => {
-  const issues: string[] = [];
+  const issues: { text: string; rating: Condition }[] = [];
+  const pushIssue = (text: string, rating: Condition) => {
+    issues.push({ text, rating });
+  };
   const addIssue = (
     val: number | null | undefined,
     type: MetricType,
@@ -64,7 +71,7 @@ const collectMessageIssues = (
         ? rating === 'marginal' || rating === 'fair'
         : rating === 'bad' || rating === 'poor';
     const tier = issuePhraseTier(rating);
-    if (include && tier) issues.push(label(tier));
+    if (include && tier) pushIssue(label(tier), rating);
   };
 
   const temp = formatTemperature(weather.temperature, tempUnit, { withUnitLabel: true });
@@ -90,8 +97,11 @@ const collectMessageIssues = (
     thresholds,
   );
   const coldRainTier = coldRainCondition ? issuePhraseTier(coldRainCondition) : null;
-  if (coldRainTier) {
-    issues.push(ISSUE_PHRASES.COLD_RAIN(temp, formatPercent(weather.rainChance), coldRainTier));
+  if (coldRainCondition && coldRainTier) {
+    pushIssue(
+      ISSUE_PHRASES.COLD_RAIN(temp, formatPercent(weather.rainChance), coldRainTier),
+      coldRainCondition,
+    );
   } else {
     addIssue(
       weather.rainChance,
@@ -104,9 +114,9 @@ const collectMessageIssues = (
   const precipitationAlreadyExplainsWeather =
     weatherCodeIssue &&
     /(rain|drizzle|shower)/i.test(weatherCodeIssue) &&
-    issues.some((issue) => /\brain\b/i.test(issue));
+    issues.some(({ text }) => /\brain\b/i.test(text));
   if (weatherCodeIssue && !precipitationAlreadyExplainsWeather) {
-    issues.push(weatherCodeIssue);
+    pushIssue(weatherCodeIssue, getWeatherCodeCondition(weather.weatherCode));
   }
   addIssue(weather.dewpoint, 'dewpoint', (tier) =>
     ISSUE_PHRASES.HUMIDITY(
@@ -117,7 +127,13 @@ const collectMessageIssues = (
   if (weather.aqi != null) {
     addIssue(weather.aqi, 'aqi', (tier) => ISSUE_PHRASES.AQI(weather.aqi ?? 0, tier));
   }
-  return issues;
+  // Worst first, so the issue that set the rating leads: a "maybe" set by a
+  // muggy dew point read "Warm…, breezy…, rain possible…, muggy…, and moderate
+  // air quality…". The sort is stable, so equal ratings keep the order above.
+  return [...issues]
+    .sort((a, b) => RANK[a.rating] - RANK[b.rating])
+    .slice(0, MAX_MESSAGE_ISSUES)
+    .map(({ text }) => text);
 };
 
 /** Phrases a rain issue, naming light rain when the amount capped the rating. */
