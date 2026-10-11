@@ -283,8 +283,8 @@ export function SettingsForm({
             title="Credits"
             footer={
               <Text>
-                Apple Weather provides forecasts and severe weather alerts. Air quality data by
-                Open-Meteo.com (CC BY 4.0).
+                Apple Weather provides forecasts and severe weather alerts. Air quality and home
+                climate data by Open-Meteo.com (CC BY 4.0).
               </Text>
             }
           >

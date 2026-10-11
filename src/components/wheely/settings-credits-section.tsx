@@ -21,8 +21,8 @@ const CREDITS = [
 ];
 
 const FOOTER = isWeb
-  ? 'Apple Weather provides forecasts and alerts. Air quality and backup forecasts by Open-Meteo.com (CC BY 4.0). Place search by OpenStreetMap (ODbL). Backup US alerts from the National Weather Service.'
-  : 'Forecasts and air quality by Open-Meteo.com (CC BY 4.0). Place search by OpenStreetMap (ODbL). US alerts from the National Weather Service.';
+  ? 'Apple Weather provides forecasts and alerts. Air quality, home climate and backup forecasts by Open-Meteo.com (CC BY 4.0). Place search and names by OpenStreetMap (ODbL). Backup US alerts from the National Weather Service.'
+  : 'Forecasts, air quality and home climate by Open-Meteo.com (CC BY 4.0). Place search and names by OpenStreetMap (ODbL). US alerts from the National Weather Service.';
 
 export function CreditsSection() {
   return (
