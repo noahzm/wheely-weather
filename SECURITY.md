@@ -18,7 +18,7 @@ In scope:
 
 - The Wheely Weather iOS app (latest TestFlight build).
 - The web app at [wheelyweather.app](https://wheelyweather.app).
-- The Cloudflare Worker that serves the site and proxies geocoding (`/api/geocode/*`).
+- The Cloudflare Worker API behind the site (`/api/forecast`, `/api/geocode/*`).
 
 Out of scope: the third-party services the app reads from (Apple WeatherKit and MapKit, Open-Meteo, Nominatim, the US National Weather Service). Report issues in those to their providers.
 

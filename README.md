@@ -20,18 +20,19 @@ A cyclist-first weather app for iOS, Android, and the web. Live at [wheelyweathe
 - **Ride verdict**: a 0–5 star score and a go / maybe / skip call from temperature, wind and gusts, rain, dew point, AQI, UV, and daylight
 - **Hourly and 8-day ratings**: every hour and day rated Good to Bad, with a one-line reason and the week's best ride day
 - **Kit picks**: what to wear, for Casual or Roadie riders
-- **Heat acclimatization**: heat limits rise if you live somewhere hot and ride outdoors a lot
+- **Home climate**: comfort limits shift if your home runs hot, humid, or cold, more so the more often you ride outdoors
 - **Locations**: search, pinned places, and a current-location mode that follows you
 - **Alerts**: severe weather and air quality warnings
+- **Home Screen widget** (iOS): the verdict plus the next 12 hours, refreshed in the background
 
 ## Tech stack
 
-|                 | iOS              | Web & Android                                 |
-| --------------- | ---------------- | --------------------------------------------- |
-| **Weather**     | Apple WeatherKit | Open-Meteo                                    |
-| **Search**      | Apple MapKit     | Nominatim (web via a Cloudflare Worker proxy) |
-| **Alerts**      | WeatherKit       | US National Weather Service                   |
-| **Air quality** | Open-Meteo       | Open-Meteo                                    |
+|                 | iOS              | Web                                                           | Android                     |
+| --------------- | ---------------- | ------------------------------------------------------------- | --------------------------- |
+| **Weather**     | Apple WeatherKit | WeatherKit via a Cloudflare Worker (Open-Meteo fallback)      | Open-Meteo                  |
+| **Search**      | Apple MapKit     | Nominatim via the Worker                                      | Nominatim                   |
+| **Alerts**      | WeatherKit       | WeatherKit via the Worker (National Weather Service fallback) | US National Weather Service |
+| **Air quality** | Open-Meteo       | Open-Meteo                                                    | Open-Meteo                  |
 
 Built with Expo SDK 57, Expo Router, React Native 0.86, and React 19 (React Compiler on). Hosted on Cloudflare, errors reported to Sentry.
 
@@ -65,7 +66,8 @@ src/
 ├── services/    # Weather and geocoding, per platform
 └── utils/       # Formatters and chart math
 modules/         # Native iOS modules (WeatherKit, MapKit)
-workers/         # Cloudflare Worker (geocoding proxy)
+targets/         # iOS Home Screen widget (SwiftUI)
+workers/         # Cloudflare Worker (forecast and geocoding API)
 ```
 
 ## Deployment

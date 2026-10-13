@@ -44,8 +44,9 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Unit tests
-        run: npm test
+      # Same tests as `npm test`, plus the coverage floors in vitest.config.mts.
+      - name: Unit tests and coverage
+        run: npm run test:coverage
 
       - name: Web export
         run: npm run build:web

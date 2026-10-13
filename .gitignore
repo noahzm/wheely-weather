@@ -70,3 +70,6 @@ lighthouse-report.json
 
 # App Store listing (holds App Review contact details)
 store.config.json
+
+# Cloudflare Wrangler local state
+.wrangler/
