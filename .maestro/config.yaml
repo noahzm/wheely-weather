@@ -1,0 +1,3 @@
+# Run with `npm run e2e:ios` (see AGENTS.md). Top-level flows run; subflows/ are shared steps.
+flows:
+  - '*'

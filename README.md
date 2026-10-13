@@ -48,12 +48,13 @@ npm run web            # or: npm run ios / npm run android
 
 ## Commands
 
-| Command                 | What it does                                          |
-| ----------------------- | ----------------------------------------------------- |
-| `npm run check`         | Everything CI runs: format, lint, types, tests, build |
-| `npm test`              | Unit tests                                            |
-| `npm run test:coverage` | Unit tests with coverage floors                       |
-| `npm run ios:clean`     | Regenerate the native iOS project and run             |
+| Command                 | What it does                                                  |
+| ----------------------- | ------------------------------------------------------------- |
+| `npm run check`         | Everything CI runs: format, lint, types, tests, build         |
+| `npm test`              | Unit tests                                                    |
+| `npm run test:coverage` | Unit tests with coverage floors                               |
+| `npm run e2e:ios`       | iOS end-to-end flows (Maestro, needs the simulator and Metro) |
+| `npm run ios:clean`     | Regenerate the native iOS project and run                     |
 
 ## Project structure
 

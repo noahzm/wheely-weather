@@ -1,0 +1,17 @@
+appId: app.wheelyweather
+name: Tabs keep the mock scenario
+---
+- runFlow:
+    file: subflows/open-scenario.yaml
+    env:
+      MOCK: alert
+- extendedWaitUntil:
+    visible: '.*Severe Thunderstorm Warning.*'
+    timeout: 10000
+- tapOn: 'Search'
+- assertVisible: 'Search a city or place'
+- tapOn: 'Settings'
+- assertVisible: 'Appearance'
+- tapOn: 'Weather'
+# Tab navigation drops query params; ForecastProvider must keep the scenario latched.
+- assertVisible: '.*Severe Thunderstorm Warning.*'

@@ -1,0 +1,10 @@
+appId: app.wheelyweather
+name: Wait for a later window
+---
+- runFlow:
+    file: subflows/open-scenario.yaml
+    env:
+      MOCK: wait
+- extendedWaitUntil:
+    visible: 'Wait till .*'
+    timeout: 10000

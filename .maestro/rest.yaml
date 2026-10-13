@@ -1,0 +1,11 @@
+appId: app.wheelyweather
+name: Rest day
+---
+- runFlow:
+    file: subflows/open-scenario.yaml
+    env:
+      MOCK: rest
+- extendedWaitUntil:
+    visible: '(0|0\.5|1) out of 5 stars'
+    timeout: 10000
+- assertVisible: '.*Near-freezing rain.*'

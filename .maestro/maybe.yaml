@@ -1,0 +1,11 @@
+appId: app.wheelyweather
+name: Mixed conditions
+---
+- runFlow:
+    file: subflows/open-scenario.yaml
+    env:
+      MOCK: maybe
+- extendedWaitUntil:
+    visible: '(1\.5|2|2\.5|3|3\.5) out of 5 stars'
+    timeout: 10000
+- assertVisible: 'Hourly ride-condition chart'

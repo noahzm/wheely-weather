@@ -1,0 +1,11 @@
+# Loads the JS bundle from Metro in the dev client, then opens a mock scenario.
+# The mock data is fixed, but it's keyed to the clock (sunset, the next hours),
+# so assertions match ranges and stable text, never the rotating verdict headline.
+appId: app.wheelyweather
+---
+- openLink: exp+wheely-weather://expo-development-client/?url=http%3A%2F%2F127.0.0.1%3A8081
+- extendedWaitUntil:
+    visible: 'Hour by hour'
+    timeout: 60000
+- openLink: wheelyweather:///?mock=${MOCK}
+- waitForAnimationToEnd

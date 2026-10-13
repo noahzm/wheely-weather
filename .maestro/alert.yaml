@@ -1,0 +1,11 @@
+appId: app.wheelyweather
+name: Severe weather alert
+---
+- runFlow:
+    file: subflows/open-scenario.yaml
+    env:
+      MOCK: alert
+- extendedWaitUntil:
+    visible: '.*Severe Thunderstorm Warning.*'
+    timeout: 10000
+- assertVisible: '(0|0\.5|1) out of 5 stars'

@@ -1,0 +1,13 @@
+appId: app.wheelyweather
+name: Ride day
+---
+- runFlow:
+    file: subflows/open-scenario.yaml
+    env:
+      MOCK: ride
+- extendedWaitUntil:
+    visible: '(4|4\.5|5) out of 5 stars'
+    timeout: 10000
+- assertVisible: 'Hourly ride-condition chart'
+- assertVisible: 'Casual'
+- assertVisible: 'Roadie'
