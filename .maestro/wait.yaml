@@ -6,5 +6,5 @@ name: Wait for a later window
     env:
       MOCK: wait
 - extendedWaitUntil:
-    visible: 'Wait till .*'
+    visible: '(Ride at|Wait till|Hold till|Roll out at|Better at) .*'
     timeout: 10000
