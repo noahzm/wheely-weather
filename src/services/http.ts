@@ -1,5 +1,16 @@
 export const REQUEST_TIMEOUT_ERROR = 'Request timed out';
 
+/**
+ * Whether `error` is a timeout that fired while the app wasn't active. iOS
+ * suspends JS when the app leaves the foreground, so a request cut short that
+ * way trips its timer only when the app next wakes, often hours later; that
+ * isn't a slow request and shouldn't be reported (WHEELY-WEATHER-9).
+ * `appState` is `AppState.currentState`, passed in to keep this testable.
+ */
+export function isSuspendedTimeout(error: unknown, appState: string | null | undefined): boolean {
+  return error instanceof Error && error.message === REQUEST_TIMEOUT_ERROR && appState !== 'active';
+}
+
 /** Races an arbitrary promise (e.g. a native module call) against a timeout. */
 export async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { fetchWithTimeout, REQUEST_TIMEOUT_ERROR, withTimeout } from './http';
+import { fetchWithTimeout, isSuspendedTimeout, REQUEST_TIMEOUT_ERROR, withTimeout } from './http';
 
 describe('withTimeout', () => {
   beforeEach(() => {
@@ -137,5 +137,23 @@ describe('fetchWithTimeout', () => {
     // The late AbortError-style rejection must be swallowed by the internal catch.
     rejectFetch(new Error('The operation was aborted'));
     await vi.runAllTimersAsync();
+  });
+});
+
+describe('isSuspendedTimeout', () => {
+  const timeout = new Error(REQUEST_TIMEOUT_ERROR);
+
+  it('flags a timeout that fired while the app was backgrounded or inactive', () => {
+    expect(isSuspendedTimeout(timeout, 'background')).toBe(true);
+    expect(isSuspendedTimeout(timeout, 'inactive')).toBe(true);
+  });
+
+  it('keeps a timeout from an active app reportable', () => {
+    expect(isSuspendedTimeout(timeout, 'active')).toBe(false);
+  });
+
+  it('keeps other errors reportable whatever the app state', () => {
+    expect(isSuspendedTimeout(new Error('native failure'), 'background')).toBe(false);
+    expect(isSuspendedTimeout(REQUEST_TIMEOUT_ERROR, 'background')).toBe(false);
   });
 });

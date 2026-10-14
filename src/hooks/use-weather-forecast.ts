@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 
 import { type RecentLocation, type SavedLocation } from '@/services/locationStorage';
 import { getForecastErrorKind } from '@/services/forecastSnapshot';
 import { getMemoryCachedForecast } from '@/services/forecastCache';
 import { useExposureLevel, useHomeLocation, useSettingsHydrated } from '@/hooks/settings-context';
+import { isSuspendedTimeout } from '@/services/http';
 import { captureError } from '@/services/telemetry';
 
 import {
@@ -83,7 +84,9 @@ export function useWeatherForecast(mockScenario: string | null) {
         autoSetHome(result.savedLocation, result.snapshot.location);
       } catch (error) {
         if (gen !== loadGenRef.current) return;
-        captureError(error, { where: 'loadForecast' });
+        if (!isSuspendedTimeout(error, AppState.currentState)) {
+          captureError(error, { where: 'loadForecast' });
+        }
         setState((current) => ({
           ...current,
           loading: false,
