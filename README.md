@@ -6,6 +6,13 @@
 
 A cyclist-first weather app for iOS, Android, and the web. Live at [wheelyweather.app](https://wheelyweather.app).
 
+<a href="https://apps.apple.com/app/id6788117343">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./public/app-store-badge-white.svg" />
+    <img src="./public/app-store-badge-black.svg" alt="Download on the App Store" height="40" />
+  </picture>
+</a>
+
 <p>
   <img src="./assets/images/screenshot-ideal.png" alt="Home screen, ideal ride conditions" width="45%" />
   <img src="./assets/images/screenshot-poor.png" alt="Home screen, poor ride conditions" width="45%" />

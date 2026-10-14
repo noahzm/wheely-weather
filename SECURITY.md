@@ -16,7 +16,7 @@ Include:
 
 In scope:
 
-- The Wheely Weather iOS app (latest TestFlight build).
+- The Wheely Weather iOS app (latest App Store release).
 - The web app at [wheelyweather.app](https://wheelyweather.app).
 - The Cloudflare Worker API behind the site (`/api/forecast`, `/api/geocode/*`).
 
@@ -35,4 +35,4 @@ Best-effort response targets:
 
 ## Supported versions
 
-Only the latest release is supported: the current TestFlight build and the live site, both built from `main`.
+Only the latest release is supported: the current App Store release and the live site, both built from `main`.

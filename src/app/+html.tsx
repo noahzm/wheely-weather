@@ -36,6 +36,9 @@ export default function Root({ children }: Readonly<PropsWithChildren>) {
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-title" content="Wheely" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        {/* Safari's Smart App Banner: offers the App Store app (or opens it,
+            if installed). Hidden in the home-screen web app. */}
+        <meta name="apple-itunes-app" content="app-id=6788117343" />
         <meta property="og:title" content="Wheely Weather" />
         <meta
           property="og:description"
