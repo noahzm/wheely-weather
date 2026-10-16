@@ -1,0 +1,47 @@
+import { describe, expect, it, vi } from 'vitest';
+
+const platform: {
+  OS: string;
+  Version: string | number;
+  select: <T>(spec: { default?: T }) => T | undefined;
+} = vi.hoisted(() => ({
+  OS: 'ios',
+  Version: '26.0',
+  select: <T>(spec: { default?: T }) => spec.default,
+}));
+
+vi.mock('react-native', () => ({ Platform: platform }));
+
+const { WheelyTheme } = await import('@/constants/theme');
+const { largeTitleStackOptions } = await import('./large-title-stack-options');
+
+describe('largeTitleStackOptions', () => {
+  it('omits headerBlurEffect on iOS 26+ where the system auto-applies header blur', () => {
+    platform.OS = 'ios';
+    platform.Version = '26.1';
+
+    const opts = largeTitleStackOptions(WheelyTheme.light, 'Wheely');
+    expect(opts.headerTransparent).toBe(true);
+    expect(opts.headerBlurEffect).toBeUndefined();
+    expect(opts.headerTitle).toBe('Wheely');
+    expect(opts.headerTintColor).toBe(WheelyTheme.light.ink);
+  });
+
+  it('sets regular headerBlurEffect on iOS versions prior to 26', () => {
+    platform.OS = 'ios';
+    platform.Version = 18;
+
+    const opts = largeTitleStackOptions(WheelyTheme.dark, 'Settings');
+    expect(opts.headerTransparent).toBe(true);
+    expect(opts.headerBlurEffect).toBe('regular');
+  });
+
+  it('disables headerTransparent on non-iOS platforms', () => {
+    platform.OS = 'android';
+    platform.Version = 35;
+
+    const opts = largeTitleStackOptions(WheelyTheme.light, 'Search');
+    expect(opts.headerTransparent).toBe(false);
+    expect(opts.headerBlurEffect).toBe('regular');
+  });
+});

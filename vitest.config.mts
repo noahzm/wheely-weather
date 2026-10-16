@@ -22,10 +22,10 @@ export default defineConfig({
         // A floor, not a target: set below current so it catches a real
         // regression rather than firing on rounding. Raise it when the margin
         // grows, never lower it to make a run go green.
-        statements: 87,
-        branches: 83,
-        functions: 89,
-        lines: 89,
+        statements: 93,
+        branches: 90,
+        functions: 95,
+        lines: 95,
         // The scoring logic every verdict rests on is held higher than the
         // repo average, so good UI coverage can never mask a gap in here.
         'src/domain/**': { statements: 95, branches: 90, functions: 100, lines: 95 },
