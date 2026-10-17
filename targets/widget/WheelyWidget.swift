@@ -221,30 +221,39 @@ struct WheelyWidgetView: View {
 
   private func mediumContent(_ snapshot: WidgetSnapshot, _ verdict: Verdict) -> some View {
     let nextHours = snapshot.upcoming(after: entry.date, limit: 4)
-    return HStack(spacing: 14) {
+    return HStack(spacing: 12) {
       verdictColumn(snapshot, verdict)
         .frame(maxWidth: .infinity, alignment: .leading)
       if !nextHours.isEmpty {
-        Divider()
-          .overlay((entry.isStale ? Color.primary : Color.black).opacity(0.2))
-        VStack(alignment: .leading, spacing: 6) {
+        HStack(spacing: 4) {
           ForEach(Array(nextHours.enumerated()), id: \.offset) { _, item in
-            HStack(spacing: 6) {
+            VStack(spacing: 6) {
               Text(item.at, format: .dateTime.hour())
-                .font(.caption2.weight(.semibold))
-                .frame(width: 40, alignment: .leading)
+                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .foregroundStyle(Color.black.opacity(0.65))
+
               Image(systemName: item.verdict.symbol)
-                .font(.caption)
-                .frame(width: 16)
+                .font(.system(size: 20, weight: .semibold))
+                .symbolRenderingMode(.hierarchical)
+                .frame(height: 24)
+
               Text(item.verdict.temperature)
-                .font(.caption.weight(.bold))
-                .frame(width: 32, alignment: .trailing)
-              Image(systemName: statusSymbol(item.verdict))
-                .font(.caption2)
-                .opacity(0.8)
+                .font(.system(size: 14, weight: .black, design: .rounded))
             }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(Color.black.opacity(0.06))
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
           }
         }
+        .padding(4)
+        .background(Color.black.opacity(0.04))
+        .overlay(
+          RoundedRectangle(cornerRadius: 12, style: .continuous)
+            .stroke(Color.black.opacity(0.12), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .frame(width: 154)
       }
     }
     .frame(maxWidth: .infinity, alignment: .leading)
@@ -255,13 +264,14 @@ struct WheelyWidgetView: View {
   }
 
   private func verdictColumn(_ snapshot: WidgetSnapshot, _ verdict: Verdict) -> some View {
-    VStack(alignment: .leading, spacing: 2) {
+    VStack(alignment: .leading, spacing: 3) {
       HStack(alignment: .firstTextBaseline) {
         Image(systemName: verdict.symbol)
-          .font(.title2)
+          .font(.system(size: 24, weight: .bold))
+          .symbolRenderingMode(.hierarchical)
         Spacer(minLength: 4)
         Text(verdict.temperature)
-          .font(.title2.weight(.bold))
+          .font(.system(size: 26, weight: .black, design: .rounded))
       }
       Spacer(minLength: 0)
       HStack(alignment: .firstTextBaseline, spacing: 4) {
@@ -275,16 +285,24 @@ struct WheelyWidgetView: View {
           .lineLimit(2)
           .minimumScaleFactor(0.8)
       }
-      .font(.headline.weight(.heavy))
+      .font(.system(size: 19, weight: .black, design: .rounded))
       .widgetAccentable()
+
       Text(verdict.detail)
-        .font(.caption)
-        .lineLimit(2)
-      footer(snapshot)
-        .font(.caption2)
-        .opacity(0.7)
+        .font(.system(size: 11, weight: .bold, design: .rounded))
         .lineLimit(1)
-        .padding(.top, 2)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .background(Color.black.opacity(0.88))
+        .foregroundStyle(.white)
+        .clipShape(Capsule())
+        .padding(.top, 1)
+
+      footer(snapshot)
+        .font(.system(size: 11, weight: .semibold, design: .rounded))
+        .opacity(0.75)
+        .lineLimit(1)
+        .padding(.top, 1)
     }
   }
 
@@ -294,12 +312,12 @@ struct WheelyWidgetView: View {
         Image(systemName: statusSymbol(verdict))
           .accessibilityHidden(true)
         Text(verdict.headline)
-          .font(.headline.weight(.heavy))
+          .font(.system(size: 15, weight: .black, design: .rounded))
           .lineLimit(1)
           .minimumScaleFactor(0.8)
         Spacer(minLength: 4)
         Text(verdict.temperature)
-          .font(.subheadline.weight(.bold))
+          .font(.system(size: 14, weight: .bold, design: .rounded))
       }
       .widgetAccentable()
       Text(verdict.detail)

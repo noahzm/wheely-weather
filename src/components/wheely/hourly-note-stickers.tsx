@@ -1,12 +1,13 @@
 import { useMemo } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Sunrise, Umbrella } from './icons';
 import { SymbolView, type SFSymbol } from 'expo-symbols';
 
 import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { Radius, Spacing, Type, type WheelyPalette } from '@/constants/theme';
-import { PlatformIcon } from './primitives';
+import { brutalShadow, PlatformIcon } from './primitives';
 
 /** The section's title-to-card gap the sticker reaches across (`section.gap` on home). */
 const TITLE_GAP = Spacing.three;
@@ -39,17 +40,19 @@ function makeStyles(c: WheelyPalette) {
       alignItems: 'center',
       gap: Spacing.one,
       maxWidth: '100%',
-      borderWidth: 1,
+      borderWidth: 1.5,
       borderColor: c.border,
       borderRadius: Radius.none,
       backgroundColor: c.paper,
       paddingHorizontal: Spacing.two,
       paddingVertical: Spacing.one,
+      ...brutalShadow(c.shadow, 2),
+      transform: [{ rotate: '-1deg' }],
     },
     noteStickerText: {
       color: c.ink,
       fontWeight: '400',
-      fontSize: Type.caption.fontSize,
+      ...Type.micro,
       flexShrink: 1,
     },
   });
@@ -61,19 +64,28 @@ function useStyles() {
   return { c, styles };
 }
 
+function formatStickerText(text: string): string {
+  const glued = text.replaceAll(' AM', '\u00A0AM').replaceAll(' PM', '\u00A0PM');
+  const lastSpaceIdx = glued.lastIndexOf(' ');
+  if (lastSpaceIdx <= 0) return glued;
+  return `${glued.slice(0, lastSpaceIdx)}\u00A0${glued.slice(lastSpaceIdx + 1)}`;
+}
+
 function HourlyNoteSticker({ icon, text }: Readonly<{ icon: SFSymbol; text: string }>) {
   const { c, styles } = useStyles();
   const FallbackIcon = icon === 'umbrella.fill' ? Umbrella : Sunrise;
 
   return (
-    <View style={styles.noteSticker} accessibilityRole="text" accessibilityLabel={text}>
-      {Platform.OS === 'ios' ? (
-        <SymbolView name={icon} size={13} tintColor={c.ink} />
-      ) : (
-        <PlatformIcon icon={FallbackIcon} size={13} color={c.ink} filled />
-      )}
-      <ThemedText style={styles.noteStickerText}>{text}</ThemedText>
-    </View>
+    <Animated.View entering={FadeInDown.delay(180).springify().damping(15)}>
+      <View style={styles.noteSticker} accessibilityRole="text" accessibilityLabel={text}>
+        {Platform.OS === 'ios' ? (
+          <SymbolView name={icon} size={13} tintColor={c.ink} />
+        ) : (
+          <PlatformIcon icon={FallbackIcon} size={13} color={c.ink} filled />
+        )}
+        <ThemedText style={styles.noteStickerText}>{formatStickerText(text)}</ThemedText>
+      </View>
+    </Animated.View>
   );
 }
 

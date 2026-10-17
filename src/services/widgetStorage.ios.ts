@@ -1,6 +1,6 @@
 import { ExtensionStorage } from '@bacons/apple-targets';
 
-import type { WidgetSnapshot } from '@/utils/widgetSnapshot';
+import type { WidgetSnapshot } from '@/services/widgetSnapshot';
 
 import { captureError } from './telemetry';
 

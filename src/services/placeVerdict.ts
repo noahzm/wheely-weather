@@ -2,7 +2,7 @@ import { getRideVerdict, getRideVerdictLabel } from '@/domain';
 import { getMemoryCachedForecast } from '@/services/snapshotMemoryCache';
 import type { Condition } from '@/types/weather';
 
-import type { TempUnit } from './temperature';
+import type { TempUnit } from '@/utils/temperature';
 
 /** A saved place's verdict at a glance, for the Search list. */
 export interface PlaceVerdict {

@@ -8,10 +8,11 @@ import { applyAirQualityToToday } from '@/domain/air-quality';
 import type { Thresholds } from '@/domain/constants';
 import type { ForecastSnapshot } from '@/services/forecastSnapshot';
 import { buildWeatherFromData, forecastFromHour } from '@/services/weatherParsing';
+import { DEFAULT_RIDE_DURATION, RIDE_DURATION_HOURS } from '@/types/settings';
 import type { Condition, RideStatus, Weather } from '@/types/weather';
 
-import { formatTemperature, type TempUnit } from './temperature';
-import { weatherSfSymbol } from './weatherSymbols';
+import { formatTemperature, type TempUnit } from '@/utils/temperature';
+import { weatherSfSymbol } from '@/utils/weatherSymbols';
 
 /** One verdict as the widget shows it. */
 interface WidgetVerdict {
@@ -100,6 +101,7 @@ export function upcomingForecasts(
   const data = snapshot.forecastData;
   if (!data) return [];
   const { thresholds } = snapshot.acclimatization;
+  const windowHours = RIDE_DURATION_HOURS[snapshot.rideDuration ?? DEFAULT_RIDE_DURATION];
   const { aqi, nwsAlerts } = snapshot.weather;
   const topOfHour = new Date(snapshot.lastUpdated);
   topOfHour.setMinutes(0, 0, 0);
@@ -108,7 +110,7 @@ export function upcomingForecasts(
     const later = forecastFromHour(data, k);
     if (!later) break;
     const weather = applyAirQualityToToday(
-      { ...buildWeatherFromData(later, thresholds), aqi, nwsAlerts },
+      { ...buildWeatherFromData(later, thresholds, windowHours), aqi, nwsAlerts },
       thresholds,
     );
     upcoming.push({ at: new Date(topOfHour.getTime() + k * HOUR_MS), weather });

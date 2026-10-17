@@ -5,7 +5,7 @@ import { getForecastSnapshot } from '@/services/forecastSnapshot';
 import { loadAllSettings, loadSavedLocation } from '@/services/locationStorage';
 import { publishWidgetSnapshot } from '@/services/widgetStorage';
 import type { TempUnit } from '@/utils/temperature';
-import { buildWidgetSnapshot } from '@/utils/widgetSnapshot';
+import { buildWidgetSnapshot } from '@/services/widgetSnapshot';
 
 import { applyExtras } from './merge-extras';
 

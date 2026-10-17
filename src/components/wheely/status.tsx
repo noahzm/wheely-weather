@@ -46,7 +46,7 @@ function makeStyles(c: WheelyPalette, webPaddingBottom?: number) {
     statusMessage: {
       color: c.mutedInk,
       textAlign: 'center',
-      fontSize: Type.small.fontSize,
+      ...Type.small,
     },
     staleNotice: {
       flexDirection: 'row',

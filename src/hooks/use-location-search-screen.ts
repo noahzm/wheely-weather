@@ -14,7 +14,7 @@ import { MIN_SEARCH_QUERY_LENGTH, useLocationSearch } from '@/hooks/use-location
 import { resolveSuggestion } from '@/services/locationSearch';
 import type { RecentLocation } from '@/services/locationStorage';
 import { captureError } from '@/services/telemetry';
-import { getCachedPlaceVerdict } from '@/utils/placeVerdict';
+import { getCachedPlaceVerdict } from '@/services/placeVerdict';
 
 /**
  * @param onPlaceChosen - Called once a picked place (or the device fix) has

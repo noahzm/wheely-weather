@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { SymbolView, type SFSymbol } from 'expo-symbols';
+import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { ChevronRight, Clock, CloudRain, Wind, type IconComponent } from './icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -9,7 +10,7 @@ import { DAYLIGHT_MESSAGES } from '@/domain/copy';
 import { dayLabel, getBestDayInfo, formatPercent } from '@/utils';
 import { getDayConditionReason } from '@/utils/forecastHelpers';
 import { fullHourLabel } from '@/utils/timeFormat';
-import { useColorSchemeName, useWheelyColors } from '@/hooks/use-theme';
+import { useWheelyColors } from '@/hooks/use-theme';
 import { useTemperatureDisplay } from '@/hooks/use-temperature-display';
 import { useGearMode, useResolvedTempUnit } from '@/hooks/settings-context';
 import {
@@ -37,12 +38,11 @@ import {
   weatherSfSymbol,
 } from './primitives';
 
-function makeStyles(c: WheelyPalette, scheme: 'light' | 'dark' = 'light') {
+function makeStyles(c: WheelyPalette) {
   return StyleSheet.create({
     weekSection: { gap: Spacing.three },
     dailyList: { padding: 0, gap: 0, overflow: 'visible' },
-    // Clips the best-bet row's accent border at the card's corners; concentric
-    // radius so the clip follows the inside of the card border.
+    // Concentric radius so row press states follow the inside of the card border.
     dailyClip: { borderRadius: CardInnerRadius, overflow: 'hidden' },
     dayRowContainer: {
       position: 'relative',
@@ -54,11 +54,6 @@ function makeStyles(c: WheelyPalette, scheme: 'light' | 'dark' = 'light') {
       paddingHorizontal: Spacing.three,
       paddingVertical: 14,
       ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as object) : null),
-    },
-    dayRowBest: {
-      borderLeftWidth: 5,
-      borderLeftColor: scheme === 'dark' ? c.accent : c.ink,
-      paddingLeft: 11,
     },
     dayRowLast: { borderBottomWidth: 0 },
     dayRowMain: {
@@ -97,14 +92,17 @@ function makeStyles(c: WheelyPalette, scheme: 'light' | 'dark' = 'light') {
     dayDetailDrawer: {
       paddingHorizontal: Spacing.three,
       paddingBottom: Spacing.three,
-      paddingTop: Spacing.one,
+      paddingTop: Spacing.two,
       gap: Spacing.two,
+      backgroundColor: c.background,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderColor: withAlpha(c.ink, 0.15),
     },
     dayDetailReason: {
       color: c.ink,
-      fontFamily: Fonts.body,
+      fontFamily: Fonts.bold,
       ...Type.small,
-      fontWeight: '600',
+      fontWeight: FontWeightBlack,
     },
     dayDetailGrid: {
       flexDirection: 'row',
@@ -125,8 +123,8 @@ function makeStyles(c: WheelyPalette, scheme: 'light' | 'dark' = 'light') {
     dayDetailPillText: {
       color: c.ink,
       fontFamily: Fonts.body,
-      fontSize: Type.micro.fontSize,
-      fontWeight: '500',
+      ...Type.micro,
+      fontWeight: '400',
     },
     muted: {
       color: c.mutedInk,
@@ -137,9 +135,20 @@ function makeStyles(c: WheelyPalette, scheme: 'light' | 'dark' = 'light') {
 
 function useStyles() {
   const c = useWheelyColors();
-  const scheme = useColorSchemeName();
-  const styles = useMemo(() => makeStyles(c, scheme), [c, scheme]);
+  const styles = useMemo(() => makeStyles(c), [c]);
   return { c, styles };
+}
+
+function preventOrphans(text: string): string {
+  const glued = text
+    .replaceAll(' mph', '\u00A0mph')
+    .replaceAll(' km/h', '\u00A0km/h')
+    .replaceAll(' kph', '\u00A0kph')
+    .replaceAll(' AM', '\u00A0AM')
+    .replaceAll(' PM', '\u00A0PM');
+  const lastSpaceIdx = glued.lastIndexOf(' ');
+  if (lastSpaceIdx <= 0 || glued.indexOf(' ') === lastSpaceIdx) return glued;
+  return `${glued.slice(0, lastSpaceIdx)}\u00A0${glued.slice(lastSpaceIdx + 1)}`;
 }
 
 function DayRowDetail({
@@ -170,18 +179,19 @@ function DayRowDetail({
     day.windGust != null && Math.round(day.windGust) > Math.round(day.windSpeed)
       ? ` (gusts ${formatWind(day.windGust)})`
       : '';
-  const dayGear =
-    day.rideWindowUnavailable || day.condition === 'poor'
-      ? null
-      : getDayGearSuggestion(day, gearMode, thresholds);
+  const noRideToday =
+    day.rideWindowUnavailable === true || day.condition === 'poor' || day.condition === 'bad';
+  const dayGear = noRideToday ? null : getDayGearSuggestion(day, gearMode, thresholds);
   const kitItems = dayGear ? [...dayGear.wear, ...dayGear.bring] : [];
+  const showRideWindow =
+    day.rideWindow != null && !day.rideWindowUnavailable && day.condition !== 'bad';
 
   return (
     <AnimatedExpand openProgress={openProgress}>
       <View style={styles.dayDetailDrawer} accessibilityLiveRegion="polite">
-        <ThemedText style={styles.dayDetailReason}>{reasonText}</ThemedText>
+        <ThemedText style={styles.dayDetailReason}>{preventOrphans(reasonText)}</ThemedText>
         <View style={styles.dayDetailGrid}>
-          {day.rideWindow && (
+          {showRideWindow && day.rideWindow && (
             <View style={styles.dayDetailPill}>
               {Platform.OS === 'ios' ? (
                 <SymbolView name="clock.fill" size={13} tintColor={c.ink} />
@@ -229,6 +239,26 @@ function DayRowDetail({
   );
 }
 
+function DayRowChevron({ isExpanded, color }: Readonly<{ isExpanded: boolean; color: string }>) {
+  const openProgress = useExpandAnimation(isExpanded);
+  const animatedStyle = useAnimatedStyle(
+    () => ({
+      transform: [{ rotate: `${openProgress.get() * 90}deg` }],
+    }),
+    [openProgress],
+  );
+
+  return (
+    <Animated.View style={animatedStyle}>
+      {Platform.OS === 'ios' ? (
+        <SymbolView name="chevron.right" size={13} tintColor={color} />
+      ) : (
+        <PlatformIcon icon={ChevronRight} size={14} color={color} strokeWidth={2.5} />
+      )}
+    </Animated.View>
+  );
+}
+
 function DayRow({
   day,
   index,
@@ -269,9 +299,8 @@ function DayRow({
         accessibilityState={{ expanded: isExpanded }}
         style={({ pressed }) => [
           styles.dayRowHeader,
-          best && styles.dayRowBest,
-          // The grey flash of a tapped iOS list row.
-          pressed && Platform.OS === 'web' && { backgroundColor: withAlpha(c.ink, 0.08) },
+          isExpanded && { backgroundColor: withAlpha(c.ink, 0.03) },
+          pressed && { backgroundColor: withAlpha(c.ink, 0.07) },
         ]}
       >
         <View style={styles.dayRowMain}>
@@ -318,23 +347,7 @@ function DayRow({
             )}
           </View>
           <View style={styles.chevronWrap}>
-            {Platform.OS === 'ios' ? (
-              <SymbolView
-                name={isExpanded ? 'chevron.down' : 'chevron.right'}
-                size={13}
-                tintColor={c.mutedInk}
-              />
-            ) : (
-              // › turning to ⌄, like the iOS row's chevron.right / chevron.down.
-              <View
-                style={[
-                  { transform: [{ rotate: isExpanded ? '90deg' : '0deg' }] },
-                  Platform.OS === 'web' && ({ transition: 'transform 0.2s ease' } as object),
-                ]}
-              >
-                <PlatformIcon icon={ChevronRight} size={14} color={c.mutedInk} strokeWidth={2.5} />
-              </View>
-            )}
+            <DayRowChevron isExpanded={isExpanded} color={c.mutedInk} />
           </View>
         </View>
       </HapticPressable>

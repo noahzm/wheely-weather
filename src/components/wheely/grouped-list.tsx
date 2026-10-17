@@ -7,7 +7,14 @@ import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Fonts, Radius, Spacing, Type, type WheelyPalette } from '@/constants/theme';
+import {
+  Fonts,
+  FontWeightBlack,
+  Radius,
+  Spacing,
+  Type,
+  type WheelyPalette,
+} from '@/constants/theme';
 import { withAlpha } from '@/utils/colors';
 import { ArrowUpRight, ChevronRight } from './icons';
 import { HapticPressable, PlatformIcon } from './primitives';
@@ -23,10 +30,11 @@ function makeStyles(c: WheelyPalette) {
     },
     header: {
       color: c.mutedInk,
-      fontFamily: Fonts.heading,
+      fontFamily: Fonts.bold,
+      fontWeight: FontWeightBlack,
       ...Type.caption,
       textTransform: 'uppercase',
-      letterSpacing: 0.4,
+      letterSpacing: 0.6,
       paddingHorizontal: ROW_PADDING,
     },
     card: {

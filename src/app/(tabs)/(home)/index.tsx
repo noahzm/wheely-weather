@@ -239,11 +239,10 @@ function HomeSections({
   const sectionsOpacity = useSharedValue(1);
   const [shownPlace, setShownPlace] = useState(placeKey);
 
-  // Web: switching places swaps every section at once, so fade the new
-  // forecast in. Native tabs keep their own transitions.
+  // Switching places swaps every section at once, so fade the new forecast in.
   if (shownPlace !== placeKey) {
     setShownPlace(placeKey);
-    if (isWeb && !reduceMotion) {
+    if (!reduceMotion) {
       sectionsOpacity.set(0);
       sectionsOpacity.set(withTiming(1, { duration: PLACE_FADE_MS }));
     }
@@ -640,7 +639,7 @@ function makeStyles(c: WheelyPalette) {
     statusMessage: {
       color: c.mutedInk,
       textAlign: 'center',
-      fontSize: Type.small.fontSize,
+      ...Type.small,
     },
   });
 }

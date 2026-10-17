@@ -15,7 +15,7 @@ import {
   type WheelyPalette,
 } from '@/constants/theme';
 import type { RecentLocation, SavedLocation } from '@/services/locationStorage';
-import { HapticPressable } from './primitives';
+import { brutalShadow, HapticPressable } from './primitives';
 
 function makeStyles(c: WheelyPalette) {
   return StyleSheet.create({
@@ -26,7 +26,8 @@ function makeStyles(c: WheelyPalette) {
       flexDirection: 'row',
       alignItems: 'center',
       gap: Spacing.two,
-      paddingVertical: 2,
+      paddingVertical: 4,
+      paddingRight: Spacing.two,
     },
     pill: {
       flexDirection: 'row',
@@ -42,12 +43,17 @@ function makeStyles(c: WheelyPalette) {
     pillActive: {
       backgroundColor: c.primary,
       borderColor: c.border,
+      ...brutalShadow(c.shadow, 2),
+    },
+    pillPressed: {
+      opacity: 0.85,
+      transform: [{ scale: 0.97 }],
     },
     pillText: {
       color: c.ink,
       fontFamily: Fonts.body,
-      fontSize: Type.small.fontSize,
-      fontWeight: '600',
+      ...Type.small,
+      fontWeight: '400',
     },
     pillTextActive: {
       color: c.primaryInk,
@@ -99,7 +105,11 @@ export function PinnedLocationsBar({
           accessibilityRole="tab"
           accessibilityLabel="Current location"
           accessibilityState={{ selected: followingDevice }}
-          style={[styles.pill, followingDevice && styles.pillActive]}
+          style={({ pressed }) => [
+            styles.pill,
+            followingDevice && styles.pillActive,
+            pressed && styles.pillPressed,
+          ]}
         >
           <View style={styles.iconWrap}>
             <SymbolView
@@ -125,7 +135,11 @@ export function PinnedLocationsBar({
               accessibilityRole="tab"
               accessibilityLabel={`Location: ${name}`}
               accessibilityState={{ selected: active }}
-              style={[styles.pill, active && styles.pillActive]}
+              style={({ pressed }) => [
+                styles.pill,
+                active && styles.pillActive,
+                pressed && styles.pillPressed,
+              ]}
             >
               <View style={styles.iconWrap}>
                 <SymbolView

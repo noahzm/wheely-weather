@@ -22,7 +22,7 @@ function makeStyles(c: WheelyPalette) {
     },
     label: {
       color: c.mutedInk,
-      fontSize: Type.small.fontSize,
+      ...Type.small,
     },
   });
 }

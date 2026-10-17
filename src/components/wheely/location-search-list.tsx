@@ -7,7 +7,7 @@ import { Check, House, Navigation, Pin } from './icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Fonts, Radius, Spacing, Type } from '@/constants/theme';
+import { Fonts, FontWeightBlack, Radius, Spacing, Type } from '@/constants/theme';
 import { withAlpha } from '@/utils/colors';
 
 import { HapticPressable, PlatformIcon, PressedOpacity } from './primitives';
@@ -20,7 +20,7 @@ import {
   pinAccessibilityLabel,
   type RowItem,
 } from '@/utils/locationRows';
-import type { PlaceVerdict } from '@/utils/placeVerdict';
+import type { PlaceVerdict } from '@/services/placeVerdict';
 
 import { type LocationSearchListProps } from './location-search-list.types';
 
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three + Spacing.one,
   },
   messageText: {
-    fontSize: Type.body.fontSize,
+    ...Type.body,
     textAlign: 'center',
     fontFamily: Fonts.body,
   },
@@ -321,19 +321,21 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   rowLabel: {
-    fontSize: Type.body.fontSize,
+    ...Type.body,
     fontFamily: Fonts.body,
   },
   rowLabelAction: {
-    fontFamily: Fonts.heading,
+    fontFamily: Fonts.bold,
+    fontWeight: FontWeightBlack,
   },
   // The location currently on screen; weight carries the state so it still
   // reads when the accent check is not enough on its own.
   rowLabelActive: {
-    fontFamily: Fonts.heading,
+    fontFamily: Fonts.bold,
+    fontWeight: FontWeightBlack,
   },
   rowSub: {
-    fontSize: Type.small.fontSize,
+    ...Type.small,
     fontFamily: Fonts.body,
   },
   chevron: {

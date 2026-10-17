@@ -1,4 +1,4 @@
-import type { WidgetSnapshot } from '@/utils/widgetSnapshot';
+import type { WidgetSnapshot } from '@/services/widgetSnapshot';
 
 /**
  * Hands the latest verdict to the home screen widget. Only iOS has a widget

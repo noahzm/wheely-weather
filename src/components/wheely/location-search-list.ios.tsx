@@ -40,7 +40,7 @@ import {
   type LocationSection,
   type RowItem,
 } from '@/utils/locationRows';
-import type { PlaceVerdict } from '@/utils/placeVerdict';
+import type { PlaceVerdict } from '@/services/placeVerdict';
 
 import { type LocationSearchListProps } from './location-search-list.types';
 

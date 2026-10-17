@@ -34,7 +34,9 @@ function makeStyles(c: WheelyPalette) {
     },
     alertExtremeBody: { backgroundColor: withAlpha(c.error, 0.16) },
     alertContent: {
-      paddingHorizontal: Spacing.three,
+      // Aligns with alertTextWrap (16pt left padding + 20pt icon + 16pt gap).
+      paddingLeft: Spacing.three * 2 + 20,
+      paddingRight: Spacing.three,
       paddingBottom: Spacing.three,
       gap: Spacing.one,
     },
@@ -215,7 +217,7 @@ function AlertCard({ alert, primary }: Readonly<{ alert: WeatherAlert; primary: 
     !!alert.description || !!alert.instruction || !!alert.expires || !!alert.detailsUrl;
 
   return (
-    <BrutalCard small style={styles.alertCard}>
+    <BrutalCard style={styles.alertCard}>
       <View style={{ borderRadius: CardInnerRadius, overflow: 'hidden' }}>
         {primary ? <HazardStripe extreme={extreme} /> : <SolidAccentBar extreme={extreme} />}
         <HapticPressable
@@ -225,7 +227,11 @@ function AlertCard({ alert, primary }: Readonly<{ alert: WeatherAlert; primary: 
           }}
           accessibilityRole={hasDetails ? 'button' : undefined}
           accessibilityState={hasDetails ? { expanded: open } : undefined}
-          style={[styles.alertBody, extreme && styles.alertExtremeBody]}
+          style={({ pressed }) => [
+            styles.alertBody,
+            extreme && styles.alertExtremeBody,
+            hasDetails && pressed && { backgroundColor: withAlpha(c.ink, 0.06) },
+          ]}
         >
           <View style={styles.alertIconWrap}>
             <AlertLeadingIcon sfIcon={sfIcon} Icon={Icon} color={c.ink} />
@@ -235,7 +241,7 @@ function AlertCard({ alert, primary }: Readonly<{ alert: WeatherAlert; primary: 
             {!!alert.headline && alert.headline !== alert.event && (
               <ThemedText
                 style={[styles.muted, extreme && styles.mutedExtreme]}
-                numberOfLines={open ? undefined : 2}
+                numberOfLines={open ? undefined : 3}
               >
                 {alert.headline}
               </ThemedText>

@@ -41,6 +41,11 @@ export interface ForecastSnapshot {
   source: 'manual' | 'device' | 'mock';
   acclimatization: AcclimatizationContext;
   /**
+   * The ride duration `weather` was built with, so `upcomingForecasts` can
+   * re-rate the hours ahead with the same window length.
+   */
+  rideDuration?: RideDuration;
+  /**
    * The payload `weather` was parsed from, so the widget can rate the hours
    * ahead (`forecastFromHour`). Memory only: the disk cache doesn't store it,
    * and mocks have none.
@@ -147,6 +152,7 @@ export async function getForecastSnapshot({
       mockScenario,
       source: savedLocation.source,
       acclimatization: { homeBaseline, thresholds, exposureLevel },
+      rideDuration,
       forecastData: data,
     },
     extras,

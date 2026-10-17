@@ -4,7 +4,14 @@ import { usePathname, useRouter, useSegments } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Fonts, Radius, Spacing, Type, type WheelyPalette } from '@/constants/theme';
+import {
+  Fonts,
+  FontWeightBlack,
+  Radius,
+  Spacing,
+  Type,
+  type WheelyPalette,
+} from '@/constants/theme';
 import { withAlpha } from '@/utils/colors';
 import { GlassChrome } from './glass-chrome';
 import { ScreenGutter } from './content-column';
@@ -99,7 +106,8 @@ function makeStyles(c: WheelyPalette) {
       backgroundColor: withAlpha(c.ink, 0.1),
     },
     tabLabel: {
-      fontFamily: Fonts.heading,
+      fontFamily: Fonts.bold,
+      fontWeight: FontWeightBlack,
       fontSize: Type.micro.fontSize,
       lineHeight: Type.micro.lineHeight,
     },

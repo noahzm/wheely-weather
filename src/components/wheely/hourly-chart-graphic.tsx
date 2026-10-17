@@ -3,6 +3,7 @@ import { Platform, StyleSheet, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useReducedMotion,
+  withSpring,
   type SharedValue,
 } from 'react-native-reanimated';
 import Svg, {
@@ -37,17 +38,16 @@ import { withAlpha } from '@/utils/colors';
 import { HourlyChartDot } from './hourly-chart-dot';
 import type { ChartHour } from './use-hourly-forecast-chart';
 
-export const CHART_HEIGHT = 140;
+export const CHART_HEIGHT = 148;
 const SELECTION_RING_SIZE = 32;
 const SELECTION_RING_RADIUS = SELECTION_RING_SIZE / 2;
 
 const GRIDLINE_CONDITIONS = ['good', 'fair', 'marginal', 'poor', 'bad'] as const;
 const GRIDLINE_INSET = 12;
-// Wide enough to fully mask an hour label cut by the viewport edge: the
-// gradient holds opaque paper over the outer band so labels dissolve instead
-// of truncating mid-glyph, then fades inward.
-const EDGE_FADE_WIDTH = 44;
-const EDGE_FADE_SOLID_STOP = 0.3;
+// Wide enough to mask an hour label cut by the viewport edge without washing
+// out neighboring ticks when "Now" is centered.
+const EDGE_FADE_WIDTH = 24;
+const EDGE_FADE_SOLID_STOP = 0.25;
 
 function makeStyles(c: WheelyPalette) {
   return StyleSheet.create({
@@ -130,7 +130,7 @@ function hourLabelNode(d: ChartHour, nowIdx: number, labelColor: string) {
     <SvgText
       key={`label-${d.idx}`}
       x={chartX(d.idx)}
-      y={132}
+      y={140}
       fontFamily={Fonts.body}
       fontSize={Type.micro.fontSize}
       fontWeight="400"
@@ -194,7 +194,7 @@ export function HourlyChartGraphic({
           x1={chartX(nowIdx)}
           x2={chartX(nowIdx)}
           y1={14}
-          y2={112}
+          y2={120}
           stroke={c.ink}
           strokeDasharray="2 3"
         />
@@ -317,12 +317,14 @@ export function HourlyChartEdgeFades() {
 function SelectionMarkerAnimated({
   segments,
   scrollX,
+  isScrollIdle,
   viewportWidth,
   initialScrollX,
   selectedCondition,
 }: Readonly<{
   segments: ChartSplineSegment[];
   scrollX: SharedValue<number>;
+  isScrollIdle: boolean;
   viewportWidth: number;
   initialScrollX: number;
   selectedCondition: string;
@@ -333,13 +335,16 @@ function SelectionMarkerAnimated({
 
   const animatedStyle = useAnimatedStyle(() => {
     if (reduceMotion || viewportWidth <= 0) {
-      return { top: discreteTop };
+      return { top: discreteTop, transform: [{ scale: 1 }] };
     }
     const offsetX = chartScrollOffsetOrInitial(scrollX.value, initialScrollX);
     const centerX = chartCenterXFromScroll(offsetX, viewportWidth);
     const y = chartSmoothYAtSegments(segments, centerX);
-    return { top: y - SELECTION_RING_RADIUS };
-  }, [segments, viewportWidth, initialScrollX, reduceMotion, discreteTop]);
+    return {
+      top: y - SELECTION_RING_RADIUS,
+      transform: [{ scale: withSpring(isScrollIdle ? 1 : 1.14, { damping: 14, stiffness: 220 }) }],
+    };
+  }, [segments, viewportWidth, initialScrollX, reduceMotion, discreteTop, isScrollIdle]);
 
   return <Animated.View style={[styles.selectionRing, animatedStyle, { pointerEvents: 'none' }]} />;
 }
@@ -387,6 +392,7 @@ export function SelectionMarker({
     <SelectionMarkerAnimated
       segments={segments}
       scrollX={scrollX}
+      isScrollIdle={isScrollIdle}
       viewportWidth={viewportWidth}
       initialScrollX={initialScrollX}
       selectedCondition={selectedCondition}

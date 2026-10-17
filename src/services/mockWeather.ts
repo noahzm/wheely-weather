@@ -276,6 +276,31 @@ export function getMockLocationLabel(scenario: string | null | undefined): strin
   return s ? `Mock: ${s.label}` : null;
 }
 
+function buildDayRideWindow(
+  dayIndex: number,
+  nowHour: number,
+  todayWindow: MockScenarioSpec['todayWindow'],
+  condition: string,
+  day: { low: number; high: number },
+) {
+  if (dayIndex === 0 && todayWindow) {
+    return {
+      startHour: (nowHour + todayWindow.startOffset) % 24,
+      endHour: (nowHour + todayWindow.startOffset + todayWindow.hours) % 24,
+      tempLow: todayWindow.tempLow,
+      tempHigh: todayWindow.tempHigh,
+    };
+  }
+  if (dayIndex >= 2 && condition !== 'bad' && condition !== 'poor') {
+    return {
+      startHour: 12,
+      endHour: 15,
+      tempLow: day.low + 4,
+      tempHigh: day.high - 2,
+    };
+  }
+}
+
 /** Builds the full normalized weather payload for the given scenario. */
 export function buildMockWeather(scenario: string | null | undefined): Weather | null {
   const spec = isMockScenario(scenario) ? SCENARIOS[scenario] : null;
@@ -317,16 +342,18 @@ export function buildMockWeather(scenario: string | null | undefined): Weather |
     d.setDate(today.getDate() + i);
     d.setHours(12, 0, 0, 0);
     const t = spec.dayTemplate(i);
-    const window = i === 0 ? spec.todayWindow : undefined;
+    const condition = getDailyCondition({
+      tempLow: t.low,
+      tempHigh: t.high,
+      wind: t.windSpeed,
+      gust: t.windGust,
+      rain: t.rainChance,
+      code: t.weatherCode,
+      dewpoint: spec.current.dewpoint,
+    });
+    const rideWindow = buildDayRideWindow(i, nowHour, spec.todayWindow, condition, t);
     return {
-      ...(window && {
-        rideWindow: {
-          startHour: (nowHour + window.startOffset) % 24,
-          endHour: (nowHour + window.startOffset + window.hours) % 24,
-          tempLow: window.tempLow,
-          tempHigh: window.tempHigh,
-        },
-      }),
+      ...(rideWindow && { rideWindow }),
       date: d,
       high: t.high,
       low: t.low,
@@ -334,15 +361,7 @@ export function buildMockWeather(scenario: string | null | undefined): Weather |
       windGust: t.windGust,
       rainChance: t.rainChance,
       weatherCode: t.weatherCode,
-      condition: getDailyCondition({
-        tempLow: t.low,
-        tempHigh: t.high,
-        wind: t.windSpeed,
-        gust: t.windGust,
-        rain: t.rainChance,
-        code: t.weatherCode,
-        dewpoint: spec.current.dewpoint,
-      }),
+      condition,
     };
   });
 

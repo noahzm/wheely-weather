@@ -1,10 +1,11 @@
 import { useCallback, useMemo, useState, type RefObject } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
-import Animated, { type SharedValue } from 'react-native-reanimated';
+import Animated, { FadeIn, type SharedValue } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
 import { CONDITION_DISPLAY } from '@/domain';
 import { useWheelyColors } from '@/hooks/use-theme';
+import { useTemperatureDisplay } from '@/hooks/use-temperature-display';
 import { Fonts, FontWeightBlack, Spacing, Type, type WheelyPalette } from '@/constants/theme';
 import type { HourlyWeather } from '@/types/weather';
 import type { Thresholds } from '@/domain/constants';
@@ -13,7 +14,6 @@ import {
   ConditionChipWidthProbe,
   type ChipLayoutSize,
 } from './animated-condition-chip';
-import { AnimatedExpand } from './animated-expand';
 import { BrutalCard, HapticPressable, asCondition } from './primitives';
 import {
   CHART_HEIGHT,
@@ -52,8 +52,6 @@ function makeStyles(c: WheelyPalette) {
       position: 'relative',
       overflow: 'visible',
     },
-    // No reserved height: the row collapses with the reason drawer so a
-    // closed drawer doesn't read as an empty extended panel under the chart.
     conditionSummary: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -72,8 +70,13 @@ function makeStyles(c: WheelyPalette) {
       flex: 1,
     },
     hourReasonPanel: {
-      paddingLeft: Spacing.two,
-      paddingVertical: Spacing.one,
+      // Clears the corner sticker's horizontal reach and keeps a steady footer height
+      // so scrubbing between Good and Fair/Poor hours never bounces the page layout.
+      paddingLeft: Spacing.six + Spacing.three,
+      paddingTop: Spacing.one,
+      paddingBottom: Spacing.half,
+      minHeight: Type.small.lineHeight + Spacing.one + Spacing.half,
+      justifyContent: 'center',
     },
     hourChart: {
       position: 'relative',
@@ -94,6 +97,7 @@ function makeStyles(c: WheelyPalette) {
       position: 'absolute',
       top: 0,
       height: CHART_HEIGHT,
+      paddingTop: Spacing.one,
       backgroundColor: withAlpha(c.accent, 0.35),
       alignItems: 'center',
       pointerEvents: 'none',
@@ -112,6 +116,12 @@ function makeStyles(c: WheelyPalette) {
       color: c.mutedInk,
       ...Type.small,
       textAlign: 'right',
+    },
+    hourReadoutLead: {
+      color: c.ink,
+      fontFamily: Fonts.bold,
+      fontWeight: FontWeightBlack,
+      ...Type.small,
     },
     emptyCard: {
       minHeight: 160,
@@ -142,6 +152,8 @@ function preventOrphans(text: string): string {
     .replaceAll(' mph', '\u00A0mph')
     .replaceAll(' km/h', '\u00A0km/h')
     .replaceAll(' kph', '\u00A0kph')
+    .replaceAll(' AM', '\u00A0AM')
+    .replaceAll(' PM', '\u00A0PM')
     .replaceAll('• ', '•\u00A0');
   const lastSpaceIdx = glued.lastIndexOf(' ');
   if (lastSpaceIdx === -1) return glued;
@@ -149,16 +161,16 @@ function preventOrphans(text: string): string {
 }
 
 function HourlyReasonFooter({
-  reasonOpen,
+  selected,
+  hourLabelText,
   selectedReason,
-  reasonOpenProgress,
   condition,
   conditionLabel,
   chartScroll,
 }: Readonly<{
-  reasonOpen: boolean;
+  selected: ChartHour;
+  hourLabelText: string;
   selectedReason: string | null;
-  reasonOpenProgress: SharedValue<number>;
   condition: string;
   conditionLabel: string;
   chartScroll: {
@@ -175,8 +187,17 @@ function HourlyReasonFooter({
   };
 }>) {
   const { styles } = useStyles();
+  const { format: formatTemp, formatWind } = useTemperatureDisplay();
 
-  const footerText = reasonOpen && selectedReason ? preventOrphans(selectedReason) : null;
+  const tempStr = formatTemp(selected.temperature);
+  const detailText =
+    selectedReason == null
+      ? preventOrphans(`${formatWind(selected.windSpeed)} wind`)
+      : preventOrphans(selectedReason);
+  const leadIncludesTemp = !selectedReason?.includes(tempStr);
+  const leadText = leadIncludesTemp
+    ? `${hourLabelText.replaceAll(' ', '\u00A0')}\u00A0·\u00A0${tempStr}`
+    : hourLabelText.replaceAll(' ', '\u00A0');
 
   return (
     <View style={styles.conditionSummary}>
@@ -186,9 +207,14 @@ function HourlyReasonFooter({
         </AnimatedConditionChip>
       </View>
       <View style={styles.reasonWrap}>
-        <AnimatedExpand openProgress={reasonOpenProgress} style={styles.hourReasonPanel}>
-          {footerText && <ThemedText style={styles.hourReason}>{footerText}</ThemedText>}
-        </AnimatedExpand>
+        <View style={styles.hourReasonPanel}>
+          <Animated.View key={selected.idx} entering={FadeIn.duration(140)}>
+            <ThemedText style={styles.hourReason} numberOfLines={1}>
+              <ThemedText style={styles.hourReadoutLead}>{leadText}</ThemedText>
+              {` · ${detailText}`}
+            </ThemedText>
+          </Animated.View>
+        </View>
       </View>
     </View>
   );
@@ -262,7 +288,7 @@ function HourlyForecastBody({
 }: Readonly<{
   data: ChartHour[];
   nowIdx: number;
-  thresholds?: Thresholds;
+  thresholds: Thresholds;
   windowBand: WindowBand;
 }>) {
   const { styles } = useStyles();
@@ -299,9 +325,9 @@ function HourlyForecastBody({
         windowBand={windowBand}
       />
       <HourlyReasonFooter
-        reasonOpen={chart.reasonOpen}
+        selected={chart.selected}
+        hourLabelText={chart.hourLabelText}
         selectedReason={chart.selectedReason}
-        reasonOpenProgress={chart.reasonOpenProgress}
         condition={chart.selected.condition}
         conditionLabel={chart.conditionLabel}
         chartScroll={chartScroll}
@@ -559,7 +585,7 @@ export function HourlyForecast({
 }: Readonly<{
   hourly: HourlyWeather[];
   pastHourly: HourlyWeather[];
-  thresholds?: Thresholds;
+  thresholds: Thresholds;
   /** The verdict's recommended window, shaded on the chart. */
   rideWindow?: { startHour: number; endHour: number; tomorrow?: boolean } | null;
 }>) {

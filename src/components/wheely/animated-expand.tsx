@@ -48,10 +48,20 @@ export function AnimatedExpand({
   const animatedStyle = useAnimatedStyle(() => {
     const measured = contentHeight.value;
     const progress = openProgress.value;
-    if (progress <= 0) return { height: 0 };
-    if (measured <= 0) return { height: 0 };
-    return { height: measured * progress };
+    if (progress <= 0) return { height: 0, opacity: 0 };
+    if (measured <= 0) return { height: 0, opacity: 0 };
+    return {
+      height: measured * progress,
+      opacity: progress,
+    };
   }, [contentHeight, openProgress]);
+
+  const innerAnimatedStyle = useAnimatedStyle(() => {
+    const progress = openProgress.value;
+    return {
+      transform: [{ translateY: (1 - progress) * -6 }],
+    };
+  }, [openProgress]);
 
   const onMeasureLayout = (height: number) => {
     if (!hasContent) {
@@ -76,7 +86,9 @@ export function AnimatedExpand({
         </View>
       ) : null}
       <Animated.View style={[animatedStyle, styles.expandClip]}>
-        {hasContent ? <View style={style}>{children}</View> : null}
+        {hasContent ? (
+          <Animated.View style={[style, innerAnimatedStyle]}>{children}</Animated.View>
+        ) : null}
       </Animated.View>
     </View>
   );

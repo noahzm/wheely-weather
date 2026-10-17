@@ -19,7 +19,13 @@ import {
   chartScrollOffsetOrInitial,
 } from '@/utils/hourlyChart';
 
-import { BURST_CHIP_SIZES, BURST_PATH, BURST_VIEWBOX, burstChipStyles } from './primitives';
+import {
+  BURST_CHIP_SIZES,
+  BURST_PATH,
+  BURST_SHADOW_PATH,
+  BURST_VIEWBOX,
+  burstChipStyles,
+} from './primitives';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedText = Animated.createAnimatedComponent(Text);
@@ -261,7 +267,20 @@ function AnimatedConditionChipWeb({
             width={appearance.width}
             height={appearance.height}
           >
-            <Path d={BURST_PATH} fill={appearance.fill} />
+            <Path
+              d={BURST_SHADOW_PATH}
+              fill={c.shadow}
+              stroke={c.shadow}
+              strokeWidth={1.5}
+              strokeLinejoin="round"
+            />
+            <Path
+              d={BURST_PATH}
+              fill={appearance.fill}
+              stroke={c.border}
+              strokeWidth={2.5}
+              strokeLinejoin="round"
+            />
           </Svg>
         ) : null}
         <Text
@@ -309,7 +328,20 @@ function AnimatedConditionChipNative({
       >
         <View style={[StyleSheet.absoluteFill, { pointerEvents: 'none' }]}>
           <Svg viewBox={BURST_VIEWBOX} preserveAspectRatio="none" style={StyleSheet.absoluteFill}>
-            <AnimatedPath d={BURST_PATH} animatedProps={burstProps} />
+            <Path
+              d={BURST_SHADOW_PATH}
+              fill={c.shadow}
+              stroke={c.shadow}
+              strokeWidth={1.5}
+              strokeLinejoin="round"
+            />
+            <AnimatedPath
+              d={BURST_PATH}
+              animatedProps={burstProps}
+              stroke={c.border}
+              strokeWidth={2.5}
+              strokeLinejoin="round"
+            />
           </Svg>
         </View>
         <AnimatedText

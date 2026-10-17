@@ -8,7 +8,14 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
-import { Fonts, Radius, Spacing, Type, type WheelyPalette } from '@/constants/theme';
+import {
+  Fonts,
+  FontWeightBlack,
+  Radius,
+  Spacing,
+  Type,
+  type WheelyPalette,
+} from '@/constants/theme';
 import { useColorSchemeName, useWheelyColors } from '@/hooks/use-theme';
 import { withAlpha } from '@/utils/colors';
 import { selectionFeedback } from '@/utils/haptics';
@@ -52,6 +59,7 @@ function makeStyles(c: WheelyPalette, scheme: 'light' | 'dark') {
     },
     textActive: {
       fontFamily: Fonts.bold,
+      fontWeight: FontWeightBlack,
     },
   });
 }

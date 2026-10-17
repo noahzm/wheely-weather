@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 import { useResolvedTempUnit } from '@/hooks/settings-context';
 import type { ForecastSnapshot } from '@/services/forecastSnapshot';
 import { publishWidgetSnapshot } from '@/services/widgetStorage';
-import { buildWidgetSnapshot } from '@/utils/widgetSnapshot';
+import { buildWidgetSnapshot } from '@/services/widgetSnapshot';
 
 /**
  * Keeps the home screen widget on the forecast the app is showing. Unlike the

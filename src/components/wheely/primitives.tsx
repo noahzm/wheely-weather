@@ -90,28 +90,39 @@ function makeEllipticalBurst({ cx, cy, xOut, yOut, xIn, yIn, n, offsets }: Burst
 const BURST_OFFSETS = [
   0.04, -0.07, 0.09, -0.04, 0.06, -0.08, 0.03, -0.06, 0.08, -0.03, 0.07, -0.05, 0.04,
 ] as const;
-// 13 spikes on a 200×80 viewBox. Outer ellipse nearly fills box; inner at ~50%
+// 9 spikes on a 200×80 viewBox: chunkier, wider spikes that don't bunch up at the left/right ends.
 export const BURST_PATH = makeEllipticalBurst({
   cx: 100,
   cy: 40,
   xOut: 96,
   yOut: 37,
-  xIn: 62,
-  yIn: 23,
-  n: 13,
+  xIn: 68,
+  yIn: 26,
+  n: 9,
   offsets: BURST_OFFSETS,
 });
 
-// Label burst: same 13-spike profile as condition chips, on a taller viewBox so
-// the badge reads less like a flat oval while keeping the hand-drawn spikes.
+// Offset 9-spike path for the neobrutalist drop shadow on sticker bursts.
+export const BURST_SHADOW_PATH = makeEllipticalBurst({
+  cx: 104.5,
+  cy: 44.5,
+  xOut: 96,
+  yOut: 37,
+  xIn: 68,
+  yIn: 26,
+  n: 9,
+  offsets: BURST_OFFSETS,
+});
+
+// Label burst: same 9-spike profile as condition chips, on a taller viewBox.
 const LABEL_BURST_PATH = makeEllipticalBurst({
   cx: 100,
   cy: 28,
   xOut: 94,
   yOut: 28,
-  xIn: 61,
-  yIn: 17,
-  n: 13,
+  xIn: 67,
+  yIn: 20,
+  n: 9,
   offsets: BURST_OFFSETS,
 });
 export const BURST_VIEWBOX = '-4 -4 208 88';
@@ -120,7 +131,7 @@ const LABEL_BURST_VIEWBOX = '-4 -4 208 64';
 // ─── Shared helpers ─────────────────────────────────────────────────────────
 
 /** Cross-platform neobrutalist drop shadow. */
-function brutalShadow(color: string, width: number, height = width) {
+export function brutalShadow(color: string, width: number, height = width) {
   return {
     boxShadow: `${width}px ${height}px 0px ${color}`,
     shadowColor: color,
@@ -132,7 +143,7 @@ function brutalShadow(color: string, width: number, height = width) {
 
 const ButtonRadius = Radius.card;
 
-const CardBorderWidth = 2;
+export const CardBorderWidth = 2;
 
 /**
  * Concentric radius for edge-to-edge children that clip themselves inside a
@@ -311,8 +322,8 @@ function makeChipStyles(c: WheelyPalette) {
       alignSelf: 'flex-start',
     },
     chipText: {
-      fontFamily: Fonts.body,
-      fontWeight: '400',
+      fontFamily: Fonts.bold,
+      fontWeight: FontWeightBlack,
     },
   });
 }
@@ -325,7 +336,7 @@ const chipSizes = {
       paddingVertical: 5,
     },
     text: {
-      fontSize: Type.micro.fontSize,
+      ...Type.micro,
     },
     icon: 12,
   },
@@ -336,7 +347,7 @@ const chipSizes = {
       paddingVertical: 7,
     },
     text: {
-      fontSize: Type.small.fontSize,
+      ...Type.small,
     },
     icon: 14,
   },
@@ -350,7 +361,7 @@ export const BURST_CHIP_SIZES = {
       gap: 4,
     },
     text: {
-      fontSize: Type.micro.fontSize,
+      ...Type.micro,
     },
     icon: 12,
   },
@@ -361,7 +372,7 @@ export const BURST_CHIP_SIZES = {
       gap: 5,
     },
     text: {
-      fontSize: Type.small.fontSize,
+      ...Type.small,
     },
     icon: 15,
   },
@@ -390,8 +401,8 @@ export const burstChipStyles = StyleSheet.create({
     flexDirection: 'row',
   },
   text: {
-    fontFamily: Fonts.body,
-    fontWeight: '400',
+    fontFamily: Fonts.bold,
+    fontWeight: FontWeightBlack,
   },
 });
 
@@ -563,9 +574,11 @@ export function ConditionPill({
       }}
     >
       <ThemedText
-        type={large ? 'small' : 'micro'}
+        type={large ? 'smallBold' : 'micro'}
         style={{
           color: colors.ink,
+          fontFamily: Fonts.bold,
+          fontWeight: FontWeightBlack,
         }}
       >
         {children}

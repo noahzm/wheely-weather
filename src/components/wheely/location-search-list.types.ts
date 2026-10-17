@@ -1,6 +1,6 @@
 import type { LocationSection, RowItem } from '@/utils/locationRows';
 import type { RecentLocation } from '@/services/locationStorage';
-import type { PlaceVerdict } from '@/utils/placeVerdict';
+import type { PlaceVerdict } from '@/services/placeVerdict';
 
 export interface LocationSearchListProps {
   sections: LocationSection[];

@@ -1,4 +1,5 @@
 import { Platform, StyleSheet, View } from 'react-native';
+import Animated, { ZoomIn } from 'react-native-reanimated';
 import { SymbolView, type SFSymbol } from 'expo-symbols';
 import { Star } from './icons';
 
@@ -92,13 +93,14 @@ export function StarRating({
   return (
     <View style={styles.row} accessible={true} accessibilityLabel={`${rating} out of 5 stars`}>
       {stars.map((fill, i) => (
-        <RatingStar
-          key={i}
-          fill={fill}
-          size={size}
-          filledColor={starColor}
-          emptyColor={starEmptyColor}
-        />
+        <Animated.View
+          key={`${i}-${fill}`}
+          entering={ZoomIn.delay(200 + i * 50)
+            .springify()
+            .damping(14)}
+        >
+          <RatingStar fill={fill} size={size} filledColor={starColor} emptyColor={starEmptyColor} />
+        </Animated.View>
       ))}
     </View>
   );

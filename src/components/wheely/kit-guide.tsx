@@ -1,12 +1,20 @@
 import { Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
+import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
-import { getGearSuggestion, getWearRows, THRESHOLDS, type RideHours } from '@/domain';
+import { getGearSuggestion, getWearRows, type RideHours } from '@/domain';
 import type { Thresholds } from '@/domain/constants';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { useGearMode, useRideDuration } from '@/hooks/settings-context';
 import { RIDE_DURATION_HOURS, type GearMode } from '@/types/settings';
-import { FontWeightBlack, Fonts, Spacing, Type, type WheelyPalette } from '@/constants/theme';
+import {
+  FontWeightBlack,
+  Fonts,
+  Radius,
+  Spacing,
+  Type,
+  type WheelyPalette,
+} from '@/constants/theme';
 import type { GearTipItem, Weather } from '@/types/weather';
 import { BrutalCard, CardInnerRadius, KitGearIcon } from './primitives';
 import { GearStylePicker } from './gear-style-picker';
@@ -54,7 +62,7 @@ function makeStyles(c: WheelyPalette) {
     wearCell: {
       flex: 1,
       alignItems: 'center',
-      justifyContent: 'center',
+      justifyContent: 'flex-start',
       gap: Spacing.one,
       paddingHorizontal: Spacing.two,
       paddingVertical: Spacing.three,
@@ -77,10 +85,10 @@ function makeStyles(c: WheelyPalette) {
       gap: 2,
       width: '100%',
     },
-    bodyStrong: {
+    wearLabel: {
       color: c.ink,
-      fontFamily: Fonts.bold,
-      fontWeight: FontWeightBlack,
+      fontFamily: Fonts.body,
+      fontWeight: '400',
       ...Type.small,
       textAlign: 'center',
       flexShrink: 1,
@@ -91,10 +99,8 @@ function makeStyles(c: WheelyPalette) {
       paddingVertical: Spacing.two,
       borderTopWidth: 1,
       borderColor: c.border,
-      gap: Spacing.one,
-    },
-    bringShelfWide: {
       flexDirection: 'row',
+      flexWrap: 'wrap',
       alignItems: 'center',
       gap: Spacing.two,
     },
@@ -105,29 +111,39 @@ function makeStyles(c: WheelyPalette) {
       ...Type.caption,
       textTransform: 'uppercase',
       letterSpacing: 1,
+      marginRight: Spacing.half,
     },
     bringItemsWrap: {
       flexDirection: 'row',
       flexWrap: 'wrap',
       alignItems: 'center',
-      gap: Spacing.two,
-    },
-    bringItemsWrapWide: {
+      gap: Spacing.one,
       flex: 1,
     },
     bringItem: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: Spacing.one,
-      paddingVertical: 2,
+      gap: 6,
+      backgroundColor: c.paper,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: Radius.pill,
+      paddingHorizontal: Spacing.two,
+      paddingVertical: 4,
     },
     bringLabel: {
       color: c.ink,
-      fontFamily: Fonts.bold,
-      fontWeight: FontWeightBlack,
-      ...Type.small,
+      fontFamily: Fonts.body,
+      fontWeight: '400',
+      ...Type.micro,
     },
   });
+}
+
+function preventOrphan(label: string): string {
+  const lastSpaceIdx = label.lastIndexOf(' ');
+  if (lastSpaceIdx <= 0 || label.indexOf(' ') === lastSpaceIdx) return label;
+  return `${label.slice(0, lastSpaceIdx)}\u00A0${label.slice(lastSpaceIdx + 1)}`;
 }
 
 function useStyles() {
@@ -139,14 +155,14 @@ function useStyles() {
 export function KitGuide({
   weather,
   rideHours = null,
-  thresholds = THRESHOLDS,
+  thresholds,
   mode: controlledMode,
   showPicker = true,
 }: Readonly<{
   weather: Weather;
   /** The verdict's window to dress for; without one, the next few hours. */
   rideHours?: RideHours | null;
-  thresholds?: Thresholds;
+  thresholds: Thresholds;
   mode?: GearMode;
   showPicker?: boolean;
 }>) {
@@ -185,19 +201,30 @@ export function KitGuide({
               >
                 {row.map((item: GearTipItem, colIndex: number) => {
                   const isLastCol = colIndex === row.length - 1;
+                  const itemDelay = (rowIndex * 2 + colIndex) * 35;
                   return (
                     <View
-                      key={`${item.label}-${colIndex}`}
+                      key={`${rowIndex}-${colIndex}`}
                       accessible={true}
                       accessibilityLabel={item.label}
                       style={[styles.wearCell, !isLastCol && styles.wearCellBorderRight]}
                     >
-                      <View style={styles.wearIconWrap}>
+                      <Animated.View
+                        key={`icon-${mode}-${item.icon}-${item.label}`}
+                        entering={ZoomIn.delay(itemDelay).springify().damping(15)}
+                        style={styles.wearIconWrap}
+                      >
                         <KitGearIcon iconKey={item.icon} size={40} color={c.ink} />
-                      </View>
-                      <View style={styles.wearTextWrap}>
-                        <ThemedText style={styles.bodyStrong}>{item.label}</ThemedText>
-                      </View>
+                      </Animated.View>
+                      <Animated.View
+                        key={`label-${mode}-${item.label}`}
+                        entering={FadeInDown.delay(itemDelay).duration(200)}
+                        style={styles.wearTextWrap}
+                      >
+                        <ThemedText style={styles.wearLabel}>
+                          {preventOrphan(item.label)}
+                        </ThemedText>
+                      </Animated.View>
                     </View>
                   );
                 })}
@@ -206,19 +233,20 @@ export function KitGuide({
           })}
         </View>
         {hasBring && (
-          <View style={[styles.bringShelf, isWide && styles.bringShelfWide]}>
+          <View style={styles.bringShelf}>
             <ThemedText style={styles.bringHeader}>Bring</ThemedText>
-            <View style={[styles.bringItemsWrap, isWide && styles.bringItemsWrapWide]}>
+            <View style={styles.bringItemsWrap}>
               {gear.bring.map((item: GearTipItem, index: number) => (
-                <View
-                  key={`${item.label}-${index}`}
+                <Animated.View
+                  key={`${mode}-${item.label}-${index}`}
+                  entering={FadeInDown.delay(index * 40).duration(200)}
                   accessible={true}
                   accessibilityLabel={item.label}
                   style={styles.bringItem}
                 >
-                  <KitGearIcon iconKey={item.icon} size={18} color={c.ink} />
-                  <ThemedText style={styles.bringLabel}>{item.label}</ThemedText>
-                </View>
+                  <KitGearIcon iconKey={item.icon} size={15} color={c.ink} />
+                  <ThemedText style={styles.bringLabel}>{preventOrphan(item.label)}</ThemedText>
+                </Animated.View>
               ))}
             </View>
           </View>

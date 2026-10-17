@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
 import {
+  ChevronRight,
   Droplet,
   Droplets,
   Gauge,
@@ -12,6 +13,7 @@ import {
   type IconComponent,
 } from './icons';
 import { SymbolView, type SFSymbol } from 'expo-symbols';
+import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
 import {
@@ -168,7 +170,6 @@ function makeStyles(c: WheelyPalette) {
     },
     metricCell: {
       flex: 1,
-      minHeight: 112,
       gap: Spacing.one,
       padding: Spacing.three,
       borderColor: c.border,
@@ -191,8 +192,14 @@ function makeStyles(c: WheelyPalette) {
     metricLabel: {
       color: c.ink,
       fontFamily: Fonts.body,
-      fontSize: Type.small.fontSize,
+      ...Type.small,
       fontWeight: '400',
+    },
+    metricChevron: {
+      marginLeft: 'auto',
+      alignItems: 'center',
+      justifyContent: 'center',
+      opacity: 0.7,
     },
     metricValue: {
       color: c.ink,
@@ -255,6 +262,26 @@ function useStyles() {
   return { c, styles, columns: isCompact ? 2 : 4 };
 }
 
+function MetricChevron({ isSelected, color }: Readonly<{ isSelected: boolean; color: string }>) {
+  const openProgress = useExpandAnimation(isSelected);
+  const animatedStyle = useAnimatedStyle(
+    () => ({
+      transform: [{ rotate: `${openProgress.value * 90}deg` }],
+    }),
+    [openProgress],
+  );
+
+  return (
+    <Animated.View style={animatedStyle}>
+      {Platform.OS === 'ios' ? (
+        <SymbolView name="chevron.right" size={11} tintColor={color} />
+      ) : (
+        <PlatformIcon icon={ChevronRight} size={12} color={color} strokeWidth={2.5} />
+      )}
+    </Animated.View>
+  );
+}
+
 function MetricCell({
   metric,
   isLastColumn,
@@ -275,11 +302,13 @@ function MetricCell({
   const { Icon, sf, label, value, qualifier, condition, iconRotation } = metric;
   const conditionText =
     condition && condition !== 'good' ? CONDITION_DISPLAY[asCondition(condition)] : null;
+  const hasFooter = !!qualifier || conditionText != null;
   const cellA11yLabel = [`${label}: ${value}`, qualifier, conditionText, 'Tap for cycling guidance']
     .filter(Boolean)
     .join(', ');
 
   const inkColor = isSelected ? c.accentInk : c.ink;
+  const chevronColor = isSelected ? c.accentInk : c.mutedInk;
 
   return (
     <HapticPressable
@@ -294,9 +323,7 @@ function MetricCell({
           borderBottomWidth: hasBottomBorder ? 1 : 0,
         },
         isSelected && styles.metricCellActive,
-        // Web gets the grey flash of a tapped iOS list row; native keeps the dim.
-        pressed &&
-          (Platform.OS === 'web' ? { backgroundColor: withAlpha(c.ink, 0.08) } : { opacity: 0.75 }),
+        pressed && (isSelected ? { opacity: 0.8 } : { backgroundColor: withAlpha(c.ink, 0.06) }),
       ]}
     >
       <View style={styles.metricLabelRow}>
@@ -315,22 +342,27 @@ function MetricCell({
         <ThemedText style={[styles.metricLabel, isSelected && { color: c.accentInk }]}>
           {label}
         </ThemedText>
+        <View style={styles.metricChevron}>
+          <MetricChevron isSelected={isSelected} color={chevronColor} />
+        </View>
       </View>
       <ThemedText style={[styles.metricValue, isSelected && { color: c.accentInk }]}>
         {value}
       </ThemedText>
-      <View style={styles.metricFooter}>
-        {!!qualifier && (
-          <ThemedText style={[styles.muted, isSelected && { color: c.accentInk }]}>
-            {qualifier}
-          </ThemedText>
-        )}
-        {condition && condition !== 'good' && (
-          <ConditionPill condition={asCondition(condition)}>
-            {CONDITION_DISPLAY[asCondition(condition)]}
-          </ConditionPill>
-        )}
-      </View>
+      {hasFooter && (
+        <View style={styles.metricFooter}>
+          {!!qualifier && (
+            <ThemedText style={[styles.muted, isSelected && { color: c.accentInk }]}>
+              {qualifier}
+            </ThemedText>
+          )}
+          {condition && condition !== 'good' && (
+            <ConditionPill condition={asCondition(condition)}>
+              {CONDITION_DISPLAY[asCondition(condition)]}
+            </ConditionPill>
+          )}
+        </View>
+      )}
     </HapticPressable>
   );
 }

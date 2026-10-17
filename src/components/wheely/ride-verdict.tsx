@@ -18,7 +18,13 @@ import { verdictFeedback } from '@/utils/haptics';
 import { scoreToStars } from '@/utils/starRating';
 import type { Condition, VerdictMessage } from '@/types/weather';
 import { formatIssuesAsSentence, formatVerdictDetail } from '@/domain';
-import { BrutalCard, PlatformIcon, weatherIconFor, weatherSfSymbol } from './primitives';
+import {
+  BrutalCard,
+  brutalShadow,
+  PlatformIcon,
+  weatherIconFor,
+  weatherSfSymbol,
+} from './primitives';
 import { StarRating } from './star-rating';
 
 type VerdictStatus = 'yes' | 'maybe' | 'no';
@@ -59,6 +65,7 @@ function makeStyles(c: WheelyPalette) {
       paddingVertical: 5,
       borderWidth: 1.5,
       borderColor: c.border,
+      ...brutalShadow(c.shadow, 2),
       transform: [{ rotate: '1deg' }],
     },
     // Clears the timing chip's overhang, so whatever sits below isn't covered.
@@ -83,13 +90,14 @@ function makeStyles(c: WheelyPalette) {
       paddingVertical: 6,
       borderWidth: 1.5,
       borderColor: c.border,
-      transform: [{ rotate: '1deg' }],
+      ...brutalShadow(c.shadow, 2),
+      transform: [{ rotate: '-1deg' }],
     },
     timingBadgeText: {
       color: c.background,
       fontFamily: Fonts.bold,
       fontWeight: FontWeightBlack,
-      fontSize: Type.small.fontSize,
+      ...Type.small,
       letterSpacing: 0.3,
     },
     verdictCard: {
@@ -124,6 +132,20 @@ function useStyles() {
   return { c, styles };
 }
 
+function preventOrphans(text: string): string {
+  const glued = text
+    .replaceAll(' mph', '\u00A0mph')
+    .replaceAll(' km/h', '\u00A0km/h')
+    .replaceAll(' kph', '\u00A0kph')
+    .replaceAll(' AM', '\u00A0AM')
+    .replaceAll(' PM', '\u00A0PM')
+    .replaceAll('dew ', 'dew\u00A0')
+    .replaceAll('AQI ', 'AQI\u00A0');
+  const lastSpaceIdx = glued.lastIndexOf(' ');
+  if (lastSpaceIdx <= 0 || glued.indexOf(' ') === lastSpaceIdx) return glued;
+  return `${glued.slice(0, lastSpaceIdx)}\u00A0${glued.slice(lastSpaceIdx + 1)}`;
+}
+
 function getFallbackStatusIcon(status: VerdictStatus): IconComponent {
   if (status === 'yes') return Sun;
   if (status === 'maybe') return Wind;
@@ -135,6 +157,12 @@ function getFallbackStatusSfSymbol(status: VerdictStatus): SFSymbol {
   if (status === 'maybe') return 'wind';
   return 'cloud.rain.fill';
 }
+
+const BY_STATUS = {
+  yes: { defaultLabel: 'Ride day', rating: 'good' },
+  maybe: { defaultLabel: 'Mixed conditions', rating: 'marginal' },
+  no: { defaultLabel: 'Rest day', rating: 'bad' },
+} as const satisfies Record<VerdictStatus, { defaultLabel: string; rating: Condition }>;
 
 export function RideVerdict({
   status,
@@ -161,12 +189,7 @@ export function RideVerdict({
     verdictFeedback(status);
   }, [status]);
 
-  const byStatus = {
-    yes: { defaultLabel: 'Ride day', rating: 'good' },
-    maybe: { defaultLabel: 'Mixed conditions', rating: 'marginal' },
-    no: { defaultLabel: 'Rest day', rating: 'bad' },
-  } as const satisfies Record<VerdictStatus, { defaultLabel: string; rating: Condition }>;
-  const { defaultLabel, rating } = byStatus[status];
+  const { defaultLabel, rating } = BY_STATUS[status];
   const meta = waiting
     ? { defaultLabel: 'Ride later', bg: c.accent, ink: c.accentInk }
     : { defaultLabel, ...c.condition[condition ?? rating] };
@@ -239,11 +262,13 @@ export function RideVerdict({
           )}
 
           <View style={styles.textColumn}>
-            <ThemedText style={[styles.leadText, { color: meta.ink }]}>{headlineText}</ThemedText>
+            <ThemedText style={[styles.leadText, { color: meta.ink }]}>
+              {preventOrphans(headlineText)}
+            </ThemedText>
 
             {detailSentence.length > 0 && (
               <ThemedText style={[styles.issueSentenceText, { color: meta.ink }]}>
-                {detailSentence}
+                {preventOrphans(detailSentence)}
               </ThemedText>
             )}
           </View>
@@ -260,7 +285,9 @@ export function RideVerdict({
               ) : (
                 <Clock size={14} color={c.background} strokeWidth={2.5} />
               )}
-              <ThemedText style={styles.timingBadgeText}>{message.timing}</ThemedText>
+              <ThemedText style={styles.timingBadgeText}>
+                {preventOrphans(message.timing)}
+              </ThemedText>
             </View>
           </Animated.View>
         </View>

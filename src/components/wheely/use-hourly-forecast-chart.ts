@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import { getHourConditionReasons } from '@/utils';
 import { fullHourLabel } from '@/utils/timeFormat';
 import { useResolvedTempUnit } from '@/hooks/settings-context';
-import { THRESHOLDS, type Thresholds } from '@/domain/constants';
+import { type Thresholds } from '@/domain/constants';
 import {
   CHART_X_ORIGIN,
   buildChartSpline,
@@ -20,11 +20,7 @@ import { useHourlyScrollPicker } from './use-hourly-scroll-picker';
 
 export type ChartHour = HourlyWeather & { isPast: boolean; idx: number };
 
-export function useHourlyForecastChart(
-  data: ChartHour[],
-  nowIdx: number,
-  thresholds: Thresholds = THRESHOLDS,
-) {
+export function useHourlyForecastChart(data: ChartHour[], nowIdx: number, thresholds: Thresholds) {
   const {
     scrollRef,
     scrollX,
