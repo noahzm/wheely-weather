@@ -216,13 +216,11 @@ async function handleGeocode(
     const res = await fetch(target.url, init);
 
     if (res.status === 429) {
-      return new Response(JSON.stringify({ error: 'Rate limited. Try again shortly.' }), {
-        status: 429,
-        headers: {
-          ...jsonHeaders(),
-          'Cache-Control': 'no-store',
-        },
-      });
+      return errorResponse(429, 'Rate limited. Try again shortly.');
+    }
+
+    if (!res.ok) {
+      return errorResponse(res.status, 'Upstream geocoding error');
     }
 
     const body = await res.text();
@@ -230,7 +228,7 @@ async function handleGeocode(
       status: res.status,
       headers: {
         ...jsonHeaders(),
-        'Cache-Control': res.ok ? cacheControl : 'no-store',
+        'Cache-Control': cacheControl,
       },
     });
   } catch {

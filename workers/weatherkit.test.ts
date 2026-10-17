@@ -31,8 +31,8 @@ function makeResponse(hourCount = 48): WeatherKitRestResponse {
       temperature: 20,
       temperatureApparent: 21,
       temperatureDewPoint: 10,
-      windSpeed: 16.09344,
-      windGust: 32.18688,
+      windSpeed: 16.093_44,
+      windGust: 32.186_88,
       windDirection: 180,
       conditionCode: 'PartlyCloudy',
     },
@@ -42,8 +42,8 @@ function makeResponse(hourCount = 48): WeatherKitRestResponse {
         temperature: 20,
         temperatureApparent: 20,
         temperatureDewPoint: i === 1 ? undefined : 10,
-        windSpeed: 8.04672,
-        windGust: i === 1 ? undefined : 16.09344,
+        windSpeed: 8.046_72,
+        windGust: i === 1 ? undefined : 16.093_44,
         precipitationChance: 0.92,
         precipitationAmount: 0.15,
         conditionCode: 'Drizzle',
@@ -61,9 +61,9 @@ function makeResponse(hourCount = 48): WeatherKitRestResponse {
         precipitationChance: 0.6,
         conditionCode: 'Thunderstorm',
         maxUvIndex: 5,
-        windSpeedMax: i === 0 ? 24.14016 : undefined,
+        windSpeedMax: i === 0 ? 24.140_16 : undefined,
         windGustSpeedMax: i === 0 ? 40.2336 : undefined,
-        daytimeForecast: { windSpeed: 16.09344 },
+        daytimeForecast: { windSpeed: 16.093_44 },
       })),
     },
   };
@@ -109,7 +109,7 @@ describe('toOpenMeteoData', () => {
     expect(data.current?.weather_code).toBe(2);
     expect(data.hourly.time[0]).toBe('2026-10-10T14:00');
     expect(data.hourly.precipitation_probability[0]).toBe(92);
-    expect(data.hourly.precipitation?.[0]).toBe(0.15);
+    expect(data.hourly.precipitation?.[0]).toBeCloseTo(0.15);
     expect(data.hourly.weather_code[0]).toBe(51);
     expect(data.hourly.wind_gusts_10m?.[1]).toBeNull();
     expect(data.hourly.dewpoint_2m[1]).toBeNull();
@@ -140,7 +140,7 @@ describe('toOpenMeteoData', () => {
   });
 
   it('rejects a response missing a data set', () => {
-    const { forecastDaily: _omitted, ...partial } = makeResponse();
+    const partial: WeatherKitRestResponse = { ...makeResponse(), forecastDaily: undefined };
     expect(() => toOpenMeteoData(partial, ZONE, NOW)).toThrow('missing a data set');
   });
 });
@@ -154,16 +154,18 @@ describe('weatherKitUrl', () => {
     expect(url.searchParams.get('hourlyEnd')).toBe('2026-10-18T19:00:00.000Z');
   });
 
-  it('adds alerts, with the country they require, in the US and Canada', () => {
+  it('adds alerts, with the country they require, in covered regions', () => {
     const us = new URL(weatherKitUrl(35.78, -78.64, ZONE, NOW)).searchParams;
     expect(us.get('dataSets')).toBe('currentWeather,forecastHourly,forecastDaily,weatherAlerts');
     expect(us.get('country')).toBe('US');
     const ca = new URL(weatherKitUrl(43.65, -79.38, 'America/Toronto', NOW)).searchParams;
     expect(ca.get('country')).toBe('CA');
+    const gb = new URL(weatherKitUrl(51.5, -0.13, 'Europe/London', NOW)).searchParams;
+    expect(gb.get('country')).toBe('GB');
   });
 
   it('skips alerts where the country is unknown', () => {
-    const url = new URL(weatherKitUrl(51.5, -0.13, 'Europe/London', NOW));
+    const url = new URL(weatherKitUrl(19.43, -99.13, 'America/Mexico_City', NOW));
     expect(url.searchParams.get('dataSets')).toBe('currentWeather,forecastHourly,forecastDaily');
     expect(url.searchParams.has('country')).toBe(false);
   });
@@ -176,6 +178,11 @@ describe('alertCountry', () => {
     expect(alertCountry('America/Vancouver')).toBe('CA');
     expect(alertCountry('America/Puerto_Rico')).toBe('PR');
     expect(alertCountry('America/St_Thomas')).toBe('VI');
+    expect(alertCountry('Europe/London')).toBe('GB');
+    expect(alertCountry('Europe/Paris')).toBe('FR');
+    expect(alertCountry('Australia/Sydney')).toBe('AU');
+    expect(alertCountry('Pacific/Auckland')).toBe('NZ');
+    expect(alertCountry('Asia/Tokyo')).toBe('JP');
     expect(alertCountry('America/Mexico_City')).toBeNull();
   });
 });
@@ -220,7 +227,7 @@ async function makeCredentials() {
     'verify',
   ]);
   const pkcs8 = new Uint8Array(await crypto.subtle.exportKey('pkcs8', pair.privateKey));
-  const body = btoa(String.fromCharCode(...pkcs8));
+  const body = btoa(String.fromCodePoint(...pkcs8));
   return {
     publicKey: pair.publicKey,
     env: {
@@ -238,7 +245,7 @@ function decodeSegment(segment: string): unknown {
 
 function base64UrlToBytes(segment: string): Uint8Array<ArrayBuffer> {
   const padded = segment.replaceAll('-', '+').replaceAll('_', '/');
-  return Uint8Array.from(atob(padded), (c) => c.charCodeAt(0));
+  return Uint8Array.from(atob(padded), (c) => c.codePointAt(0) ?? 0);
 }
 
 describe('weatherKitToken', () => {
@@ -272,11 +279,11 @@ describe('weatherKitToken', () => {
     expect(valid).toBe(true);
   });
 
-  it('accepts a key pasted with literal \\n escapes', async () => {
+  it(String.raw`accepts a key pasted with literal \n escapes`, async () => {
     const { env } = await makeCredentials();
     const escaped = {
       ...env,
-      WEATHERKIT_PRIVATE_KEY: env.WEATHERKIT_PRIVATE_KEY.replaceAll('\n', '\\n'),
+      WEATHERKIT_PRIVATE_KEY: env.WEATHERKIT_PRIVATE_KEY.replaceAll('\n', String.raw`\n`),
     };
     await expect(weatherKitToken(escaped, NOW.getTime())).resolves.toMatch(
       /^[\w-]+\.[\w-]+\.[\w-]+$/,

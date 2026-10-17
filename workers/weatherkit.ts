@@ -141,18 +141,42 @@ const CA_ZONES = new Set([
   'America/Winnipeg',
 ]);
 
-type AlertCountry = 'US' | 'CA' | 'PR' | 'VI';
-
-const TERRITORY_ZONES: Record<string, AlertCountry> = {
+const ZONE_COUNTRIES: Record<string, string> = {
   'America/Puerto_Rico': 'PR',
   'America/St_Thomas': 'VI',
+  'Europe/London': 'GB',
+  'Europe/Dublin': 'IE',
+  'Europe/Paris': 'FR',
+  'Europe/Berlin': 'DE',
+  'Europe/Busingen': 'DE',
+  'Europe/Madrid': 'ES',
+  'Atlantic/Canary': 'ES',
+  'Europe/Rome': 'IT',
+  'Europe/Amsterdam': 'NL',
+  'Europe/Brussels': 'BE',
+  'Europe/Zurich': 'CH',
+  'Europe/Vienna': 'AT',
+  'Europe/Copenhagen': 'DK',
+  'Europe/Stockholm': 'SE',
+  'Europe/Oslo': 'NO',
+  'Europe/Helsinki': 'FI',
+  'Europe/Lisbon': 'PT',
+  'Atlantic/Madeira': 'PT',
+  'Atlantic/Azores': 'PT',
+  'Europe/Warsaw': 'PL',
+  'Europe/Prague': 'CZ',
+  'Pacific/Auckland': 'NZ',
+  'Pacific/Chatham': 'NZ',
+  'Asia/Tokyo': 'JP',
+  'Asia/Seoul': 'KR',
 };
 
 /** The country to ask for alerts in, or null outside the covered regions. */
-export function alertCountry(timeZone: string): AlertCountry | null {
+export function alertCountry(timeZone: string): string | null {
   if (US_ZONES.has(timeZone) || US_ZONE_PREFIXES.some((p) => timeZone.startsWith(p))) return 'US';
   if (CA_ZONES.has(timeZone)) return 'CA';
-  return TERRITORY_ZONES[timeZone] ?? null;
+  if (timeZone.startsWith('Australia/')) return 'AU';
+  return ZONE_COUNTRIES[timeZone] ?? null;
 }
 
 /** Same shape the iOS module's alerts take, so both platforms read alike. */
@@ -206,7 +230,7 @@ export function hasWeatherKitCredentials(env: WeatherKitSecrets): env is Credent
 }
 
 const celsiusToF = (c: number) => (c * 9) / 5 + 32;
-const kmhToMph = (kmh: number) => kmh / 1.609344;
+const kmhToMph = (kmh: number) => kmh / 1.609_344;
 
 /**
  * Formats instants as the naive local-time strings Open-Meteo's
@@ -302,17 +326,17 @@ export function toOpenMeteoData(
 
 function base64Url(bytes: Uint8Array | string): string {
   const binary =
-    typeof bytes === 'string' ? bytes : Array.from(bytes, (b) => String.fromCharCode(b)).join('');
-  return btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '');
+    typeof bytes === 'string' ? bytes : Array.from(bytes, (b) => String.fromCodePoint(b)).join('');
+  return btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
 }
 
 function pemToDer(pem: string): Uint8Array<ArrayBuffer> {
   const body = pem
-    .replace(/-----(BEGIN|END) PRIVATE KEY-----/g, '')
+    .replaceAll(/-----(BEGIN|END) PRIVATE KEY-----/g, '')
     // Dashboard-pasted secrets sometimes carry literal "\n" escapes.
-    .replaceAll('\\n', '')
-    .replace(/\s+/g, '');
-  return Uint8Array.from(atob(body), (c) => c.charCodeAt(0));
+    .replaceAll(String.raw`\n`, '')
+    .replaceAll(/\s+/g, '');
+  return Uint8Array.from(atob(body), (c) => c.codePointAt(0) ?? 0);
 }
 
 let cachedToken: { value: string; expiresAt: number } | null = null;
@@ -365,7 +389,7 @@ export function weatherKitUrl(
   lon: number,
   timeZone: string,
   now: Date,
-  country: AlertCountry | null = alertCountry(timeZone),
+  country: string | null = alertCountry(timeZone),
 ): string {
   const hourStart = Math.floor(now.getTime() / HOUR_MS) * HOUR_MS;
   const params = new URLSearchParams({

@@ -100,7 +100,7 @@ describe('Cloudflare Worker geocode proxy', () => {
       expect(body).toEqual({ error: 'Rate limited. Try again shortly.' });
     });
 
-    it('sets no-store on upstream server errors (e.g. 500)', async () => {
+    it('sets no-store and returns JSON error on upstream server errors (e.g. 500)', async () => {
       globalThis.fetch = vi
         .fn()
         .mockResolvedValue(new Response('Internal Server Error', { status: 500 }));
@@ -109,6 +109,8 @@ describe('Cloudflare Worker geocode proxy', () => {
       const response = await worker.fetch(request, apiEnv);
       expect(response.status).toBe(500);
       expect(response.headers.get('Cache-Control')).toBe('no-store');
+      const body: unknown = await response.json();
+      expect(body).toEqual({ error: 'Upstream geocoding error' });
     });
 
     it('catches network exceptions and returns 502 with no-store', async () => {
@@ -298,7 +300,7 @@ describe('Cloudflare Worker geocode proxy', () => {
     });
 
     it('returns 502 when WeatherKit fails', async () => {
-      vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      vi.spyOn(console, 'error').mockReturnValue();
       vi.spyOn(weatherkit, 'fetchWeatherKitForecast').mockRejectedValue(
         new Error('WeatherKit 401'),
       );
