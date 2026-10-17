@@ -2,25 +2,29 @@
 // App Group (src/services/widgetStorage.ios.ts). Colors mirror the verdict card's
 // `condition` tokens in src/constants/theme.ts (same in light and dark).
 /** @type {import('@bacons/apple-targets/app.plugin').ConfigFunction} */
-module.exports = (config) => ({
-  type: 'widget',
-  name: 'WheelyWidget',
-  displayName: 'Wheely Weather',
-  bundleIdentifier: '.widget',
-  deploymentTarget: '18.0',
-  colors: {
-    $accent: '#F1BDF2',
-    $widgetBackground: { light: '#FFFFFF', dark: '#141416' },
-    rideYes: '#2ECC71',
-    rideFair: '#38BDF8',
-    rideMaybe: '#FFD20A',
-    ridePoor: '#FF9F0A',
-    rideNo: '#FF5252',
-    // The wait state (bad now, good later) uses the app's accent pink.
-    rideWait: '#F1BDF2',
-  },
-  entitlements: {
-    'com.apple.security.application-groups':
-      config.ios.entitlements['com.apple.security.application-groups'],
-  },
-});
+function createWidgetTargetConfig(config) {
+  return {
+    type: 'widget',
+    name: 'WheelyWidget',
+    displayName: 'Wheely Weather',
+    bundleIdentifier: '.widget',
+    deploymentTarget: '18.0',
+    colors: {
+      $accent: '#F1BDF2',
+      $widgetBackground: { light: '#FFFFFF', dark: '#141416' },
+      rideYes: '#2ECC71',
+      rideFair: '#38BDF8',
+      rideMaybe: '#FFD20A',
+      ridePoor: '#FF9F0A',
+      rideNo: '#FF5252',
+      // The wait state (bad now, good later) uses the app's accent pink.
+      rideWait: '#F1BDF2',
+    },
+    entitlements: {
+      'com.apple.security.application-groups':
+        config.ios.entitlements['com.apple.security.application-groups'],
+    },
+  };
+}
+
+module.exports = createWidgetTargetConfig;

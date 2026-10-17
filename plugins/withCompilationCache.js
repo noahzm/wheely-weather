@@ -11,7 +11,7 @@ const { withPodfile, withXcodeProject } = require('expo/config-plugins');
 
 const PODFILE_MARKER = '# withCompilationCache';
 
-const REACT_NATIVE_POST_INSTALL_RE = /( *)react_native_post_install\([\s\S]*?\n *\)\n/;
+const REACT_NATIVE_POST_INSTALL_RE = /^([ \t]*)react_native_post_install\([\s\S]*?\n\1\)\n/m;
 
 function patchPodfile(contents) {
   if (contents.includes(PODFILE_MARKER)) return contents;
@@ -29,6 +29,7 @@ function patchPodfile(contents) {
     `${indent}installer.pods_project.targets.each do |target|`,
     `${indent}  target.build_configurations.each do |build_config|`,
     `${indent}    build_config.build_settings['COMPILATION_CACHE_ENABLE_CACHING'] = 'YES'`,
+    `${indent}    build_config.build_settings['SWIFT_ENABLE_EXPLICIT_MODULES'] = 'YES'`,
     `${indent}  end`,
     `${indent}end`,
     '',
@@ -46,6 +47,19 @@ const withCompilationCache = (config) => {
     for (const buildConfig of Object.values(configurations)) {
       if (typeof buildConfig === 'object' && buildConfig.buildSettings) {
         buildConfig.buildSettings.COMPILATION_CACHE_ENABLE_CACHING = 'YES';
+        buildConfig.buildSettings.SWIFT_ENABLE_EXPLICIT_MODULES = 'YES';
+      }
+    }
+    const shellScriptBuildPhases = config.modResults.hash.project.objects.PBXShellScriptBuildPhase;
+    if (shellScriptBuildPhases) {
+      for (const phase of Object.values(shellScriptBuildPhases)) {
+        if (
+          typeof phase === 'object' &&
+          phase.name &&
+          (!phase.outputPaths || phase.outputPaths.length === 0)
+        ) {
+          phase.alwaysOutOfDate = 1;
+        }
       }
     }
     return config;

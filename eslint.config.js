@@ -10,7 +10,15 @@ const path = require('node:path');
 module.exports = defineConfig([
   // ── Ignores (generated/build output) ────────────────────────────────────
   {
-    ignores: ['dist/**', '.expo/**', 'node_modules/**', 'coverage/**', 'web-build/**'],
+    ignores: [
+      'dist/**',
+      '.expo/**',
+      'node_modules/**',
+      'coverage/**',
+      'ios/**',
+      'android/**',
+      '.wrangler/**',
+    ],
   },
 
   // ── Expo base ────────────────────────────────────────────────────────────
@@ -108,12 +116,11 @@ module.exports = defineConfig([
     },
   },
 
-  // ── CommonJS config / scripts / entry ───────────────────────────────────
-  // These files are genuinely CommonJS (Metro/ESLint config loaders are CJS,
-  // and the Expo entry uses a require to load the router), so `require()` is
-  // correct here rather than ESM imports.
+  // ── CommonJS config / scripts ───────────────────────────────────────────
+  // These files are genuinely CommonJS (Metro/ESLint config loaders and Node
+  // preload scripts are CJS), so `require()` is correct here rather than ESM.
   {
-    files: ['eslint.config.js', 'metro.config.js', '*.config.js', 'scripts/**/*.js', 'index.ts'],
+    files: ['*.config.js', 'plugins/**/*.js', 'scripts/**/*.js', 'targets/**/*.js'],
     rules: {
       '@typescript-eslint/no-require-imports': 'off',
     },

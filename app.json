@@ -51,8 +51,8 @@
     },
     "plugins": [
       "./plugins/withDevLauncherSceneDelegateFix.js",
-      "./plugins/withCompilationCache.js",
       "@bacons/apple-targets",
+      "./plugins/withCompilationCache.js",
       [
         "expo-router",
         {
@@ -134,7 +134,6 @@
       "plugin": "expo/local-build-cache-provider"
     },
     "extra": {
-      "router": {},
       "eas": {
         "projectId": "ef6ed602-3db3-4a98-8498-52ad5442e138"
       }

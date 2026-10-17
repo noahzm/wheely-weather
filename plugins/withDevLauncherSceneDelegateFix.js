@@ -50,19 +50,19 @@ function patchAppDelegateSwift(contents) {
   // Ensure `AppDelegate` conforms to `ExpoReactNativeFactoryProvider` (required by
   // `ExpoAppSceneDelegate` to reach the React Native factory) and declares `window`, exactly
   // once, whichever of the two starting shapes we're patching.
-  if (!APP_DELEGATE_CLASS_OPEN_RE.test(patched)) {
-    console.warn(
-      '[withDevLauncherSceneDelegateFix] Could not find the expected `AppDelegate` class opening ' +
-        "to patch. Expo's generated template may have changed — skipping this part of the fix, " +
-        'check ios/WheelyWeather/AppDelegate.swift by hand.',
-    );
-  } else {
+  if (APP_DELEGATE_CLASS_OPEN_RE.test(patched)) {
     const before = patched;
     patched = patched.replace(
       APP_DELEGATE_CLASS_OPEN_RE,
       'class AppDelegate: ExpoAppDelegate, ExpoReactNativeFactoryProvider {\n  var window: UIWindow?\n',
     );
     changed = changed || patched !== before;
+  } else {
+    console.warn(
+      '[withDevLauncherSceneDelegateFix] Could not find the expected `AppDelegate` class opening ' +
+        "to patch. Expo's generated template may have changed — skipping this part of the fix, " +
+        'check ios/WheelyWeather/AppDelegate.swift by hand.',
+    );
   }
 
   // Drop the legacy non-scene window setup, if present (the stock template emits it
