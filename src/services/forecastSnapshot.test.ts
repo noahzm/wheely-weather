@@ -114,6 +114,7 @@ describe('getForecastSnapshot — live locations', () => {
           FAIR_MAX: expect.any(Number) as number,
         }) as unknown,
       }),
+      3,
     );
     expect(snapshot).toMatchObject({
       weather: WEATHER,

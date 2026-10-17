@@ -5,6 +5,7 @@ export {
   evaluateCondition,
   evaluateRain,
   evaluateWind,
+  getDayGearSuggestion,
   getDaylightWarning,
   getGearSuggestion,
   type RideHours,

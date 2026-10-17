@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { getMemoryCachedForecast, setMemoryCachedForecast } from '@/services/forecastCache';
 import { getForecastSnapshot } from '@/services/forecastSnapshot';
 import type { RecentLocation, SavedLocation } from '@/services/locationStorage';
-import type { ExposureLevel } from '@/types/settings';
+import { DEFAULT_RIDE_DURATION, type ExposureLevel, type RideDuration } from '@/types/settings';
 
 import { applyExtras } from './merge-extras';
 
@@ -16,6 +16,7 @@ export function usePrefetchPins(
   homeLocation: SavedLocation | null,
   exposureLevel: ExposureLevel,
   mockScenario: string | null,
+  rideDuration: RideDuration = DEFAULT_RIDE_DURATION,
 ): void {
   useEffect(() => {
     if (mockScenario || pinnedLocations.length === 0) return;
@@ -32,6 +33,7 @@ export function usePrefetchPins(
           savedLocation: target,
           homeLocation,
           exposureLevel,
+          rideDuration,
         })
           .then(async ({ snapshot, extras }) => {
             setMemoryCachedForecast(target, snapshot);
@@ -51,5 +53,5 @@ export function usePrefetchPins(
     return () => {
       clearTimeout(timer);
     };
-  }, [pinnedLocations, homeLocation, exposureLevel, mockScenario]);
+  }, [pinnedLocations, homeLocation, exposureLevel, mockScenario, rideDuration]);
 }

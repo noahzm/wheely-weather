@@ -351,17 +351,41 @@ export function chartSmoothPath(data: { idx: number; condition: string }[]): str
 
 /**
  * The chart-space extent of the verdict's ride window ([startHour, endHour)),
- * or null when none of its hours are charted. Only future hours count: the
- * chart spans a day either side of now, so an hour of day can repeat in the past.
+ * or null when none of its hours are charted. Only future hours on the target
+ * day (today before midnight rollover, or tomorrow after it) count: the chart
+ * spans 24 hours ahead, so the same hour of day can repeat across the rollover.
  */
 export function chartWindowBand(
   data: readonly { idx: number; hour: number; isPast: boolean }[],
-  window: { startHour: number; endHour: number } | null,
+  window: { startHour: number; endHour: number; tomorrow?: boolean } | null,
 ): { left: number; width: number } | null {
   if (!window) return null;
-  const idxs = data
-    .filter((d) => !d.isPast && d.hour >= window.startHour && d.hour < window.endHour)
-    .map((d) => d.idx);
+  const future: { idx: number; hour: number; afterMidnight: boolean }[] = [];
+  let afterMidnight = false;
+  let prevHour: number | null = null;
+  for (const d of data) {
+    if (d.isPast) continue;
+    if (prevHour != null && d.hour < prevHour) afterMidnight = true;
+    prevHour = d.hour;
+    future.push({ idx: d.idx, hour: d.hour, afterMidnight });
+  }
+  const matchesTargetDay = (targetAfterMidnight: boolean) =>
+    future
+      .filter(
+        (d) =>
+          d.afterMidnight === targetAfterMidnight &&
+          d.hour >= window.startHour &&
+          d.hour < window.endHour,
+      )
+      .map((d) => d.idx);
+
+  let idxs: number[];
+  if (window.tomorrow == null) {
+    const todayMatches = matchesTargetDay(false);
+    idxs = todayMatches.length > 0 ? todayMatches : matchesTargetDay(true);
+  } else {
+    idxs = matchesTargetDay(window.tomorrow);
+  }
   if (idxs.length === 0) return null;
   const first = Math.min(...idxs);
   const last = Math.max(...idxs);

@@ -38,6 +38,8 @@ import {
   APPEARANCE_VALUES,
   EXPOSURE_LABELS,
   EXPOSURE_VALUES,
+  RIDE_DURATION_LABELS,
+  RIDE_DURATION_VALUES,
   TEMP_UNIT_LABELS,
   TEMP_UNIT_VALUES,
   type ExposureLevel,
@@ -207,6 +209,8 @@ export function SettingsForm({
   onAppearanceChange,
   tempUnit,
   onTempUnitChange,
+  rideDuration,
+  onRideDurationChange,
   exposureLevel,
   onExposureChange,
   homeBaseline,
@@ -261,6 +265,25 @@ export function SettingsForm({
               {TEMP_UNIT_VALUES.map((value, index) => (
                 <Text key={value} modifiers={[tag(value)]}>
                   {TEMP_UNIT_LABELS[index]}
+                </Text>
+              ))}
+            </Picker>
+          </Section>
+
+          <Section
+            title="Ride length"
+            footer={<Text>Sizes each day’s recommended ride window and kit guide.</Text>}
+          >
+            <Picker
+              selection={rideDuration}
+              onSelectionChange={(value) => {
+                onRideDurationChange(value);
+              }}
+              modifiers={[pickerStyle('segmented')]}
+            >
+              {RIDE_DURATION_VALUES.map((value, index) => (
+                <Text key={value} modifiers={[tag(value)]}>
+                  {RIDE_DURATION_LABELS[index]}
                 </Text>
               ))}
             </Picker>

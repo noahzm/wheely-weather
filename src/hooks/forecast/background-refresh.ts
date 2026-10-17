@@ -42,6 +42,7 @@ export async function refreshWidgetInBackground(
     savedLocation,
     homeLocation: settings.homeLocation,
     exposureLevel: settings.exposureLevel,
+    rideDuration: settings.rideDuration,
   });
   // Nobody is waiting on first paint here, so take the alerts and AQI too.
   const complete = applyExtras(snapshot, await extras) ?? snapshot;

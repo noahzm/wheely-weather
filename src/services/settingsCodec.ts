@@ -4,9 +4,11 @@
 
 import {
   DEFAULT_EXPOSURE_LEVEL,
+  DEFAULT_RIDE_DURATION,
   type Appearance,
   type ExposureLevel,
   type GearMode,
+  type RideDuration,
   type TempUnitPreference,
 } from '@/types/settings';
 
@@ -61,6 +63,10 @@ export function parseExposureLevel(raw: string | null): ExposureLevel {
   return raw === 'indoor' || raw === 'high' ? raw : DEFAULT_EXPOSURE_LEVEL;
 }
 
+export function parseRideDuration(raw: string | null): RideDuration {
+  return raw === 'short' || raw === 'long' ? raw : DEFAULT_RIDE_DURATION;
+}
+
 export function parseHomeLocation(raw: string | null): SavedLocation | null {
   try {
     return normalizeLocationRecord(raw ? JSON.parse(raw) : null);
@@ -100,6 +106,7 @@ export interface PersistedSettings {
   homeLocationAuto: boolean;
   tempUnit: TempUnitPreference;
   exposureLevel: ExposureLevel;
+  rideDuration: RideDuration;
 }
 
 export const DEFAULT_SETTINGS: PersistedSettings = {
@@ -110,4 +117,5 @@ export const DEFAULT_SETTINGS: PersistedSettings = {
   homeLocationAuto: false,
   tempUnit: 'auto',
   exposureLevel: DEFAULT_EXPOSURE_LEVEL,
+  rideDuration: DEFAULT_RIDE_DURATION,
 };

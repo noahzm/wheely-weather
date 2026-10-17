@@ -547,6 +547,20 @@ describe('buildWeatherFromData — daylight (sunrise/sunset) extraction', () => 
     expect(weather.daylight).toEqual({ sunriseHour: 6, sunsetHour: 19 });
   });
 
+  it('rounds sunrise and sunset to the nearest hour at :30 so late-hour sunsets keep their daylight hour', () => {
+    const data = makeOpenMeteoData({
+      daily: {
+        time: ['2024-01-15'],
+        sunrise: ['2024-01-15T06:45'],
+        sunset: ['2024-01-15T17:55'],
+      },
+    });
+
+    const weather = buildWeatherFromData(data, THRESHOLDS);
+
+    expect(weather.daylight).toEqual({ sunriseHour: 7, sunsetHour: 18 });
+  });
+
   it('returns null when sunrise/sunset are missing', () => {
     const data = makeOpenMeteoData({
       daily: {

@@ -9,6 +9,7 @@ import {
   parseHomeLocation,
   parseHomeLocationAuto,
   parseHomeLocationChosen,
+  parseRideDuration,
   parseTempUnit,
 } from './settingsCodec';
 
@@ -28,6 +29,12 @@ describe('setting parsers', () => {
     expect(parseTempUnit('celsius')).toBe('celsius');
     expect(parseTempUnit('nonsense')).toBe('auto');
     expect(parseTempUnit(null)).toBe('auto');
+
+    expect(parseRideDuration('short')).toBe('short');
+    expect(parseRideDuration('standard')).toBe('standard');
+    expect(parseRideDuration('long')).toBe('long');
+    expect(parseRideDuration('nonsense')).toBe('standard');
+    expect(parseRideDuration(null)).toBe('standard');
   });
 
   it('exposes defaults matching the parser fallbacks', () => {
@@ -39,6 +46,7 @@ describe('setting parsers', () => {
       homeLocationAuto: parseHomeLocationAuto(null),
       tempUnit: parseTempUnit(null),
       exposureLevel: parseExposureLevel(null),
+      rideDuration: parseRideDuration(null),
     });
   });
 });

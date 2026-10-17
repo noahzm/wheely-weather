@@ -124,16 +124,18 @@ export function buildRideWindowCandidate(
 }
 
 /**
- * The best-scoring window of up to three hours within one day's daylight
+ * The best-scoring window of up to `targetHours` hours within one day's daylight
  * hours, or null when fewer than `minHours` remain.
  */
 export function selectBestRideWindow(
   hours: RideWindowHour[],
   thresholds: Thresholds,
   minHours: number = DAILY_RIDE_WINDOW_HOURS,
+  targetHours: number = DAILY_RIDE_WINDOW_HOURS,
 ): DailyRideWindow | null {
-  if (hours.length < minHours) return null;
-  const windowHours = Math.min(DAILY_RIDE_WINDOW_HOURS, hours.length);
+  const effectiveMin = Math.min(minHours, targetHours);
+  if (hours.length < effectiveMin) return null;
+  const windowHours = Math.min(targetHours, hours.length);
 
   let best: DailyRideWindow | null = null;
   let bestScore = -Infinity;
@@ -157,11 +159,13 @@ export function selectBestRideWindows(
   hoursByDate: Record<string, RideWindowHour[]>,
   today: string,
   thresholds: Thresholds,
+  targetHours: number = DAILY_RIDE_WINDOW_HOURS,
 ): Record<string, DailyRideWindow> {
   const bestByDate: Record<string, DailyRideWindow> = {};
+  const todayMin = Math.min(MIN_TODAY_WINDOW_HOURS, targetHours);
   for (const [date, hours] of Object.entries(hoursByDate)) {
-    const minHours = date === today ? MIN_TODAY_WINDOW_HOURS : DAILY_RIDE_WINDOW_HOURS;
-    const best = selectBestRideWindow(hours, thresholds, minHours);
+    const minHours = date === today ? todayMin : targetHours;
+    const best = selectBestRideWindow(hours, thresholds, minHours, targetHours);
     if (best) bestByDate[date] = best;
   }
   return bestByDate;

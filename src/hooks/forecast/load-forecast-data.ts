@@ -14,7 +14,12 @@ import {
 import { getForecastSnapshot, type ForecastSnapshot } from '@/services/forecastSnapshot';
 import { saveCachedForecast } from '@/services/forecastCache';
 import { traceAsync } from '@/services/telemetry';
-import { DEFAULT_EXPOSURE_LEVEL, type ExposureLevel } from '@/types/settings';
+import {
+  DEFAULT_EXPOSURE_LEVEL,
+  DEFAULT_RIDE_DURATION,
+  type ExposureLevel,
+  type RideDuration,
+} from '@/types/settings';
 import type { ForecastExtras } from '@/types/weather';
 
 import {
@@ -69,9 +74,16 @@ export function loadForecastData(
   mockScenario: string | null,
   homeLocation: SavedLocation | null,
   exposureLevel: ExposureLevel = DEFAULT_EXPOSURE_LEVEL,
+  rideDuration: RideDuration = DEFAULT_RIDE_DURATION,
 ): Promise<ForecastLoadResult> {
   return traceAsync('forecast.load', 'forecast', () =>
-    loadForecastDataUntraced(locationOverride, mockScenario, homeLocation, exposureLevel),
+    loadForecastDataUntraced(
+      locationOverride,
+      mockScenario,
+      homeLocation,
+      exposureLevel,
+      rideDuration,
+    ),
   );
 }
 
@@ -80,6 +92,7 @@ async function loadForecastDataUntraced(
   mockScenario: string | null,
   homeLocation: SavedLocation | null,
   exposureLevel: ExposureLevel,
+  rideDuration: RideDuration,
 ): Promise<ForecastLoadResult> {
   const [storedLocation, recentLocations, pinnedLocations] = await Promise.all([
     locationOverride === undefined ? loadSavedLocation() : Promise.resolve(locationOverride),
@@ -113,7 +126,13 @@ async function loadForecastDataUntraced(
 
   const target = savedLocation;
   const { snapshot, extras } = await traceAsync('forecast.snapshot', 'forecast', () =>
-    getForecastSnapshot({ savedLocation: target, homeLocation, exposureLevel, mockScenario }),
+    getForecastSnapshot({
+      savedLocation: target,
+      homeLocation,
+      exposureLevel,
+      rideDuration,
+      mockScenario,
+    }),
   );
   return { kind: 'loaded', snapshot, extras, savedLocation, recentLocations, pinnedLocations };
 }

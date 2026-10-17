@@ -140,6 +140,7 @@ function useStyles() {
 function preventOrphans(text: string): string {
   const glued = text
     .replaceAll(' mph', '\u00A0mph')
+    .replaceAll(' km/h', '\u00A0km/h')
     .replaceAll(' kph', '\u00A0kph')
     .replaceAll('• ', '•\u00A0');
   const lastSpaceIdx = glued.lastIndexOf(' ');
@@ -560,7 +561,7 @@ export function HourlyForecast({
   pastHourly: HourlyWeather[];
   thresholds?: Thresholds;
   /** The verdict's recommended window, shaded on the chart. */
-  rideWindow?: { startHour: number; endHour: number } | null;
+  rideWindow?: { startHour: number; endHour: number; tomorrow?: boolean } | null;
 }>) {
   const { styles } = useStyles();
   const data = useMemo(() => {

@@ -1,10 +1,11 @@
 import { Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { getGearSuggestion, getWearRows, type RideHours } from '@/domain';
+import { getGearSuggestion, getWearRows, THRESHOLDS, type RideHours } from '@/domain';
+import type { Thresholds } from '@/domain/constants';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { useGearMode } from '@/hooks/settings-context';
-import type { GearMode } from '@/types/settings';
+import { useGearMode, useRideDuration } from '@/hooks/settings-context';
+import { RIDE_DURATION_HOURS, type GearMode } from '@/types/settings';
 import { FontWeightBlack, Fonts, Spacing, Type, type WheelyPalette } from '@/constants/theme';
 import type { GearTipItem, Weather } from '@/types/weather';
 import { BrutalCard, CardInnerRadius, KitGearIcon } from './primitives';
@@ -138,19 +139,28 @@ function useStyles() {
 export function KitGuide({
   weather,
   rideHours = null,
+  thresholds = THRESHOLDS,
   mode: controlledMode,
   showPicker = true,
 }: Readonly<{
   weather: Weather;
   /** The verdict's window to dress for; without one, the next few hours. */
   rideHours?: RideHours | null;
+  thresholds?: Thresholds;
   mode?: GearMode;
   showPicker?: boolean;
 }>) {
   const [internalMode, setMode] = useGearMode();
+  const [rideDuration] = useRideDuration();
   const mode = controlledMode ?? internalMode;
   const { width } = useWindowDimensions();
-  const gear = getGearSuggestion(weather, mode, rideHours);
+  const gear = getGearSuggestion(
+    weather,
+    mode,
+    rideHours,
+    thresholds,
+    RIDE_DURATION_HOURS[rideDuration],
+  );
   const { c, styles } = useStyles();
   const isWide = Platform.OS === 'web' && width >= 640;
   const rows = getWearRows(gear.wear, isWide);

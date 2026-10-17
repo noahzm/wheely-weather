@@ -16,6 +16,7 @@ import {
   saveHomeLocation,
   saveLocation,
   saveRecentLocation,
+  saveRideDuration,
   saveTempUnit,
   type RecentLocation,
 } from './locationStorage';
@@ -216,6 +217,7 @@ describe('settings', () => {
     await saveAppearance('dark');
     await saveTempUnit('celsius');
     await saveExposureLevel('high');
+    await saveRideDuration('long');
     await saveHomeLocation({ lat: 10, lon: 20, name: 'Home', source: 'manual' });
 
     await expect(loadAllSettings()).resolves.toEqual({
@@ -223,6 +225,7 @@ describe('settings', () => {
       appearance: 'dark',
       tempUnit: 'celsius',
       exposureLevel: 'high',
+      rideDuration: 'long',
       homeLocation: { lat: 10, lon: 20, name: 'Home', source: 'manual' },
       homeLocationChosen: true,
       homeLocationAuto: false,

@@ -4,14 +4,14 @@ import { SymbolView, type SFSymbol } from 'expo-symbols';
 import { ChevronRight, Clock, CloudRain, Wind, type IconComponent } from './icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { CONDITION_DISPLAY } from '@/domain';
+import { CONDITION_DISPLAY, getDayGearSuggestion } from '@/domain';
 import { DAYLIGHT_MESSAGES } from '@/domain/copy';
 import { dayLabel, getBestDayInfo, formatPercent } from '@/utils';
 import { getDayConditionReason } from '@/utils/forecastHelpers';
 import { fullHourLabel } from '@/utils/timeFormat';
 import { useColorSchemeName, useWheelyColors } from '@/hooks/use-theme';
 import { useTemperatureDisplay } from '@/hooks/use-temperature-display';
-import { useResolvedTempUnit } from '@/hooks/settings-context';
+import { useGearMode, useResolvedTempUnit } from '@/hooks/settings-context';
 import {
   FontWeightBlack,
   Fonts,
@@ -30,6 +30,7 @@ import {
   Chip,
   ConditionPill,
   HapticPressable,
+  KitGearIcon,
   PlatformIcon,
   asCondition,
   weatherIconFor,
@@ -148,6 +149,7 @@ function DayRowDetail({
   tempUnit,
   thresholds,
   formatTemp,
+  formatWind,
   styles,
   c,
 }: Readonly<{
@@ -157,15 +159,22 @@ function DayRowDetail({
   tempUnit: 'fahrenheit' | 'celsius';
   thresholds: Thresholds;
   formatTemp: (f: number) => string;
+  formatWind: (mph: number) => string;
   styles: ReturnType<typeof makeStyles>;
   c: WheelyPalette;
 }>) {
   const openProgress = useExpandAnimation(isExpanded);
+  const [gearMode] = useGearMode();
   const reasonText = bestRationale ?? getDayConditionReason(day, tempUnit, thresholds);
   const effectiveGust =
     day.windGust != null && Math.round(day.windGust) > Math.round(day.windSpeed)
-      ? ` (gusts ${Math.round(day.windGust)} mph)`
+      ? ` (gusts ${formatWind(day.windGust)})`
       : '';
+  const dayGear =
+    day.rideWindowUnavailable || day.condition === 'poor'
+      ? null
+      : getDayGearSuggestion(day, gearMode, thresholds);
+  const kitItems = dayGear ? [...dayGear.wear, ...dayGear.bring] : [];
 
   return (
     <AnimatedExpand openProgress={openProgress}>
@@ -191,7 +200,7 @@ function DayRowDetail({
               <PlatformIcon icon={Wind} size={13} color={c.ink} />
             )}
             <ThemedText style={styles.dayDetailPillText}>
-              {`${Math.round(day.windSpeed)} mph${effectiveGust}`}
+              {`${formatWind(day.windSpeed)}${effectiveGust}`}
             </ThemedText>
           </View>
           <View style={styles.dayDetailPill}>
@@ -205,6 +214,16 @@ function DayRowDetail({
             </ThemedText>
           </View>
         </View>
+        {kitItems.length > 0 && (
+          <View style={styles.dayDetailGrid}>
+            {kitItems.map((item, idx) => (
+              <View key={`kit-${item.label}-${idx}`} style={styles.dayDetailPill}>
+                <KitGearIcon iconKey={item.icon} size={13} color={c.ink} />
+                <ThemedText style={styles.dayDetailPillText}>{item.label}</ThemedText>
+              </View>
+            ))}
+          </View>
+        )}
       </View>
     </AnimatedExpand>
   );
@@ -232,7 +251,7 @@ function DayRow({
   thresholds: Thresholds;
 }>) {
   const { c, styles } = useStyles();
-  const { format: formatTemp } = useTemperatureDisplay();
+  const { format: formatTemp, formatWind } = useTemperatureDisplay();
   const tempUnit = useResolvedTempUnit();
   const condition = asCondition(day.condition);
   // After sunset Today has no ride window left, and its rating would describe
@@ -326,6 +345,7 @@ function DayRow({
         tempUnit={tempUnit}
         thresholds={thresholds}
         formatTemp={formatTemp}
+        formatWind={formatWind}
         styles={styles}
         c={c}
       />
@@ -338,8 +358,9 @@ export function DailyForecast({
   thresholds,
 }: Readonly<{ daily: DailyWeather[]; thresholds: Thresholds }>) {
   const { styles } = useStyles();
+  const tempUnit = useResolvedTempUnit();
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
-  const bestDayInfo = getBestDayInfo(daily);
+  const bestDayInfo = getBestDayInfo(daily, tempUnit, thresholds);
 
   if (daily.length === 0) {
     return (

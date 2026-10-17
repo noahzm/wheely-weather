@@ -161,6 +161,16 @@ function parsePastHourly(
 }
 
 /**
+ * Converts a naive ISO datetime ("YYYY-MM-DDTHH:MM") to its nearest whole clock
+ * hour, rounding up at :30 so a 5:55 PM sunset includes the 5–6 PM hour.
+ */
+function roundClockHour(iso: string): number {
+  const hour = Number.parseInt(iso.slice(11, 13), 10);
+  const minute = Number.parseInt(iso.slice(14, 16), 10);
+  return Number.isNaN(minute) || minute < 30 ? hour : hour + 1;
+}
+
+/**
  * Per-date daylight window (sunrise/sunset hours) so temperature can be rated on
  * ridable hours only, ignoring overnight lows nobody would ride in.
  */
@@ -171,8 +181,8 @@ function buildDaylightByDate(data: OpenMeteoData): Record<string, DaylightHours>
     const ss = data.daily.sunset?.[i];
     if (sr && ss) {
       daylightByDate[dateStr] = {
-        sunriseHour: Number.parseInt(sr.slice(11, 13), 10),
-        sunsetHour: Number.parseInt(ss.slice(11, 13), 10),
+        sunriseHour: roundClockHour(sr),
+        sunsetHour: roundClockHour(ss),
       };
     }
   }
@@ -228,6 +238,7 @@ function buildBestRideWindows(
   data: OpenMeteoData,
   daylightByDate: Record<string, DaylightHours>,
   thresholds: Thresholds,
+  rideWindowHours?: number,
 ): Record<string, DailyRideWindow> {
   const hoursByDate: Record<string, RideWindowHour[]> = {};
   const currentHourKey = toHourlyTimeKey(data.current?.time) ?? currentHourStrForLocation(data);
@@ -258,7 +269,12 @@ function buildBestRideWindows(
     hoursByDate[date] = dateHours;
   }
 
-  return selectBestRideWindows(hoursByDate, currentHourKey.slice(0, 10), thresholds);
+  return selectBestRideWindows(
+    hoursByDate,
+    currentHourKey.slice(0, 10),
+    thresholds,
+    rideWindowHours,
+  );
 }
 
 function buildFallbackDailyWeather(
@@ -338,13 +354,17 @@ function buildDailyWeather(
 }
 
 /** Parses the 8-day daily forecast into a simplified array with cycling conditions. */
-function parseDaily(data: OpenMeteoData, thresholds: Thresholds): DailyWeather[] {
+function parseDaily(
+  data: OpenMeteoData,
+  thresholds: Thresholds,
+  rideWindowHours?: number,
+): DailyWeather[] {
   const currentDate = (
     toHourlyTimeKey(data.current?.time) ?? currentHourStrForLocation(data)
   ).slice(0, 10);
   const daylightByDate = buildDaylightByDate(data);
   const { dewpointByDate, daytimeTempByDate } = buildDaytimeAggregates(data, daylightByDate);
-  const bestRideWindows = buildBestRideWindows(data, daylightByDate, thresholds);
+  const bestRideWindows = buildBestRideWindows(data, daylightByDate, thresholds, rideWindowHours);
   const context: DailyParseContext = {
     data,
     currentDate,
@@ -388,8 +408,8 @@ function parseDaylightHours(data: OpenMeteoData): DaylightHours | null {
   // location's timezone. Parse the hour from the string directly so the value
   // matches hourly.time hours rather than shifting by the browser's TZ offset.
   return {
-    sunriseHour: Number.parseInt(sunrise.slice(11, 13), 10),
-    sunsetHour: Number.parseInt(sunset.slice(11, 13), 10),
+    sunriseHour: roundClockHour(sunrise),
+    sunsetHour: roundClockHour(sunset),
   };
 }
 
@@ -492,7 +512,11 @@ export function forecastFromHour(data: OpenMeteoData, hoursAhead: number): OpenM
  * (or WeatherKit, reshaped by weatherService.ios.ts) payload, rating conditions
  * against the given thresholds. Secondary enrichments (AQI, alerts) arrive later.
  */
-export function buildWeatherFromData(data: OpenMeteoData, thresholds: Thresholds): Weather {
+export function buildWeatherFromData(
+  data: OpenMeteoData,
+  thresholds: Thresholds,
+  rideWindowHours?: number,
+): Weather {
   if (!data.current) throw new Error('Weather API missing current data');
 
   // Align with the forecast location's timezone rather than the browser's local timezone.
@@ -520,7 +544,7 @@ export function buildWeatherFromData(data: OpenMeteoData, thresholds: Thresholds
     uvIndexDailyMax: data.daily.uv_index_max?.[0] ?? null,
     hourly: mergeNowObservation(hourlyParsed, data.current, hourIdx, thresholds),
     pastHourly: parsePastHourly(data, currentHourStr, 12, thresholds),
-    daily: parseDaily(data, thresholds),
+    daily: parseDaily(data, thresholds, rideWindowHours),
     sunrise: parseSunrise(data),
     sunset: parseSunset(data),
     daylight: parseDaylightHours(data),

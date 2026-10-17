@@ -107,4 +107,23 @@ describe('selectBestRideWindows', () => {
     );
     expect(Object.keys(windows)).toEqual(['2026-10-09']);
   });
+
+  it('respects custom targetHours for 1-hour and 4-hour ride lengths', () => {
+    const shortWindows = selectBestRideWindows(
+      { '2026-10-09': [hour(17)], '2026-10-10': hours(9, 13) },
+      '2026-10-09',
+      THRESHOLDS,
+      1,
+    );
+    expect(shortWindows['2026-10-09']).toMatchObject({ startHour: 17, endHour: 18 });
+    expect(shortWindows['2026-10-10']).toMatchObject({ startHour: 9, endHour: 10 });
+
+    const longWindows = selectBestRideWindows(
+      { '2026-10-10': hours(9, 15) },
+      '2026-10-09',
+      THRESHOLDS,
+      4,
+    );
+    expect(longWindows['2026-10-10']).toMatchObject({ startHour: 9, endHour: 13 });
+  });
 });

@@ -4,7 +4,12 @@ import { AppState, Platform } from 'react-native';
 import { type RecentLocation, type SavedLocation } from '@/services/locationStorage';
 import { getForecastErrorKind } from '@/services/forecastSnapshot';
 import { getMemoryCachedForecast } from '@/services/forecastCache';
-import { useExposureLevel, useHomeLocation, useSettingsHydrated } from '@/hooks/settings-context';
+import {
+  useExposureLevel,
+  useHomeLocation,
+  useRideDuration,
+  useSettingsHydrated,
+} from '@/hooks/settings-context';
 import { isSuspendedTimeout } from '@/services/http';
 import { captureError } from '@/services/telemetry';
 
@@ -37,6 +42,7 @@ export function useWeatherForecast(mockScenario: string | null) {
   const [state, setState] = useState<ForecastState>(INITIAL_FORECAST_STATE);
   const [homeLocation] = useHomeLocation();
   const [exposureLevel] = useExposureLevel();
+  const [rideDuration] = useRideDuration();
   const autoSetHome = useAutoHomeLocation(mockScenario);
   const settingsHydrated = useSettingsHydrated();
   const lastLoadedAt = useRef(0);
@@ -68,6 +74,7 @@ export function useWeatherForecast(mockScenario: string | null) {
           mockScenario,
           homeLocation,
           exposureLevel,
+          rideDuration,
         );
         if (gen !== loadGenRef.current) return;
         if (result.kind === 'needsLocation') {
@@ -96,7 +103,7 @@ export function useWeatherForecast(mockScenario: string | null) {
         }));
       }
     },
-    [mockScenario, homeLocation, exposureLevel, autoSetHome],
+    [mockScenario, homeLocation, exposureLevel, rideDuration, autoSetHome],
   );
 
   // Wait for settings so the first fetch reads the real home location; without
@@ -114,7 +121,7 @@ export function useWeatherForecast(mockScenario: string | null) {
   }, [state.savedLocation]);
 
   useSnapshotCacheHydration(setState, mockScenario);
-  usePrefetchPins(state.pinnedLocations, homeLocation, exposureLevel, mockScenario);
+  usePrefetchPins(state.pinnedLocations, homeLocation, exposureLevel, mockScenario, rideDuration);
   // Mock previews must not run GPS or mutate the real persisted device fix.
   const canRelocate = !mockScenario;
   const relocate = useCallback(

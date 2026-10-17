@@ -1,7 +1,20 @@
-import { RAIN_AMOUNT_MM, UV_GEAR, WET_ROADS_THRESHOLD } from './constants';
+import {
+  RAIN_AMOUNT_MM,
+  THRESHOLDS,
+  UV_GEAR,
+  WET_ROADS_THRESHOLD,
+  type Thresholds,
+} from './constants';
 import { GEAR_TIPS } from './copy';
 
-import type { GearSuggestion, GearTip, GearTipItem, HourlyWeather, Weather } from '@/types/weather';
+import type {
+  DailyWeather,
+  GearSuggestion,
+  GearTip,
+  GearTipItem,
+  HourlyWeather,
+  Weather,
+} from '@/types/weather';
 
 interface RideWindow {
   minTemp: number;
@@ -41,16 +54,51 @@ const WINDBREAKER_MAX_TEMP = 80;
 export interface RideHours {
   startHour: number;
   endHour: number;
+  /** True when the window is tomorrow, so overlapping evening hours today are skipped. */
+  tomorrow?: boolean;
+}
+
+function findRideWindowIndices(hourly: HourlyWeather[], rideHours: RideHours): number[] {
+  const tagged: { index: number; hour: number; afterMidnight: boolean }[] = [];
+  let afterMidnight = false;
+  let prevHour: number | null = null;
+  for (const [index, h] of hourly.entries()) {
+    if (prevHour != null && h.hour < prevHour) afterMidnight = true;
+    prevHour = h.hour;
+    tagged.push({ index, hour: h.hour, afterMidnight });
+  }
+  const matches = (targetAfterMidnight: boolean) =>
+    tagged
+      .filter(
+        (entry) =>
+          entry.afterMidnight === targetAfterMidnight &&
+          entry.hour >= rideHours.startHour &&
+          entry.hour < rideHours.endHour,
+      )
+      .map((entry) => entry.index);
+
+  if (rideHours.tomorrow == null) {
+    const todayMatches = matches(false);
+    return todayMatches.length > 0 ? todayMatches : matches(true);
+  }
+  return matches(rideHours.tomorrow);
 }
 
 /**
  * The hours the kit dresses for: the verdict's window when there is one (so a
  * wet 9 AM doesn't dress a dry noon ride), else the next few hours. `hourly`
- * starts at the current hour and spans a day, so each hour of day appears once.
+ * starts at the current hour and spans a day, so `tomorrow` disambiguates
+ * hours that repeat across midnight.
  */
-function selectRideHours(weather: Weather, rideHours: RideHours | null): HourlyWeather[] {
-  if (!rideHours) return weather.hourly.slice(0, RIDE_WINDOW_HOURS);
-  return weather.hourly.filter((h) => h.hour >= rideHours.startHour && h.hour < rideHours.endHour);
+function selectRideHours(
+  weather: Weather,
+  rideHours: RideHours | null,
+  defaultWindowHours: number = RIDE_WINDOW_HOURS,
+): HourlyWeather[] {
+  if (!rideHours) return weather.hourly.slice(0, defaultWindowHours);
+  return findRideWindowIndices(weather.hourly, rideHours)
+    .map((i) => weather.hourly[i])
+    .filter((h): h is HourlyWeather => h !== undefined);
 }
 
 interface BeforeRide {
@@ -62,9 +110,8 @@ interface BeforeRide {
 
 /** The hours just before the ride: past hours, then any forecast hours before a later window. */
 function selectHoursBeforeRide(weather: Weather, rideHours: RideHours | null): BeforeRide {
-  const startIndex = rideHours
-    ? weather.hourly.findIndex((h) => h.hour === rideHours.startHour)
-    : 0;
+  const indices = rideHours ? findRideWindowIndices(weather.hourly, rideHours) : [];
+  const startIndex = indices[0] ?? 0;
   const hoursUntilRide = Math.max(startIndex, 0);
   const hours = [...weather.pastHourly, ...weather.hourly.slice(0, hoursUntilRide)].slice(
     -WET_ROADS_THRESHOLD.RECENT_HOURS,
@@ -78,8 +125,12 @@ function maxPrecipitation(hours: { precipitation?: number | null }[]): number | 
   return amounts.every((amount): amount is number => amount != null) ? Math.max(...amounts) : null;
 }
 
-function getRideWindow(weather: Weather, rideHours: RideHours | null): RideWindow {
-  const upcoming = selectRideHours(weather, rideHours);
+function getRideWindow(
+  weather: Weather,
+  rideHours: RideHours | null,
+  defaultWindowHours: number = RIDE_WINDOW_HOURS,
+): RideWindow {
+  const upcoming = selectRideHours(weather, rideHours, defaultWindowHours);
   const startConditions = upcoming[0] ?? weather;
   return {
     minTemp:
@@ -108,16 +159,25 @@ function getRideWindow(weather: Weather, rideHours: RideHours | null): RideWindo
   };
 }
 
-function getTemperatureTips(w: RideWindow, tipsSet: GearTipSet): GearTip[] {
+function getTemperatureTips(
+  w: RideWindow,
+  tipsSet: GearTipSet,
+  thresholds: Thresholds = THRESHOLDS,
+): GearTip[] {
   const tips: GearTip[] = [];
+  // Shift comfort bands by the rider's acclimatization relative to the standard
+  // table. Freezing (< 32°F) stays fixed because road ice and frostbite don't
+  // acclimatize.
+  const coldShift = THRESHOLDS.TEMPERATURE.FAIR_MIN - thresholds.TEMPERATURE.FAIR_MIN;
+  const tempShift = thresholds.TEMPERATURE.FAIR_MAX - THRESHOLDS.TEMPERATURE.FAIR_MAX;
 
   if (w.minTemp < 32) tips.push(tipsSet.FREEZING);
-  else if (w.minTemp < 45) tips.push(tipsSet.COLD);
-  else if (w.minTemp < 55) tips.push(tipsSet.COOL);
-  else if (w.minTemp < 65) tips.push(tipsSet.MILD_COOL);
+  else if (w.minTemp < 45 - coldShift) tips.push(tipsSet.COLD);
+  else if (w.minTemp < 55 - coldShift) tips.push(tipsSet.COOL);
+  else if (w.minTemp < 65 - coldShift) tips.push(tipsSet.MILD_COOL);
 
-  if (w.maxTemp > 90) tips.push(tipsSet.SCORCHING);
-  else if (w.maxTemp > 80) tips.push(tipsSet.HOT);
+  if (w.maxTemp > 90 + tempShift) tips.push(tipsSet.SCORCHING);
+  else if (w.maxTemp > 80 + tempShift) tips.push(tipsSet.HOT);
 
   return tips;
 }
@@ -145,6 +205,7 @@ function buildSupportingTips(
   tipsSet: GearTipSet,
   weather: Weather,
   before: BeforeRide,
+  thresholds: Thresholds = THRESHOLDS,
 ): GearTip[] {
   const tips: GearTip[] = [];
   // A likely trace is a passing sprinkle, as the rating treats it: a light
@@ -159,7 +220,7 @@ function buildSupportingTips(
   if (w.maxWind > 15 && w.minTemp <= WINDBREAKER_MAX_TEMP) tips.push(tipsSet.WINDY);
   if (w.maxUv >= UV_GEAR.SUNGLASSES) tips.push(tipsSet.UV_EXTREME);
   else if (w.maxUv >= UV_GEAR.SUNSCREEN) tips.push(tipsSet.UV_HIGH);
-  if (w.maxDewpoint > 65) tips.push(tipsSet.MUGGY);
+  if (w.maxDewpoint >= thresholds.DEWPOINT.MARGINAL) tips.push(tipsSet.MUGGY);
 
   return tips;
 }
@@ -196,9 +257,10 @@ function getGearTips(
   tipsSet: GearTipSet,
   weather: Weather,
   before: BeforeRide,
+  thresholds: Thresholds = THRESHOLDS,
 ): GearSuggestion {
-  const temperatureTips = getTemperatureTips(w, tipsSet);
-  const supportingTips = buildSupportingTips(w, tipsSet, weather, before);
+  const temperatureTips = getTemperatureTips(w, tipsSet, thresholds);
+  const supportingTips = buildSupportingTips(w, tipsSet, weather, before, thresholds);
 
   // An empty temperature tip means the ride window sits in the ideal band, so
   // NEUTRAL supplies the baseline outfit.
@@ -220,11 +282,38 @@ export const getGearSuggestion = (
   weather: Weather,
   mode: 'casual' | 'pro' = 'casual',
   rideHours: RideHours | null = null,
+  thresholds: Thresholds = THRESHOLDS,
+  defaultWindowHours: number = RIDE_WINDOW_HOURS,
 ): GearSuggestion => {
-  const w = getRideWindow(weather, rideHours);
+  const w = getRideWindow(weather, rideHours, defaultWindowHours);
   const tipsSet: GearTipSet = mode === 'pro' ? GEAR_TIPS.PRO : GEAR_TIPS.CASUAL;
-  return getGearTips(w, tipsSet, weather, selectHoursBeforeRide(weather, rideHours));
+  return getGearTips(w, tipsSet, weather, selectHoursBeforeRide(weather, rideHours), thresholds);
 };
+
+/**
+ * Builds a kit suggestion for a single day in the 8-day forecast, using its
+ * selected daylight ride window (or daytime high/low fallback).
+ */
+export function getDayGearSuggestion(
+  day: DailyWeather,
+  mode: 'casual' | 'pro' = 'casual',
+  thresholds: Thresholds = THRESHOLDS,
+): GearSuggestion {
+  const minTemp = day.rideWindow?.tempLow ?? day.low;
+  const maxTemp = day.rideWindow?.tempHigh ?? day.high;
+  const w: RideWindow = {
+    minTemp,
+    maxTemp,
+    maxWind: day.windSpeed,
+    maxRain: day.rainChance,
+    maxPrecip: day.precipitation ?? null,
+    maxDewpoint: day.dewpoint ?? 0,
+    maxUv: 0,
+  };
+  const tipsSet: GearTipSet = mode === 'pro' ? GEAR_TIPS.PRO : GEAR_TIPS.CASUAL;
+  const syntheticWeather = { weatherCode: day.weatherCode } as Weather;
+  return getGearTips(w, tipsSet, syntheticWeather, { hours: [], hoursUntilRide: 0 }, thresholds);
+}
 
 export function getWearRows(items: GearTipItem[], isWide: boolean): GearTipItem[][] {
   const n = items.length;

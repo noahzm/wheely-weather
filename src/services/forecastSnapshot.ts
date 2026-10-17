@@ -10,7 +10,13 @@ import { buildMockWeather, getMockLocationLabel } from '@/services/mockWeather';
 import { getHomeBaseline, type HomeBaseline } from '@/services/homeClimate';
 import type { SavedLocation } from '@/services/locationStorage';
 import { THRESHOLDS, resolveThresholds } from '@/domain';
-import { DEFAULT_EXPOSURE_LEVEL, type ExposureLevel } from '@/types/settings';
+import {
+  DEFAULT_EXPOSURE_LEVEL,
+  DEFAULT_RIDE_DURATION,
+  RIDE_DURATION_HOURS,
+  type ExposureLevel,
+  type RideDuration,
+} from '@/types/settings';
 import type { ForecastExtras, Weather } from '@/types/weather';
 
 export interface AcclimatizationContext {
@@ -78,11 +84,13 @@ export async function getForecastSnapshot({
   savedLocation,
   homeLocation = null,
   exposureLevel = DEFAULT_EXPOSURE_LEVEL,
+  rideDuration = DEFAULT_RIDE_DURATION,
   mockScenario = null,
 }: {
   savedLocation: SavedLocation | null;
   homeLocation?: SavedLocation | null;
   exposureLevel?: ExposureLevel;
+  rideDuration?: RideDuration;
   mockScenario?: string | null;
 }): Promise<ForecastSnapshotResult> {
   const lastUpdated = new Date();
@@ -127,7 +135,7 @@ export async function getForecastSnapshot({
     fetchSafeLocationName(savedLocation),
   ]);
   const thresholds = resolveThresholds(homeBaseline, THRESHOLDS, exposureLevel);
-  const weather = buildWeatherFromData(data, thresholds);
+  const weather = buildWeatherFromData(data, thresholds, RIDE_DURATION_HOURS[rideDuration]);
 
   return {
     snapshot: {

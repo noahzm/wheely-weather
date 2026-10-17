@@ -15,6 +15,8 @@ import { RNSegmentedPicker } from './rn-segmented-picker';
 import {
   APPEARANCE_LABELS,
   APPEARANCE_VALUES,
+  RIDE_DURATION_LABELS,
+  RIDE_DURATION_VALUES,
   TEMP_UNIT_LABELS,
   TEMP_UNIT_VALUES,
   type SettingsFormProps,
@@ -39,6 +41,8 @@ export function SettingsForm({
   onAppearanceChange,
   tempUnit,
   onTempUnitChange,
+  rideDuration,
+  onRideDurationChange,
   exposureLevel,
   onExposureChange,
   homeBaseline,
@@ -72,6 +76,20 @@ export function SettingsForm({
             labels={TEMP_UNIT_LABELS}
             selectedValue={tempUnit}
             onSelect={onTempUnitChange}
+          />
+        </GroupedRow>
+      </GroupedSection>
+
+      <GroupedSection
+        title="Ride length"
+        footer="Sizes each day's recommended ride window and kit guide."
+      >
+        <GroupedRow stacked>
+          <RNSegmentedPicker
+            values={RIDE_DURATION_VALUES}
+            labels={RIDE_DURATION_LABELS}
+            selectedValue={rideDuration}
+            onSelect={onRideDurationChange}
           />
         </GroupedRow>
       </GroupedSection>

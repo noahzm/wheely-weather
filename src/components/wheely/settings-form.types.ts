@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-import type { Appearance, ExposureLevel, TempUnitPreference } from '@/types/settings';
+import type { Appearance, ExposureLevel, RideDuration, TempUnitPreference } from '@/types/settings';
 import type { HomeBaseline } from '@/types/weather';
 
 export {
@@ -8,9 +8,12 @@ export {
   APPEARANCE_VALUES,
   TEMP_UNIT_LABELS,
   TEMP_UNIT_VALUES,
+  RIDE_DURATION_LABELS,
+  RIDE_DURATION_VALUES,
   EXPOSURE_LABELS,
   EXPOSURE_VALUES,
   type ExposureLevel,
+  type RideDuration,
 } from '@/types/settings';
 
 export interface SettingsFormProps {
@@ -18,6 +21,8 @@ export interface SettingsFormProps {
   onAppearanceChange: (value: Appearance) => void;
   tempUnit: TempUnitPreference;
   onTempUnitChange: (value: TempUnitPreference) => void;
+  rideDuration: RideDuration;
+  onRideDurationChange: (value: RideDuration) => void;
   // Required, not optional: the settings screen always supplies these, so an
   // optional prop would convert a wiring break into a silently missing control
   // plus a default-exposure fallback that disagrees with the live forecast.

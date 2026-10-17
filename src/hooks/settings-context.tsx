@@ -10,13 +10,20 @@ import {
   saveExposureLevel,
   saveGearMode,
   saveHomeLocation,
+  saveRideDuration,
   saveTempUnit,
   type PersistedSettings,
   type SavedLocation,
 } from '@/services/locationStorage';
 import { DEFAULT_SETTINGS } from '@/services/settingsCodec';
 import { captureError } from '@/services/telemetry';
-import type { Appearance, ExposureLevel, GearMode, TempUnitPreference } from '@/types/settings';
+import type {
+  Appearance,
+  ExposureLevel,
+  GearMode,
+  RideDuration,
+  TempUnitPreference,
+} from '@/types/settings';
 import type { TempUnit } from '@/utils/temperature';
 
 type SettingTuple<T> = readonly [T, (next: T) => void];
@@ -39,6 +46,7 @@ interface SettingsValue {
   assignAutoHome: (next: SavedLocation) => void;
   tempUnit: SettingTuple<TempUnitPreference>;
   exposureLevel: SettingTuple<ExposureLevel>;
+  rideDuration: SettingTuple<RideDuration>;
   /** True once the persisted values have been read from storage. */
   hydrated: boolean;
 }
@@ -122,6 +130,13 @@ export function SettingsProvider({ children }: Readonly<{ children: ReactNode }>
           saveExposureLevel(next).catch(swallowWriteError);
         },
       ],
+      rideDuration: [
+        settings.rideDuration,
+        (next: RideDuration) => {
+          setSettings((current) => ({ ...current, rideDuration: next }));
+          saveRideDuration(next).catch(swallowWriteError);
+        },
+      ],
       hydrated,
     }),
     [settings, hydrated],
@@ -168,6 +183,10 @@ export function useTempUnit(): SettingTuple<TempUnitPreference> {
 
 export function useExposureLevel(): SettingTuple<ExposureLevel> {
   return useSettings().exposureLevel;
+}
+
+export function useRideDuration(): SettingTuple<RideDuration> {
+  return useSettings().rideDuration;
 }
 
 /**

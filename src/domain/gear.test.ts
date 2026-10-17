@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { getGearSuggestion, getWearRows } from './weather';
-import { makeHour, makeWeather } from '@/test-utils/weather';
+import { THRESHOLDS } from './constants';
+import { getDayGearSuggestion, getGearSuggestion, getWearRows } from './weather';
+import { makeDay, makeHour, makeWeather } from '@/test-utils/weather';
 import type { GearTipItem } from '@/types/weather';
 
 describe('Gear Suggestions', () => {
@@ -469,6 +470,59 @@ describe('Gear Suggestions', () => {
     );
     const windVest = windyGear.bring.find((item) => item.label === 'Wind vest');
     expect(windVest?.icon).toBe('Gilet');
+  });
+
+  it('ignores today’s overlapping evening hours when dressing for tomorrow’s window', () => {
+    // At 4 PM (16) today it is pouring (90% rain, 42°F), while tomorrow at 3–5 PM (15–17) is warm and dry (72°F, 0% rain).
+    const hours = Array.from({ length: 26 }, (_, idx) => {
+      const hour = (16 + idx) % 24;
+      const isTodayEvening = idx < 2;
+      return makeHour({
+        hour,
+        temperature: isTodayEvening ? 42 : 72,
+        windSpeed: 5,
+        rainChance: isTodayEvening ? 90 : 0,
+        dewpoint: 50,
+        uv: 0,
+      });
+    });
+    const gear = getGearSuggestion({ ...base, hourly: hours }, 'casual', {
+      startHour: 15,
+      endHour: 17,
+      tomorrow: true,
+    });
+    expect(matchesItem(gear, /short-sleeve top/i)).toBe(true);
+    expect(matchesItem(gear, /rain jacket|jacket/i)).toBe(false);
+  });
+
+  it('shifts kit temperature bands with the rider’s acclimatized thresholds', () => {
+    const chillyDay = {
+      ...base,
+      temperature: 52,
+      hourly: [makeHour({ temperature: 52, windSpeed: 5, rainChance: 0, dewpoint: 45, uv: 0 })],
+    };
+    const coldAdapted = {
+      ...THRESHOLDS,
+      TEMPERATURE: { ...THRESHOLDS.TEMPERATURE, FAIR_MIN: 44 }, // coldShift = 6 -> COOL cutoff drops from 55 to 49
+    };
+    // Unadapted rider at 52°F gets COOL kit (Knee warmers + Gilet); cold-adapted rider gets MILD_COOL (no knee warmers).
+    expect(matchesItem(getGearSuggestion(chillyDay, 'pro'), /knee warmers/i)).toBe(true);
+    expect(
+      matchesItem(getGearSuggestion(chillyDay, 'pro', null, coldAdapted), /knee warmers/i),
+    ).toBe(false);
+  });
+
+  it('builds a daily kit preview from a day’s ride window in getDayGearSuggestion', () => {
+    const day = makeDay({
+      low: 38,
+      high: 70,
+      windSpeed: 18,
+      rainChance: 10,
+      rideWindow: { startHour: 12, endHour: 15, tempLow: 66, tempHigh: 70 },
+    });
+    const gear = getDayGearSuggestion(day, 'pro');
+    expect(gear.wear.some((item) => /short-sleeve jersey/i.test(item.label))).toBe(true);
+    expect(gear.bring.some((item) => /wind vest/i.test(item.label))).toBe(true);
   });
 });
 

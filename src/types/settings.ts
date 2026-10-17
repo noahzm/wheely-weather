@@ -45,3 +45,20 @@ export const EXPOSURE_VALUES = [
  * only ever be changed in one place.
  */
 export const DEFAULT_EXPOSURE_LEVEL: ExposureLevel = 'moderate';
+
+export type RideDuration = 'short' | 'standard' | 'long';
+
+export const RIDE_DURATION_LABELS = ['1 hr', '3 hr', '4+ hr'] as const;
+export const RIDE_DURATION_VALUES = [
+  'short',
+  'standard',
+  'long',
+] as const satisfies readonly RideDuration[];
+
+export const DEFAULT_RIDE_DURATION: RideDuration = 'standard';
+
+export const RIDE_DURATION_HOURS: Record<RideDuration, number> = {
+  short: 1,
+  standard: 3,
+  long: 4,
+};

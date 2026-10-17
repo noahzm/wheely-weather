@@ -137,6 +137,9 @@ function deriveHomeState(
   const { thresholds } = acclimatization;
   // Rates the day's best ride window (tomorrow's after dark), not this hour.
   const verdict = getRideVerdict(weather, thresholds, tempUnit);
+  const windowWithDay = verdict.window
+    ? { ...verdict.window, tomorrow: verdict.when === 'tomorrow' }
+    : null;
   return {
     status: verdict.status,
     condition: verdict.condition,
@@ -146,9 +149,14 @@ function deriveHomeState(
     verdictWeatherCode: verdict.weatherCode,
     waiting: verdict.when === 'wait',
     // Shaded on the chart when it's a recommendation; the best of a no-go day isn't.
-    rideWindow: verdict.status === 'no' ? null : verdict.window,
+    rideWindow: verdict.status === 'no' ? null : windowWithDay,
     // Dress for the window the verdict rates, not the current hour.
-    kit: { title: getRideKitTitle(verdict), weather: verdict.rated, rideHours: verdict.window },
+    kit: {
+      title: getRideKitTitle(verdict),
+      weather: verdict.rated,
+      rideHours: windowWithDay,
+      thresholds,
+    },
     rainTiming: getRainTiming(weather.hourly),
     daylightWarning: getDaylightWarning(weather.hourly, weather.daylight),
     alerts: getWeatherAlerts(weather, tempUnit),
@@ -200,7 +208,13 @@ function KitSection({
         title={kit.title}
         rightAccessory={<GearStylePicker mode={mode} onModeChange={setMode} />}
       />
-      <KitGuide weather={kit.weather} rideHours={kit.rideHours} mode={mode} showPicker={false} />
+      <KitGuide
+        weather={kit.weather}
+        rideHours={kit.rideHours}
+        thresholds={kit.thresholds}
+        mode={mode}
+        showPicker={false}
+      />
     </View>
   );
 }

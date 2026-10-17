@@ -276,4 +276,23 @@ describe('chartWindowBand', () => {
     expect(chartWindowBand(data, null)).toBeNull();
     expect(chartWindowBand(data, { startHour: 17, endHour: 20 })).toBeNull();
   });
+
+  it('highlights only tomorrow’s hours when tomorrow is true and evening hours overlap', () => {
+    // Starts at 4 PM (16) today and runs 24 hours through 3 PM (15) tomorrow, plus 4 PM (16) tomorrow.
+    const rollover = Array.from({ length: 26 }, (_, idx) => ({
+      idx,
+      hour: (16 + idx) % 24,
+      isPast: false,
+    }));
+    const tomorrowBand = chartWindowBand(rollover, {
+      startHour: 15,
+      endHour: 17,
+      tomorrow: true,
+    });
+    // Tomorrow's 15 and 16 are at indices 23 and 24, not today's 16 at index 0.
+    expect(tomorrowBand).toEqual({
+      left: chartX(23) - CHART_X_STEP / 2,
+      width: 2 * CHART_X_STEP,
+    });
+  });
 });
