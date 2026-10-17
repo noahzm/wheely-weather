@@ -141,6 +141,7 @@ describe('getDayConditionReason', () => {
     ['Muggy (dew 69°)', { condition: 'marginal', dewpoint: 69 }],
     // 32–39°F is the table's marginal cold band; 40+ is only fair.
     ['Cool start', { condition: 'marginal', low: 35 }],
+    ['Chilly (38°)', { condition: 'marginal', low: 35, high: 38 }],
     ['Mixed conditions', { condition: 'marginal', low: 40 }],
     ['Mixed conditions', { condition: 'marginal' }],
     // fair — its own copy ladder, not the shared ISSUE_PHRASES tiers
@@ -158,6 +159,26 @@ describe('getDayConditionReason', () => {
     ['Prime riding weather', { condition: 'good', windSpeed: 12, rainChance: 25 }],
   ])('returns %s', (expected, fields) => {
     expect(getDayConditionReason(day(fields))).toBe(expected);
+  });
+
+  it('uses acclimatized thresholds for getBestDayInfo and fairDayReason', () => {
+    const coldAcclimatized = {
+      ...THRESHOLDS,
+      TEMPERATURE: { ...THRESHOLDS.TEMPERATURE, FAIR_MIN: 42 },
+    };
+    const chillyFairDay = day({ condition: 'fair', high: 45, low: 43 });
+    expect(getDayConditionReason(chillyFairDay, 'fahrenheit', coldAcclimatized)).toBe(
+      'Fair window',
+    );
+    expect(getBestDayInfo([chillyFairDay], 'fahrenheit', coldAcclimatized).rationale).toBe(
+      'Fair window',
+    );
+  });
+
+  it('formats wind reasons in km/h when tempUnit is celsius', () => {
+    expect(getDayConditionReason(day({ condition: 'poor', windSpeed: 27 }), 'celsius')).toBe(
+      'Very windy (43 km/h)',
+    );
   });
 });
 

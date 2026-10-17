@@ -45,9 +45,13 @@ describe('getMetricExplainer', () => {
     expect(celsius?.tip).not.toContain('°F');
   });
 
-  it('converts temperature differences, not just readings, to Celsius', () => {
+  it('converts temperature differences and wind speeds to metric in Celsius mode', () => {
     const tip = getMetricExplainer('Temperature', { thresholds: THRESHOLDS, unit: 'celsius' })?.tip;
     expect(tip).toContain('3–6°C colder');
+    expect(tip).toContain('25–30 km/h');
+
+    const windTip = getMetricExplainer('Wind', { thresholds: THRESHOLDS, unit: 'celsius' })?.tip;
+    expect(windTip).toContain('32 km/h');
   });
 
   it('returns null for unknown metric label', () => {

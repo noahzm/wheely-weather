@@ -60,13 +60,13 @@ interface RideSpecMetric {
 // Wind cell surfaces them too — otherwise a gust-driven rating has no number
 // here to explain itself. Gusts only appear when they exceed the sustained
 // reading (rounded, so "8 mph" never pairs with "gusts 8 mph").
-function windQualifier(weather: Weather): string | null {
+function windQualifier(weather: Weather, formatWind: (mph: number) => string): string | null {
   const parts: string[] = [];
   if (weather.windDirection != null) {
     parts.push(`from ${getWindDirectionLabel(weather.windDirection)}`);
   }
   if (weather.windGust != null && Math.round(weather.windGust) > Math.round(weather.windSpeed)) {
-    parts.push(`gusts ${Math.round(weather.windGust)} mph`);
+    parts.push(`gusts ${formatWind(weather.windGust)}`);
   }
   return parts.length > 0 ? parts.join(' · ') : null;
 }
@@ -75,6 +75,7 @@ function rideSpecMetrics(
   weather: Weather,
   thresholds: typeof THRESHOLDS,
   formatTemp: (value: number) => string,
+  formatWind: (mph: number) => string,
 ): RideSpecMetric[] {
   return [
     {
@@ -99,8 +100,8 @@ function rideSpecMetrics(
       Icon: Wind,
       sf: 'wind',
       label: 'Wind',
-      value: `${Math.round(weather.windSpeed)} mph`,
-      qualifier: windQualifier(weather),
+      value: formatWind(weather.windSpeed),
+      qualifier: windQualifier(weather, formatWind),
       // Gust-aware, matching the verdict hero and the hourly drawer's rating.
       condition: evaluateWind(weather.windSpeed, weather.windGust, thresholds),
       iconRotation:
@@ -435,9 +436,9 @@ export function RideSpecs({
   thresholds = THRESHOLDS,
 }: Readonly<{ weather: Weather; thresholds?: typeof THRESHOLDS }>) {
   const { c, styles, columns } = useStyles();
-  const { format: formatTemp, unit } = useTemperatureDisplay();
+  const { format: formatTemp, formatWind, unit } = useTemperatureDisplay();
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
-  const metrics = rideSpecMetrics(weather, thresholds, formatTemp);
+  const metrics = rideSpecMetrics(weather, thresholds, formatTemp, formatWind);
   // The tip quotes the same thresholds the cells are rated with, in the rider's unit.
   const explainer = selectedLabel ? getMetricExplainer(selectedLabel, { thresholds, unit }) : null;
 

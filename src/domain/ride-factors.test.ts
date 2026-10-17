@@ -107,6 +107,22 @@ describe('Ride Factors', () => {
     expect(wind?.condition).toBe('poor');
   });
 
+  it('formats wind factors in km/h when tempUnit is celsius', () => {
+    const weather = makeWeather({
+      temperature: 60,
+      windSpeed: 20, // marginal sustained -> 32 km/h
+      windGust: 20,
+      rainChance: 0,
+      dewpoint: 50,
+      aqi: 20,
+      weatherCode: 1,
+    });
+    const factors = getRideFactors(weather, 'maybe', undefined, 'celsius');
+    const wind = factors.find((f) => f.type === 'windSpeed');
+    expect(wind?.value).toBe('32 km/h');
+    expect(getMessage(weather, 'maybe', undefined, 'celsius').issues).toContain('Windy (32 km/h)');
+  });
+
   it('overrides temperature label to "too cold" or "too hot" for no status', () => {
     // too cold
     const weather = {

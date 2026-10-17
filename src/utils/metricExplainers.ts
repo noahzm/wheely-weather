@@ -1,6 +1,11 @@
 import { THRESHOLDS, UV_GEAR, type Thresholds } from '../domain/constants';
 
-import { fahrenheitToCelsius, formatTemperature, type TempUnit } from './temperature';
+import {
+  fahrenheitToCelsius,
+  formatTemperature,
+  formatWindSpeed,
+  type TempUnit,
+} from './temperature';
 
 export interface MetricExplainer {
   title: string;
@@ -38,12 +43,12 @@ const EXPLAINERS: Record<string, (context: ExplainerContext) => MetricExplainer>
   Temperature: ({ unit }) => ({
     title: 'Temperature & Feels Like',
     summary: 'Air temperature now, and how it feels with wind and humidity.',
-    tip: `Airflow at riding speed (15–20 mph) makes it feel ${tempDelta(5, 10, unit)} colder. Start slightly cool so you don’t overheat and soak your base layers once you’re riding hard.`,
+    tip: `Airflow at riding speed (${unit === 'celsius' ? '25–30 km/h' : '15–20 mph'}) makes it feel ${tempDelta(5, 10, unit)} colder. Start slightly cool so you don’t overheat and soak your base layers once you’re riding hard.`,
   }),
-  Wind: () => ({
+  Wind: ({ unit }) => ({
     title: 'Wind & Gusts',
     summary: 'Sustained wind speed, compass direction, and peak gusts.',
-    tip: 'Crosswind gusts over 20 mph can push deep-section rims around and unsettle the bike. Try heading into the wind on the way out so you get a tailwind home.',
+    tip: `Crosswind gusts over ${formatWindSpeed(20, unit)} can push deep-section rims around and unsettle the bike. Try heading into the wind on the way out so you get a tailwind home.`,
   }),
   'Air Quality': ({ thresholds }) => {
     const { FAIR, MARGINAL } = thresholds.AQI;

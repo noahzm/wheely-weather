@@ -142,6 +142,9 @@ export type IssueTier = Exclude<Condition, 'good'>;
 export const issuePhraseTier = (rating: Condition): IssueTier | null =>
   rating === 'good' ? null : rating;
 
+const windLabel = (speed: number | string): string =>
+  typeof speed === 'number' ? `${speed} mph` : speed;
+
 /**
  * Shared per-metric severity phrasing. Both the verdict hero's issue chips and
  * the hourly chart's reason drawer build from this table so the same metric is
@@ -151,20 +154,24 @@ export const ISSUE_PHRASES = {
   // Each tier's wording is calibrated to the numeric band that produces it (see
   // THRESHOLDS): the marginal band is the "caution" zone, so it must not share a
   // word with fair, or 24 mph sustained wind reads as "Breezy".
-  WIND: (mph: number, tier: IssueTier): string =>
-    ({
-      bad: `Dangerous wind (${mph} mph)`,
-      poor: `Very windy (${mph} mph)`,
-      marginal: `Windy (${mph} mph)`,
-      fair: `Breezy (${mph} mph)`,
-    })[tier],
-  GUSTS: (mph: number, tier: IssueTier): string =>
-    ({
-      bad: `Dangerous gusts (${mph} mph)`,
-      poor: `Strong gusts (${mph} mph)`,
-      marginal: `Gusty (${mph} mph)`,
-      fair: `Gusty (${mph} mph)`,
-    })[tier],
+  WIND: (speed: number | string, tier: IssueTier): string => {
+    const label = windLabel(speed);
+    return {
+      bad: `Dangerous wind (${label})`,
+      poor: `Very windy (${label})`,
+      marginal: `Windy (${label})`,
+      fair: `Breezy (${label})`,
+    }[tier];
+  },
+  GUSTS: (speed: number | string, tier: IssueTier): string => {
+    const label = windLabel(speed);
+    return {
+      bad: `Dangerous gusts (${label})`,
+      poor: `Strong gusts (${label})`,
+      marginal: `Gusty (${label})`,
+      fair: `Gusty (${label})`,
+    }[tier];
+  },
   RAIN: (pct: string, tier: IssueTier): string =>
     ({
       bad: `Rain expected (${pct})`,

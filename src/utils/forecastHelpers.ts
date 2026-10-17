@@ -11,7 +11,7 @@ import {
   RANK,
 } from '../domain/scoring';
 import { formatPercent } from './percent';
-import { formatTemperature } from './temperature';
+import { formatTemperature, formatWindSpeed } from './temperature';
 
 import type { Condition, DailyWeather, HourlyWeather } from '@/types/weather';
 import type { TempUnit } from './temperature';
@@ -56,24 +56,33 @@ function scoreDay(day: DailyWeather): number {
   return conditionScore + rainBonus + windBonus + comfortBonus;
 }
 
-function bestDayRationale(day: DailyWeather): string {
-  if (day.condition === 'fair') return getDayConditionReason(day);
+function bestDayRationale(
+  day: DailyWeather,
+  tempUnit: TempUnit = 'fahrenheit',
+  thresholds: Thresholds = THRESHOLDS,
+): string {
+  if (day.condition === 'fair') return getDayConditionReason(day, tempUnit, thresholds);
 
   const rain = day.rainChance;
   const wind = day.windSpeed;
   const gust = day.windGust ?? wind;
   const high = day.rideWindow?.tempHigh ?? day.high;
+  const warmThreshold = 80 + (thresholds.TEMPERATURE.FAIR_MAX - THRESHOLDS.TEMPERATURE.FAIR_MAX);
   if (rain <= 10 && wind <= 8 && gust <= 15) return 'Low wind and dry roads';
   if (gust > 15) return 'Mostly calm with manageable gusts';
-  if (high < 50 && rain <= 20) return 'Cool and clear';
-  if (high > 80 && rain <= 20) return 'Warm and dry';
+  if (high < thresholds.TEMPERATURE.FAIR_MIN && rain <= 20) return 'Cool and clear';
+  if (high > warmThreshold && rain <= 20) return 'Warm and dry';
   if (wind <= 10) return 'Calm and steady';
   if (rain <= 20) return 'Comfortable and dry';
   return 'Solid riding weather';
 }
 
 /** Finds the index and rationale of the single best day for cycling in the 8-day forecast. */
-export function getBestDayInfo(daily: DailyWeather[] | null | undefined): {
+export function getBestDayInfo(
+  daily: DailyWeather[] | null | undefined,
+  tempUnit: TempUnit = 'fahrenheit',
+  thresholds: Thresholds = THRESHOLDS,
+): {
   index: number;
   rationale: string;
 } {
@@ -97,7 +106,7 @@ export function getBestDayInfo(daily: DailyWeather[] | null | undefined): {
     return { index: -1, rationale: '' };
   }
 
-  return { index: bestIdx, rationale: bestDayRationale(bestDay) };
+  return { index: bestIdx, rationale: bestDayRationale(bestDay, tempUnit, thresholds) };
 }
 
 interface DayMetrics {
@@ -163,8 +172,8 @@ function dayMetricReasons(
   if (windTier) {
     reasons.push({
       text: isGustDriven(wind, gust)
-        ? ISSUE_PHRASES.GUSTS(Math.round(gust ?? wind), windTier)
-        : ISSUE_PHRASES.WIND(wind, windTier),
+        ? ISSUE_PHRASES.GUSTS(formatWindSpeed(gust ?? wind, tempUnit), windTier)
+        : ISSUE_PHRASES.WIND(formatWindSpeed(wind, tempUnit), windTier),
       tier: windTier,
     });
   }
@@ -200,10 +209,23 @@ function dayMetricReasons(
     // always matches the rating the table produced — hardcoded cutoffs here used
     // to explain a marginal-rated day in poor-tier language ("Cold start").
     // The cold side has no poor zone (POOR_MIN==BAD_MIN), so only bad and
-    // marginal can occur.
+    // marginal can occur. When the ride window's high also stays in the
+    // marginal cold band, name the all-window cold rather than "Cool start".
     const lowTier = issuePhraseTier(evaluateCondition(low, 'temperature', thresholds));
-    if (lowTier === 'bad') reasons.push({ text: 'Freezing temps', tier: 'bad' });
-    else if (lowTier === 'marginal') reasons.push({ text: 'Cool start', tier: 'marginal' });
+    if (lowTier === 'bad') {
+      reasons.push({ text: 'Freezing temps', tier: 'bad' });
+    } else if (lowTier === 'marginal') {
+      const highIsMarginalCold =
+        temp != null &&
+        isColdTemp(temp) &&
+        evaluateCondition(temp, 'temperature', thresholds) === 'marginal';
+      reasons.push({
+        text: highIsMarginalCold
+          ? ISSUE_PHRASES.COLD(formatTemperature(temp, tempUnit), 'marginal')
+          : 'Cool start',
+        tier: 'marginal',
+      });
+    }
   }
 
   // Worst first: the day card shows a single reason, and it must be the one that
@@ -246,18 +268,25 @@ function marginalDayReason(
   return dayReasonAtTier(metrics, 'marginal', tempUnit, thresholds) ?? 'Mixed conditions';
 }
 
-function fairDayReason({ wind, rain, high }: DayMetrics): string {
+function fairDayReason(
+  { wind, rain, high }: DayMetrics,
+  thresholds: Thresholds = THRESHOLDS,
+): string {
   if (wind >= 12) return 'Breezy';
   if (rain > 15) return 'Chance of rain';
-  if (high != null && high < 50) return 'Cool but clear';
-  if (high != null && high > 87) return 'Warm but workable';
+  if (high != null && high < thresholds.TEMPERATURE.FAIR_MIN) return 'Cool but clear';
+  if (high != null && high > thresholds.TEMPERATURE.FAIR_MAX) return 'Warm but workable';
   return 'Fair window';
 }
 
-function idealDayReason({ wind, rain, high }: DayMetrics): string {
+function idealDayReason(
+  { wind, rain, high }: DayMetrics,
+  thresholds: Thresholds = THRESHOLDS,
+): string {
+  const warmThreshold = 80 + (thresholds.TEMPERATURE.FAIR_MAX - THRESHOLDS.TEMPERATURE.FAIR_MAX);
   if (rain <= 10 && wind <= 8) return 'Low wind and dry';
-  if (high != null && high < 50 && rain <= 20) return 'Cool and clear';
-  if (high != null && high > 80 && rain <= 20) return 'Warm and dry';
+  if (high != null && high < thresholds.TEMPERATURE.FAIR_MIN && rain <= 20) return 'Cool and clear';
+  if (high != null && high > warmThreshold && rain <= 20) return 'Warm and dry';
   if (wind <= 10) return 'Calm and steady';
   if (rain <= 20) return 'Comfortable and dry';
   return 'Prime riding weather';
@@ -265,7 +294,8 @@ function idealDayReason({ wind, rain, high }: DayMetrics): string {
 
 function hourWindReason(
   windSpeed: number,
-  windGust?: number | null,
+  windGust: number | null | undefined,
+  tempUnit: TempUnit = 'fahrenheit',
   thresholds: Thresholds = THRESHOLDS,
 ): HourReason | null {
   const tier = issuePhraseTier(evaluateWind(windSpeed, windGust, thresholds));
@@ -274,8 +304,8 @@ function hourWindReason(
   // (`ride-factors.ts`) — otherwise a calm-but-gusty hour reads "Very windy
   // (8 mph)" because it borrows the gust's severity but the sustained number.
   const text = isGustDriven(windSpeed, windGust)
-    ? ISSUE_PHRASES.GUSTS(Math.round(windGust ?? windSpeed), tier)
-    : ISSUE_PHRASES.WIND(Math.round(windSpeed), tier);
+    ? ISSUE_PHRASES.GUSTS(formatWindSpeed(windGust ?? windSpeed, tempUnit), tier)
+    : ISSUE_PHRASES.WIND(formatWindSpeed(windSpeed, tempUnit), tier);
   return { text, tier };
 }
 
@@ -413,7 +443,7 @@ export function getHourConditionReasons(
 
   const metricReasons = [
     effectiveCodeReason,
-    hourWindReason(hour.windSpeed, hour.windGust, thresholds),
+    hourWindReason(hour.windSpeed, hour.windGust, tempUnit, thresholds),
     effectiveRainReason,
     tempReason,
     hourDewReason(hour.dewpoint ?? null, tempUnit, thresholds),
@@ -465,10 +495,10 @@ export function getDayConditionReason(
       return marginalDayReason(m, tempUnit, thresholds);
     }
     case 'fair': {
-      return fairDayReason(m);
+      return fairDayReason(m, thresholds);
     }
     case 'good': {
-      return idealDayReason(m);
+      return idealDayReason(m, thresholds);
     }
   }
 }

@@ -25,7 +25,7 @@ import {
 } from './weather-codes';
 
 import { fullHourLabel } from '../utils/timeFormat';
-import { formatTemperature, type TempUnit } from '../utils/temperature';
+import { formatTemperature, formatWindSpeed, type TempUnit } from '../utils/temperature';
 import { formatPercent } from '../utils/percent';
 
 import type {
@@ -108,8 +108,11 @@ const collectMessageIssues = (
     'windSpeed',
     (tier) =>
       gustDriven
-        ? ISSUE_PHRASES.GUSTS(Math.round(weather.windGust ?? weather.windSpeed), tier)
-        : ISSUE_PHRASES.WIND(Math.round(weather.windSpeed), tier),
+        ? ISSUE_PHRASES.GUSTS(
+            formatWindSpeed(weather.windGust ?? weather.windSpeed, tempUnit),
+            tier,
+          )
+        : ISSUE_PHRASES.WIND(formatWindSpeed(weather.windSpeed, tempUnit), tier),
     evaluateWind(weather.windSpeed, weather.windGust, thresholds),
   );
   const weatherCodeIssue = getWeatherCodeIssue(weather.weatherCode, status);
@@ -230,8 +233,8 @@ export const getRideFactors = (
       type: 'windSpeed',
       label: 'Wind',
       value: isGustDriven(weather.windSpeed, weather.windGust)
-        ? `${Math.round(weather.windGust ?? weather.windSpeed)} mph gusts`
-        : `${Math.round(weather.windSpeed)} mph`,
+        ? `${formatWindSpeed(weather.windGust ?? weather.windSpeed, tempUnit)} gusts`
+        : formatWindSpeed(weather.windSpeed, tempUnit),
       condition: windRating,
     });
   }

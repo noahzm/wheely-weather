@@ -1,11 +1,13 @@
 import { useResolvedTempUnit } from '@/hooks/settings-context';
-import { formatTemperature, type TempUnit } from '@/utils/temperature';
+import { formatTemperature, formatWindSpeed, type TempUnit } from '@/utils/temperature';
 
 interface TemperatureDisplay {
   /** Concrete display unit ('auto' preference already resolved). */
   unit: TempUnit;
   /** Formats a Fahrenheit source value in the resolved unit. */
   format: (fahrenheit: number, options?: { withUnitLabel?: boolean }) => string;
+  /** Formats an mph wind speed in the unit paired with the resolved temperature unit. */
+  formatWind: (mph: number) => string;
 }
 
 /**
@@ -17,5 +19,6 @@ export function useTemperatureDisplay(): TemperatureDisplay {
   const unit = useResolvedTempUnit();
   const format = (fahrenheit: number, options?: { withUnitLabel?: boolean }) =>
     formatTemperature(fahrenheit, unit, options);
-  return { unit, format };
+  const formatWind = (mph: number) => formatWindSpeed(mph, unit);
+  return { unit, format, formatWind };
 }

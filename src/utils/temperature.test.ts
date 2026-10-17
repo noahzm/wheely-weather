@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { fahrenheitToCelsius, formatTemperature } from './temperature';
+import { fahrenheitToCelsius, formatTemperature, formatWindSpeed, mphToKmh } from './temperature';
 
 describe('fahrenheitToCelsius', () => {
   it('converts freezing and boiling points', () => {
@@ -26,5 +26,19 @@ describe('formatTemperature', () => {
   it('appends the unit label when requested', () => {
     expect(formatTemperature(95, 'fahrenheit', { withUnitLabel: true })).toBe('95°F');
     expect(formatTemperature(95, 'celsius', { withUnitLabel: true })).toBe('35°C');
+  });
+});
+
+describe('mphToKmh and formatWindSpeed', () => {
+  it('converts mph to km/h', () => {
+    expect(mphToKmh(0)).toBe(0);
+    expect(Math.round(mphToKmh(10))).toBe(16);
+    expect(Math.round(mphToKmh(20))).toBe(32);
+  });
+
+  it('formats wind speed as mph for fahrenheit and km/h for celsius', () => {
+    expect(formatWindSpeed(15.4)).toBe('15 mph');
+    expect(formatWindSpeed(15.4, 'fahrenheit')).toBe('15 mph');
+    expect(formatWindSpeed(15, 'celsius')).toBe('24 km/h');
   });
 });

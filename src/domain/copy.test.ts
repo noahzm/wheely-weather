@@ -126,6 +126,8 @@ describe('shared issue phrases', () => {
     expect(ISSUE_PHRASES.HUMIDITY('62°F', 'marginal')).toBe('Muggy (dew 62°F)');
     expect(ISSUE_PHRASES.AQI(160, 'poor')).toBe('Unhealthy air (AQI 160)');
     expect(ISSUE_PHRASES.AQI(120, 'marginal')).toBe('Air unhealthy for some (AQI 120)');
+    expect(ISSUE_PHRASES.WIND('38 km/h', 'poor')).toBe('Very windy (38 km/h)');
+    expect(ISSUE_PHRASES.GUSTS('50 km/h', 'bad')).toBe('Dangerous gusts (50 km/h)');
   });
 
   it('maps a rating to its tier verbatim, and good to no issue', () => {
