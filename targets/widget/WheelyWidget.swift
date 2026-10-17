@@ -60,6 +60,11 @@ struct WidgetSnapshot: Decodable {
     upcoming?.last(where: { $0.at <= date })?.verdict ?? verdict
   }
 
+  /// Future hourly verdicts after `date`, for the medium widget's strip.
+  func upcoming(after date: Date, limit: Int = 4) -> [UpcomingVerdict] {
+    Array((upcoming ?? []).filter { $0.at > date }.prefix(limit))
+  }
+
   /// When the verdicts run out: an hour after the last upcoming one begins, or
   /// `staleAfter` past the fetch for a payload without them.
   var coveredUntil: Date {
@@ -148,14 +153,50 @@ struct VerdictProvider: TimelineProvider {
 
 struct WheelyWidgetView: View {
   let entry: VerdictEntry
+  @Environment(\.widgetFamily) private var family
   // Tinted and Clear home screens drop the colored background, and with it the
   // verdict's color; `fullColor` is the default and Dark home screens.
   @Environment(\.widgetRenderingMode) private var renderingMode
 
   var body: some View {
     if let snapshot = entry.snapshot {
-      content(snapshot, snapshot.verdict(at: entry.date))
+      let verdict = snapshot.verdict(at: entry.date)
+      switch family {
+      case .accessoryCircular:
+        circularContent(verdict)
+      case .accessoryRectangular:
+        rectangularContent(snapshot, verdict)
+      case .systemMedium:
+        mediumContent(snapshot, verdict)
+      default:
+        smallContent(snapshot, verdict)
+      }
     } else {
+      emptyView
+    }
+  }
+
+  @ViewBuilder
+  private var emptyView: some View {
+    switch family {
+    case .accessoryCircular:
+      ZStack {
+        AccessoryWidgetBackground()
+        Image(systemName: "bicycle")
+          .font(.title3)
+      }
+      .containerBackground(.fill.tertiary, for: .widget)
+    case .accessoryRectangular:
+      VStack(alignment: .leading, spacing: 2) {
+        Label("Wheely Weather", systemImage: "bicycle")
+          .font(.headline)
+        Text("Open app to load ride verdict")
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      }
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .containerBackground(.fill.tertiary, for: .widget)
+    default:
       VStack(alignment: .leading, spacing: 6) {
         Image(systemName: "bicycle")
           .font(.title2)
@@ -169,7 +210,51 @@ struct WheelyWidgetView: View {
     }
   }
 
-  private func content(_ snapshot: WidgetSnapshot, _ verdict: Verdict) -> some View {
+  private func smallContent(_ snapshot: WidgetSnapshot, _ verdict: Verdict) -> some View {
+    verdictColumn(snapshot, verdict)
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .foregroundStyle(entry.isStale ? Color.primary : Color.black)
+      .containerBackground(for: .widget) {
+        cardBackground(verdict)
+      }
+  }
+
+  private func mediumContent(_ snapshot: WidgetSnapshot, _ verdict: Verdict) -> some View {
+    let nextHours = snapshot.upcoming(after: entry.date, limit: 4)
+    return HStack(spacing: 14) {
+      verdictColumn(snapshot, verdict)
+        .frame(maxWidth: .infinity, alignment: .leading)
+      if !nextHours.isEmpty {
+        Divider()
+          .overlay((entry.isStale ? Color.primary : Color.black).opacity(0.2))
+        VStack(alignment: .leading, spacing: 6) {
+          ForEach(Array(nextHours.enumerated()), id: \.offset) { _, item in
+            HStack(spacing: 6) {
+              Text(item.at, format: .dateTime.hour())
+                .font(.caption2.weight(.semibold))
+                .frame(width: 40, alignment: .leading)
+              Image(systemName: item.verdict.symbol)
+                .font(.caption)
+                .frame(width: 16)
+              Text(item.verdict.temperature)
+                .font(.caption.weight(.bold))
+                .frame(width: 32, alignment: .trailing)
+              Image(systemName: statusSymbol(item.verdict))
+                .font(.caption2)
+                .opacity(0.8)
+            }
+          }
+        }
+      }
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .foregroundStyle(entry.isStale ? Color.primary : Color.black)
+    .containerBackground(for: .widget) {
+      cardBackground(verdict)
+    }
+  }
+
+  private func verdictColumn(_ snapshot: WidgetSnapshot, _ verdict: Verdict) -> some View {
     VStack(alignment: .leading, spacing: 2) {
       HStack(alignment: .firstTextBaseline) {
         Image(systemName: verdict.symbol)
@@ -201,14 +286,57 @@ struct WheelyWidgetView: View {
         .lineLimit(1)
         .padding(.top, 2)
     }
-    .frame(maxWidth: .infinity, alignment: .leading)
-    .foregroundStyle(entry.isStale ? Color.primary : Color.black)
-    .containerBackground(for: .widget) {
-      if entry.isStale {
-        Color.clear.background(.fill.tertiary)
-      } else {
-        statusColor(verdict)
+  }
+
+  private func rectangularContent(_ snapshot: WidgetSnapshot, _ verdict: Verdict) -> some View {
+    VStack(alignment: .leading, spacing: 2) {
+      HStack(alignment: .firstTextBaseline, spacing: 4) {
+        Image(systemName: statusSymbol(verdict))
+          .accessibilityHidden(true)
+        Text(verdict.headline)
+          .font(.headline.weight(.heavy))
+          .lineLimit(1)
+          .minimumScaleFactor(0.8)
+        Spacer(minLength: 4)
+        Text(verdict.temperature)
+          .font(.subheadline.weight(.bold))
       }
+      .widgetAccentable()
+      Text(verdict.detail)
+        .font(.caption)
+        .lineLimit(1)
+      footer(snapshot)
+        .font(.caption2)
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .containerBackground(.fill.tertiary, for: .widget)
+  }
+
+  private func circularContent(_ verdict: Verdict) -> some View {
+    ZStack {
+      AccessoryWidgetBackground()
+      VStack(spacing: 1) {
+        Image(systemName: statusSymbol(verdict))
+          .font(.caption.weight(.bold))
+          .widgetAccentable()
+        Text(verdict.temperature)
+          .font(.system(.callout, design: .rounded).weight(.bold))
+          .minimumScaleFactor(0.7)
+        Image(systemName: verdict.symbol)
+          .font(.caption2)
+      }
+    }
+    .containerBackground(.fill.tertiary, for: .widget)
+  }
+
+  @ViewBuilder
+  private func cardBackground(_ verdict: Verdict) -> some View {
+    if entry.isStale {
+      Color.clear.background(.fill.tertiary)
+    } else {
+      statusColor(verdict)
     }
   }
 
@@ -268,7 +396,12 @@ struct WheelyWidget: Widget {
     }
     .configurationDisplayName("Ride Verdict")
     .description("Today’s ride verdict for the place you’re viewing in the app.")
-    .supportedFamilies([.systemSmall])
+    .supportedFamilies([
+      .systemSmall,
+      .systemMedium,
+      .accessoryRectangular,
+      .accessoryCircular,
+    ])
   }
 }
 
