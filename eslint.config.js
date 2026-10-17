@@ -52,6 +52,12 @@ module.exports = defineConfig([
       // member, so adding one to the type flags each switch that ignores it.
       // A `default` branch doesn't count: it would silently absorb the new member.
       '@typescript-eslint/switch-exhaustiveness-check': 'error',
+      // React Compiler rule (from eslint-plugin-react-hooks, but not part of its
+      // `recommended` preset, which eslint-config-expo spreads): flags mutating
+      // compiler-managed React values (e.g. a `useState` result) in render scope.
+      // It does NOT understand Reanimated's `useSharedValue` — the `.set()` over
+      // `.value =` convention is enforced by review, not by this rule.
+      'react-hooks/immutability': 'error',
 
       // ── Naming conventions (SwiftLint identifier_name / type_name) ─────
       // Enforce casing only; boolean-prefix conventions are intentionally not
