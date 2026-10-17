@@ -12,18 +12,7 @@
       "appleTeamId": "Y2S6C64A97",
       "icon": "./assets/WheelyWeather.icon",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false,
-        "UIApplicationSceneManifest": {
-          "UIApplicationSupportsMultipleScenes": false,
-          "UISceneConfigurations": {
-            "UIWindowSceneSessionRoleApplication": [
-              {
-                "UISceneConfigurationName": "Default Configuration",
-                "UISceneDelegateClassName": "$(PRODUCT_MODULE_NAME).SceneDelegate"
-              }
-            ]
-          }
-        }
+        "ITSAppUsesNonExemptEncryption": false
       },
       "entitlements": {
         "com.apple.developer.weatherkit": true,
@@ -50,7 +39,14 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      "./plugins/withDevLauncherSceneDelegateFix.js",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "enableSceneSupport": true
+          }
+        }
+      ],
       "@bacons/apple-targets",
       "./plugins/withCompilationCache.js",
       [
@@ -124,7 +120,8 @@
           "project": "wheely-weather"
         }
       ],
-      "expo-background-task"
+      "expo-background-task",
+      "expo-build-properties"
     ],
     "experiments": {
       "typedRoutes": true,

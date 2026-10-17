@@ -10,6 +10,7 @@
     "@sentry/react-native": "~7.11.0",
     "expo": "~57.0.30",
     "expo-background-task": "~57.0.21",
+    "expo-build-properties": "~57.0.22",
     "expo-constants": "~57.0.18",
     "expo-dev-client": "~57.0.20",
     "expo-font": "~57.0.4",
@@ -66,10 +67,10 @@
     }
   },
   "scripts": {
-    "start": "node -r ./scripts/expo-ios-fix.js ./node_modules/.bin/expo start",
+    "start": "expo start",
     "android": "cross-env SENTRY_DISABLE_AUTO_UPLOAD=true expo run:android",
-    "ios": "cross-env SENTRY_DISABLE_AUTO_UPLOAD=true node -r ./scripts/expo-ios-fix.js ./node_modules/.bin/expo run:ios",
-    "ios:clean": "cross-env SENTRY_DISABLE_AUTO_UPLOAD=true node -r ./scripts/expo-ios-fix.js ./node_modules/.bin/expo prebuild --clean --platform ios && npm run ios",
+    "ios": "cross-env SENTRY_DISABLE_AUTO_UPLOAD=true expo run:ios",
+    "ios:clean": "cross-env SENTRY_DISABLE_AUTO_UPLOAD=true expo prebuild --clean --platform ios && npm run ios",
     "web": "cross-env EXPO_NO_TELEMETRY=1 expo start --web",
     "build:web": "cross-env EXPO_NO_TELEMETRY=1 expo export --platform web",
     "typegen": "cross-env EXPO_NO_TELEMETRY=1 expo customize tsconfig.json",
