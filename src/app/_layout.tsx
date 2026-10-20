@@ -8,6 +8,7 @@ import * as Sentry from '@sentry/react-native';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { BottomNavBar } from '@/components/wheely';
+import { WebSafeAreaProvider } from '@/components/wheely/web-safe-area-provider';
 import { WheelyTheme, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ColorSchemeOverrideContext } from '@/hooks/use-theme';
@@ -79,10 +80,12 @@ function WebRootChrome() {
   // and the page has to grow with its content for the document to scroll.
   return (
     <View style={{ flex: 1 }}>
-      <Slot />
-      <View style={bottomNavWrapStyle}>
-        <BottomNavBar />
-      </View>
+      <WebSafeAreaProvider>
+        <Slot />
+        <View style={bottomNavWrapStyle}>
+          <BottomNavBar />
+        </View>
+      </WebSafeAreaProvider>
     </View>
   );
 }
