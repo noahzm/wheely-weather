@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { measureSafeAreaEnvInsets } from '@/components/wheely/safe-area-env-insets';
+import { measureSafeAreaEnvInsets, sameInsets } from '@/components/wheely/safe-area-env-insets';
 
 /** Minimal Document stub: one shared probe element whose computed paddings are fixed. */
 function fakeDocument(padding: { top: string; bottom: string; left: string; right: string }) {
@@ -50,5 +50,20 @@ describe('measureSafeAreaEnvInsets', () => {
       right: '12.5',
     });
     expect(measureSafeAreaEnvInsets(doc)).toEqual({ top: 0, bottom: 0, left: 0, right: 12.5 });
+  });
+});
+
+describe('sameInsets', () => {
+  const base = { top: 59, bottom: 34, left: 0, right: 0 };
+
+  it('is true when every edge matches', () => {
+    expect(sameInsets(base, { ...base })).toBe(true);
+  });
+
+  it('is false when any edge differs', () => {
+    expect(sameInsets(base, { ...base, top: 0 })).toBe(false);
+    expect(sameInsets(base, { ...base, bottom: 0 })).toBe(false);
+    expect(sameInsets(base, { ...base, left: 44 })).toBe(false);
+    expect(sameInsets(base, { ...base, right: 44 })).toBe(false);
   });
 });

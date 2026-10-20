@@ -6,7 +6,7 @@ import {
   type EdgeInsets,
 } from 'react-native-safe-area-context';
 
-import { measureSafeAreaEnvInsets } from './safe-area-env-insets';
+import { measureSafeAreaEnvInsets, sameInsets } from './safe-area-env-insets';
 
 // Expo Router (SDK 58) hard-codes zero safe-area insets on web (see its
 // build/SafeAreaProvider.js: measuring at hydration can discard streamed
@@ -29,13 +29,24 @@ export function WebSafeAreaProvider({ children }: Readonly<PropsWithChildren>) {
   const [insets, setInsets] = useState<EdgeInsets>(ZERO_INSETS);
 
   useEffect(() => {
+    // iPhone Safari fires `resize` continuously while its toolbar collapses
+    // during a scroll. Measure at most once per frame, and keep the previous
+    // object when nothing changed: a fresh one re-renders every inset
+    // consumer (the whole home screen) mid-scroll, which makes scrolling janky.
+    let frame = 0;
     const measure = () => {
-      setInsets(measureSafeAreaEnvInsets(globalThis.document));
+      frame = 0;
+      const next = measureSafeAreaEnvInsets(globalThis.document);
+      setInsets((current) => (sameInsets(current, next) ? current : next));
+    };
+    const scheduleMeasure = () => {
+      if (frame === 0) frame = requestAnimationFrame(measure);
     };
     measure();
-    globalThis.addEventListener('resize', measure);
+    globalThis.addEventListener('resize', scheduleMeasure);
     return () => {
-      globalThis.removeEventListener('resize', measure);
+      globalThis.removeEventListener('resize', scheduleMeasure);
+      cancelAnimationFrame(frame);
     };
   }, []);
 

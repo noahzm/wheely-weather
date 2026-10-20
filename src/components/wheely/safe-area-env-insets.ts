@@ -38,6 +38,11 @@ export function measureSafeAreaEnvInsets(doc: Document): EdgeInsets {
 
 const ZERO_INSETS: EdgeInsets = { top: 0, bottom: 0, left: 0, right: 0 };
 
+/** True when both insets match on every edge. */
+export function sameInsets(a: EdgeInsets, b: EdgeInsets): boolean {
+  return a.top === b.top && a.bottom === b.bottom && a.left === b.left && a.right === b.right;
+}
+
 /** Parses a computed CSS length as pixels, falling back to 0 when unresolvable. */
 const readInsetPx = (value: string): number => {
   const parsed = Number.parseFloat(value);
