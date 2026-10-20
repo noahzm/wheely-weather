@@ -30,7 +30,9 @@ export function useWebDocumentTheme(isDark: boolean) {
     root.style.colorScheme = isDark ? 'dark' : 'light';
     root.dataset.theme = isDark ? 'dark' : 'light';
     root.dataset.appearance = appearance;
-    root.dataset.systemScheme = systemScheme;
+    // Assigning `undefined` to dataset would write the string "undefined".
+    if (systemScheme) root.dataset.systemScheme = systemScheme;
+    else delete root.dataset.systemScheme;
     // The static tags pick a color by system scheme; an appearance override
     // can disagree, so pin every tag to the resolved background.
     for (const meta of globalThis.document.querySelectorAll('meta[name="theme-color"]')) {

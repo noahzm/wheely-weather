@@ -39,14 +39,6 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      [
-        "expo-build-properties",
-        {
-          "ios": {
-            "enableSceneSupport": true
-          }
-        }
-      ],
       "@bacons/apple-targets",
       "./plugins/withCompilationCache.js",
       [
@@ -120,8 +112,7 @@
           "project": "wheely-weather"
         }
       ],
-      "expo-background-task",
-      "expo-build-properties"
+      "expo-background-task"
     ],
     "experiments": {
       "typedRoutes": true,

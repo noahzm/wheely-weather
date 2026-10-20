@@ -40,9 +40,7 @@ import { withAlpha } from '@/utils/colors';
 export function HapticPressable({ onPress, android_ripple, ...props }: Readonly<PressableProps>) {
   const c = useWheelyColors();
   const ripple =
-    Platform.OS === 'android' && android_ripple !== null
-      ? (android_ripple ?? { color: withAlpha(c.ink, 0.1) })
-      : undefined;
+    Platform.OS === 'android' ? (android_ripple ?? { color: withAlpha(c.ink, 0.1) }) : undefined;
 
   return (
     <Pressable

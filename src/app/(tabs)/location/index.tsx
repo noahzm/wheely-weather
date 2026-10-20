@@ -1,5 +1,13 @@
 import { useRef, useState } from 'react';
-import { ActivityIndicator, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+  type TextInputInstance,
+} from 'react-native';
 import { Stack } from 'expo-router';
 import type { SearchBarCommands } from 'react-native-screens';
 import Head from 'expo-router/head';
@@ -41,7 +49,7 @@ function SearchField({
   onQueryChange: (text: string) => void;
 }>) {
   const c = useWheelyColors();
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<TextInputInstance>(null);
   const [focused, setFocused] = useState(false);
   const showCancel = focused || query.length > 0;
   return (

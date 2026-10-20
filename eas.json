@@ -18,8 +18,7 @@
         "SHARP_IGNORE_GLOBAL_LIBVIPS": "1"
       },
       "ios": {
-        "simulator": false,
-        "image": "macos-tahoe-26.5-xcode-26.6"
+        "simulator": false
       },
       "channel": "production"
     },
@@ -31,8 +30,7 @@
       },
       "ios": {
         "simulator": true,
-        "buildConfiguration": "Release",
-        "image": "macos-tahoe-26.5-xcode-26.6"
+        "buildConfiguration": "Release"
       },
       "channel": "screenshots"
     }

@@ -287,10 +287,9 @@ function LocationSectionView({
 
   return (
     <Section title={section.title}>
-      <List.ForEach>
-        {section.data.map((item) => (
+      <List.ForEach data={section.data} keyExtractor={placeKey} recycling={false}>
+        {({ item }) => (
           <PinnableRow
-            key={placeKey(item)}
             item={item}
             busy={busy}
             pinned={isPinned(item, pinnedLocations)}
@@ -307,7 +306,7 @@ function LocationSectionView({
               onToggleHome(item);
             }}
           />
-        ))}
+        )}
       </List.ForEach>
     </Section>
   );

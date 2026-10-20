@@ -41,7 +41,7 @@ A cyclist-first weather app for iOS, Android, and the web. Live at [wheelyweathe
 | **Alerts**      | WeatherKit       | WeatherKit via the Worker (National Weather Service fallback) | US National Weather Service |
 | **Air quality** | Open-Meteo       | Open-Meteo                                                    | Open-Meteo                  |
 
-Built with Expo SDK 57, Expo Router, React Native 0.86, and React 19 (React Compiler on). Hosted on Cloudflare, errors reported to Sentry.
+Built with Expo SDK 58, Expo Router, React Native 0.88, and React 19 (React Compiler on). Hosted on Cloudflare, errors reported to Sentry.
 
 ## Getting started
 
