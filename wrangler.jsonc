@@ -2,9 +2,11 @@
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "wheely-weather",
   "main": "workers/index.ts",
-  // Runs before every `wrangler deploy`, so a failing unit test stops Cloudflare's
-  // deploy (it runs on every push to main, separately from GitHub CI).
-  "build": { "command": "npm test" },
+  // Runs before every `wrangler deploy`, so a failing unit test or a broken web
+  // export stops Cloudflare's deploy (it runs on every push to main, separately
+  // from GitHub CI). The dashboard runs `npm run build:web` first, so dist/ exists;
+  // verify:web fails if any page ships without its JS bundle <script> tags.
+  "build": { "command": "npm test && npm run verify:web" },
   "compatibility_date": "2026-06-01",
   "routes": [{ "pattern": "wheelyweather.app", "custom_domain": true }],
   // Workers Logs: without it a failing /api/geocode proxy leaves nothing to inspect.

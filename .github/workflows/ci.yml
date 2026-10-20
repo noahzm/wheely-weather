@@ -50,3 +50,8 @@ jobs:
 
       - name: Web export
         run: npm run build:web
+
+      # Unit tests never load the exported site; this fails if a page ships
+      # without its JS bundle <script> tags (the SDK 58 regression).
+      - name: Verify web export
+        run: npm run verify:web
