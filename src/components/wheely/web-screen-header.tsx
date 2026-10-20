@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { Fonts, FontWeightBlack, Spacing, TRANSPARENT, Type } from '@/constants/theme';
 import { withAlpha } from '@/utils/colors';
-import { contentColumnStyle, screenGutterStyle } from './content-column';
+import { contentColumnStyle, screenGutterStyle, webFixedPosition } from './content-column';
 import { GlassChrome } from './glass-chrome';
 import { HapticPressable, PlatformIcon } from './primitives';
 
@@ -82,7 +82,7 @@ export function WebCompactTitleBar({
 const compactStyles = StyleSheet.create({
   bar: {
     // Pinned to the window, which is what scrolls on web.
-    position: 'fixed' as unknown as 'absolute',
+    position: webFixedPosition,
     top: 0,
     left: 0,
     right: 0,

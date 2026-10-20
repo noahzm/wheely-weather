@@ -8,6 +8,10 @@ const { withPodfile, withXcodeProject } = require('expo/config-plugins');
 //
 // Pods get it from a `post_install` step appended to the generated Podfile, since `ios/`
 // isn't committed (see .gitignore's `/ios`).
+//
+// It also marks every app script phase that declares no outputs as `alwaysOutOfDate`.
+// Such phases run on every build anyway; the flag only silences Xcode's "will be run
+// during every build" warning for them, so build behavior doesn't change.
 
 const PODFILE_MARKER = '# withCompilationCache';
 

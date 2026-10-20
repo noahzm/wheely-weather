@@ -8,6 +8,7 @@ import * as Sentry from '@sentry/react-native';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { BottomNavBar } from '@/components/wheely';
+import { webFixedPosition } from '@/components/wheely/content-column';
 import { WebSafeAreaProvider } from '@/components/wheely/web-safe-area-provider';
 import { WheelyTheme, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -67,7 +68,7 @@ function WebRootChrome() {
   useWebScrollMemory();
   const bottomNavWrapStyle = {
     // Pinned to the window: the document scrolls, not a container.
-    position: 'fixed' as unknown as 'absolute',
+    position: webFixedPosition,
     bottom: 0,
     left: 0,
     right: 0,

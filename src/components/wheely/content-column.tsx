@@ -8,6 +8,13 @@ export const contentColumnStyle = {
   maxWidth: MaxContentWidth,
 };
 
+/**
+ * Web-only `position: 'fixed'`, for chrome pinned to the window (the document
+ * scrolls on web, not a container). react-native-web supports it, but React
+ * Native's style types only list `absolute`/`relative`/`static`, hence the cast.
+ */
+export const webFixedPosition = 'fixed' as unknown as 'absolute';
+
 /** Single horizontal screen gutter shared by every tab screen. */
 export const ScreenGutter = Spacing.three;
 

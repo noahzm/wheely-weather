@@ -81,7 +81,7 @@ module.exports = defineConfig([
   })),
 
   // ── Unicorn (modern JS idioms — SwiftLint style rules) ───────────────────
-  unicorn.configs['flat/recommended'],
+  unicorn.configs.recommended,
   {
     rules: {
       // Disabled only where the rule genuinely conflicts with RN/Expo idioms:
@@ -107,6 +107,8 @@ module.exports = defineConfig([
   {
     plugins: { 'react-native': pluginReactNative },
     rules: {
+      // Broken under flat config: it flags every style ("Unused style
+      // detected: undefined.screen"), used or not.
       'react-native/no-unused-styles': 'off',
       'react-native/no-color-literals': 'error',
     },

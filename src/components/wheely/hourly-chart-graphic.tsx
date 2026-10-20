@@ -125,6 +125,8 @@ function dotRadiusForRender(
 // directions; off-grid hours never get labels (no forced first/last tick).
 function hourLabelNode(d: ChartHour, nowIdx: number, labelColor: string) {
   if ((d.idx - nowIdx) % 3 !== 0) return null;
+  // False positive: react-native-svg's prop types merge SVG text's `x`/`y`
+  // (the real text position) with the deprecated transform shorthands.
   /* eslint-disable @typescript-eslint/no-deprecated */
   return (
     <SvgText
