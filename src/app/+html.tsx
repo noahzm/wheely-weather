@@ -1,4 +1,5 @@
 import { type PropsWithChildren } from 'react';
+import { useServerDocumentContext } from 'expo-router/html';
 
 import { WheelyTheme } from '@/constants/theme';
 
@@ -7,8 +8,12 @@ const APPEARANCE_KEY = 'ww_appearance';
 const themeBootstrapScript = `(function(){try{var p=localStorage.getItem('${APPEARANCE_KEY}');var d=p==='dark'||(p!=='light'&&window.matchMedia('(prefers-color-scheme: dark)').matches);var b=d?'#000000':'#ffffff';document.documentElement.style.setProperty('--wheely-background',b);document.documentElement.style.colorScheme=d?'dark':'light';document.documentElement.setAttribute('data-theme',d?'dark':'light');}catch(e){}})();`;
 
 export default function Root({ children }: Readonly<PropsWithChildren>) {
+  // Since SDK 58 the static renderer hands the page's bundle <script> tags,
+  // react-native-web styles and CSS to this component instead of injecting
+  // them itself; without headNodes/bodyNodes the page renders but never runs.
+  const { bodyAttributes, bodyNodes, htmlAttributes, headNodes } = useServerDocumentContext();
   return (
-    <html lang="en">
+    <html lang="en" {...htmlAttributes}>
       <head>
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
@@ -55,8 +60,12 @@ export default function Root({ children }: Readonly<PropsWithChildren>) {
           content="Scores how good today's weather is for a bike ride — hourly forecast, kit guide, and a plain-language ride verdict."
         />
         <script dangerouslySetInnerHTML={{ __html: themeBootstrapScript }} />
+        {headNodes}
       </head>
-      <body>{children}</body>
+      <body {...bodyAttributes}>
+        {children}
+        {bodyNodes}
+      </body>
     </html>
   );
 }
