@@ -166,7 +166,14 @@ export function ConditionChipWidthProbe({
   if (labels.length === 0) return null;
 
   return (
-    <View style={[styles.widthProbe, { pointerEvents: 'none' }]} accessibilityElementsHidden>
+    <View
+      style={[
+        styles.widthProbe,
+        Platform.OS === 'web' && styles.widthProbeWeb,
+        { pointerEvents: 'none' },
+      ]}
+      accessibilityElementsHidden
+    >
       {labels.map((probeLabel, index) => (
         <View
           key={`${index}-${probeLabel}`}
@@ -361,5 +368,15 @@ const styles = StyleSheet.create({
     opacity: 0,
     left: -9999,
     top: 0,
+  },
+  // The chips stack in a column (~42 px each), so on wide web layouts the probe
+  // ran past the bottom of the home ScrollView, which react-native-web renders as
+  // an overflow-y:auto div. That made it a scrollable box nested in the scrolling
+  // document, and Safari latched trackpad scrolls onto it: the page stuttered in
+  // both directions. Zero height and clipping keep the probe out of layout; each
+  // chip still reports its own size through onLayout.
+  widthProbeWeb: {
+    height: 0,
+    overflow: 'hidden',
   },
 });
