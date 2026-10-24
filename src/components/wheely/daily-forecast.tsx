@@ -228,7 +228,7 @@ function DayKitColumn({
           <View style={styles.kitIcon}>
             <KitGearIcon iconKey={item.icon} size={18} color={ink} />
           </View>
-          <ThemedText style={styles.kitLabel}>{item.label}</ThemedText>
+          <ThemedText style={styles.kitLabel}>{preventOrphans(item.label)}</ThemedText>
         </View>
       ))}
     </View>

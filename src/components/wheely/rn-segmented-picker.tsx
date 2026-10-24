@@ -19,11 +19,15 @@ import {
 import { useColorSchemeName, useWheelyColors } from '@/hooks/use-theme';
 import { withAlpha } from '@/utils/colors';
 import { selectionFeedback } from '@/utils/haptics';
+import { WebHitSlop } from './primitives';
 
 // Styled after the iOS segmented control: a grey capsule track with a raised
 // thumb (white in light mode, a lighter grey in dark), not a colored fill.
 const CONTAINER_PADDING = 2;
 const INDICATOR_INSET = 0; // Horizontal padding inside each segment slot
+// Segments are 28pt tall like iOS's; this stretches each one's press area to
+// 44pt without moving anything (the room above and below is empty).
+const SEGMENT_HIT_SLOP = { top: 8, bottom: 8 };
 
 function makeStyles(c: WheelyPalette, scheme: 'light' | 'dark') {
   return StyleSheet.create({
@@ -127,6 +131,7 @@ export function RNSegmentedPicker<T extends string>({
           <Pressable
             key={val}
             style={styles.segment}
+            hitSlop={SEGMENT_HIT_SLOP}
             accessibilityRole="radio"
             accessibilityState={{ selected: active }}
             accessibilityLabel={labels[idx]}
@@ -135,6 +140,7 @@ export function RNSegmentedPicker<T extends string>({
               onSelect(val);
             }}
           >
+            <WebHitSlop hitSlop={SEGMENT_HIT_SLOP} />
             <ThemedText style={[styles.text, active && styles.textActive]}>
               {labels[idx]}
             </ThemedText>

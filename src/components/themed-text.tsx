@@ -1,5 +1,6 @@
-import { StyleSheet, Text, type TextProps } from 'react-native';
+import { Platform, StyleSheet, Text, type TextProps } from 'react-native';
 
+import { WebFitText } from '@/components/web-fit-text';
 import {
   FontWeightBold,
   Fonts,
@@ -28,27 +29,29 @@ type ThemedTextProps = TextProps & {
 
 export function ThemedText({ style, type = 'default', themeColor, ...rest }: ThemedTextProps) {
   const c = useWheelyColors();
+  const textStyle = [
+    { color: c[themeColor ?? 'ink'] },
+    type === 'default' && styles.default,
+    type === 'micro' && styles.micro,
+    type === 'small' && styles.small,
+    type === 'smallSemibold' && styles.smallSemibold,
+    type === 'heading' && styles.heading,
+    type === 'stat' && styles.stat,
+    type === 'subtitle' && styles.subtitle,
+    type === 'title' && styles.title,
+    type === 'link' && styles.link,
+    type === 'linkPrimary' && [styles.linkPrimary, { color: c.link }],
+    type === 'code' && styles.code,
+    style,
+  ];
 
-  return (
-    <Text
-      style={[
-        { color: c[themeColor ?? 'ink'] },
-        type === 'default' && styles.default,
-        type === 'micro' && styles.micro,
-        type === 'small' && styles.small,
-        type === 'smallSemibold' && styles.smallSemibold,
-        type === 'heading' && styles.heading,
-        type === 'stat' && styles.stat,
-        type === 'subtitle' && styles.subtitle,
-        type === 'title' && styles.title,
-        type === 'link' && styles.link,
-        type === 'linkPrimary' && [styles.linkPrimary, { color: c.link }],
-        type === 'code' && styles.code,
-        style,
-      ]}
-      {...rest}
-    />
-  );
+  // react-native-web ignores adjustsFontSizeToFit, so one-line text that asks
+  // for it is measured and scaled there instead of cut off with an ellipsis.
+  if (Platform.OS === 'web' && rest.adjustsFontSizeToFit && rest.numberOfLines === 1) {
+    return <WebFitText style={textStyle} {...rest} />;
+  }
+
+  return <Text style={textStyle} {...rest} />;
 }
 
 const styles = StyleSheet.create({

@@ -85,7 +85,7 @@ function SearchField({
             }}
             accessibilityRole="button"
             accessibilityLabel="Clear search"
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            hitSlop={{ top: 13, bottom: 13, left: 13, right: 13 }}
             style={[styles.clearButton, { backgroundColor: withAlpha(c.ink, 0.4) }]}
           >
             <PlatformIcon icon={X} size={10} color={c.background} strokeWidth={3} />
@@ -100,7 +100,7 @@ function SearchField({
           }}
           accessibilityRole="button"
           accessibilityLabel="Cancel search"
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          hitSlop={{ top: 11, bottom: 11, left: 8, right: 8 }}
         >
           <ThemedText style={[styles.cancelText, { color: c.ink }]}>Cancel</ThemedText>
         </HapticPressable>

@@ -299,16 +299,19 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingLeft: Spacing.three + Spacing.one,
     paddingRight: Spacing.two,
-    paddingVertical: Spacing.two + Spacing.one,
     minHeight: GROUPED_ROW_MIN_HEIGHT,
     gap: Spacing.one,
   },
+  // The row's padding lives here so the whole row, not just its text line,
+  // takes the tap; the home and pin buttons keep the right end.
   rowMain: {
     flex: 1,
+    alignSelf: 'stretch',
     flexDirection: 'row',
     alignItems: 'center',
+    paddingLeft: Spacing.three + Spacing.one,
+    paddingVertical: Spacing.two + Spacing.one,
   },
   rowPressed: {
     opacity: PressedOpacity,

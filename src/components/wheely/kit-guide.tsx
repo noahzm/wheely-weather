@@ -141,9 +141,12 @@ function makeStyles(c: WheelyPalette) {
 }
 
 function preventOrphan(label: string): string {
-  const lastSpaceIdx = label.lastIndexOf(' ');
-  if (lastSpaceIdx <= 0 || label.indexOf(' ') === lastSpaceIdx) return label;
-  return `${label.slice(0, lastSpaceIdx)}\u00A0${label.slice(lastSpaceIdx + 1)}`;
+  // A word joiner keeps hyphenated words whole: "Heavy / full-finger gloves",
+  // not "Heavy full- / finger gloves".
+  const joined = label.replaceAll('-', '-\u2060');
+  const lastSpaceIdx = joined.lastIndexOf(' ');
+  if (lastSpaceIdx <= 0 || joined.indexOf(' ') === lastSpaceIdx) return joined;
+  return `${joined.slice(0, lastSpaceIdx)}\u00A0${joined.slice(lastSpaceIdx + 1)}`;
 }
 
 function useStyles() {

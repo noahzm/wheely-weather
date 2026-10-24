@@ -55,10 +55,19 @@ function useStyles() {
 }
 
 function formatStickerText(text: string): string {
-  const glued = text.replaceAll(' AM', '\u00A0AM').replaceAll(' PM', '\u00A0PM');
+  // A time range stays whole: a word joiner after the dash stops a break there,
+  // which left "Rain / tomorrow 3 PM– / 8 PM" on a narrow phone.
+  const glued = text
+    .replaceAll(' AM', '\u00A0AM')
+    .replaceAll(' PM', '\u00A0PM')
+    .replaceAll('–', '–\u2060');
   const lastSpaceIdx = glued.lastIndexOf(' ');
   if (lastSpaceIdx <= 0) return glued;
-  return `${glued.slice(0, lastSpaceIdx)}\u00A0${glued.slice(lastSpaceIdx + 1)}`;
+  // The last word is glued to the one before so it never sits alone; a range is
+  // long enough to stand alone, and gluing it on would leave too wide a piece.
+  const lastWord = glued.slice(lastSpaceIdx + 1);
+  if (lastWord.includes('–')) return glued;
+  return `${glued.slice(0, lastSpaceIdx)}\u00A0${lastWord}`;
 }
 
 function HourlyNoteSticker({ icon, text }: Readonly<{ icon: SFSymbol; text: string }>) {

@@ -44,6 +44,9 @@ import { withAlpha } from '@/utils/colors';
 import { fullHourLabel } from '@/utils/timeFormat';
 import { useHourlyForecastChart, type ChartHour } from './use-hourly-forecast-chart';
 
+/** How far web may shrink the hour's reason line before it ellipsizes. */
+const HOUR_REASON_MIN_FONT_SCALE = 0.85;
+
 function makeStyles(c: WheelyPalette) {
   return StyleSheet.create({
     hourlyWrap: {
@@ -224,7 +227,14 @@ function HourlyReasonFooter({
       <View style={styles.reasonWrap}>
         <View style={styles.hourReasonPanel}>
           <Animated.View key={selected.idx} entering={FadeIn.duration(140)}>
-            <ThemedText style={styles.hourReason} numberOfLines={1}>
+            {/* On a phone a long reason runs a few pixels past the line; web
+                shrinks it to fit rather than cut off the number it ends on. */}
+            <ThemedText
+              style={styles.hourReason}
+              numberOfLines={1}
+              adjustsFontSizeToFit={Platform.OS === 'web'}
+              minimumFontScale={HOUR_REASON_MIN_FONT_SCALE}
+            >
               <ThemedText style={styles.hourReadoutLead}>{leadText}</ThemedText>
               {` · ${detailText}`}
             </ThemedText>

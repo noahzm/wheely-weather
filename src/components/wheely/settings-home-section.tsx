@@ -17,6 +17,7 @@ import type { HomeBaseline } from '@/types/weather';
 import { withAlpha } from '@/utils/colors';
 import { selectionFeedback } from '@/utils/haptics';
 import { GroupedLinkRow, GroupedRow, GroupedSection, useGroupedListStyles } from './grouped-list';
+import { WebHitSlop } from './primitives';
 import { RNSegmentedPicker } from './rn-segmented-picker';
 import { EXPOSURE_LABELS, EXPOSURE_VALUES } from './settings-form.types';
 
@@ -28,6 +29,8 @@ const THUMB_SIZE = SWITCH_HEIGHT - SWITCH_PADDING * 2;
 // The thumb is white in both schemes, as on iOS; a shadow lifts it off a light track.
 const THUMB_COLOR = WheelyTheme.light.paper;
 const THUMB_SHADOW = `0 2px 4px ${withAlpha(WheelyTheme.light.shadow, 0.2)}`;
+// Reaches the switch's 51×31 past 44pt to take taps.
+const SWITCH_HIT_SLOP = { top: 10, bottom: 10, left: 6, right: 6 };
 
 function makeStyles(c: WheelyPalette) {
   return StyleSheet.create({
@@ -73,7 +76,7 @@ function RNSwitch({
         }
       }}
       disabled={disabled}
-      hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
+      hitSlop={SWITCH_HIT_SLOP}
       accessibilityRole="switch"
       accessibilityState={{ checked: value, disabled }}
       accessibilityLabel={accessibilityLabel}
@@ -87,6 +90,7 @@ function RNSwitch({
         opacity: disabled ? 0.5 : 1,
       }}
     >
+      <WebHitSlop hitSlop={SWITCH_HIT_SLOP} />
       <Animated.View
         style={[
           {

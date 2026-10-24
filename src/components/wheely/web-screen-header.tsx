@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { ChevronLeft, X } from './icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { PosterText, Spacing, TRANSPARENT, Type } from '@/constants/theme';
 import { withAlpha } from '@/utils/colors';
@@ -17,6 +18,8 @@ export const WEB_TITLE_CONTENT_SPACING = Spacing.three;
 const COMPACT_BAR_HEIGHT = 44;
 // Scroll distance at which the large title has slid under the compact bar.
 const COLLAPSE_OFFSET = 36;
+// Keeps a shrunk title well above the section headings it leads.
+const TITLE_MIN_FONT_SCALE = 0.7;
 
 /**
  * Tracks whether a screen's large title has scrolled away, so the compact
@@ -115,10 +118,14 @@ export function WebScreenTitle({
   color?: string;
 }>) {
   const c = useWheelyColors();
+  // A long city ("Colorado Springs" with the location arrow) is wider than a
+  // phone at this size: it shrinks to fit first and ellipsizes only past that.
   return (
-    <Text
+    <ThemedText
       numberOfLines={1}
       ellipsizeMode="tail"
+      adjustsFontSizeToFit
+      minimumFontScale={TITLE_MIN_FONT_SCALE}
       style={{
         color: color ?? c.ink,
         ...PosterText,
@@ -127,7 +134,7 @@ export function WebScreenTitle({
       }}
     >
       {children}
-    </Text>
+    </ThemedText>
   );
 }
 

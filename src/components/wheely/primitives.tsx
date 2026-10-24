@@ -42,10 +42,16 @@ import { selectionFeedback } from '@/utils/haptics';
 import { withAlpha } from '@/utils/colors';
 
 /** A `Pressable` that fires a selection haptic before delegating to `onPress`. */
-export function HapticPressable({ onPress, android_ripple, ...props }: Readonly<PressableProps>) {
+export function HapticPressable({
+  onPress,
+  android_ripple,
+  children,
+  ...props
+}: Readonly<PressableProps>) {
   const c = useWheelyColors();
   const ripple =
     Platform.OS === 'android' ? (android_ripple ?? { color: withAlpha(c.ink, 0.1) }) : undefined;
+  const slop = Platform.OS === 'web' && props.hitSlop != null;
 
   return (
     <Pressable
@@ -55,6 +61,41 @@ export function HapticPressable({ onPress, android_ripple, ...props }: Readonly<
       }}
       android_ripple={ripple}
       {...props}
+    >
+      {slop
+        ? (state) => (
+            <>
+              <WebHitSlop hitSlop={props.hitSlop} />
+              {typeof children === 'function' ? children(state) : children}
+            </>
+          )
+        : children}
+    </Pressable>
+  );
+}
+
+/**
+ * react-native-web drops `hitSlop`, so a small button stays small on a phone.
+ * Rendered first inside a Pressable on web, this invisible box reaches past
+ * the button by the same insets and takes those taps for it. Renders nothing
+ * elsewhere, where `hitSlop` works natively.
+ */
+export function WebHitSlop({ hitSlop }: Readonly<{ hitSlop: PressableProps['hitSlop'] }>) {
+  if (Platform.OS !== 'web' || hitSlop == null) return null;
+  const inset =
+    typeof hitSlop === 'number'
+      ? { top: hitSlop, bottom: hitSlop, left: hitSlop, right: hitSlop }
+      : hitSlop;
+  return (
+    <View
+      aria-hidden
+      style={{
+        position: 'absolute',
+        top: -(inset.top ?? 0),
+        bottom: -(inset.bottom ?? 0),
+        left: -(inset.left ?? 0),
+        right: -(inset.right ?? 0),
+      }}
     />
   );
 }

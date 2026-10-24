@@ -77,7 +77,9 @@ function windQualifier(weather: Weather, formatWind: (mph: number) => string): s
   if (weather.windGust != null && Math.round(weather.windGust) > Math.round(weather.windSpeed)) {
     parts.push(`gusts ${formatWind(weather.windGust)}`);
   }
-  return parts.length > 0 ? parts.join(' · ') : null;
+  // Each part holds together, so a narrow cell wraps at the dot rather than
+  // leaving "mph" alone on the last line.
+  return parts.length > 0 ? parts.map((part) => part.replaceAll(' ', '\u00A0')).join(' · ') : null;
 }
 
 const HOLDS_RIDE_BACK: ReadonlySet<Condition> = new Set(['marginal', 'poor', 'bad']);
