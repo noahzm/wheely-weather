@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { evaluateColdRainHazard, getCurrentCondition, getOverallCondition } from './scoring';
+import { resolveThresholds } from './acclimatization';
+import { THRESHOLDS } from './constants';
+import {
+  evaluateColdRainHazard,
+  evaluateHeatIndexHazard,
+  getCurrentCondition,
+  getDailyCondition,
+  getHourlyCondition,
+  getLimitingHeatIndex,
+  getOverallCondition,
+} from './scoring';
 import {
   calculateRideScore,
   evaluateCondition,
@@ -205,6 +215,56 @@ describe('Overall Status Determination', () => {
     expect(getOverallStatus(weather)).toBe('no');
     // Below the trigger, a cool damp day is a judgment call, not a hazard.
     expect(getOverallStatus({ ...weather, rainChance: 35 })).not.toBe('no');
+  });
+});
+
+// A Gulf Coast rider out most days: the climate adjustment's full heat and
+// humidity shift (heat bands +7°F, dew point bands up to 76/77°F).
+const gulfRider = resolveThresholds(
+  { warmTemp: 95, warmDewpoint: 76, coolTemp: 60 },
+  THRESHOLDS,
+  'high',
+);
+
+describe('heat index hazard', () => {
+  it('rates poor from a 103°F heat index', () => {
+    expect(evaluateHeatIndexHazard(103)).toBe('poor');
+    expect(evaluateHeatIndexHazard(102.9)).toBeNull();
+    expect(evaluateHeatIndexHazard(null)).toBeNull();
+  });
+
+  it('makes muggy heat a no-go for an acclimatized rider whose bands rate it maybe', () => {
+    // 94°F with a 74°F dew point: hot and fair for this rider apart, 105°F together.
+    const muggy = makeWeather({ temperature: 94, dewpoint: 74 });
+    expect(getOverallCondition(muggy, gulfRider)).toBe('poor');
+    expect(getHourlyCondition({ temperature: 94, wind: 5, rain: 0, dewpoint: 74 }, gulfRider)).toBe(
+      'poor',
+    );
+    // 90°F with the same dew point is a 99°F heat index: still maybe.
+    expect(getOverallCondition({ ...muggy, temperature: 90 }, gulfRider)).toBe('marginal');
+  });
+
+  it('changes nothing for a standard rider, whose bands already catch it', () => {
+    expect(getOverallCondition(makeWeather({ temperature: 90, dewpoint: 74 }))).toBe('marginal');
+    expect(getOverallCondition(makeWeather({ temperature: 92, dewpoint: 76 }))).toBe('poor');
+  });
+
+  it('rates a day on the window’s hourly peak when it has one', () => {
+    const day = { tempHigh: 94, dewpoint: 74, wind: 5, rain: 0 };
+    // The hottest hour and the muggiest needn't coincide: paired, they overstate it.
+    expect(getDailyCondition(day, gulfRider)).toBe('poor');
+    expect(getDailyCondition({ ...day, heatIndex: 99 }, gulfRider)).toBe('marginal');
+  });
+
+  it('caps the score at a no-go', () => {
+    expect(calculateRideScore(makeWeather({ temperature: 94, dewpoint: 74 }), gulfRider)).toBe(3);
+  });
+
+  it('is named only when heat and humidity alone don’t already make it a no-go', () => {
+    expect(getLimitingHeatIndex({ index: 105, temp: 94, dewpoint: 74 }, gulfRider)).toBe(105);
+    // A standard rider: 92°F is already very hot and says so.
+    expect(getLimitingHeatIndex({ index: 105, temp: 92, dewpoint: 76 })).toBeNull();
+    expect(getLimitingHeatIndex({ index: 99, temp: 90, dewpoint: 74 }, gulfRider)).toBeNull();
   });
 });
 

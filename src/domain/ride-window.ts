@@ -2,6 +2,7 @@
 // scores best. Metrics within a candidate stay worst-case so its rating remains
 // honest, but a brief rough hour no longer condemns an otherwise rideable day.
 import type { Thresholds } from './constants';
+import { heatIndex } from './heat-index';
 import { RANK, getDailyCondition } from './scoring';
 import { getWeatherCodeCondition } from './weather-codes';
 
@@ -35,6 +36,8 @@ export interface DailyRideWindow {
   weatherCode: number | null;
   /** Highest UV index in the window, or null when no hour has one. */
   uvMax: number | null;
+  /** Highest hourly heat index (°F), or null when no hour has a dew point. */
+  heatIndexMax: number | null;
   condition: DailyWeather['condition'];
 }
 
@@ -99,6 +102,12 @@ export function buildRideWindowCandidate(
   const weatherCode = getWorstWeatherCode(hours.map((hour) => hour.weatherCode));
   const uvs = hours.map((hour) => hour.uv).filter((uv): uv is number => uv != null);
   const uvMax = uvs.length > 0 ? Math.max(...uvs) : null;
+  // Per hour, then the peak: the hottest hour and the muggiest needn't be the
+  // same one, and pairing them overstates the heat index.
+  const heatIndexes = hours
+    .map((hour) => heatIndex(hour.temperature, hour.dewpoint))
+    .filter((index): index is number => index != null);
+  const heatIndexMax = heatIndexes.length > 0 ? Math.max(...heatIndexes) : null;
   const tempLow = Math.min(...temperatures);
   const tempHigh = Math.max(...temperatures);
 
@@ -114,6 +123,7 @@ export function buildRideWindowCandidate(
     dewpoint,
     weatherCode,
     uvMax,
+    heatIndexMax,
     condition: getDailyCondition(
       {
         tempLow,
@@ -124,6 +134,7 @@ export function buildRideWindowCandidate(
         precip: precipitation,
         code: weatherCode,
         dewpoint,
+        heatIndex: heatIndexMax,
       },
       thresholds,
     ),

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { resolveThresholds } from './acclimatization';
 import { THRESHOLDS } from './constants';
 import {
   buildRideWindowCandidate,
@@ -56,6 +57,22 @@ describe('buildRideWindowCandidate', () => {
     );
     expect(sunny?.uvMax).toBe(6);
     expect(buildRideWindowCandidate([hour(9), hour(10)], THRESHOLDS)?.uvMax).toBeNull();
+  });
+
+  it('rates heat and humidity on the hourly heat index peak', () => {
+    // The 2 PM heat and the 9 AM humidity, paired, would be a 108°F heat index.
+    const window = buildRideWindowCandidate(
+      [
+        hour(9, { temperature: 88, dewpoint: 76 }),
+        hour(10, { temperature: 91, dewpoint: 70 }),
+        hour(11, { temperature: 94, dewpoint: 66 }),
+      ],
+      resolveThresholds({ warmTemp: 95, warmDewpoint: 76, coolTemp: 60 }, THRESHOLDS, 'high'),
+    );
+    expect(window?.heatIndexMax).toBeCloseTo(99, 0);
+    expect(window?.condition).toBe('marginal');
+    const dry = buildRideWindowCandidate([hour(9, { dewpoint: null })], THRESHOLDS);
+    expect(dry?.heatIndexMax).toBeNull();
   });
 
   it('leaves the rain amount unknown when any hour lacks it', () => {

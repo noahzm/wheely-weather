@@ -1,12 +1,14 @@
 import { THRESHOLDS, type Thresholds } from '../domain/constants';
 import { ISSUE_PHRASES, issuePhraseTier, STATUS_MESSAGES, type IssueTier } from '../domain/copy';
 import { rainPhrase } from '../domain/ride-factors';
+import { heatIndex } from '../domain/heat-index';
 import {
   evaluateColdRainHazard,
   evaluateCondition,
   evaluateRain,
   evaluateWind,
   isColdTemp,
+  getLimitingHeatIndex,
   isGustDriven,
   RANK,
 } from '../domain/scoring';
@@ -124,6 +126,7 @@ interface DayMetrics {
   dewpoint: number | null;
   /** Whether the window's precipitation falls as snow. */
   snowy: boolean;
+  heatIndex: number | null;
 }
 
 function dayMetrics(day: DailyWeather): DayMetrics {
@@ -141,12 +144,24 @@ function dayMetrics(day: DailyWeather): DayMetrics {
     temp: high,
     dewpoint: day.dewpoint ?? null,
     snowy: isSnowy(high, day.weatherCode),
+    // Older caches lack the window's peak; the rating worked it out the same way.
+    heatIndex: day.heatIndexMax ?? heatIndex(high, day.dewpoint),
   };
 }
 
 interface HourReason {
   text: string;
   tier: IssueTier;
+}
+
+/** The heat index as a reason, for a limiting index (`getLimitingHeatIndex`); it rates poor. */
+function heatIndexReason(
+  limitingIndex: number | null,
+  label: (index: number) => string,
+): HourReason | null {
+  return limitingIndex == null
+    ? null
+    : { text: ISSUE_PHRASES.HEAT_INDEX(label(limitingIndex)), tier: 'poor' };
 }
 
 /** Names the sky when it limits the ride, at the tier the code itself rates. */
@@ -171,7 +186,7 @@ function weatherCodeReason(entry: { weatherCode: number | null }): HourReason | 
  * itself in bad-tier language.
  */
 function dayMetricReasons(
-  { wind, gust, rain, precip, low, temp, dewpoint, snowy }: DayMetrics,
+  { wind, gust, rain, precip, low, temp, dewpoint, snowy, heatIndex: dayHeatIndex }: DayMetrics,
   tempUnit: TempUnit = 'fahrenheit',
   thresholds: Thresholds = THRESHOLDS,
 ): HourReason[] {
@@ -193,6 +208,12 @@ function dayMetricReasons(
   const rainTier = issuePhraseTier(evaluateRain(rain, precip, thresholds));
   if (rainTier)
     reasons.push({ text: rainPhrase(rain, precip, rainTier, thresholds, snowy), tier: rainTier });
+
+  const heatReason = heatIndexReason(
+    getLimitingHeatIndex({ index: dayHeatIndex, temp, dewpoint }, thresholds),
+    (index) => formatTemperature(index, tempUnit),
+  );
+  if (heatReason) reasons.push(heatReason);
 
   if (temp != null && temp >= 50) {
     // Daily temp reasons describe the ride window's high, so they read as heat;
@@ -473,6 +494,17 @@ export function getHourConditionReasons(
     effectiveCodeReason,
     hourWindReason(hour.windSpeed, hour.windGust, tempUnit, thresholds),
     effectiveRainReason,
+    heatIndexReason(
+      getLimitingHeatIndex(
+        {
+          index: heatIndex(hour.temperature, hour.dewpoint),
+          temp: hour.temperature,
+          dewpoint: hour.dewpoint,
+        },
+        thresholds,
+      ),
+      (index) => formatTemperature(index, tempUnit, { withUnitLabel: true }),
+    ),
     tempReason,
     hourDewReason(hour.dewpoint ?? null, tempUnit, thresholds),
     hourAqiReason(hour.aqi ?? null, thresholds),

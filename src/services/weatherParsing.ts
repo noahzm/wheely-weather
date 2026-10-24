@@ -4,6 +4,7 @@ import {
   getHourlyCondition,
   getDailyCondition,
 } from '../domain/weather';
+import { heatIndex } from '../domain/heat-index';
 import {
   selectBestRideWindows,
   type DailyRideWindow,
@@ -329,6 +330,9 @@ function buildFallbackDailyWeather(
   const code = data.daily.weather_code[index] ?? null;
   const dewpoint = dewpointByDate[dateStr] ?? null;
   const fallbackRainChance = normalizeRainChance(rainChanceRaw);
+  // Without hourly windows, the day's warmest daylight hour with its muggiest:
+  // an upper bound.
+  const heatIndexMax = heatIndex(tempHigh, dewpoint);
   const fallbackCondition = getDailyCondition(
     {
       tempLow,
@@ -338,6 +342,7 @@ function buildFallbackDailyWeather(
       rain: fallbackRainChance,
       code,
       dewpoint,
+      heatIndex: heatIndexMax,
     },
     thresholds,
   );
@@ -348,6 +353,7 @@ function buildFallbackDailyWeather(
     low: Math.round(low),
     feelsLike: data.daily.apparent_temperature_max[index] ?? null,
     dewpoint,
+    heatIndexMax,
     windSpeed,
     windGust: gust,
     rainChance: fallbackRainChance,
@@ -371,6 +377,7 @@ function applyRideWindow(day: DailyWeather, window: DailyRideWindow): DailyWeath
     rainChance: window.rainChance,
     precipitation: window.precipitation,
     uvMax: window.uvMax,
+    heatIndexMax: window.heatIndexMax,
     weatherCode: window.weatherCode,
     condition: window.condition,
   };

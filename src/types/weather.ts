@@ -40,6 +40,8 @@ export interface DailyWeather {
   precipitation?: number | null;
   /** Highest UV index in the ride window, for the kit's sunscreen; absent in older caches. */
   uvMax?: number | null;
+  /** Highest hourly heat index in the ride window (°F); absent in older caches. */
+  heatIndexMax?: number | null;
   weatherCode: number | null;
   condition: Condition;
   /**
@@ -89,6 +91,12 @@ export interface Weather {
   hasThunderstorms: boolean;
   condition: string;
   dewpoint: number;
+  /**
+   * The heat index to rate, when it isn't simply worked out from temperature
+   * and dew point: a ride window's hourly peak, which its hottest and muggiest
+   * hours (rated apart) can overstate when they don't coincide.
+   */
+  heatIndex?: number | null;
   aqi: number | null;
   uvIndex?: number | null;
   uvIndexDailyMax?: number | null;

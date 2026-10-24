@@ -1,10 +1,12 @@
 import {
   THRESHOLDS,
   COLD_RAIN_HAZARD,
+  HEAT_INDEX_HAZARD,
   RAIN_AMOUNT_MM,
   SNOW_BELOW_TEMP,
   type Thresholds,
 } from './constants';
+import { heatIndex } from './heat-index';
 import { getWeatherCodeCondition, isRainCode } from './weather-codes';
 
 import { fullHourLabel } from '../utils/timeFormat';
@@ -193,6 +195,42 @@ export const evaluateColdRainHazard = (
   return temp <= COLD_RAIN_HAZARD.SEVERE_TEMP ? 'bad' : thresholds.COLD_RAIN.MILD;
 };
 
+/**
+ * The heat-and-humidity hazard: `poor` from a 103°F heat index, else null.
+ * Fixed for every rider: acclimatization moves the heat and dew point bands,
+ * not this.
+ */
+export const evaluateHeatIndexHazard = (index: number | null | undefined): Condition | null =>
+  index != null && index >= HEAT_INDEX_HAZARD.POOR ? 'poor' : null;
+
+interface HeatIndexInput {
+  index: number | null | undefined;
+  temp: number | null | undefined;
+  dewpoint: number | null | undefined;
+}
+
+/**
+ * The heat index when it's what limits the ride, for naming it: the hazard
+ * fires while heat and humidity each rate better than poor. Null otherwise,
+ * including when either already makes it a no-go and names it ("Very hot",
+ * "Very humid"), where a heat index reason would only repeat them.
+ */
+export const getLimitingHeatIndex = (
+  { index, temp, dewpoint }: HeatIndexInput,
+  thresholds: Thresholds = THRESHOLDS,
+): number | null => {
+  if (index == null || !evaluateHeatIndexHazard(index)) return null;
+  const named = [
+    evaluateCondition(temp, 'temperature', thresholds),
+    evaluateCondition(dewpoint, 'dewpoint', thresholds),
+  ].some((rating) => RANK[rating] <= RANK.poor);
+  return named ? null : index;
+};
+
+/** The heat index a `Weather` is rated on: its own, else from its temperature and dew point. */
+export const getWeatherHeatIndex = (weather: Weather): number | null =>
+  weather.heatIndex ?? heatIndex(weather.temperature, weather.dewpoint);
+
 const getCyclingCondition = (conditions: Condition[]): Condition => {
   if (conditions.includes('bad')) return 'bad';
   if (conditions.includes('poor')) return 'poor';
@@ -219,6 +257,7 @@ export const getOverallCondition = (
     },
     thresholds,
   );
+  const heatCondition = evaluateHeatIndexHazard(getWeatherHeatIndex(weather));
   const conditions = [
     evaluateCondition(weather.temperature, 'temperature', thresholds),
     evaluateWind(weather.windSpeed, weather.windGust, thresholds),
@@ -227,6 +266,7 @@ export const getOverallCondition = (
     getWeatherCodeCondition(weather.weatherCode),
     ...(weather.aqi == null ? [] : [evaluateCondition(weather.aqi, 'aqi', thresholds)]),
     ...(coldRainCondition ? [coldRainCondition] : []),
+    ...(heatCondition ? [heatCondition] : []),
   ];
   return getCyclingCondition(conditions);
 };
@@ -285,6 +325,7 @@ export const getHourlyCondition = (
     { temp: temperature, rainChance: rain, precip, code },
     thresholds,
   );
+  const heatCondition = evaluateHeatIndexHazard(heatIndex(temperature, dewpoint));
   return getCyclingCondition([
     evaluateCondition(temperature, 'temperature', thresholds),
     evaluateWind(wind, gust, thresholds),
@@ -292,6 +333,7 @@ export const getHourlyCondition = (
     evaluateCondition(dewpoint, 'dewpoint', thresholds),
     getWeatherCodeCondition(code),
     ...(coldRainCondition ? [coldRainCondition] : []),
+    ...(heatCondition ? [heatCondition] : []),
   ]);
 };
 
@@ -305,6 +347,11 @@ interface DailyConditionInput {
   precip?: number | null;
   code?: number | null;
   dewpoint?: number | null;
+  /**
+   * The window's peak hourly heat index; when omitted it's worked out from
+   * `tempHigh` and `dewpoint`, which can overstate it.
+   */
+  heatIndex?: number | null;
 }
 
 // `tempLow`/`tempHigh` are the coldest and warmest air temperature during the
@@ -323,6 +370,7 @@ export const getDailyCondition = (
     precip = null,
     code,
     dewpoint = null,
+    heatIndex: peakHeatIndex,
   }: DailyConditionInput,
   thresholds: Thresholds = THRESHOLDS,
 ): Condition => {
@@ -330,6 +378,10 @@ export const getDailyCondition = (
   const coldRainCondition = evaluateColdRainHazard(
     { temp: effectiveColdTemp, rainChance: rain, precip, code },
     thresholds,
+  );
+  const fromHigh = tempHigh == null ? null : heatIndex(tempHigh, dewpoint);
+  const heatCondition = evaluateHeatIndexHazard(
+    peakHeatIndex === undefined ? fromHigh : peakHeatIndex,
   );
   return getCyclingCondition([
     ...(tempLow == null ? [] : [evaluateCondition(tempLow, 'temperature', thresholds)]),
@@ -339,6 +391,7 @@ export const getDailyCondition = (
     getWeatherCodeCondition(code),
     ...(dewpoint == null ? [] : [evaluateCondition(dewpoint, 'dewpoint', thresholds)]),
     ...(coldRainCondition ? [coldRainCondition] : []),
+    ...(heatCondition ? [heatCondition] : []),
   ]);
 };
 
@@ -403,6 +456,8 @@ export function calculateRideScore(
     thresholds,
   );
 
+  const heatCond = evaluateHeatIndexHazard(getWeatherHeatIndex(weather));
+
   const allConditions = [
     tempCond,
     windCond,
@@ -411,6 +466,7 @@ export function calculateRideScore(
     codeCond,
     aqiCond,
     ...(coldRainCond ? [coldRainCond] : []),
+    ...(heatCond ? [heatCond] : []),
   ];
 
   const overallStatus = status;

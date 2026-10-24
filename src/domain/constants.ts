@@ -106,6 +106,19 @@ export const COLD_RAIN_HAZARD = {
   MIN_RAIN_CHANCE: 40,
 };
 
+// Heat index (°F), from air temperature and dew point (heat-index.ts). The
+// heat and dew point ratings each judge one side; this catches the two
+// together, which the worse of the two misses once a humid-climate rider's
+// bands shift up (94°F with a 74°F dew point rated "maybe" at a 105°F heat
+// index). Fixed for every rider, like the other hazards.
+export const HEAT_INDEX_HAZARD = {
+  // NWS "danger": heat exhaustion likely, heat stroke possible with activity.
+  POOR: 103,
+  // The heat alert's warning, inside NWS "extreme caution" (90–103): heat
+  // exhaustion possible on a hard ride. Only the alert uses it.
+  WARNING: 96,
+};
+
 // Providers' precipitation chances count rain and snow alike. Below this, a
 // chance without a rain code is taken as snow (isSnowy): it's called snow, and
 // left to the weather codes to rate rather than the cold-rain hazard.

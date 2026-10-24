@@ -74,6 +74,8 @@ function windowWeather(
     rainChance: day.rainChance,
     precipitation: day.precipitation ?? null,
     dewpoint: day.dewpoint ?? weather.dewpoint,
+    // The window's hourly peak, not its temperature and dew point paired.
+    heatIndex: day.heatIndexMax,
     weatherCode: day.weatherCode,
     hasThunderstorms: isThunderstorm(day.weatherCode),
     condition: day.weatherCode == null ? weather.condition : getWeatherDescription(day.weatherCode),

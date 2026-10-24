@@ -216,6 +216,9 @@ export const ISSUE_PHRASES = {
       ? `Near-freezing rain (${tempLabel}, ${pct})`
       : `Cold rain risk (${tempLabel}, ${pct})`;
   },
+  // The heat index hazard (heat and humidity together), which only rates poor:
+  // from 103°F, where the NWS "danger" band starts, hence the word.
+  HEAT_INDEX: (indexLabel: string): string => `Dangerous heat index (${indexLabel})`,
   HUMIDITY: (dewLabel: string, tier: IssueTier): string =>
     ({
       bad: `Oppressive humidity (dew ${dewLabel})`,
@@ -475,12 +478,14 @@ export const DAYLIGHT_MESSAGES = {
 };
 
 export const ALERT_MESSAGES = {
-  // Worded after the NWS heat index bands: above 103°F heat exhaustion is likely
+  // Worded after the NWS heat index bands: from 103°F heat exhaustion is likely
   // and heat stroke possible; 90–103°F, exhaustion is possible with exertion.
-  HEAT_EXTREME: (tempLabel: string) =>
-    `Feels like ${tempLabel}. Heat exhaustion likely and heat stroke possible. Not a ride day.`,
-  HEAT_WARNING: (tempLabel: string) =>
-    `Feels like ${tempLabel}. Heat exhaustion possible on a hard ride. Ride early, or ride indoors.`,
+  // The alert reads the current conditions, while the verdict may rate a
+  // cooler window later ("Ride at 7 PM"), so it says to wait, not "no ride".
+  HEAT_EXTREME: (indexLabel: string) =>
+    `Heat index ${indexLabel}. Heat exhaustion likely and heat stroke possible. Don’t ride until it cools.`,
+  HEAT_WARNING: (indexLabel: string) =>
+    `Heat index ${indexLabel}. Heat exhaustion possible on a hard ride. Ride early, or ride indoors.`,
 };
 
 /** Capitalizes the first character of a string, preserving the remainder. */

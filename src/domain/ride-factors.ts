@@ -14,6 +14,8 @@ import {
   evaluateColdRainHazard,
   evaluateRain,
   getLaterGoodHour,
+  getLimitingHeatIndex,
+  getWeatherHeatIndex,
   isRainAmountCapped,
   isColdTemp,
   isGustDriven,
@@ -103,6 +105,20 @@ const collectMessageIssues = (
       evaluateRain(weather.rainChance, weather.precipitation, thresholds),
     );
   }
+  const heat = getLimitingHeatIndex(
+    {
+      index: getWeatherHeatIndex(weather),
+      temp: weather.temperature,
+      dewpoint: weather.dewpoint,
+    },
+    thresholds,
+  );
+  if (heat != null && status !== 'maybe') {
+    pushIssue(
+      ISSUE_PHRASES.HEAT_INDEX(formatTemperature(heat, tempUnit, { withUnitLabel: true })),
+      'poor',
+    );
+  }
   addIssue(weather.temperature, 'temperature', (tier) =>
     isColdTemp(weather.temperature)
       ? ISSUE_PHRASES.COLD(temp, tier)
@@ -141,7 +157,7 @@ const collectMessageIssues = (
   // Worst first, so the issue that set the rating leads: a "maybe" set by a
   // muggy dew point read "Warm…, breezy…, rain possible…, muggy…, and moderate
   // air quality…". The sort is stable, so equal ratings keep the order above:
-  // rain, temperature, wind, sky, dew point, air.
+  // rain, heat index, temperature, wind, sky, dew point, air.
   return [...issues]
     .sort((a, b) => RANK[a.rating] - RANK[b.rating])
     .slice(0, MAX_MESSAGE_ISSUES)

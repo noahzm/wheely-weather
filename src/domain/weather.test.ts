@@ -7,6 +7,8 @@ import {
   getRainTiming,
   isThunderstorm,
 } from './weather';
+import { resolveThresholds } from './acclimatization';
+import { THRESHOLDS } from './constants';
 import { makeDay, makeHour, makeWeather } from '@/test-utils/weather';
 
 describe('Thunderstorms', () => {
@@ -450,6 +452,19 @@ describe('Hourly Message Logic', () => {
     const issues = getMessage(snowy, 'no').issues;
     expect(issues).toContain('Snow very likely (70%)');
     expect(issues.join(' ')).not.toMatch(/\brain\b|light snow/i);
+  });
+
+  it('names the heat index when it, not heat or humidity alone, makes it a no-go', () => {
+    const gulfRider = resolveThresholds(
+      { warmTemp: 95, warmDewpoint: 76, coolTemp: 60 },
+      THRESHOLDS,
+      'high',
+    );
+    const muggy = makeWeather({ temperature: 94, dewpoint: 74, daily: [] });
+    expect(getMessage(muggy, 'no', gulfRider).issues).toEqual(['Dangerous heat index (105°F)']);
+    // A standard rider's bands already call it out, so the heat index isn't repeated.
+    const standard = getMessage(makeWeather({ temperature: 92, dewpoint: 76, daily: [] }), 'no');
+    expect(standard.issues).toEqual(['Very hot (92°F)', 'Very humid (dew 76°F)']);
   });
 
   it('names snow falling above freezing as wet snow', () => {

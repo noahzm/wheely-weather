@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { resolveThresholds } from './acclimatization';
 import { THRESHOLDS } from './constants';
 import { getOverallStatus } from './scoring';
 import { formatVerdictDetail } from './copy';
@@ -44,6 +45,39 @@ const window = (startHour: number, endHour: number, tempLow = 64, tempHigh = 68)
   endHour,
   tempLow,
   tempHigh,
+});
+
+describe('heat index in the rated window', () => {
+  const gulfRider = resolveThresholds(
+    { warmTemp: 95, warmDewpoint: 76, coolTemp: 60 },
+    THRESHOLDS,
+    'high',
+  );
+  // A 9 AM–noon window: muggy at 9 (88°F, dew 76°F), hot by noon (94°F),
+  // never both at once, so its hourly heat index peaks at 99°F.
+  const muggyMorning = (heatIndexMax?: number): Weather => ({
+    temperature: 88,
+    feelsLike: 88,
+    windSpeed: 5,
+    windGust: null,
+    rainChance: 0,
+    weatherCode: 1,
+    hasThunderstorms: false,
+    condition: 'Clear skies',
+    dewpoint: 70,
+    aqi: null,
+    hourly: [hour(9)],
+    pastHourly: [],
+    daily: [day({ dewpoint: 76, heatIndexMax }, window(9, 12, 88, 94))],
+  });
+
+  it('rates the window’s hourly peak, not its hottest hour with its muggiest', () => {
+    expect(getRideVerdict(muggyMorning(99), gulfRider).status).toBe('maybe');
+  });
+
+  it('pairs them when an older cache lacks the peak', () => {
+    expect(getRideVerdict(muggyMorning(), gulfRider).status).toBe('no');
+  });
 });
 
 /** Right now: 8 AM, pouring rain. */

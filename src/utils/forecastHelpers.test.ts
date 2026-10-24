@@ -8,6 +8,7 @@ import {
   getHourConditionReasons,
   isGenericDayReason,
 } from './forecastHelpers';
+import { resolveThresholds } from '../domain/acclimatization';
 import { THRESHOLDS } from '../domain/constants';
 import { makeDay, makeHour } from '@/test-utils/weather';
 import type { DailyWeather, HourlyWeather } from '@/types/weather';
@@ -191,6 +192,27 @@ describe('getDayConditionReason', () => {
 describe('getHourConditionReasons', () => {
   it('returns an empty list for good hours without hazardous weather codes', () => {
     expect(getHourConditionReasons(hour({ condition: 'good' }))).toEqual([]);
+  });
+
+  it('names the heat index for a muggy hour an acclimatized rider’s bands rate maybe', () => {
+    const gulfRider = resolveThresholds(
+      { warmTemp: 95, warmDewpoint: 76, coolTemp: 60 },
+      THRESHOLDS,
+      'high',
+    );
+    const muggy = hour({ condition: 'poor', temperature: 94, dewpoint: 74 });
+    expect(getHourConditionReasons(muggy, 'fahrenheit', gulfRider, { limit: 1 })).toEqual([
+      'Dangerous heat index (105°F)',
+    ]);
+    const muggyDay = day({
+      condition: 'poor',
+      dewpoint: 74,
+      heatIndexMax: 104.6,
+      rideWindow: { startHour: 13, endHour: 16, tempLow: 92, tempHigh: 94 },
+    });
+    expect(getDayConditionReason(muggyDay, 'fahrenheit', gulfRider)).toBe(
+      'Dangerous heat index (105°)',
+    );
   });
 
   it('leads with ice on the road for freezing fog or rain', () => {
