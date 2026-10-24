@@ -70,6 +70,15 @@ describe('Rain Timing Logic', () => {
     expect(getRainTiming(hourly)).toBe('Rain throughout');
   });
 
+  it('calls it snow when every hour of it falls as snow', () => {
+    const dry = makeHour({ hour: 10, temperature: 26, rainChance: 0 });
+    const wet = makeHour({ hour: 11, temperature: 27, rainChance: 60 });
+    expect(getRainTiming([dry, wet])).toBe('Snow after 11 AM');
+    expect(getRainTiming([{ ...dry, rainChance: 70 }, wet])).toBe('Snow throughout');
+    // A rain code at the same temperature is freezing rain, not snow.
+    expect(getRainTiming([dry, { ...wet, weatherCode: 66 }])).toBe('Rain after 11 AM');
+  });
+
   it('uses the first contiguous shower block instead of merging separated rain periods', () => {
     const hourly = [
       makeHour({ hour: 10, rainChance: 10 }),
@@ -420,12 +429,40 @@ describe('Hourly Message Logic', () => {
       rainChance: 10,
       dewpoint: 50,
       aqi: 20,
-      weatherCode: 73,
+      weatherCode: 71,
       hourly: [makeHour({ hour: 10, condition: 'marginal' })],
       daily: [],
     });
 
     expect(spoken(getMessage(weather, 'maybe'))).toContain('snow');
+  });
+
+  it('calls precipitation snow when it falls as snow, and names it once', () => {
+    const snowy = makeWeather({
+      temperature: 28,
+      windSpeed: 5,
+      rainChance: 70,
+      dewpoint: 24,
+      weatherCode: 71,
+      hourly: [makeHour({ hour: 10, condition: 'poor' })],
+      daily: [],
+    });
+    const issues = getMessage(snowy, 'no').issues;
+    expect(issues).toContain('Snow very likely (70%)');
+    expect(issues.join(' ')).not.toMatch(/\brain\b|light snow/i);
+  });
+
+  it('names snow falling above freezing as wet snow', () => {
+    const slushy = makeWeather({
+      temperature: 35,
+      windSpeed: 5,
+      rainChance: 70,
+      dewpoint: 33,
+      weatherCode: 73,
+      hourly: [makeHour({ hour: 10, condition: 'bad' })],
+      daily: [],
+    });
+    expect(getMessage(slushy, 'no').issues[0]).toBe('Wet snow (35°F, 70%)');
   });
 
   it('names fog codes when raw metrics do not explain the downgrade', () => {

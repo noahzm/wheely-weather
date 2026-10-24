@@ -1,5 +1,11 @@
-import { THRESHOLDS, COLD_RAIN_HAZARD, RAIN_AMOUNT_MM, type Thresholds } from './constants';
-import { getWeatherCodeCondition } from './weather-codes';
+import {
+  THRESHOLDS,
+  COLD_RAIN_HAZARD,
+  RAIN_AMOUNT_MM,
+  SNOW_BELOW_TEMP,
+  type Thresholds,
+} from './constants';
+import { getWeatherCodeCondition, isRainCode } from './weather-codes';
 
 import { fullHourLabel } from '../utils/timeFormat';
 
@@ -155,26 +161,36 @@ export const isGustDriven = (windSpeed: number, windGust: number | null | undefi
   windGust != null &&
   RANK[evaluateCondition(windGust, 'windGust')] < RANK[evaluateCondition(windSpeed, 'windSpeed')];
 
+export interface ColdRainInput {
+  temp: number | null | undefined;
+  rainChance: number | null | undefined;
+  /** Expected precipitation (mm/h), when known. */
+  precip?: number | null;
+  code?: number | null;
+}
+
 /**
- * Evaluates the combined cold + rain hypothermia hazard.
- * Cold exposure under 45°F combined with rain is disproportionately dangerous for cyclists.
+ * Evaluates the combined cold + rain hypothermia hazard: under 45°F, wet kit
+ * at riding speed sheds heat fast. A rain code always counts. The chance alone
+ * counts only when more than a trace is expected (a likely trace soaks no
+ * one, as `evaluateRain` treats it) and only from freezing up: below it the
+ * precipitation is dry snow, which its weather code rates. Counting it made
+ * snow showers a rest day for winter riders whose thresholds otherwise rated
+ * them rideable.
  */
 export const evaluateColdRainHazard = (
-  temp: number | null | undefined,
-  rainChance: number | null | undefined,
-  code?: number | null,
+  { temp, rainChance, precip = null, code = null }: ColdRainInput,
   thresholds: Thresholds = THRESHOLDS,
 ): Condition | null => {
-  if (temp == null) return null;
-  const isRainCode =
-    code != null && [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(code);
-  const isRainLikely = (rainChance ?? 0) >= COLD_RAIN_HAZARD.MIN_RAIN_CHANCE || isRainCode;
-
-  if (temp <= COLD_RAIN_HAZARD.MAX_TEMP && isRainLikely) {
-    if (temp <= COLD_RAIN_HAZARD.SEVERE_TEMP) return 'bad';
-    return thresholds.COLD_RAIN.MILD;
-  }
-  return null;
+  if (temp == null || temp > COLD_RAIN_HAZARD.MAX_TEMP) return null;
+  const isTrace = precip != null && precip < RAIN_AMOUNT_MM.TRACE;
+  // From freezing up, snow is wet snow and soaks like rain, so only the
+  // temperature (not a snow code) rules the chance out.
+  const isRainLikely =
+    isRainCode(code) ||
+    ((rainChance ?? 0) >= COLD_RAIN_HAZARD.MIN_RAIN_CHANCE && temp >= SNOW_BELOW_TEMP && !isTrace);
+  if (!isRainLikely) return null;
+  return temp <= COLD_RAIN_HAZARD.SEVERE_TEMP ? 'bad' : thresholds.COLD_RAIN.MILD;
 };
 
 const getCyclingCondition = (conditions: Condition[]): Condition => {
@@ -195,9 +211,12 @@ export const getOverallCondition = (
 ): Condition => {
   if (weather.hasThunderstorms) return 'bad';
   const coldRainCondition = evaluateColdRainHazard(
-    weather.temperature,
-    weather.rainChance,
-    weather.weatherCode,
+    {
+      temp: weather.temperature,
+      rainChance: weather.rainChance,
+      precip: weather.precipitation,
+      code: weather.weatherCode,
+    },
     thresholds,
   );
   const conditions = [
@@ -262,7 +281,10 @@ export const getHourlyCondition = (
   { temperature, wind, gust, rain, precip, code, dewpoint }: HourlyConditionInput,
   thresholds: Thresholds = THRESHOLDS,
 ): Condition => {
-  const coldRainCondition = evaluateColdRainHazard(temperature, rain, code, thresholds);
+  const coldRainCondition = evaluateColdRainHazard(
+    { temp: temperature, rainChance: rain, precip, code },
+    thresholds,
+  );
   return getCyclingCondition([
     evaluateCondition(temperature, 'temperature', thresholds),
     evaluateWind(wind, gust, thresholds),
@@ -305,7 +327,10 @@ export const getDailyCondition = (
   thresholds: Thresholds = THRESHOLDS,
 ): Condition => {
   const effectiveColdTemp = tempLow ?? tempHigh;
-  const coldRainCondition = evaluateColdRainHazard(effectiveColdTemp, rain, code, thresholds);
+  const coldRainCondition = evaluateColdRainHazard(
+    { temp: effectiveColdTemp, rainChance: rain, precip, code },
+    thresholds,
+  );
   return getCyclingCondition([
     ...(tempLow == null ? [] : [evaluateCondition(tempLow, 'temperature', thresholds)]),
     ...(tempHigh == null ? [] : [evaluateCondition(tempHigh, 'temperature', thresholds)]),
@@ -369,9 +394,12 @@ export function calculateRideScore(
   const aqiCond = weather.aqi == null ? 'good' : evaluateCondition(weather.aqi, 'aqi', thresholds);
 
   const coldRainCond = evaluateColdRainHazard(
-    weather.temperature,
-    weather.rainChance,
-    weather.weatherCode,
+    {
+      temp: weather.temperature,
+      rainChance: weather.rainChance,
+      precip: weather.precipitation,
+      code: weather.weatherCode,
+    },
     thresholds,
   );
 

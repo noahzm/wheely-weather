@@ -10,6 +10,7 @@ import {
   isGustDriven,
   RANK,
 } from '../domain/scoring';
+import { getWeatherCodeCondition, isSnowy } from '../domain/weather-codes';
 import { formatPercent } from './percent';
 import { formatTemperature, formatWindSpeed } from './temperature';
 import { fullHourLabel } from './timeFormat';
@@ -19,6 +20,8 @@ import type { TempUnit } from './temperature';
 
 const DAY_NAMES_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const STORM_CODES = new Set([95, 96, 99]);
+// Freezing fog and freezing drizzle or rain: ice on the road, rated bad.
+const ICE_CODES = new Set([48, 56, 57, 66, 67]);
 const HEAVY_RAIN_CODES = new Set([65, 82]);
 const SNOW_CODES = new Set([71, 73, 75, 77, 85, 86]);
 
@@ -119,6 +122,8 @@ interface DayMetrics {
   low: number | null;
   temp: number | null;
   dewpoint: number | null;
+  /** Whether the window's precipitation falls as snow. */
+  snowy: boolean;
 }
 
 function dayMetrics(day: DailyWeather): DayMetrics {
@@ -135,6 +140,7 @@ function dayMetrics(day: DailyWeather): DayMetrics {
     // brief outlier conditions elsewhere in the day.
     temp: high,
     dewpoint: day.dewpoint ?? null,
+    snowy: isSnowy(high, day.weatherCode),
   };
 }
 
@@ -143,12 +149,17 @@ interface HourReason {
   tier: IssueTier;
 }
 
+/** Names the sky when it limits the ride, at the tier the code itself rates. */
 function weatherCodeReason(entry: { weatherCode: number | null }): HourReason | null {
-  if (entry.weatherCode == null) return null;
-  if (STORM_CODES.has(entry.weatherCode)) return { text: 'Storm risk', tier: 'bad' };
-  if (SNOW_CODES.has(entry.weatherCode)) return { text: 'Wintry roads', tier: 'poor' };
-  if (HEAVY_RAIN_CODES.has(entry.weatherCode)) return { text: 'Heavy rain risk', tier: 'poor' };
-  return null;
+  const code = entry.weatherCode;
+  if (code == null) return null;
+  let text: string | null = null;
+  if (STORM_CODES.has(code)) text = 'Storm risk';
+  else if (ICE_CODES.has(code)) text = 'Icy roads';
+  else if (SNOW_CODES.has(code)) text = 'Wintry roads';
+  else if (HEAVY_RAIN_CODES.has(code)) text = 'Heavy rain risk';
+  const tier = issuePhraseTier(getWeatherCodeCondition(code));
+  return text && tier ? { text, tier } : null;
 }
 
 /**
@@ -160,7 +171,7 @@ function weatherCodeReason(entry: { weatherCode: number | null }): HourReason | 
  * itself in bad-tier language.
  */
 function dayMetricReasons(
-  { wind, gust, rain, precip, low, temp, dewpoint }: DayMetrics,
+  { wind, gust, rain, precip, low, temp, dewpoint, snowy }: DayMetrics,
   tempUnit: TempUnit = 'fahrenheit',
   thresholds: Thresholds = THRESHOLDS,
 ): HourReason[] {
@@ -181,7 +192,7 @@ function dayMetricReasons(
 
   const rainTier = issuePhraseTier(evaluateRain(rain, precip, thresholds));
   if (rainTier)
-    reasons.push({ text: rainPhrase(rain, precip, rainTier, thresholds), tier: rainTier });
+    reasons.push({ text: rainPhrase(rain, precip, rainTier, thresholds, snowy), tier: rainTier });
 
   if (temp != null && temp >= 50) {
     // Daily temp reasons describe the ride window's high, so they read as heat;
@@ -327,13 +338,14 @@ function hourAqiReason(aqi: number | null, thresholds: Thresholds = THRESHOLDS):
 }
 
 function hourRainReason(
-  rain: number,
-  precip: number | null | undefined,
-  thresholds: Thresholds = THRESHOLDS,
+  hour: HourlyWeather,
+  thresholds: Thresholds,
+  snowy: boolean,
 ): HourReason | null {
+  const { rainChance: rain, precipitation: precip } = hour;
   const tier = issuePhraseTier(evaluateRain(rain, precip, thresholds));
   if (!tier) return null;
-  return { text: rainPhrase(rain, precip, tier, thresholds), tier };
+  return { text: rainPhrase(rain, precip, tier, thresholds, snowy), tier };
 }
 
 function hourTempReason(
@@ -384,22 +396,27 @@ function resolveHourRainReasons(
   tempReason: HourReason | null;
 } {
   const coldRain = evaluateColdRainHazard(
-    hour.temperature,
-    hour.rainChance,
-    hour.weatherCode,
+    {
+      temp: hour.temperature,
+      rainChance: hour.rainChance,
+      precip: hour.precipitation,
+      code: hour.weatherCode,
+    },
     thresholds,
   );
   const coldRainTier = coldRain ? issuePhraseTier(coldRain) : null;
+  const snowy = isSnowy(hour.temperature, hour.weatherCode);
   const rainReason = coldRainTier
     ? {
         text: ISSUE_PHRASES.COLD_RAIN(
           formatTemperature(hour.temperature, tempUnit, { withUnitLabel: true }),
           formatPercent(hour.rainChance),
           coldRainTier,
+          snowy,
         ),
         tier: coldRainTier,
       }
-    : hourRainReason(hour.rainChance, hour.precipitation, thresholds);
+    : hourRainReason(hour, thresholds, snowy);
 
   const tempReason = coldRainTier ? null : hourTempReason(hour.temperature, tempUnit, thresholds);
 

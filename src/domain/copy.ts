@@ -183,6 +183,16 @@ export const ISSUE_PHRASES = {
   // chance of a trace amount reads as sprinkles, not "Rain likely".
   LIGHT_RAIN: (pct: string, tier: IssueTier): string =>
     tier === 'fair' ? `Sprinkles possible (${pct})` : `Light rain likely (${pct})`,
+  // RAIN and LIGHT_RAIN for precipitation that falls as snow (isSnowy).
+  SNOW: (pct: string, tier: IssueTier): string =>
+    ({
+      bad: `Snow expected (${pct})`,
+      poor: `Snow very likely (${pct})`,
+      marginal: `Snow likely (${pct})`,
+      fair: `Snow possible (${pct})`,
+    })[tier],
+  LIGHT_SNOW: (pct: string, tier: IssueTier): string =>
+    tier === 'fair' ? `Flurries possible (${pct})` : `Light snow likely (${pct})`,
   HEAT: (tempLabel: string, tier: IssueTier): string =>
     ({
       bad: `Dangerous heat (${tempLabel})`,
@@ -198,11 +208,14 @@ export const ISSUE_PHRASES = {
       fair: `Cool (${tempLabel})`,
     })[tier],
   // Rated bad from 40°F down. Not "freezing rain": that's rain freezing on
-  // contact, which the weather codes report (and rate) separately.
-  COLD_RAIN: (tempLabel: string, pct: string, tier: IssueTier): string =>
-    tier === 'bad'
+  // contact, which the weather codes report (and rate) separately. Snow from
+  // freezing up melts on contact and soaks like rain, so it's named wet snow.
+  COLD_RAIN: (tempLabel: string, pct: string, tier: IssueTier, snowy = false): string => {
+    if (snowy) return `Wet snow (${tempLabel}, ${pct})`;
+    return tier === 'bad'
       ? `Near-freezing rain (${tempLabel}, ${pct})`
-      : `Cold rain risk (${tempLabel}, ${pct})`,
+      : `Cold rain risk (${tempLabel}, ${pct})`;
+  },
   HUMIDITY: (dewLabel: string, tier: IssueTier): string =>
     ({
       bad: `Oppressive humidity (dew ${dewLabel})`,
@@ -257,14 +270,16 @@ export const STATUS_MESSAGES = {
  * Each tip yields { items: [{ icon, label }] }.
  * Ride Kit is clothing-only: no hydration, food, or route guidance. Sleeve
  * and leg lengths are made explicit in labels so the rider sees the decision
- * at a glance.
+ * at a glance. `outer` marks the warmth and wind layers, of which a kit takes
+ * one (see mergeTipItems in gear.ts); rain layers aren't marked, since a
+ * jacket worn for warmth doesn't keep the rain out.
  */
 export const GEAR_TIPS = {
   CASUAL: {
     FREEZING: {
       items: [
         { slot: 'top', icon: 'LongSleeveShirt', label: 'Thermal base layer' },
-        { icon: 'Jacket', label: 'Insulated jacket' },
+        { icon: 'Jacket', label: 'Insulated jacket', outer: true },
         { slot: 'bottom', icon: 'Pants', label: 'Long pants' },
         { icon: 'Hand', label: 'Insulated gloves' },
         { icon: 'WoolCap', label: 'Wool cap and ear coverage' },
@@ -273,7 +288,7 @@ export const GEAR_TIPS = {
     COLD: {
       items: [
         { slot: 'top', icon: 'LongSleeveShirt', label: 'Long-sleeve top' },
-        { icon: 'Jacket', label: 'Jacket' },
+        { icon: 'Jacket', label: 'Jacket', outer: true },
         { slot: 'bottom', icon: 'Pants', label: 'Long pants' },
         { icon: 'Hand', label: 'Gloves' },
         { icon: 'WoolCap', label: 'Wool cap' },
@@ -283,6 +298,8 @@ export const GEAR_TIPS = {
       items: [
         { slot: 'top', icon: 'LongSleeveShirt', label: 'Long sleeves or hoodie' },
         { slot: 'bottom', icon: 'Pants', label: 'Pants or heavier shorts' },
+        // Under 55°F a rider's own speed makes bare fingers numb.
+        { icon: 'Hand', label: 'Light gloves' },
       ],
     },
     MILD_COOL: {
@@ -314,7 +331,7 @@ export const GEAR_TIPS = {
       ],
     },
     TEMP_SWING: {
-      items: [{ icon: 'Thermometer', label: 'Removable layer' }],
+      items: [{ icon: 'Thermometer', label: 'Removable layer', outer: true }],
     },
     RAIN_HIGH: {
       items: [{ icon: 'Jacket', label: 'Rain jacket' }],
@@ -326,7 +343,7 @@ export const GEAR_TIPS = {
       items: [{ icon: 'Jacket', label: 'Fenders or splash jacket' }],
     },
     WINDY: {
-      items: [{ icon: 'Jacket', label: 'Windbreaker' }],
+      items: [{ icon: 'Jacket', label: 'Windbreaker', outer: true }],
     },
     UV_EXTREME: {
       items: [
@@ -345,7 +362,7 @@ export const GEAR_TIPS = {
     FREEZING: {
       items: [
         { icon: 'LongSleeveShirt', label: 'Thermal base layer' },
-        { icon: 'CyclingJacket', label: 'Insulated jacket' },
+        { icon: 'CyclingJacket', label: 'Insulated jacket', outer: true },
         { slot: 'bottom', icon: 'BibTights', label: 'Winter bib tights' },
         { icon: 'ShoeCovers', label: 'Shoe covers' },
         { icon: 'CyclingGloves', label: 'Heavy full-finger gloves' },
@@ -358,7 +375,9 @@ export const GEAR_TIPS = {
         { icon: 'LongSleeveJersey', label: 'Long-sleeve jersey' },
         { slot: 'bottom', icon: 'BibTights', label: 'Thermal bib tights' },
         { icon: 'CyclingGloves', label: 'Full-finger gloves' },
-        { icon: 'CyclingJacket', label: 'Vest or jacket' },
+        { icon: 'CyclingJacket', label: 'Vest or jacket', outer: true },
+        // Ears go first at speed in the cold; a thin cap fits under a helmet.
+        { icon: 'WoolCap', label: 'Skull cap or headband' },
       ],
     },
     COOL: {
@@ -367,7 +386,8 @@ export const GEAR_TIPS = {
         { slot: 'bottom', icon: 'BibShorts', label: 'Bib shorts' },
         { icon: 'ArmWarmers', label: 'Arm warmers' },
         { icon: 'KneeWarmers', label: 'Knee warmers' },
-        { icon: 'Gilet', label: 'Gilet' },
+        { icon: 'Gilet', label: 'Gilet', outer: true },
+        { icon: 'CyclingGloves', label: 'Light full-finger gloves' },
       ],
     },
     MILD_COOL: {
@@ -396,7 +416,7 @@ export const GEAR_TIPS = {
       ],
     },
     TEMP_SWING: {
-      items: [{ icon: 'Gilet', label: 'Gilet or arm warmers' }],
+      items: [{ icon: 'Gilet', label: 'Gilet or arm warmers', outer: true }],
     },
     RAIN_HIGH: {
       items: [
@@ -405,7 +425,7 @@ export const GEAR_TIPS = {
       ],
     },
     RAIN_POSSIBLE: {
-      items: [{ icon: 'Gilet', label: 'Packable vest or shell' }],
+      items: [{ icon: 'CyclingJacket', label: 'Packable rain shell' }],
     },
     WET_ROADS: {
       items: [
@@ -414,7 +434,7 @@ export const GEAR_TIPS = {
       ],
     },
     WINDY: {
-      items: [{ icon: 'Gilet', label: 'Wind vest' }],
+      items: [{ icon: 'Gilet', label: 'Wind vest', outer: true }],
     },
     UV_EXTREME: {
       items: [
@@ -431,16 +451,20 @@ export const GEAR_TIPS = {
   },
 };
 
+/** What's falling, for the precipitation sticker: snow when every hour of it is snowy. */
+export type PrecipKind = 'Rain' | 'Snow';
+
 // Rain and daylight notes render as stickers beside the "Hour by hour" title, so
 // keep each to ~20 characters: longer ones wrap and push the chart down.
 export const RAIN_MESSAGES = {
   CLEARING: (time: string) => `Clears by ${time}`,
   CLEARING_TOMORROW: (time: string) => `Clears tomorrow ${time}`,
-  THROUGHOUT: 'Rain throughout',
-  WINDOW: (start: string, end: string) => `Rain ${start}–${end}`,
-  WINDOW_TOMORROW: (start: string, end: string) => `Rain tomorrow ${start}–${end}`,
-  LATER: (time: string) => `Rain after ${time}`,
-  LATER_TOMORROW: (time: string) => `Rain after ${time} tomorrow`,
+  THROUGHOUT: (kind: PrecipKind) => `${kind} throughout`,
+  WINDOW: (start: string, end: string, kind: PrecipKind) => `${kind} ${start}–${end}`,
+  WINDOW_TOMORROW: (start: string, end: string, kind: PrecipKind) =>
+    `${kind} tomorrow ${start}–${end}`,
+  LATER: (time: string, kind: PrecipKind) => `${kind} after ${time}`,
+  LATER_TOMORROW: (time: string, kind: PrecipKind) => `${kind} after ${time} tomorrow`,
 };
 
 export const DAYLIGHT_MESSAGES = {

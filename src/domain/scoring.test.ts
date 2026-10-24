@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getCurrentCondition, getOverallCondition } from './scoring';
+import { evaluateColdRainHazard, getCurrentCondition, getOverallCondition } from './scoring';
 import {
   calculateRideScore,
   evaluateCondition,
@@ -205,6 +205,29 @@ describe('Overall Status Determination', () => {
     expect(getOverallStatus(weather)).toBe('no');
     // Below the trigger, a cool damp day is a judgment call, not a hazard.
     expect(getOverallStatus({ ...weather, rainChance: 35 })).not.toBe('no');
+  });
+});
+
+describe('evaluateColdRainHazard', () => {
+  it('ignores a likely trace, unless the sky says it is raining', () => {
+    expect(evaluateColdRainHazard({ temp: 38, rainChance: 60, precip: 0.1 })).toBeNull();
+    expect(evaluateColdRainHazard({ temp: 38, rainChance: 60, precip: 0.1, code: 51 })).toBe('bad');
+    expect(evaluateColdRainHazard({ temp: 38, rainChance: 60, precip: 0.5 })).toBe('bad');
+    // An unknown amount keeps the chance-based rule.
+    expect(evaluateColdRainHazard({ temp: 43, rainChance: 60 })).toBe('poor');
+  });
+
+  it('treats a chance below freezing as snow, which its code rates', () => {
+    expect(evaluateColdRainHazard({ temp: 28, rainChance: 70 })).toBeNull();
+    expect(evaluateColdRainHazard({ temp: 28, rainChance: 70, code: 71 })).toBeNull();
+    // Freezing rain still counts, and freezing itself is still cold rain.
+    expect(evaluateColdRainHazard({ temp: 28, rainChance: 70, code: 66 })).toBe('bad');
+    expect(evaluateColdRainHazard({ temp: 32, rainChance: 70 })).toBe('bad');
+  });
+
+  it('stays out of the way above 45°F', () => {
+    expect(evaluateColdRainHazard({ temp: 46, rainChance: 90, code: 63 })).toBeNull();
+    expect(evaluateColdRainHazard({ temp: null, rainChance: 90 })).toBeNull();
   });
 });
 

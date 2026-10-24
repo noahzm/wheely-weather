@@ -298,6 +298,7 @@ function buildBestRideWindows(
       precipitation: data.hourly.precipitation?.[i] ?? null,
       dewpoint: data.hourly.dewpoint_2m[i] ?? null,
       weatherCode: data.hourly.weather_code[i] ?? null,
+      uv: data.hourly.uv_index?.[i] ?? null,
     });
     hoursByDate[date] = dateHours;
   }
@@ -369,6 +370,7 @@ function applyRideWindow(day: DailyWeather, window: DailyRideWindow): DailyWeath
     windGust: window.windGust,
     rainChance: window.rainChance,
     precipitation: window.precipitation,
+    uvMax: window.uvMax,
     weatherCode: window.weatherCode,
     condition: window.condition,
   };

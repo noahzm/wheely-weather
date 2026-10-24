@@ -49,6 +49,15 @@ describe('buildRideWindowCandidate', () => {
     });
   });
 
+  it('keeps the window’s highest UV, or null when no hour has one', () => {
+    const sunny = buildRideWindowCandidate(
+      [hour(9, { uv: 3 }), hour(10, { uv: 6 }), hour(11, { uv: null })],
+      THRESHOLDS,
+    );
+    expect(sunny?.uvMax).toBe(6);
+    expect(buildRideWindowCandidate([hour(9), hour(10)], THRESHOLDS)?.uvMax).toBeNull();
+  });
+
   it('leaves the rain amount unknown when any hour lacks it', () => {
     const window = buildRideWindowCandidate(
       [hour(9, { precipitation: 0.2 }), hour(10, { precipitation: null })],

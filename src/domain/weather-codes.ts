@@ -1,3 +1,4 @@
+import { SNOW_BELOW_TEMP } from './constants';
 import { WEATHER_DESCRIPTIONS } from './copy';
 
 import type { Condition, RideStatus } from '@/types/weather';
@@ -5,6 +6,26 @@ import type { Condition, RideStatus } from '@/types/weather';
 /** Returns the human-readable description for a WMO weather interpretation code. */
 export const getWeatherDescription = (code: number | null | undefined): string =>
   code == null ? 'Unknown' : (WEATHER_DESCRIPTIONS[code] ?? 'Unknown');
+
+const RAIN_CODES = new Set([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82]);
+const SNOW_CODES = new Set([71, 73, 75, 77, 85, 86]);
+
+/** True when the WMO code reports rain or drizzle, freezing or not. */
+export const isRainCode = (code: number | null | undefined): boolean =>
+  code != null && RAIN_CODES.has(code);
+
+/**
+ * Whether precipitation would fall as snow, for naming it: snow when the code
+ * says snow, rain when it says rain, and otherwise snow below freezing.
+ */
+export const isSnowy = (
+  temp: number | null | undefined,
+  code: number | null | undefined,
+): boolean => {
+  if (code != null && SNOW_CODES.has(code)) return true;
+  if (isRainCode(code)) return false;
+  return temp != null && temp < SNOW_BELOW_TEMP;
+};
 
 /** True when the WMO code indicates thunderstorm activity (95, 96, 99). */
 export const isThunderstorm = (code: number | null | undefined): boolean =>
@@ -22,8 +43,11 @@ export const getWeatherCodeCondition = (code: number | null | undefined): Condit
   // ice/freezing as "avoid", and black ice on a fast descent is the real hazard,
   // so 48 (freezing fog) and 56/57/66/67 (freezing drizzle/rain) rate "bad".
   if ([48, 56, 57, 66, 67].includes(code)) return 'bad';
-  if ([65, 75, 77, 82, 86].includes(code)) return 'poor';
-  if ([55, 63, 71, 73, 81, 85].includes(code)) return 'marginal';
+  // Snow rates a step worse than rain of the same intensity: moderate snow (73)
+  // settles on the road and takes the grip with it, where moderate rain (63)
+  // only soaks the rider. Snow grains (77) are about as light as light snow.
+  if ([65, 73, 75, 82, 86].includes(code)) return 'poor';
+  if ([55, 63, 71, 77, 81, 85].includes(code)) return 'marginal';
   if ([45, 51, 53, 61, 80].includes(code)) return 'fair';
   return 'good';
 };

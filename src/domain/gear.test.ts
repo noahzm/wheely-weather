@@ -36,17 +36,17 @@ describe('Gear Suggestions', () => {
     expect(matchesItem(gear, /rain/i)).toBe(true);
   });
 
-  it('adds wind gear on a warm windy day', () => {
+  it('adds wind gear on a mild windy day', () => {
     const gear = getGearSuggestion(
       {
         ...base,
         windSpeed: 20,
-        hourly: [makeHour({ temperature: 72, windSpeed: 20, rainChance: 0, dewpoint: 50, uv: 0 })],
+        hourly: [makeHour({ temperature: 60, windSpeed: 20, rainChance: 0, dewpoint: 50, uv: 0 })],
       },
       'casual',
     );
-    expect(matchesItem(gear, /short-sleeve top/i)).toBe(true);
-    expect(matchesItem(gear, /^shorts$/i)).toBe(true);
+    expect(matchesItem(gear, /short or light long sleeve/i)).toBe(true);
+    expect(matchesItem(gear, /shorts or light pants/i)).toBe(true);
     expect(matchesItem(gear, /wind/i)).toBe(true);
   });
 
@@ -110,7 +110,7 @@ describe('Gear Suggestions', () => {
       {
         ...base,
         windSpeed: 20,
-        hourly: [makeHour({ temperature: 72, windSpeed: 20, rainChance: 0, dewpoint: 50, uv: 8 })],
+        hourly: [makeHour({ temperature: 62, windSpeed: 20, rainChance: 0, dewpoint: 50, uv: 8 })],
       },
       'pro',
     );
@@ -199,7 +199,8 @@ describe('Gear Suggestions', () => {
 
     expect(matchesItem(gear, /insulated gloves/i)).toBe(true);
     expect(matchesItem(gear, /quick-dry layer/i)).toBe(true);
-    expect(matchesItem(gear, /removable layer/i)).toBe(true);
+    // The insulated jacket is the layer that comes off as it warms.
+    expect(matchesItem(gear, /removable layer/i)).toBe(false);
   });
 
   it('suggests light layers in the mild-cool band', () => {
@@ -393,7 +394,7 @@ describe('Gear Suggestions', () => {
     expect(matchesItem(sunny(8), /sunglasses/i)).toBe(true);
   });
 
-  it('skips the windbreaker when even the coolest hour is hot', () => {
+  it('skips the windbreaker once even the coolest hour is warm', () => {
     const windy = (temperature: number) => ({
       ...base,
       temperature,
@@ -401,7 +402,8 @@ describe('Gear Suggestions', () => {
       hourly: [makeHour({ temperature, windSpeed: 20, rainChance: 0, dewpoint: 50, uv: 0 })],
     });
     expect(matchesItem(getGearSuggestion(windy(92), 'casual'), /windbreaker/i)).toBe(false);
-    expect(matchesItem(getGearSuggestion(windy(80), 'casual'), /windbreaker/i)).toBe(true);
+    expect(matchesItem(getGearSuggestion(windy(72), 'casual'), /windbreaker/i)).toBe(false);
+    expect(matchesItem(getGearSuggestion(windy(65), 'casual'), /windbreaker/i)).toBe(true);
   });
 
   it('does not treat upcoming rain chance as wet roads', () => {
@@ -428,7 +430,7 @@ describe('Gear Suggestions', () => {
       },
       'pro',
     );
-    expect(matchesItem(gear, /rain jacket|vest/i)).toBe(true);
+    expect(matchesItem(gear, /rain jacket|rain shell/i)).toBe(true);
     expect(matchesItem(gear, /wet road shell/i)).toBe(false);
   });
 
@@ -512,13 +514,145 @@ describe('Gear Suggestions', () => {
     ).toBe(false);
   });
 
+  it('keeps winter kit on a cold ride for a cold-adapted rider', () => {
+    const nearFreezing = {
+      ...base,
+      temperature: 34,
+      hourly: [makeHour({ temperature: 34, windSpeed: 5, rainChance: 0, dewpoint: 25, uv: 0 })],
+    };
+    // A winter-hardened rider: the rating's full 18°F cold shift.
+    const hardened = {
+      ...THRESHOLDS,
+      TEMPERATURE: { ...THRESHOLDS.TEMPERATURE, FAIR_MIN: 32 },
+    };
+    const gear = getGearSuggestion(nearFreezing, 'pro', null, hardened);
+    expect(matchesItem(gear, /thermal bib tights/i)).toBe(true);
+    expect(matchesItem(gear, /^bib shorts$|knee warmers/i)).toBe(false);
+  });
+
+  it('dresses a cold ride with gloves and ear cover in both modes', () => {
+    const cold = {
+      ...base,
+      temperature: 40,
+      hourly: [makeHour({ temperature: 40, windSpeed: 5, rainChance: 0, dewpoint: 30, uv: 0 })],
+    };
+    expect(matchesItem(getGearSuggestion(cold, 'casual'), /wool cap/i)).toBe(true);
+    expect(matchesItem(getGearSuggestion(cold, 'pro'), /skull cap or headband/i)).toBe(true);
+    const cool = {
+      ...base,
+      temperature: 48,
+      hourly: [makeHour({ temperature: 48, windSpeed: 5, rainChance: 0, dewpoint: 30, uv: 0 })],
+    };
+    expect(matchesItem(getGearSuggestion(cool, 'casual'), /light gloves/i)).toBe(true);
+    expect(matchesItem(getGearSuggestion(cool, 'pro'), /light full-finger gloves/i)).toBe(true);
+  });
+
+  describe('outer layers', () => {
+    const windySwing = (from: number) => ({
+      ...base,
+      temperature: from,
+      windSpeed: 20,
+      hourly: [
+        makeHour({ temperature: from, windSpeed: 20, rainChance: 0, dewpoint: 40, uv: 0 }),
+        makeHour({ temperature: from + 16, windSpeed: 20, rainChance: 0, dewpoint: 40, uv: 0 }),
+      ],
+    });
+    const labels = (gear: ReturnType<typeof getGearSuggestion>) =>
+      gear.items.map((item) => item.label);
+
+    it('adds no wind layer beside the gilet a cool kit already has', () => {
+      const gear = getGearSuggestion(windySwing(50), 'pro');
+      expect(gear.wear.some((item) => item.label === 'Gilet')).toBe(true);
+      expect(labels(gear)).not.toContain('Wind vest');
+      expect(labels(gear)).not.toContain('Gilet or arm warmers');
+    });
+
+    it('adds no windbreaker over a cold kit’s jacket', () => {
+      const gear = getGearSuggestion(windySwing(40), 'casual');
+      expect(labels(gear)).toContain('Jacket');
+      expect(labels(gear)).not.toContain('Windbreaker');
+      expect(labels(gear)).not.toContain('Removable layer');
+    });
+
+    it('packs one wind layer when the kit has none', () => {
+      const gear = getGearSuggestion(windySwing(58), 'pro');
+      expect(gear.bring.map((item) => item.label)).toContain('Wind vest');
+      expect(labels(gear)).not.toContain('Gilet or arm warmers');
+    });
+
+    it('still packs a rain shell beside a gilet, which keeps out wind, not rain', () => {
+      const showery = {
+        ...base,
+        temperature: 50,
+        rainChance: 35,
+        hourly: [makeHour({ temperature: 50, windSpeed: 5, rainChance: 35, dewpoint: 40, uv: 0 })],
+      };
+      const gear = getGearSuggestion(showery, 'pro');
+      expect(labels(gear)).toContain('Gilet');
+      expect(gear.bring.map((item) => item.label)).toContain('Packable rain shell');
+    });
+  });
+
+  it('lists an item two tips share only once', () => {
+    const freezingRain = {
+      ...base,
+      temperature: 30,
+      rainChance: 80,
+      hourly: [
+        makeHour({
+          temperature: 30,
+          windSpeed: 5,
+          rainChance: 80,
+          precipitation: 2,
+          dewpoint: 28,
+          uv: 0,
+        }),
+      ],
+    };
+    const gear = getGearSuggestion(freezingRain, 'pro');
+    expect(gear.items.filter((item) => item.label === 'Shoe covers')).toHaveLength(1);
+    expect(gear.wear.some((item) => item.label === 'Shoe covers')).toBe(true);
+  });
+
+  it('counts recent rain by its amount when one is known', () => {
+    const afterHour = (pastHour: Partial<Parameters<typeof makeHour>[0]>) => ({
+      ...base,
+      rainChance: 0,
+      pastHourly: [makeHour({ temperature: 65, windSpeed: 5, dewpoint: 50, ...pastHour })],
+      hourly: [makeHour({ temperature: 65, windSpeed: 5, rainChance: 0, dewpoint: 50, uv: 0 })],
+    });
+    const fenders = /shoe covers or fenders|wet road shell/i;
+    // A 40% chance that came to nothing left the road dry.
+    expect(
+      matchesItem(
+        getGearSuggestion(afterHour({ rainChance: 40, precipitation: 0 }), 'pro'),
+        fenders,
+      ),
+    ).toBe(false);
+    // A low-chance shower that did fall wet it.
+    expect(
+      matchesItem(
+        getGearSuggestion(afterHour({ rainChance: 10, precipitation: 1 }), 'pro'),
+        fenders,
+      ),
+    ).toBe(true);
+  });
+
+  it('adds sunscreen to a day’s kit from its window’s UV', () => {
+    const day = makeDay({ rideWindow: { startHour: 11, endHour: 14, tempLow: 68, tempHigh: 72 } });
+    expect(matchesItem(getDayGearSuggestion({ ...day, uvMax: 6 }, 'casual'), /sunscreen/i)).toBe(
+      true,
+    );
+    expect(matchesItem(getDayGearSuggestion(day, 'casual'), /sunscreen/i)).toBe(false);
+  });
+
   it('builds a daily kit preview from a day’s ride window in getDayGearSuggestion', () => {
     const day = makeDay({
       low: 38,
       high: 70,
       windSpeed: 18,
       rainChance: 10,
-      rideWindow: { startHour: 12, endHour: 15, tempLow: 66, tempHigh: 70 },
+      rideWindow: { startHour: 12, endHour: 15, tempLow: 58, tempHigh: 64 },
     });
     const gear = getDayGearSuggestion(day, 'pro');
     expect(gear.wear.some((item) => /short-sleeve jersey/i.test(item.label))).toBe(true);

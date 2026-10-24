@@ -38,6 +38,8 @@ export interface DailyWeather {
   rainChance: number;
   /** Heaviest expected hourly precipitation (mm) in the ride window, when known. */
   precipitation?: number | null;
+  /** Highest UV index in the ride window, for the kit's sunscreen; absent in older caches. */
+  uvMax?: number | null;
   weatherCode: number | null;
   condition: Condition;
   /**
@@ -118,6 +120,11 @@ export interface RideFactor {
 
 export interface GearTipItem {
   slot?: string;
+  /**
+   * A wind-blocking outer layer (jacket, gilet, windbreaker). A kit needs only
+   * one: an add-on's is dropped when the kit already has one.
+   */
+  outer?: boolean;
   icon: string;
   label: string;
 }

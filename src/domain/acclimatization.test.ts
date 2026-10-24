@@ -88,9 +88,9 @@ describe('cold acclimatization', () => {
 
   it('softens mild cold rain to marginal for a cold-adapted rider, never the severe band', () => {
     const adapted = resolveThresholds(CHICAGO_WINTER, THRESHOLDS, 'moderate');
-    expect(evaluateColdRainHazard(43, 60, null, THRESHOLDS)).toBe('poor');
-    expect(evaluateColdRainHazard(43, 60, null, adapted)).toBe('marginal');
-    expect(evaluateColdRainHazard(40, 60, null, adapted)).toBe('bad');
+    expect(evaluateColdRainHazard({ temp: 43, rainChance: 60 }, THRESHOLDS)).toBe('poor');
+    expect(evaluateColdRainHazard({ temp: 43, rainChance: 60 }, adapted)).toBe('marginal');
+    expect(evaluateColdRainHazard({ temp: 40, rainChance: 60 }, adapted)).toBe('bad');
     expect(resolveThresholds(MILD_WINTER, THRESHOLDS, 'high').COLD_RAIN.MILD).toBe('poor');
   });
 

@@ -114,6 +114,9 @@ describe('getDayConditionReason', () => {
     expect(getDayConditionReason(day({ weatherCode: 95 }))).toBe('Storm risk');
     expect(getDayConditionReason(day({ weatherCode: 73 }))).toBe('Wintry roads');
     expect(getDayConditionReason(day({ weatherCode: 65 }))).toBe('Heavy rain risk');
+    for (const code of [48, 56, 57, 66, 67]) {
+      expect(getDayConditionReason(day({ weatherCode: code }))).toBe('Icy roads');
+    }
   });
 
   // Exhaustive branch coverage: defaults are calm/dry/mild, each row trips one branch.
@@ -190,6 +193,27 @@ describe('getHourConditionReasons', () => {
     expect(getHourConditionReasons(hour({ condition: 'good' }))).toEqual([]);
   });
 
+  it('leads with ice on the road for freezing fog or rain', () => {
+    const icy = hour({ condition: 'bad', temperature: 30, weatherCode: 48 });
+    expect(getHourConditionReasons(icy, 'fahrenheit', THRESHOLDS, { limit: 1 })).toEqual([
+      'Icy roads',
+    ]);
+  });
+
+  it('calls a precipitation chance below freezing snow', () => {
+    const reasons = getHourConditionReasons(
+      hour({ condition: 'bad', temperature: 25, rainChance: 50 }),
+    );
+    expect(reasons).toContain('Snow likely (50%)');
+  });
+
+  it('rates a snow reason at the tier its code rates', () => {
+    // Light snow is only marginal, so the poor-rated wind is what leads.
+    expect(
+      getHourConditionReasons(hour({ condition: 'poor', weatherCode: 71, windSpeed: 27 })),
+    ).toEqual(['Very windy (27 mph)', 'Wintry roads']);
+  });
+
   it('excludes good metrics (like 6 mph wind or 50° dew) and returns tier reasons for fair metrics', () => {
     expect(getHourConditionReasons(hour({ condition: 'fair', windSpeed: 12 }))).toEqual([
       'Breezy (12 mph)',
@@ -252,6 +276,14 @@ describe('getHourConditionReasons', () => {
     expect(getHourConditionReasons(hour({ rainChance: 70, precipitation: 3 }))).toEqual([
       'Rain very likely (70%)',
     ]);
+    // The same amounts falling as snow: flurries and light snow.
+    const snowHour = { weatherCode: 71, condition: 'marginal' as const };
+    expect(
+      getHourConditionReasons(hour({ ...snowHour, rainChance: 70, precipitation: 0.1 })),
+    ).toEqual(['Wintry roads', 'Flurries possible (70%)']);
+    expect(
+      getHourConditionReasons(hour({ ...snowHour, rainChance: 70, precipitation: 0.6 })),
+    ).toEqual(['Wintry roads', 'Light snow likely (70%)']);
   });
 
   it('names air quality when it set the hour rating', () => {

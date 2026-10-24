@@ -106,6 +106,11 @@ export const COLD_RAIN_HAZARD = {
   MIN_RAIN_CHANCE: 40,
 };
 
+// Providers' precipitation chances count rain and snow alike. Below this, a
+// chance without a rain code is taken as snow (isSnowy): it's called snow, and
+// left to the weather codes to rate rather than the cold-rain hazard.
+export const SNOW_BELOW_TEMP = 32;
+
 // UV levels where the kit adds sun protection (WHO: protect from UV 3).
 export const UV_GEAR = {
   SUNSCREEN: 3,

@@ -6,6 +6,7 @@ import {
   DAYLIGHT_MESSAGES,
   issuePhraseTier,
   type IssueTier,
+  type PrecipKind,
 } from './copy';
 import {
   evaluateCondition,
@@ -22,6 +23,7 @@ import {
   getWeatherCodeCondition,
   getWeatherCodeIssue,
   getWeatherDescription,
+  isSnowy,
 } from './weather-codes';
 
 import { fullHourLabel } from '../utils/timeFormat';
@@ -78,22 +80,26 @@ const collectMessageIssues = (
   // Rain leads among equally rated issues: it's what riders plan around, and
   // the card's icon often shows it.
   const coldRainCondition = evaluateColdRainHazard(
-    weather.temperature,
-    weather.rainChance,
-    weather.weatherCode,
+    {
+      temp: weather.temperature,
+      rainChance: weather.rainChance,
+      precip: weather.precipitation,
+      code: weather.weatherCode,
+    },
     thresholds,
   );
   const coldRainTier = coldRainCondition ? issuePhraseTier(coldRainCondition) : null;
+  const snowy = isSnowy(weather.temperature, weather.weatherCode);
   if (coldRainCondition && coldRainTier) {
     pushIssue(
-      ISSUE_PHRASES.COLD_RAIN(temp, formatPercent(weather.rainChance), coldRainTier),
+      ISSUE_PHRASES.COLD_RAIN(temp, formatPercent(weather.rainChance), coldRainTier, snowy),
       coldRainCondition,
     );
   } else {
     addIssue(
       weather.rainChance,
       'rainChance',
-      (tier) => rainPhrase(weather.rainChance, weather.precipitation, tier, thresholds),
+      (tier) => rainPhrase(weather.rainChance, weather.precipitation, tier, thresholds, snowy),
       evaluateRain(weather.rainChance, weather.precipitation, thresholds),
     );
   }
@@ -118,8 +124,8 @@ const collectMessageIssues = (
   const weatherCodeIssue = getWeatherCodeIssue(weather.weatherCode, status);
   const precipitationAlreadyExplainsWeather =
     weatherCodeIssue &&
-    /(rain|drizzle|shower)/i.test(weatherCodeIssue) &&
-    issues.some(({ text }) => /\brain\b/i.test(text));
+    /(rain|drizzle|shower|snow)/i.test(weatherCodeIssue) &&
+    issues.some(({ text }) => /\b(rain|snow)\b/i.test(text));
   if (weatherCodeIssue && !precipitationAlreadyExplainsWeather) {
     pushIssue(weatherCodeIssue, getWeatherCodeCondition(weather.weatherCode));
   }
@@ -142,16 +148,23 @@ const collectMessageIssues = (
     .map(({ text }) => text);
 };
 
-/** Phrases a rain issue, naming light rain when the amount capped the rating. */
+/**
+ * Phrases a rain issue, naming light rain when the amount capped the rating,
+ * and snow when it falls as snow (`isSnowy`).
+ */
 export const rainPhrase = (
   chance: number,
   amountMm: number | null | undefined,
   tier: IssueTier,
   thresholds: Thresholds = THRESHOLDS,
-): string =>
-  isRainAmountCapped(chance, amountMm, thresholds)
-    ? ISSUE_PHRASES.LIGHT_RAIN(formatPercent(chance), tier)
-    : ISSUE_PHRASES.RAIN(formatPercent(chance), tier);
+  snowy = false,
+): string => {
+  const pct = formatPercent(chance);
+  if (isRainAmountCapped(chance, amountMm, thresholds)) {
+    return snowy ? ISSUE_PHRASES.LIGHT_SNOW(pct, tier) : ISSUE_PHRASES.LIGHT_RAIN(pct, tier);
+  }
+  return snowy ? ISSUE_PHRASES.SNOW(pct, tier) : ISSUE_PHRASES.RAIN(pct, tier);
+};
 
 export const getMessage = (
   weather: Weather,
@@ -311,6 +324,11 @@ export const getRainTiming = (hourly: HourlyWeather[] | undefined): string | nul
   const firstRain = hourly[firstRainIdx];
   const lastRain = hourly[lastRainIdx];
   if (!firstRain || !lastRain) return null;
+  const kind: PrecipKind = hourly
+    .slice(firstRainIdx, lastRainIdx + 1)
+    .every((h) => isSnowy(h.temperature, h.weatherCode))
+    ? 'Snow'
+    : 'Rain';
   const isRainingNow = firstRainIdx === 0;
   const clearsUp = lastRainIdx < hourly.length - 1;
   // The hours run 24 ahead, so a bare "10 AM" seen at 3 PM reads as already past.
@@ -324,13 +342,15 @@ export const getRainTiming = (hourly: HourlyWeather[] | undefined): string | nul
     return clearsTomorrow ? RAIN_MESSAGES.CLEARING_TOMORROW(end) : RAIN_MESSAGES.CLEARING(end);
   }
   // THROUGHOUT means rain persists through the entire visible window, not necessarily the whole day.
-  if (isRainingNow) return RAIN_MESSAGES.THROUGHOUT;
+  if (isRainingNow) return RAIN_MESSAGES.THROUGHOUT(kind);
   if (clearsUp) {
     return startsTomorrow
-      ? RAIN_MESSAGES.WINDOW_TOMORROW(start, end)
-      : RAIN_MESSAGES.WINDOW(start, end);
+      ? RAIN_MESSAGES.WINDOW_TOMORROW(start, end, kind)
+      : RAIN_MESSAGES.WINDOW(start, end, kind);
   }
-  return startsTomorrow ? RAIN_MESSAGES.LATER_TOMORROW(start) : RAIN_MESSAGES.LATER(start);
+  return startsTomorrow
+    ? RAIN_MESSAGES.LATER_TOMORROW(start, kind)
+    : RAIN_MESSAGES.LATER(start, kind);
 };
 
 /** Whether the hour at `index` falls after midnight, counting from the first hour. */

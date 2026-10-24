@@ -17,6 +17,8 @@ export interface RideWindowHour {
   precipitation: number | null;
   dewpoint: number | null;
   weatherCode: number | null;
+  /** UV index; unrated (it sets the kit's sunscreen, not the ride). */
+  uv?: number | null;
 }
 
 /** A rated window: worst-case metrics over hours `startHour`–`endHour` (exclusive). */
@@ -31,6 +33,8 @@ export interface DailyRideWindow {
   precipitation: number | null;
   dewpoint: number | null;
   weatherCode: number | null;
+  /** Highest UV index in the window, or null when no hour has one. */
+  uvMax: number | null;
   condition: DailyWeather['condition'];
 }
 
@@ -93,6 +97,8 @@ export function buildRideWindowCandidate(
     .filter((dewpoint): dewpoint is number => dewpoint != null);
   const dewpoint = dewpoints.length > 0 ? Math.max(...dewpoints) : null;
   const weatherCode = getWorstWeatherCode(hours.map((hour) => hour.weatherCode));
+  const uvs = hours.map((hour) => hour.uv).filter((uv): uv is number => uv != null);
+  const uvMax = uvs.length > 0 ? Math.max(...uvs) : null;
   const tempLow = Math.min(...temperatures);
   const tempHigh = Math.max(...temperatures);
 
@@ -107,6 +113,7 @@ export function buildRideWindowCandidate(
     precipitation,
     dewpoint,
     weatherCode,
+    uvMax,
     condition: getDailyCondition(
       {
         tempLow,

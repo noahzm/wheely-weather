@@ -46,9 +46,16 @@ interface GearTipSet {
 }
 
 const RIDE_WINDOW_HOURS = 3;
-// Above this, even the coolest hour is hot: wind is relief, not a reason to pack
-// a windbreaker.
-const WINDBREAKER_MAX_TEMP = 80;
+// Above this, the coolest hour already rates short sleeves without arm warmers
+// (the NEUTRAL band), and a wind layer only overheats a rider working into the
+// wind: it's relief, not a reason to pack a windbreaker.
+const WINDBREAKER_MAX_TEMP = 65;
+// How far the kit's cold bands follow a cold-adapted rider. The rating's cold
+// shift reaches 18°F because kit does most of the cold adapting
+// (deriveAcclimatization); following it fully put bib shorts and knee warmers
+// on a 33°F ride. Riders used to the cold dress a little lighter, not a
+// season lighter.
+const KIT_MAX_COLD_SHIFT = 5;
 
 /** The verdict's ride window, as local hours [start, end). */
 export interface RideHours {
@@ -166,9 +173,12 @@ function getTemperatureTips(
 ): GearTip[] {
   const tips: GearTip[] = [];
   // Shift comfort bands by the rider's acclimatization relative to the standard
-  // table. Freezing (< 32°F) stays fixed because road ice and frostbite don't
-  // acclimatize.
-  const coldShift = THRESHOLDS.TEMPERATURE.FAIR_MIN - thresholds.TEMPERATURE.FAIR_MIN;
+  // table, the cold side only a little (KIT_MAX_COLD_SHIFT). Freezing (< 32°F)
+  // stays fixed because road ice and frostbite don't acclimatize.
+  const coldShift = Math.min(
+    THRESHOLDS.TEMPERATURE.FAIR_MIN - thresholds.TEMPERATURE.FAIR_MIN,
+    KIT_MAX_COLD_SHIFT,
+  );
   const tempShift = thresholds.TEMPERATURE.FAIR_MAX - THRESHOLDS.TEMPERATURE.FAIR_MAX;
 
   if (w.minTemp < 32) tips.push(tipsSet.FREEZING);
@@ -193,10 +203,18 @@ function hasWetRoads(weather: Weather, w: RideWindow, before: BeforeRide): boole
   // "Recent" rain means rain in the hours just before the ride starts: the past
   // hours, plus the forecast hours ahead of a later window (rain now, dry ride
   // at noon).
-  const recentRain = before.hours.some(
-    (h) => h.rainChance >= WET_ROADS_THRESHOLD.RECENT_RAIN_CHANCE,
-  );
+  const recentRain = before.hours.some((hour) => rainedInHour(hour));
   return isWetCode || recentRain;
+}
+
+/**
+ * Whether an hour put water on the road: more than a trace when the amount is
+ * known, since a 30% chance that came to nothing leaves the road dry; the
+ * chance alone when it isn't.
+ */
+function rainedInHour(hour: HourlyWeather): boolean {
+  if (hour.precipitation != null) return hour.precipitation >= RAIN_AMOUNT_MM.TRACE;
+  return hour.rainChance >= WET_ROADS_THRESHOLD.RECENT_RAIN_CHANCE;
 }
 
 /** Builds the weather-driven add-on tips (rain, wet roads, wind, UV, temp swing, mugginess). */
@@ -212,12 +230,14 @@ function buildSupportingTips(
   // layer covers it, not a rain jacket.
   const traceOnly = w.maxPrecip != null && w.maxPrecip < RAIN_AMOUNT_MM.TRACE;
 
-  if (w.maxTemp - w.minTemp >= 15) tips.push(tipsSet.TEMP_SWING);
   if (w.maxRain > 50 && !traceOnly) tips.push(tipsSet.RAIN_HIGH);
   else if (w.maxRain > 30) tips.push(tipsSet.RAIN_POSSIBLE);
   else if (hasWetRoads(weather, w, before) && tipsSet.WET_ROADS) tips.push(tipsSet.WET_ROADS);
 
+  // Wind before the temperature swing: a kit takes one outer layer
+  // (mergeTipItems), and a wind layer also covers a cool start.
   if (w.maxWind > 15 && w.minTemp <= WINDBREAKER_MAX_TEMP) tips.push(tipsSet.WINDY);
+  if (w.maxTemp - w.minTemp >= 15) tips.push(tipsSet.TEMP_SWING);
   if (w.maxUv >= UV_GEAR.SUNGLASSES) tips.push(tipsSet.UV_EXTREME);
   else if (w.maxUv >= UV_GEAR.SUNSCREEN) tips.push(tipsSet.UV_HIGH);
   if (w.maxDewpoint >= thresholds.DEWPOINT.MARGINAL) tips.push(tipsSet.MUGGY);
@@ -234,6 +254,10 @@ interface MergedTipItem {
  * Flattens tips into a deduplicated item list — later items win their slot.
  * Slotted items and slotless base-tip items form the outfit ('wear');
  * slotless supporting-tip items are add-ons to pack ('bring').
+ * A kit takes one wind layer: an add-on's outer layer is dropped when the kit
+ * already has one (no windbreaker over a jacket, no wind vest beside a gilet).
+ * An item two tips share, like shoe covers for the cold and for the rain, is
+ * listed once.
  */
 function mergeTipItems(tips: { tip: GearTip; base: boolean }[]): MergedTipItem[] {
   const merged: MergedTipItem[] = [];
@@ -241,6 +265,9 @@ function mergeTipItems(tips: { tip: GearTip; base: boolean }[]): MergedTipItem[]
     for (const item of tip.items) {
       const group = item.slot || base ? 'wear' : 'bring';
       if (!item.slot) {
+        const hasOuter = merged.some((existing) => existing.item.outer);
+        const listed = merged.some((existing) => existing.item.label === item.label);
+        if (listed || (item.outer && !base && hasOuter)) continue;
         merged.push({ item, group });
         continue;
       }
@@ -308,7 +335,7 @@ export function getDayGearSuggestion(
     maxRain: day.rainChance,
     maxPrecip: day.precipitation ?? null,
     maxDewpoint: day.dewpoint ?? 0,
-    maxUv: 0,
+    maxUv: day.uvMax ?? 0,
   };
   const tipsSet: GearTipSet = mode === 'pro' ? GEAR_TIPS.PRO : GEAR_TIPS.CASUAL;
   const syntheticWeather = { weatherCode: day.weatherCode } as Weather;

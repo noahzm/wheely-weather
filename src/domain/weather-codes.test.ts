@@ -30,6 +30,13 @@ describe('Weather Code Conditions', () => {
     expect(getWeatherCodeCondition(null)).toBe('good');
   });
 
+  it('rates snow a step worse than rain of the same intensity', () => {
+    expect(getWeatherCodeCondition(63)).toBe('marginal'); // moderate rain
+    expect(getWeatherCodeCondition(73)).toBe('poor'); // moderate snow settles on the road
+    expect(getWeatherCodeCondition(71)).toBe('marginal'); // light snow
+    expect(getWeatherCodeCondition(77)).toBe('marginal'); // snow grains, as light as light snow
+  });
+
   it('describes weather codes or returns Unknown for null or unrecognized codes', () => {
     expect(getWeatherDescription(0)).toBe('Clear skies');
     expect(getWeatherDescription(63)).toBe('Rain');
