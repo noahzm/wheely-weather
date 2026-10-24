@@ -247,8 +247,8 @@ function WebCityHeading({
             }
             style={({ pressed }) => [headingStyles.cityRow, pressed && { opacity: 0.7 }]}
           >
-            {following && <PlatformIcon icon={Navigation} size={20} color={ink} filled />}
             <WebScreenTitle color={ink}>{city}</WebScreenTitle>
+            {following && <PlatformIcon icon={Navigation} size={20} color={ink} filled />}
           </HapticPressable>
         }
       />
