@@ -137,3 +137,24 @@ const SKY_BY_CODE: Readonly<Record<number, Sky>> = {
 /** The home scene's sky for a WMO code; null when unknown, so the caller can fall back. */
 export const getSky = (code: number | null | undefined): Sky | null =>
   code == null ? null : (SKY_BY_CODE[code] ?? null);
+
+/** A verdict's sky when its weather code names none. */
+const SKY_BY_STATUS: Readonly<Record<RideStatus, Sky>> = {
+  yes: 'clear',
+  maybe: 'partly',
+  no: 'rain',
+};
+
+/**
+ * The sky painted behind a verdict, on the home screen and the widget: the
+ * weather it rates (the code its subtitle describes), falling back to the
+ * verdict itself without one. Waiting ("Ride later") keeps the plain page.
+ */
+export function getVerdictSky(
+  status: RideStatus,
+  waiting: boolean,
+  weatherCode: number | null | undefined,
+): Sky | null {
+  if (waiting) return null;
+  return getSky(weatherCode) ?? SKY_BY_STATUS[status];
+}

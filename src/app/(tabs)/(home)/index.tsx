@@ -39,7 +39,7 @@ import {
   WebScreenTitle,
   bottomNavBarHeight,
 } from '@/components/wheely';
-import { HomeBackdrop, sceneFor, type SceneKind } from '@/components/wheely/home-backdrop';
+import { HomeBackdrop, type SceneKind } from '@/components/wheely/home-backdrop';
 import {
   WEB_TITLE_CONTENT_SPACING,
   WebCompactTitleBar,
@@ -55,6 +55,7 @@ import {
   getRideKitTitle,
   getRideVerdictLabel,
 } from '@/domain';
+import { getVerdictSky } from '@/domain/weather-codes';
 import type { AcclimatizationContext } from '@/services/forecastSnapshot';
 import { useForecast } from '@/hooks/forecast-context';
 import { useGearMode, useResolvedTempUnit } from '@/hooks/settings-context';
@@ -463,7 +464,7 @@ export default function HomeScreen() {
   // The scene shows only with the forecast itself, not the loading, error or location states.
   const scene =
     sections && !forecast.loading && !forecast.needsLocation
-      ? sceneFor(
+      ? getVerdictSky(
           sections.derived.status,
           sections.derived.waiting,
           sections.derived.verdictWeatherCode,

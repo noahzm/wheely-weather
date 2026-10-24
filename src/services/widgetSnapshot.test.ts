@@ -83,6 +83,17 @@ describe('buildWidgetSnapshot', () => {
     expect(widget?.waiting).toBe(false);
   });
 
+  it("paints the home screen's sky for the verdict's weather", () => {
+    const snapshot = buildSnapshot('ride', {
+      weather: { ...buildSnapshot('ride').weather, weatherCode: 95 },
+    });
+    expect(buildWidgetSnapshot(snapshot, 'fahrenheit')?.sky).toBe('storm');
+  });
+
+  it('keeps the plain page while waiting', () => {
+    expect(buildWidgetSnapshot(buildSnapshot('wait'), 'fahrenheit')?.sky).toBeNull();
+  });
+
   it('has no upcoming verdicts without a raw forecast to re-rate', () => {
     // Mocks, and snapshots restored from the disk cache, carry no payload.
     expect(buildWidgetSnapshot(buildSnapshot('ride'), 'fahrenheit')?.upcoming).toEqual([]);
@@ -185,6 +196,13 @@ describe('upcoming verdicts', () => {
       symbol: 'sun.max.fill',
     });
     expect(widget?.upcoming[1]?.headline).not.toMatch(/(AM|PM)$/);
+  });
+
+  it('rates each upcoming hour on its own for the hour strip', () => {
+    const widget = buildWidgetSnapshot(snapshotFromForecast(makeForecastData()), 'fahrenheit');
+    // 3 PM is still raining; the verdict then is waiting for the 4 PM window.
+    expect(widget?.upcoming[0]).toMatchObject({ hourCondition: 'bad', sky: null });
+    expect(widget?.upcoming[1]).toMatchObject({ hourCondition: 'good', sky: 'clear' });
   });
 
   it("moves on to tomorrow's window after sunset", () => {

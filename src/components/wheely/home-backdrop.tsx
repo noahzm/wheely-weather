@@ -13,7 +13,7 @@ import Svg, {
 
 import grainTexture from '@/assets/images/scene-grain.png';
 import { SceneColors } from '@/constants/theme';
-import { getSky, type Sky } from '@/domain/weather-codes';
+import type { Sky } from '@/domain/weather-codes';
 import { useWheelyColors } from '@/hooks/use-theme';
 
 import { entrance, GLOW, loop, PEEK, RISE, useSceneMotion, type Motion } from './scene-motion';
@@ -47,24 +47,6 @@ const SKY_LINE = ABOVE + HORIZON;
 const SKY_DEPTH = 240;
 /** How strongly the film grain shows over the scene. */
 const GRAIN_OPACITY = 0.32;
-
-/**
- * The sky follows the weather the verdict rates (the same code its subtitle
- * describes), falling back to the verdict itself without one. "Ride later"
- * keeps the plain page.
- */
-export function sceneFor(
-  status: 'yes' | 'maybe' | 'no',
-  waiting: boolean,
-  weatherCode: number | null | undefined,
-): SceneKind | null {
-  if (waiting) return null;
-  const sky = getSky(weatherCode);
-  if (sky != null) return sky;
-  if (status === 'yes') return 'clear';
-  if (status === 'maybe') return 'partly';
-  return 'rain';
-}
 
 /** A square box of side `size` centered on (cx, cy) in scene coordinates. */
 function boxAt(cx: number, cy: number, size: number) {

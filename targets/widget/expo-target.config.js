@@ -1,6 +1,9 @@
 // Home screen widget: today's ride verdict, written by the app into the shared
-// App Group (src/services/widgetStorage.ios.ts). Colors mirror the verdict card's
-// `condition` tokens in src/constants/theme.ts (same in light and dark).
+// App Group (src/services/widgetStorage.ios.ts). The widget's own colors live in
+// WidgetTheme.swift and WidgetScene.swift, mirroring src/constants/theme.ts; the
+// colorsets here are the system's accent and widget-background names. Oswald
+// ships in fonts/ (registered in Info.plist), and the scene's film grain is the
+// app's tile.
 /** @type {import('@bacons/apple-targets/app.plugin').ConfigFunction} */
 function createWidgetTargetConfig(config) {
   return {
@@ -12,13 +15,12 @@ function createWidgetTargetConfig(config) {
     colors: {
       $accent: '#F1BDF2',
       $widgetBackground: { light: '#FFFFFF', dark: '#141416' },
-      rideYes: '#2ECC71',
-      rideFair: '#38BDF8',
-      rideMaybe: '#FFD20A',
-      ridePoor: '#FF9F0A',
-      rideNo: '#FF5252',
-      // The wait state (bad now, good later) uses the app's accent pink.
-      rideWait: '#F1BDF2',
+    },
+    images: {
+      sceneGrain: {
+        '1x': '../../assets/images/scene-grain.png',
+        '2x': '../../assets/images/scene-grain@2x.png',
+      },
     },
     entitlements: {
       'com.apple.security.application-groups':

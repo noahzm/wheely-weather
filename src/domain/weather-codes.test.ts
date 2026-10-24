@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   getSky,
+  getVerdictSky,
   getWeatherCodeCondition,
   getWeatherCodeIssue,
   getWeatherDescription,
@@ -95,5 +96,22 @@ describe('getSky', () => {
   it('returns null without a known code', () => {
     expect(getSky(null)).toBeNull();
     expect(getSky(10)).toBeNull();
+  });
+});
+
+describe('getVerdictSky', () => {
+  it('paints the weather the verdict rates', () => {
+    expect(getVerdictSky('yes', false, 2)).toBe('partly');
+    expect(getVerdictSky('no', false, 95)).toBe('storm');
+  });
+
+  it('falls back to the verdict without a known code', () => {
+    expect(getVerdictSky('yes', false, null)).toBe('clear');
+    expect(getVerdictSky('maybe', false, 10)).toBe('partly');
+    expect(getVerdictSky('no', false, null)).toBe('rain');
+  });
+
+  it('keeps the plain page while waiting for a later window', () => {
+    expect(getVerdictSky('yes', true, 1)).toBeNull();
   });
 });

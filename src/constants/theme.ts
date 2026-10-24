@@ -57,6 +57,8 @@ export interface WheelyPalette {
  * Dark mode uses the iOS system dark surfaces (black page, #1C1C1E cards,
  * the opaque separator gray) so it matches native chrome, with gray outlines
  * and neutral gray hard shadows instead of white ones, which glared on black.
+ *
+ * The home screen widget keeps a copy in targets/widget/WidgetTheme.swift.
  */
 export const WheelyTheme: { light: WheelyPalette; dark: WheelyPalette } = {
   light: {
@@ -115,6 +117,8 @@ export const WheelyTheme: { light: WheelyPalette; dark: WheelyPalette } = {
  * for the day, so it stays in daylight in dark mode too (a night sky read as
  * nighttime), and whatever sits on it (the title, the location line, the
  * status bar) uses these dark inks in both modes.
+ *
+ * The home screen widget keeps a copy in targets/widget/WidgetScene.swift.
  */
 export const SceneColors = {
   /** A fair day's sky, from high overhead down to the glow at the horizon. */

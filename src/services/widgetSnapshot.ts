@@ -6,6 +6,7 @@ import {
 } from '@/domain';
 import { applyAirQualityToToday } from '@/domain/air-quality';
 import type { Thresholds } from '@/domain/constants';
+import { getVerdictSky, type Sky } from '@/domain/weather-codes';
 import type { ForecastSnapshot } from '@/services/forecastSnapshot';
 import { buildWeatherFromData, forecastFromHour } from '@/services/weatherParsing';
 import { DEFAULT_RIDE_DURATION, RIDE_DURATION_HOURS } from '@/types/settings';
@@ -25,11 +26,19 @@ interface WidgetVerdict {
   symbol: string;
   /** Bad now but good later today, so the widget uses the wait color. */
   waiting: boolean;
+  /** The home screen's sky for this verdict, painted behind the widget; null keeps the plain page. */
+  sky: Sky | null;
 }
 
 /** A verdict the widget switches to at `at` (ISO 8601). */
 export interface UpcomingVerdict extends WidgetVerdict {
   at: string;
+  /**
+   * That hour rated on its own, for the medium widget's hour strip. The
+   * verdict fields rate the day's best window as of that hour, so they can't
+   * say how the hour itself is.
+   */
+  hourCondition: Condition | null;
 }
 
 /**
@@ -85,6 +94,7 @@ function buildVerdict(
     temperature: formatTemperature(weather.temperature, tempUnit),
     symbol: weatherSfSymbol(verdict.weatherCode),
     waiting: verdict.when === 'wait',
+    sky: getVerdictSky(verdict.status, verdict.when === 'wait', verdict.weatherCode),
   };
 }
 
@@ -134,6 +144,8 @@ export function buildWidgetSnapshot(
     upcoming: upcomingForecasts(snapshot).map(({ at, weather: later }) => ({
       at: at.toISOString(),
       ...buildVerdict(later, location, thresholds, tempUnit),
+      // The forecast's first hour is the one starting at `at`.
+      hourCondition: later.hourly[0]?.condition ?? null,
     })),
   };
 }
