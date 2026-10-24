@@ -119,6 +119,26 @@ describe('searchLocations', () => {
     );
   });
 
+  it('drops repeats of the same place, keeping the first (higher-ranked) one', async () => {
+    const address = { city: 'Colorado Springs', state: 'Colorado' };
+    const displayName = 'Colorado Springs, El Paso County, Colorado, United States';
+    stubFetchJson([
+      { lat: '38.8339', lon: '-104.8253', address, display_name: displayName },
+      { lat: '38.7990', lon: '-104.7980', address, display_name: displayName },
+      {
+        lat: '38.8000',
+        lon: '-104.8000',
+        address: { county: 'El Paso County', state: 'Colorado' },
+        display_name: 'El Paso County, Colorado, United States',
+      },
+    ]);
+    const results = await searchLocations('Colorado Springs');
+    expect(results.map((r) => [r.label, r.lat])).toEqual([
+      ['Colorado Springs, Colorado', 38.8339],
+      ['El Paso County, Colorado', 38.8],
+    ]);
+  });
+
   it('returns an empty list when the payload is not an array', async () => {
     stubFetchJson({ unexpected: true });
     await expect(searchLocations('Raleigh')).resolves.toEqual([]);

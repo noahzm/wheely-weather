@@ -53,7 +53,26 @@ async function parseNominatimSearchResponse(res: Response): Promise<LocationSear
       const label = joined === '' ? (item.display_name ?? 'Unknown location') : joined;
       return { lat, lon, label, displayName: item.display_name };
     })
-    .filter((place): place is LocationSearchResult => place !== null);
+    .filter((place): place is LocationSearchResult => place !== null)
+    .filter((place, index, places) => isFirstOfItsName(place, index, places));
+}
+
+/**
+ * OpenStreetMap can hold one place as several objects (Colorado Springs is both
+ * a boundary relation and a boundary way, a few km apart), and Nominatim returns
+ * each, so the list showed the same city twice. Keeps the first of each name:
+ * Nominatim ranks the more important object first.
+ */
+function isFirstOfItsName(
+  place: LocationSearchResult,
+  index: number,
+  places: LocationSearchResult[],
+): boolean {
+  return (
+    places.findIndex(
+      (other) => other.label === place.label && other.displayName === place.displayName,
+    ) === index
+  );
 }
 
 /** Forward-geocodes a free-text query into a list of place candidates via Nominatim. */
