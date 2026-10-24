@@ -8,12 +8,12 @@ import { useWheelyColors } from '@/hooks/use-theme';
 import { useGearMode, useRideDuration } from '@/hooks/settings-context';
 import { RIDE_DURATION_HOURS, type GearMode } from '@/types/settings';
 import {
-  FontWeightBlack,
   Fonts,
   Radius,
   Spacing,
   Type,
   type WheelyPalette,
+  FontWeightSemibold,
 } from '@/constants/theme';
 import type { GearTipItem, Weather } from '@/types/weather';
 import { BrutalCard, CardInnerRadius, KitGearIcon } from './primitives';
@@ -36,14 +36,14 @@ function makeStyles(c: WheelyPalette) {
       paddingHorizontal: Spacing.three,
       paddingVertical: Spacing.two,
       borderBottomWidth: 1,
-      borderColor: c.border,
+      borderColor: c.divider,
       backgroundColor: c.paper,
     },
     headerLabel: {
       color: c.ink,
       fontFamily: Fonts.bold,
-      fontWeight: FontWeightBlack,
-      ...Type.caption,
+      fontWeight: FontWeightSemibold,
+      ...Type.micro,
       textTransform: 'uppercase',
       letterSpacing: 1,
     },
@@ -57,7 +57,7 @@ function makeStyles(c: WheelyPalette) {
     },
     wearRowBorderBottom: {
       borderBottomWidth: 1,
-      borderColor: c.border,
+      borderColor: c.divider,
     },
     wearCell: {
       flex: 1,
@@ -70,7 +70,7 @@ function makeStyles(c: WheelyPalette) {
     },
     wearCellBorderRight: {
       borderRightWidth: 1,
-      borderColor: c.border,
+      borderColor: c.divider,
     },
     wearIconWrap: {
       flexDirection: 'row',
@@ -98,7 +98,7 @@ function makeStyles(c: WheelyPalette) {
       paddingHorizontal: Spacing.three,
       paddingVertical: Spacing.two,
       borderTopWidth: 1,
-      borderColor: c.border,
+      borderColor: c.divider,
       flexDirection: 'row',
       flexWrap: 'wrap',
       alignItems: 'center',
@@ -107,8 +107,8 @@ function makeStyles(c: WheelyPalette) {
     bringHeader: {
       color: c.mutedInk,
       fontFamily: Fonts.bold,
-      fontWeight: FontWeightBlack,
-      ...Type.caption,
+      fontWeight: FontWeightSemibold,
+      ...Type.micro,
       textTransform: 'uppercase',
       letterSpacing: 1,
       marginRight: Spacing.half,

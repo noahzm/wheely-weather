@@ -9,11 +9,11 @@ import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
 import {
   Fonts,
-  FontWeightBlack,
   Radius,
   Spacing,
   Type,
   type WheelyPalette,
+  FontWeightSemibold,
 } from '@/constants/theme';
 import { withAlpha } from '@/utils/colors';
 import { ArrowUpRight, ChevronRight } from './icons';
@@ -31,8 +31,8 @@ function makeStyles(c: WheelyPalette) {
     header: {
       color: c.mutedInk,
       fontFamily: Fonts.bold,
-      fontWeight: FontWeightBlack,
-      ...Type.caption,
+      fontWeight: FontWeightSemibold,
+      ...Type.micro,
       textTransform: 'uppercase',
       letterSpacing: 0.6,
       paddingHorizontal: ROW_PADDING,
@@ -50,7 +50,7 @@ function makeStyles(c: WheelyPalette) {
     footer: {
       color: c.mutedInk,
       fontFamily: Fonts.body,
-      ...Type.caption,
+      ...Type.micro,
       paddingHorizontal: ROW_PADDING,
     },
     row: {

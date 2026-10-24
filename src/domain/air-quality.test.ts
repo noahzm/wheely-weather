@@ -69,4 +69,24 @@ describe('applyAirQualityToToday', () => {
     const result = applyAirQualityToToday(input, THRESHOLDS);
     expect(result.hourly.map((h) => h.condition)).toEqual(['bad', 'fair']);
   });
+
+  it('lowers the rest of today’s daylight strip too, but not hours already gone', () => {
+    const today: DailyWeather = {
+      ...day(),
+      daylight: [
+        { hour: 13, condition: 'good', isPast: true },
+        { hour: 14, condition: 'good' },
+        { hour: 15, condition: 'bad' },
+        { hour: 16, condition: null, isPast: true },
+      ],
+    };
+    const result = applyAirQualityToToday({ ...weather(160), daily: [today, day()] }, THRESHOLDS);
+    expect(result.daily[0]?.daylight?.map((h) => h.condition)).toEqual([
+      'good',
+      'poor',
+      'bad',
+      null,
+    ]);
+    expect(result.daily[1]?.daylight).toBeUndefined();
+  });
 });

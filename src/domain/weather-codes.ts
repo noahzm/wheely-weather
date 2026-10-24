@@ -68,3 +68,48 @@ export const getWeatherCodeIssue = (
   if (!shouldMention || code == null) return null;
   return WEATHER_CODE_ISSUES[code] ?? null;
 };
+
+/** The home scene's sky for a forecast: what the rider would see overhead. */
+export type Sky =
+  'clear' | 'partly' | 'overcast' | 'fog' | 'drizzle' | 'rain' | 'storm' | 'snow' | 'sleet';
+
+/**
+ * Every WMO code by the sky it gets. Freezing drizzle and rain get sleet's
+ * wintry mix; hail comes with thunderstorms (96, 99). WeatherKit's conditions
+ * arrive already translated to these codes (haze, smoke and dust as fog,
+ * flurries and blizzards as snow, wintry mix as freezing rain).
+ */
+const SKY_BY_CODE: Readonly<Record<number, Sky>> = {
+  0: 'clear',
+  1: 'clear',
+  2: 'partly',
+  3: 'overcast',
+  45: 'fog',
+  48: 'fog',
+  51: 'drizzle',
+  53: 'drizzle',
+  55: 'drizzle',
+  56: 'sleet',
+  57: 'sleet',
+  61: 'rain',
+  63: 'rain',
+  65: 'rain',
+  66: 'sleet',
+  67: 'sleet',
+  71: 'snow',
+  73: 'snow',
+  75: 'snow',
+  77: 'snow',
+  80: 'rain',
+  81: 'rain',
+  82: 'rain',
+  85: 'snow',
+  86: 'snow',
+  95: 'storm',
+  96: 'storm',
+  99: 'storm',
+};
+
+/** The home scene's sky for a WMO code; null when unknown, so the caller can fall back. */
+export const getSky = (code: number | null | undefined): Sky | null =>
+  code == null ? null : (SKY_BY_CODE[code] ?? null);

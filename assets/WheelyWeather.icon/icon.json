@@ -2,13 +2,19 @@
   "fill-specializations": [
     {
       "value": {
-        "automatic-gradient": "extended-srgb:0.94510,0.74118,0.94902,1.00000"
+        "linear-gradient": [
+          "extended-srgb:0.78824,0.47843,0.83922,1.00000",
+          "extended-srgb:1.00000,0.87843,0.92549,1.00000"
+        ]
       }
     },
     {
       "appearance": "dark",
       "value": {
-        "automatic-gradient": "extended-srgb:0.18039,0.12157,0.36863,1.00000"
+        "linear-gradient": [
+          "extended-srgb:0.11765,0.09020,0.27843,1.00000",
+          "extended-srgb:0.89412,0.52549,0.65882,1.00000"
+        ]
       }
     }
   ],
@@ -18,8 +24,8 @@
       "layers": [
         {
           "name": "dashes",
-          "image-name": "dashes.svg",
-          "glass": true,
+          "image-name": "dashes.png",
+          "glass": false,
           "hidden": false,
           "fill-specializations": [
             {
@@ -32,8 +38,8 @@
         },
         {
           "name": "road",
-          "image-name": "road.svg",
-          "glass": true,
+          "image-name": "road.png",
+          "glass": false,
           "hidden": false,
           "fill-specializations": [
             {
@@ -59,15 +65,10 @@
       "layers": [
         {
           "name": "land",
-          "image-name": "land.svg",
-          "glass": true,
+          "image-name": "land.png",
+          "glass": false,
           "hidden": false,
           "fill-specializations": [
-            {
-              "value": {
-                "automatic-gradient": "extended-srgb:0.18039,0.80000,0.44314,1.00000"
-              }
-            },
             {
               "appearance": "tinted",
               "value": {
@@ -90,30 +91,11 @@
       "name": "Sun",
       "layers": [
         {
-          "name": "shine",
-          "image-name": "shine.svg",
-          "glass": true,
-          "hidden": false,
-          "fill-specializations": [
-            {
-              "appearance": "tinted",
-              "value": {
-                "solid": "extended-srgb:0.62000,0.62000,0.62000,1.00000"
-              }
-            }
-          ]
-        },
-        {
           "name": "sun",
-          "image-name": "sun.svg",
-          "glass": true,
+          "image-name": "sun.png",
+          "glass": false,
           "hidden": false,
           "fill-specializations": [
-            {
-              "value": {
-                "automatic-gradient": "extended-srgb:1.00000,0.82353,0.03922,1.00000"
-              }
-            },
             {
               "appearance": "tinted",
               "value": {
@@ -131,6 +113,94 @@
         "enabled": false,
         "value": 0.5
       }
+    },
+    {
+      "name": "Glow",
+      "layers": [
+        {
+          "name": "glow",
+          "image-name": "glow.png",
+          "glass": false,
+          "hidden": false
+        }
+      ],
+      "shadow": {
+        "kind": "none",
+        "opacity": 0.5
+      },
+      "translucency": {
+        "enabled": false,
+        "value": 0.5
+      },
+      "hidden-specializations": [
+        {
+          "value": false
+        },
+        {
+          "appearance": "tinted",
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "Day sky",
+      "layers": [
+        {
+          "name": "sky",
+          "image-name": "sky.png",
+          "glass": false,
+          "hidden": false
+        }
+      ],
+      "shadow": {
+        "kind": "none",
+        "opacity": 0.5
+      },
+      "translucency": {
+        "enabled": false,
+        "value": 0.5
+      },
+      "hidden-specializations": [
+        {
+          "value": false
+        },
+        {
+          "appearance": "dark",
+          "value": true
+        },
+        {
+          "appearance": "tinted",
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "Dusk sky",
+      "layers": [
+        {
+          "name": "dusk sky",
+          "image-name": "sky-dark.png",
+          "glass": false,
+          "hidden": false
+        }
+      ],
+      "shadow": {
+        "kind": "none",
+        "opacity": 0.5
+      },
+      "translucency": {
+        "enabled": false,
+        "value": 0.5
+      },
+      "hidden-specializations": [
+        {
+          "value": true
+        },
+        {
+          "appearance": "dark",
+          "value": false
+        }
+      ]
     }
   ],
   "supported-platforms": {

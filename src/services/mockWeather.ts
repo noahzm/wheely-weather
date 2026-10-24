@@ -8,7 +8,14 @@ import {
   isThunderstorm,
 } from '../domain/weather';
 
-import type { HourlyWeather, MockScenario, Weather, WeatherAlert } from '@/types/weather';
+import type {
+  Condition,
+  DaylightHour,
+  HourlyWeather,
+  MockScenario,
+  Weather,
+  WeatherAlert,
+} from '@/types/weather';
 
 interface MockScenarioSpec {
   label: string;
@@ -301,6 +308,35 @@ function buildDayRideWindow(
   }
 }
 
+/**
+ * A mock day's daylight strip. Today's hours come from the same template as
+ * the mock chart; later days have no hourly template (some scenarios' are
+ * keyed to the current time), so every hour carries the day's own rating
+ * rather than an invented shape. None once today's daylight is over.
+ */
+function buildMockDaylight(params: {
+  dayIndex: number;
+  spec: MockScenarioSpec;
+  nowHour: number;
+  condition: Condition;
+  todayHour: (h: number) => HourlyWeather;
+}): DaylightHour[] | undefined {
+  const { dayIndex, spec, nowHour, condition, todayHour } = params;
+  const hours: DaylightHour[] = [];
+  for (let h = spec.sunriseHour; h < spec.sunsetHour; h++) {
+    if (dayIndex === 0) {
+      hours.push({
+        hour: h,
+        condition: todayHour(h).condition,
+        ...(h < nowHour && { isPast: true }),
+      });
+    } else {
+      hours.push({ hour: h, condition });
+    }
+  }
+  return hours.some((h) => !h.isPast) ? hours : undefined;
+}
+
 /** Builds the full normalized weather payload for the given scenario. */
 export function buildMockWeather(scenario: string | null | undefined): Weather | null {
   const spec = isMockScenario(scenario) ? SCENARIOS[scenario] : null;
@@ -352,8 +388,16 @@ export function buildMockWeather(scenario: string | null | undefined): Weather |
       dewpoint: spec.current.dewpoint,
     });
     const rideWindow = buildDayRideWindow(i, nowHour, spec.todayWindow, condition, t);
+    const daylight = buildMockDaylight({
+      dayIndex: i,
+      spec,
+      nowHour,
+      condition,
+      todayHour: buildHour,
+    });
     return {
       ...(rideWindow && { rideWindow }),
+      ...(daylight && { daylight }),
       date: d,
       high: t.high,
       low: t.low,

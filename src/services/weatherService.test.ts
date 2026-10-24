@@ -636,3 +636,75 @@ describe('forecastFromHour', () => {
     expect(forecastFromHour(unknownNow, 1)).toBeNull();
   });
 });
+
+describe('buildWeatherFromData — daylight strip', () => {
+  // Sunrise 7, sunset 12: five daylight hours, 7–11 AM.
+  const daily = {
+    time: ['2024-01-15'],
+    sunrise: [hourTime('2024-01-15', 7)],
+    sunset: [hourTime('2024-01-15', 12)],
+  };
+  const morning = Array.from({ length: 6 }, (_, i) => hourTime('2024-01-15', i + 6));
+
+  it('rates each daylight hour like the chart, flagging the hours already gone', () => {
+    const rain = [0, 0, 0, 0, 90, 0];
+    const weather = buildWeatherFromData(
+      makeOpenMeteoData({
+        current: { time: hourTime('2024-01-15', 9) },
+        hourly: { time: morning, precipitation_probability: rain },
+        daily,
+      }),
+      THRESHOLDS,
+    );
+    const strip = weather.daily[0]?.daylight;
+    expect(strip?.map((h) => h.hour)).toEqual([7, 8, 9, 10, 11]);
+    expect(strip?.map((h) => h.isPast ?? false)).toEqual([true, true, false, false, false]);
+    // The 10 AM hour rains, and rates the way the chart's 10 AM does.
+    const chartTen = weather.hourly.find((h) => h.hour === 10);
+    expect(strip?.[3]?.condition).toBe(chartTen?.condition);
+    expect(strip?.[3]?.condition).not.toBe('good');
+    expect(strip?.[4]?.condition).toBe('good');
+  });
+
+  it('keeps today’s hours from before the forecast starts as unrated past hours', () => {
+    const fromNine = Array.from({ length: 3 }, (_, i) => hourTime('2024-01-15', i + 9));
+    const weather = buildWeatherFromData(
+      makeOpenMeteoData({
+        current: { time: hourTime('2024-01-15', 9) },
+        hourly: { time: fromNine },
+        daily,
+      }),
+      THRESHOLDS,
+    );
+    const strip = weather.daily[0]?.daylight;
+    expect(strip?.slice(0, 2)).toEqual([
+      { hour: 7, condition: null, isPast: true },
+      { hour: 8, condition: null, isPast: true },
+    ]);
+    expect(strip?.slice(2).every((h) => h.condition === 'good')).toBe(true);
+  });
+
+  it('leaves out a day whose forecast ends before sunset', () => {
+    const weather = buildWeatherFromData(
+      makeOpenMeteoData({
+        current: { time: hourTime('2024-01-15', 6) },
+        hourly: { time: morning.slice(0, 4) },
+        daily,
+      }),
+      THRESHOLDS,
+    );
+    expect(weather.daily[0]?.daylight).toBeUndefined();
+  });
+
+  it('leaves out today once its daylight is over', () => {
+    const weather = buildWeatherFromData(
+      makeOpenMeteoData({
+        current: { time: hourTime('2024-01-15', 11) },
+        hourly: { time: [...morning, hourTime('2024-01-15', 12)] },
+        daily: { ...daily, sunset: [hourTime('2024-01-15', 11)] },
+      }),
+      THRESHOLDS,
+    );
+    expect(weather.daily[0]?.daylight).toBeUndefined();
+  });
+});

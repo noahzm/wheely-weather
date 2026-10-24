@@ -210,7 +210,7 @@ export default function LocationSearchScreen() {
         )}
         {isWeb && <WebCompactTitleBar title="Search" visible={titleCollapsed} />}
         {busy && !isIOS && (
-          <View style={[styles.busyOverlay, { backgroundColor: withAlpha(c.shadow, 0.15) }]}>
+          <View style={[styles.busyOverlay, { backgroundColor: withAlpha(c.ink, 0.15) }]}>
             <ActivityIndicator color={c.accent} size="large" />
           </View>
         )}

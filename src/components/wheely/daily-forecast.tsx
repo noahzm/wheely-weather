@@ -2,34 +2,39 @@ import { useMemo, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { SymbolView, type SFSymbol } from 'expo-symbols';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
-import { ChevronRight, Clock, CloudRain, Wind, type IconComponent } from './icons';
+import { ChevronRight, type IconComponent } from './icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { CONDITION_DISPLAY, getDayGearSuggestion } from '@/domain';
 import { DAYLIGHT_MESSAGES } from '@/domain/copy';
 import { dayLabel, getBestDayInfo, formatPercent } from '@/utils';
-import { getDayConditionReason } from '@/utils/forecastHelpers';
-import { fullHourLabel } from '@/utils/timeFormat';
+import {
+  formatDayRowNote,
+  getDayConditionReason,
+  getDayRowNote,
+  isGenericDayReason,
+} from '@/utils/forecastHelpers';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { useTemperatureDisplay } from '@/hooks/use-temperature-display';
 import { useGearMode, useResolvedTempUnit } from '@/hooks/settings-context';
 import {
-  FontWeightBlack,
   Fonts,
-  Radius,
+  LabelText,
+  PosterText,
   Spacing,
   Type,
   type WheelyPalette,
+  FontWeightSemibold,
+  TabularNumbers,
 } from '@/constants/theme';
 import { withAlpha } from '@/utils/colors';
 import type { Thresholds } from '@/domain/constants';
-import type { DailyWeather } from '@/types/weather';
+import type { DailyWeather, GearTipItem } from '@/types/weather';
 import { AnimatedExpand, useExpandAnimation } from './animated-expand';
+import { DaylightAxis, DaylightStrip } from './daylight-strip';
 import {
   BrutalCard,
   CardInnerRadius,
-  Chip,
-  ConditionPill,
   HapticPressable,
   KitGearIcon,
   PlatformIcon,
@@ -48,83 +53,67 @@ function makeStyles(c: WheelyPalette) {
       position: 'relative',
       flexDirection: 'column',
       borderBottomWidth: 1,
-      borderColor: c.border,
+      borderColor: c.divider,
     },
+    // Tighter than a one-line row would want: most rows carry a note line too.
     dayRowHeader: {
       paddingHorizontal: Spacing.three,
-      paddingVertical: 14,
+      paddingVertical: Spacing.two + Spacing.half,
+      gap: Spacing.half,
       ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as object) : null),
     },
     dayRowLast: { borderBottomWidth: 0 },
+    // The week's best day wears the pink that marks "when to go" across the
+    // app (the chart's ride window, the wait card), at the chart band's strength.
+    dayRowBest: { backgroundColor: withAlpha(c.accent, 0.35) },
     dayRowMain: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: Spacing.two,
     },
-    // Fits "Tomorrow"; the label shrinks a little on the narrowest phones. The
-    // best-bet tag sits under the day name, so no column gives up width for it.
-    dayLabelCell: { width: 98, gap: Spacing.half },
-    bestTag: { paddingHorizontal: 6, paddingVertical: 1 },
-    dayLabel: {
+    // Fits "Tomorrow"; the label shrinks a little on the narrowest phones.
+    dayLabelCell: { width: 98 },
+    // The note runs under the whole row, so it isn't squeezed into the label's column.
+    dayNote: {
+      color: c.mutedInk,
+      fontFamily: Fonts.body,
+      fontWeight: '400',
+      ...Type.small,
+    },
+    dayNoteLead: {
       color: c.ink,
       fontFamily: Fonts.bold,
-      fontWeight: FontWeightBlack,
-      ...Type.body,
+      fontWeight: FontWeightSemibold,
+    },
+    dayLabel: {
+      color: c.ink,
+      ...PosterText,
+      ...Type.dayTitle,
     },
     weatherGlyph: { width: 22, alignItems: 'center' },
     // Body size, not heading: the rating, not the temperature, leads the row.
     dayTemp: {
       color: c.ink,
       fontFamily: Fonts.bold,
-      fontWeight: FontWeightBlack,
+      fontWeight: FontWeightSemibold,
       ...Type.body,
+      ...TabularNumbers,
       ...(Platform.OS === 'web' ? ({ whiteSpace: 'nowrap' } as object) : null),
     },
-    dayLow: { color: c.mutedInk, fontSize: Type.small.fontSize },
+    dayLow: { color: c.mutedInk, fontWeight: '400', fontSize: Type.small.fontSize },
     // The ratings form a column at the right, beside the chevron. Pushed there by
     // its margin; a spacer view would cost the row another gap.
-    ratingCell: { marginLeft: 'auto' },
+    dayRating: {
+      marginLeft: 'auto',
+      color: c.ink,
+      ...LabelText,
+      ...Type.micro,
+    },
+    dayRatingDone: { color: c.mutedInk },
     chevronWrap: {
       width: 16,
       alignItems: 'center',
       justifyContent: 'center',
-    },
-    dayDetailDrawer: {
-      paddingHorizontal: Spacing.three,
-      paddingBottom: Spacing.three,
-      paddingTop: Spacing.two,
-      gap: Spacing.two,
-      backgroundColor: c.background,
-      borderTopWidth: StyleSheet.hairlineWidth,
-      borderColor: withAlpha(c.ink, 0.15),
-    },
-    dayDetailReason: {
-      color: c.ink,
-      fontFamily: Fonts.bold,
-      ...Type.small,
-      fontWeight: FontWeightBlack,
-    },
-    dayDetailGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: Spacing.one,
-    },
-    dayDetailPill: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 5,
-      backgroundColor: c.paper,
-      borderWidth: 1,
-      borderColor: c.border,
-      borderRadius: Radius.pill,
-      paddingHorizontal: Spacing.two,
-      paddingVertical: 4,
-    },
-    dayDetailPillText: {
-      color: c.ink,
-      fontFamily: Fonts.body,
-      ...Type.micro,
-      fontWeight: '400',
     },
     muted: {
       color: c.mutedInk,
@@ -151,87 +140,174 @@ function preventOrphans(text: string): string {
   return `${glued.slice(0, lastSpaceIdx)}\u00A0${glued.slice(lastSpaceIdx + 1)}`;
 }
 
+function makeDetailStyles(c: WheelyPalette) {
+  const rule = withAlpha(c.ink, 0.15);
+  const smallCaps = {
+    color: c.mutedInk,
+    fontFamily: Fonts.bold,
+    fontWeight: FontWeightSemibold,
+    ...Type.micro,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  } as const;
+  return StyleSheet.create({
+    // Same surface as the row, set off by a hairline rather than a sunken
+    // panel, so the day reads as one piece.
+    drawer: {
+      marginHorizontal: Spacing.three,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderColor: rule,
+      paddingTop: Spacing.two + Spacing.one,
+      paddingBottom: Spacing.three,
+      gap: Spacing.three,
+    },
+    reason: {
+      color: c.ink,
+      fontFamily: Fonts.bold,
+      fontWeight: FontWeightSemibold,
+      ...Type.small,
+    },
+    stats: { flexDirection: 'row' },
+    stat: { flex: 1, gap: Spacing.half },
+    statDivided: {
+      borderLeftWidth: StyleSheet.hairlineWidth,
+      borderColor: rule,
+      paddingLeft: Spacing.three,
+    },
+    label: smallCaps,
+    value: {
+      color: c.ink,
+      fontFamily: Fonts.bold,
+      fontWeight: FontWeightSemibold,
+      ...Type.body,
+      ...TabularNumbers,
+    },
+    detail: {
+      color: c.mutedInk,
+      fontFamily: Fonts.body,
+      fontWeight: '400',
+      ...Type.micro,
+      ...TabularNumbers,
+    },
+    kit: { flexDirection: 'row', gap: Spacing.three },
+    kitColumn: { flex: 1, gap: Spacing.one + Spacing.half },
+    kitItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
+    kitIcon: { width: 22, alignItems: 'center' },
+    kitLabel: {
+      flex: 1,
+      color: c.ink,
+      fontFamily: Fonts.body,
+      fontWeight: '400',
+      ...Type.small,
+    },
+  });
+}
+
+interface DayStat {
+  label: string;
+  value: string;
+  detail?: string | null;
+}
+
+function DayKitColumn({
+  title,
+  items,
+  styles,
+  ink,
+}: Readonly<{
+  title: string;
+  items: GearTipItem[];
+  styles: ReturnType<typeof makeDetailStyles>;
+  ink: string;
+}>) {
+  return (
+    <View style={styles.kitColumn}>
+      <ThemedText style={styles.label}>{title}</ThemedText>
+      {items.map((item) => (
+        <View key={item.label} style={styles.kitItem}>
+          <View style={styles.kitIcon}>
+            <KitGearIcon iconKey={item.icon} size={18} color={ink} />
+          </View>
+          <ThemedText style={styles.kitLabel}>{item.label}</ThemedText>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+/**
+ * A day's details, opened from its row: why it rates as it does, the ride
+ * window's numbers side by side, and what to wear and bring. The window's
+ * time is already in the row's note, so it isn't repeated here.
+ */
 function DayRowDetail({
   day,
   isExpanded,
   bestRationale,
   tempUnit,
   thresholds,
-  formatTemp,
-  formatWind,
-  styles,
-  c,
 }: Readonly<{
   day: DailyWeather;
   isExpanded: boolean;
   bestRationale: string | null;
   tempUnit: 'fahrenheit' | 'celsius';
   thresholds: Thresholds;
-  formatTemp: (f: number) => string;
-  formatWind: (mph: number) => string;
-  styles: ReturnType<typeof makeStyles>;
-  c: WheelyPalette;
 }>) {
+  const c = useWheelyColors();
+  const styles = useMemo(() => makeDetailStyles(c), [c]);
   const openProgress = useExpandAnimation(isExpanded);
   const [gearMode] = useGearMode();
-  const reasonText = bestRationale ?? getDayConditionReason(day, tempUnit, thresholds);
-  const effectiveGust =
-    day.windGust != null && Math.round(day.windGust) > Math.round(day.windSpeed)
-      ? ` (gusts ${formatWind(day.windGust)})`
-      : '';
+  const { format: formatTemp, formatWind } = useTemperatureDisplay();
+  const dayReason = getDayConditionReason(day, tempUnit, thresholds);
+  // A reason that names no cause ("Fair window") is left out; the numbers speak.
+  const reasonText = bestRationale ?? (isGenericDayReason(dayReason) ? null : dayReason);
   const noRideToday =
     day.rideWindowUnavailable === true || day.condition === 'poor' || day.condition === 'bad';
-  const dayGear = noRideToday ? null : getDayGearSuggestion(day, gearMode, thresholds);
-  const kitItems = dayGear ? [...dayGear.wear, ...dayGear.bring] : [];
-  const showRideWindow =
-    day.rideWindow != null && !day.rideWindowUnavailable && day.condition !== 'bad';
+  const gear = noRideToday ? null : getDayGearSuggestion(day, gearMode, thresholds);
+  const window =
+    day.rideWindow != null && !day.rideWindowUnavailable && day.condition !== 'bad'
+      ? day.rideWindow
+      : null;
+  const gusts =
+    day.windGust != null && Math.round(day.windGust) > Math.round(day.windSpeed)
+      ? `gusts ${formatWind(day.windGust)}`
+      : null;
+  const stats: DayStat[] = [
+    ...(window
+      ? [
+          {
+            label: 'Ride temps',
+            value: `${formatTemp(window.tempLow)}–${formatTemp(window.tempHigh)}`,
+          },
+        ]
+      : []),
+    { label: 'Wind', value: formatWind(day.windSpeed), detail: gusts },
+    { label: 'Rain', value: formatPercent(day.rainChance) },
+  ];
 
   return (
     <AnimatedExpand openProgress={openProgress}>
-      <View style={styles.dayDetailDrawer} accessibilityLiveRegion="polite">
-        <ThemedText style={styles.dayDetailReason}>{preventOrphans(reasonText)}</ThemedText>
-        <View style={styles.dayDetailGrid}>
-          {showRideWindow && day.rideWindow && (
-            <View style={styles.dayDetailPill}>
-              {Platform.OS === 'ios' ? (
-                <SymbolView name="clock.fill" size={13} tintColor={c.ink} />
-              ) : (
-                <PlatformIcon icon={Clock} size={13} color={c.ink} filled />
+      <View style={styles.drawer} accessibilityLiveRegion="polite">
+        {reasonText != null && (
+          <ThemedText style={styles.reason}>{preventOrphans(reasonText)}</ThemedText>
+        )}
+        <View style={styles.stats}>
+          {stats.map((stat, idx) => (
+            <View key={stat.label} style={[styles.stat, idx > 0 && styles.statDivided]}>
+              <ThemedText style={styles.label}>{stat.label}</ThemedText>
+              <ThemedText style={styles.value}>{stat.value}</ThemedText>
+              {stat.detail != null && (
+                <ThemedText style={styles.detail}>{preventOrphans(stat.detail)}</ThemedText>
               )}
-              <ThemedText style={styles.dayDetailPillText}>
-                {`${fullHourLabel(day.rideWindow.startHour)}–${fullHourLabel(day.rideWindow.endHour)} · ${formatTemp(day.rideWindow.tempLow)}–${formatTemp(day.rideWindow.tempHigh)}`}
-              </ThemedText>
             </View>
-          )}
-          <View style={styles.dayDetailPill}>
-            {Platform.OS === 'ios' ? (
-              <SymbolView name="wind" size={13} tintColor={c.ink} />
-            ) : (
-              <PlatformIcon icon={Wind} size={13} color={c.ink} />
-            )}
-            <ThemedText style={styles.dayDetailPillText}>
-              {`${formatWind(day.windSpeed)}${effectiveGust}`}
-            </ThemedText>
-          </View>
-          <View style={styles.dayDetailPill}>
-            {Platform.OS === 'ios' ? (
-              <SymbolView name="drop.fill" size={13} tintColor={c.ink} />
-            ) : (
-              <PlatformIcon icon={CloudRain} size={13} color={c.ink} filled />
-            )}
-            <ThemedText style={styles.dayDetailPillText}>
-              {`${formatPercent(day.rainChance)} rain`}
-            </ThemedText>
-          </View>
+          ))}
         </View>
-        {kitItems.length > 0 && (
-          <View style={styles.dayDetailGrid}>
-            {kitItems.map((item, idx) => (
-              <View key={`kit-${item.label}-${idx}`} style={styles.dayDetailPill}>
-                <KitGearIcon iconKey={item.icon} size={13} color={c.ink} />
-                <ThemedText style={styles.dayDetailPillText}>{item.label}</ThemedText>
-              </View>
-            ))}
+        {gear && gear.wear.length > 0 && (
+          <View style={styles.kit}>
+            <DayKitColumn title="Wear" items={gear.wear} styles={styles} ink={c.ink} />
+            {gear.bring.length > 0 && (
+              <DayKitColumn title="Bring" items={gear.bring} styles={styles} ink={c.ink} />
+            )}
           </View>
         )}
       </View>
@@ -281,17 +357,30 @@ function DayRow({
   thresholds: Thresholds;
 }>) {
   const { c, styles } = useStyles();
-  const { format: formatTemp, formatWind } = useTemperatureDisplay();
+  const { format: formatTemp } = useTemperatureDisplay();
   const tempUnit = useResolvedTempUnit();
   const condition = asCondition(day.condition);
   // After sunset Today has no ride window left, and its rating would describe
   // hours already gone, so it shows a neutral "Done" instead.
   const dayDone = day.rideWindowUnavailable === true;
   const ratingLabel = dayDone ? DAYLIGHT_MESSAGES.DAY_DONE_A11Y : CONDITION_DISPLAY[condition];
-  const rowA11yLabel = `${dayLabel(day.date, index)}: high ${formatTemp(day.high)}, low ${formatTemp(day.low)}, ${ratingLabel}${best ? ', Best bet' : ''}`;
+  const note = getDayRowNote(day, tempUnit, thresholds);
+  const noteText = formatDayRowNote(note, best);
+  const noteA11y = [best ? 'Best bet' : null, noteText].filter(Boolean).join(', ');
+  const rowA11yLabel =
+    `${dayLabel(day.date, index)}: high ${formatTemp(day.high)}, low ${formatTemp(day.low)}, ${ratingLabel}` +
+    (noteA11y ? '. ' + noteA11y : '');
 
   return (
-    <View style={[styles.dayRowContainer, last && styles.dayRowLast]}>
+    <View
+      style={[
+        styles.dayRowContainer,
+        last && styles.dayRowLast,
+        // The whole day, row and details, is tinted while open; the best day keeps its pink.
+        isExpanded && { backgroundColor: withAlpha(c.ink, 0.04) },
+        best && styles.dayRowBest,
+      ]}
+    >
       <HapticPressable
         onPress={onToggle}
         accessibilityRole="button"
@@ -299,7 +388,6 @@ function DayRow({
         accessibilityState={{ expanded: isExpanded }}
         style={({ pressed }) => [
           styles.dayRowHeader,
-          isExpanded && { backgroundColor: withAlpha(c.ink, 0.03) },
           pressed && { backgroundColor: withAlpha(c.ink, 0.07) },
         ]}
       >
@@ -313,13 +401,6 @@ function DayRow({
             >
               {dayLabel(day.date, index)}
             </ThemedText>
-            {best ? (
-              <View accessibilityRole="text" accessibilityLabel="Best bet">
-                <Chip accent style={styles.bestTag}>
-                  Best bet
-                </Chip>
-              </View>
-            ) : null}
           </View>
           <View style={styles.weatherGlyph}>
             {Platform.OS === 'ios' ? (
@@ -336,20 +417,27 @@ function DayRow({
             {formatTemp(day.high)}
             <ThemedText style={styles.dayLow}>/{formatTemp(day.low)}</ThemedText>
           </ThemedText>
-          {/* The pill aligns itself to the top; this wrapper lets the row center it. */}
-          <View style={styles.ratingCell}>
-            {dayDone ? (
-              <ConditionPill large>{DAYLIGHT_MESSAGES.DAY_DONE}</ConditionPill>
-            ) : (
-              <ConditionPill condition={condition} large>
-                {CONDITION_DISPLAY[condition]}
-              </ConditionPill>
-            )}
-          </View>
+          {/* A plain word: the strip below carries the color. */}
+          <ThemedText style={[styles.dayRating, dayDone && styles.dayRatingDone]} numberOfLines={1}>
+            {dayDone ? DAYLIGHT_MESSAGES.DAY_DONE : CONDITION_DISPLAY[condition]}
+          </ThemedText>
           <View style={styles.chevronWrap}>
             <DayRowChevron isExpanded={isExpanded} color={c.mutedInk} />
           </View>
         </View>
+        {day.daylight && !dayDone && (
+          <>
+            <DaylightStrip hours={day.daylight} window={note.window} />
+            <DaylightAxis hours={day.daylight} isExpanded={isExpanded} />
+          </>
+        )}
+        {(noteText != null || best) && (
+          <ThemedText style={styles.dayNote}>
+            {best && <ThemedText style={styles.dayNoteLead}>Best bet</ThemedText>}
+            {best && noteText != null && ' · '}
+            {noteText != null && preventOrphans(noteText)}
+          </ThemedText>
+        )}
       </HapticPressable>
       <DayRowDetail
         day={day}
@@ -357,10 +445,6 @@ function DayRow({
         bestRationale={best ? bestRationale : null}
         tempUnit={tempUnit}
         thresholds={thresholds}
-        formatTemp={formatTemp}
-        formatWind={formatWind}
-        styles={styles}
-        c={c}
       />
     </View>
   );

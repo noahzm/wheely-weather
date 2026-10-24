@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
 import {
-  ChevronRight,
   Droplet,
   Droplets,
   Gauge,
@@ -13,7 +12,6 @@ import {
   type IconComponent,
 } from './icons';
 import { SymbolView, type SFSymbol } from 'expo-symbols';
-import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
 import {
@@ -35,9 +33,18 @@ import {
 import { getMetricExplainer, type MetricExplainer } from '@/utils/metricExplainers';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { useTemperatureDisplay } from '@/hooks/use-temperature-display';
-import { FontWeightBlack, Fonts, Spacing, Type, type WheelyPalette } from '@/constants/theme';
+import {
+  Fonts,
+  LabelText,
+  PosterLightText,
+  Spacing,
+  Type,
+  type WheelyPalette,
+  FontWeightSemibold,
+  TabularNumbers,
+} from '@/constants/theme';
 import { withAlpha } from '@/utils/colors';
-import type { Weather } from '@/types/weather';
+import type { Condition, Weather } from '@/types/weather';
 import { AnimatedExpand, useExpandAnimation } from './animated-expand';
 import {
   BrutalCard,
@@ -72,6 +79,8 @@ function windQualifier(weather: Weather, formatWind: (mph: number) => string): s
   }
   return parts.length > 0 ? parts.join(' · ') : null;
 }
+
+const HOLDS_RIDE_BACK: ReadonlySet<Condition> = new Set(['marginal', 'poor', 'bad']);
 
 function rideSpecMetrics(
   weather: Weather,
@@ -172,7 +181,7 @@ function makeStyles(c: WheelyPalette) {
       flex: 1,
       gap: Spacing.one,
       padding: Spacing.three,
-      borderColor: c.border,
+      borderColor: c.divider,
       ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as object) : null),
     },
     metricCellActive: {
@@ -191,21 +200,14 @@ function makeStyles(c: WheelyPalette) {
     },
     metricLabel: {
       color: c.ink,
-      fontFamily: Fonts.body,
-      ...Type.small,
-      fontWeight: '400',
-    },
-    metricChevron: {
-      marginLeft: 'auto',
-      alignItems: 'center',
-      justifyContent: 'center',
-      opacity: 0.7,
+      ...LabelText,
+      ...Type.micro,
     },
     metricValue: {
       color: c.ink,
-      fontFamily: Fonts.bold,
-      fontWeight: FontWeightBlack,
+      ...PosterLightText,
       ...Type.stat,
+      ...TabularNumbers,
     },
     metricFooter: {
       flexDirection: 'row',
@@ -214,7 +216,7 @@ function makeStyles(c: WheelyPalette) {
       gap: Spacing.one,
     },
     explainerDrawer: {
-      borderColor: c.border,
+      borderColor: c.divider,
       borderTopWidth: 0,
       borderLeftWidth: 0,
       borderRightWidth: 0,
@@ -226,7 +228,7 @@ function makeStyles(c: WheelyPalette) {
     explainerTitle: {
       color: c.accentInk,
       fontFamily: Fonts.bold,
-      fontWeight: FontWeightBlack,
+      fontWeight: FontWeightSemibold,
       ...Type.body,
     },
     explainerSummary: {
@@ -244,7 +246,7 @@ function makeStyles(c: WheelyPalette) {
     },
     tipPrefix: {
       fontFamily: Fonts.bold,
-      fontWeight: FontWeightBlack,
+      fontWeight: FontWeightSemibold,
       color: c.accentInk,
     },
     muted: {
@@ -260,26 +262,6 @@ function useStyles() {
   const isCompact = Platform.OS !== 'web' || width < 640;
   const styles = useMemo(() => makeStyles(c), [c]);
   return { c, styles, columns: isCompact ? 2 : 4 };
-}
-
-function MetricChevron({ isSelected, color }: Readonly<{ isSelected: boolean; color: string }>) {
-  const openProgress = useExpandAnimation(isSelected);
-  const animatedStyle = useAnimatedStyle(
-    () => ({
-      transform: [{ rotate: `${openProgress.value * 90}deg` }],
-    }),
-    [openProgress],
-  );
-
-  return (
-    <Animated.View style={animatedStyle}>
-      {Platform.OS === 'ios' ? (
-        <SymbolView name="chevron.right" size={11} tintColor={color} />
-      ) : (
-        <PlatformIcon icon={ChevronRight} size={12} color={color} strokeWidth={2.5} />
-      )}
-    </Animated.View>
-  );
 }
 
 function MetricCell({
@@ -300,15 +282,17 @@ function MetricCell({
   c: WheelyPalette;
 }>) {
   const { Icon, sf, label, value, qualifier, condition, iconRotation } = metric;
-  const conditionText =
-    condition && condition !== 'good' ? CONDITION_DISPLAY[asCondition(condition)] : null;
-  const hasFooter = !!qualifier || conditionText != null;
+  const rating = condition ? asCondition(condition) : null;
+  const conditionText = rating && rating !== 'good' ? CONDITION_DISPLAY[rating] : null;
+  // Chips mark only what holds the ride back; good and fair stay quiet so
+  // the problems stand out (the spoken label still names every rating).
+  const showChip = rating != null && HOLDS_RIDE_BACK.has(rating);
+  const hasFooter = !!qualifier || showChip;
   const cellA11yLabel = [`${label}: ${value}`, qualifier, conditionText, 'Tap for cycling guidance']
     .filter(Boolean)
     .join(', ');
 
   const inkColor = isSelected ? c.accentInk : c.ink;
-  const chevronColor = isSelected ? c.accentInk : c.mutedInk;
 
   return (
     <HapticPressable
@@ -342,9 +326,6 @@ function MetricCell({
         <ThemedText style={[styles.metricLabel, isSelected && { color: c.accentInk }]}>
           {label}
         </ThemedText>
-        <View style={styles.metricChevron}>
-          <MetricChevron isSelected={isSelected} color={chevronColor} />
-        </View>
       </View>
       <ThemedText style={[styles.metricValue, isSelected && { color: c.accentInk }]}>
         {value}
@@ -356,10 +337,8 @@ function MetricCell({
               {qualifier}
             </ThemedText>
           )}
-          {condition && condition !== 'good' && (
-            <ConditionPill condition={asCondition(condition)}>
-              {CONDITION_DISPLAY[asCondition(condition)]}
-            </ConditionPill>
+          {showChip && (
+            <ConditionPill condition={rating}>{CONDITION_DISPLAY[rating]}</ConditionPill>
           )}
         </View>
       )}

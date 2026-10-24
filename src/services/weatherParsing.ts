@@ -12,7 +12,7 @@ import {
 import type { Thresholds } from '../domain/constants';
 import { normalizePercent } from '../utils/percent';
 
-import type { DailyWeather, HourlyWeather, Weather } from '@/types/weather';
+import type { DailyWeather, DaylightHour, HourlyWeather, Weather } from '@/types/weather';
 
 interface DaylightHours {
   sunriseHour: number;
@@ -30,6 +30,7 @@ interface DailyParseContext {
   daytimeTempByDate: Record<string, TempRange>;
   dewpointByDate: Record<string, number>;
   bestRideWindows: Record<string, DailyRideWindow>;
+  daylightRatings: Record<string, DaylightHour[]>;
   thresholds: Thresholds;
 }
 
@@ -233,6 +234,38 @@ function buildDaytimeAggregates(
   return { dewpointByDate, daytimeTempByDate };
 }
 
+/**
+ * Each date's daylight hours, rated like the hourly chart's hours (same record
+ * builder, same thresholds), for the week list's daylight strip. A date whose
+ * forecast stops before sunset gets none, since its strip would end
+ * mid-afternoon; today's hours from before the forecast's first hour stay in
+ * as unrated past hours, so today's strip still spans the whole day. A date
+ * that is all past (today, after sunset) gets none either.
+ */
+function buildDaylightRatings(
+  data: OpenMeteoData,
+  daylightByDate: Record<string, DaylightHours>,
+  currentHourKey: string,
+  thresholds: Thresholds,
+): Record<string, DaylightHour[]> {
+  const indexByTime = new Map(data.hourly.time.map((time, i) => [time, i]));
+  const ratings: Record<string, DaylightHour[]> = {};
+  for (const [date, { sunriseHour, sunsetHour }] of Object.entries(daylightByDate)) {
+    const hours: DaylightHour[] = [];
+    for (let hour = sunriseHour; hour < sunsetHour; hour++) {
+      const time = `${date}T${pad2(hour)}:00`;
+      const isPast = time < currentHourKey;
+      const idx = indexByTime.get(time);
+      const record = idx == null ? null : buildHourRecord(data, idx, thresholds);
+      if (record == null && !isPast) break;
+      hours.push({ hour, condition: record?.condition ?? null, ...(isPast && { isPast }) });
+    }
+    const complete = hours.length === sunsetHour - sunriseHour;
+    if (complete && hours.some((h) => !h.isPast)) ratings[date] = hours;
+  }
+  return ratings;
+}
+
 /** Groups the remaining daylight hours by date and picks each date's best ride window. */
 function buildBestRideWindows(
   data: OpenMeteoData,
@@ -346,8 +379,10 @@ function buildDailyWeather(
   dateStr: string,
   index: number,
 ): DailyWeather | null {
-  const day = buildFallbackDailyWeather(context, dateStr, index);
-  if (!day) return null;
+  const fallback = buildFallbackDailyWeather(context, dateStr, index);
+  if (!fallback) return null;
+  const daylight = context.daylightRatings[dateStr];
+  const day = daylight ? { ...fallback, daylight } : fallback;
   const rideWindow = context.bestRideWindows[dateStr];
   if (rideWindow) return applyRideWindow(day, rideWindow);
   return dateStr === context.currentDate ? { ...day, rideWindowUnavailable: true } : day;
@@ -359,9 +394,8 @@ function parseDaily(
   thresholds: Thresholds,
   rideWindowHours?: number,
 ): DailyWeather[] {
-  const currentDate = (
-    toHourlyTimeKey(data.current?.time) ?? currentHourStrForLocation(data)
-  ).slice(0, 10);
+  const currentHourKey = toHourlyTimeKey(data.current?.time) ?? currentHourStrForLocation(data);
+  const currentDate = currentHourKey.slice(0, 10);
   const daylightByDate = buildDaylightByDate(data);
   const { dewpointByDate, daytimeTempByDate } = buildDaytimeAggregates(data, daylightByDate);
   const bestRideWindows = buildBestRideWindows(data, daylightByDate, thresholds, rideWindowHours);
@@ -371,6 +405,7 @@ function parseDaily(
     daytimeTempByDate,
     dewpointByDate,
     bestRideWindows,
+    daylightRatings: buildDaylightRatings(data, daylightByDate, currentHourKey, thresholds),
     thresholds,
   };
 

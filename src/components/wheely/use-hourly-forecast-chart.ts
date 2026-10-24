@@ -20,7 +20,16 @@ import { useHourlyScrollPicker } from './use-hourly-scroll-picker';
 
 export type ChartHour = HourlyWeather & { isPast: boolean; idx: number };
 
-export function useHourlyForecastChart(data: ChartHour[], nowIdx: number, thresholds: Thresholds) {
+export function useHourlyForecastChart(
+  data: ChartHour[],
+  hours: Readonly<{
+    nowIdx: number;
+    /** The hour centered and selected on mount: Now, or the ride window's start. */
+    openingIdx: number;
+  }>,
+  thresholds: Thresholds,
+) {
+  const { nowIdx, openingIdx } = hours;
   const {
     scrollRef,
     scrollX,
@@ -38,10 +47,10 @@ export function useHourlyForecastChart(data: ChartHour[], nowIdx: number, thresh
     onScrollBeginDrag,
     onScrollEndDrag,
     onMomentumScrollEnd,
-  } = useHourlyScrollPicker(nowIdx, data.length);
+  } = useHourlyScrollPicker(openingIdx, data.length);
 
   const tempUnit = useResolvedTempUnit();
-  const selected = data[selectedIdx] ?? data[nowIdx];
+  const selected = data[selectedIdx] ?? data[openingIdx];
   const selectedReasons =
     selected == null ? [] : getHourConditionReasons(selected, tempUnit, thresholds, { limit: 1 });
   const selectedReason = selectedReasons.join(' • ') || null;
@@ -63,7 +72,7 @@ export function useHourlyForecastChart(data: ChartHour[], nowIdx: number, thresh
   const conditionLabel = CONDITION_DISPLAY[asCondition(selected.condition)];
   const initialScrollX =
     viewportWidth > 0
-      ? chartScrollOffsetForIndex(nowIdx, viewportWidth, Math.max(0, data.length - 1))
+      ? chartScrollOffsetForIndex(openingIdx, viewportWidth, Math.max(0, data.length - 1))
       : 0;
 
   return {

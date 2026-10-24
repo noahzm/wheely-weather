@@ -7,7 +7,7 @@ import { Check, House, Navigation, Pin } from './icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Fonts, FontWeightBlack, Radius, Spacing, Type } from '@/constants/theme';
+import { Fonts, Radius, Spacing, Type, FontWeightSemibold } from '@/constants/theme';
 import { withAlpha } from '@/utils/colors';
 
 import { HapticPressable, PlatformIcon, PressedOpacity } from './primitives';
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
     padding: Spacing.three,
   },
   deviceMessage: {
-    ...Type.caption,
+    ...Type.micro,
     fontFamily: Fonts.body,
     paddingHorizontal: Spacing.three + Spacing.one,
   },
@@ -326,13 +326,13 @@ const styles = StyleSheet.create({
   },
   rowLabelAction: {
     fontFamily: Fonts.bold,
-    fontWeight: FontWeightBlack,
+    fontWeight: FontWeightSemibold,
   },
   // The location currently on screen; weight carries the state so it still
   // reads when the accent check is not enough on its own.
   rowLabelActive: {
     fontFamily: Fonts.bold,
-    fontWeight: FontWeightBlack,
+    fontWeight: FontWeightSemibold,
   },
   rowSub: {
     ...Type.small,

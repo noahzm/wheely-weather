@@ -40,6 +40,20 @@ export interface DailyWeather {
   precipitation?: number | null;
   weatherCode: number | null;
   condition: Condition;
+  /**
+   * Each daylight hour (sunrise to sunset), rated like the hourly chart's
+   * hours, for the week list's daylight strip. Absent when the forecast ends
+   * before the day's sunset, and in caches written before it existed.
+   */
+  daylight?: DaylightHour[];
+}
+
+export interface DaylightHour {
+  hour: number;
+  /** Null for an hour of today that ended before the forecast's first hour. */
+  condition: Condition | null;
+  /** Already over (today only). */
+  isPast?: boolean;
 }
 
 export interface DaylightWindow {

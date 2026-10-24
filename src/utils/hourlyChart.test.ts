@@ -1,6 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import {
+  CHART_HEIGHT,
+  CHART_HOUR_LABEL_Y,
+  CHART_PLOT_BOTTOM,
+  CHART_WINDOW_LABEL_BOTTOM,
+  chartOpeningIndex,
   chartWindowBand,
+  chartWindowIndexes,
+  chartWindowLabel,
   CHART_SCROLL_UNSET,
   CHART_X_ORIGIN,
   CHART_X_STEP,
@@ -99,13 +106,16 @@ describe('chartScrollOffsetOrInitial', () => {
 
 describe('chartY', () => {
   it('maps "good" to top (small y)', () => {
-    expect(chartY('good')).toBe(24);
+    expect(chartY('good')).toBe(22);
   });
   it('maps "bad" to bottom (large y)', () => {
-    expect(chartY('bad')).toBe(108);
+    expect(chartY('bad')).toBe(CHART_PLOT_BOTTOM);
+    expect(CHART_PLOT_BOTTOM).toBe(78);
   });
-  it('maps "fair" correctly', () => {
-    expect(chartY('fair')).toBe(45);
+  it('steps evenly between ratings', () => {
+    expect(chartY('fair')).toBe(36);
+    expect(chartY('marginal')).toBe(50);
+    expect(chartY('poor')).toBe(64);
   });
   it('defaults unknown condition to "marginal" mid-point', () => {
     expect(chartY('unknown')).toBe(chartY('marginal'));
@@ -240,7 +250,7 @@ describe('chartSmoothPath', () => {
 
   it('returns move command for single data point', () => {
     const data = [{ idx: 0, condition: 'good' }];
-    expect(chartSmoothPath(data)).toMatch(/^M 24\.0,24\.0$/);
+    expect(chartSmoothPath(data)).toMatch(/^M 24\.0,22\.0$/);
   });
 
   it('returns path with curve commands for multiple data points', () => {
@@ -249,7 +259,7 @@ describe('chartSmoothPath', () => {
       { idx: 1, condition: 'bad' },
     ];
     const path = chartSmoothPath(data);
-    expect(path).toContain('M 24.0,24.0');
+    expect(path).toContain('M 24.0,22.0');
     expect(path).toContain('C'); // Should contain a curve command
   });
 });
@@ -294,5 +304,51 @@ describe('chartWindowBand', () => {
       left: chartX(23) - CHART_X_STEP / 2,
       width: 2 * CHART_X_STEP,
     });
+  });
+});
+
+describe('chart vertical layout', () => {
+  it('stacks the rows, the window label, then the hour labels, inside the chart', () => {
+    // The worst row's dot (radius 8) clears the window label's 16px line (Type.micro).
+    expect(CHART_PLOT_BOTTOM + 8).toBeLessThanOrEqual(CHART_WINDOW_LABEL_BOTTOM - 16);
+    // 13px hour labels rise about 10px above their baseline.
+    expect(CHART_WINDOW_LABEL_BOTTOM).toBeLessThan(CHART_HOUR_LABEL_Y - 10);
+    expect(CHART_HOUR_LABEL_Y).toBeLessThan(CHART_HEIGHT);
+  });
+});
+
+describe('chartWindowIndexes', () => {
+  const data = [7, 8, 9, 10, 11, 12, 13, 14].map((hour, idx) => ({
+    idx,
+    hour,
+    isPast: idx < 2,
+  }));
+
+  it('returns the first and last charted hour of the window', () => {
+    expect(chartWindowIndexes(data, { startHour: 12, endHour: 15 })).toEqual({ first: 5, last: 7 });
+  });
+
+  it('is null without a window or when its hours are off the chart', () => {
+    expect(chartWindowIndexes(data, null)).toBeNull();
+    expect(chartWindowIndexes(data, { startHour: 17, endHour: 20 })).toBeNull();
+  });
+});
+
+describe('chartOpeningIndex', () => {
+  it('opens on Now without a window, or when the window starts now', () => {
+    expect(chartOpeningIndex(3, null)).toBe(3);
+    expect(chartOpeningIndex(3, { first: 3, last: 5 })).toBe(3);
+  });
+
+  it('opens on the window’s first hour when it starts later', () => {
+    expect(chartOpeningIndex(3, { first: 6, last: 8 })).toBe(6);
+  });
+});
+
+describe('chartWindowLabel', () => {
+  it('spells the label out when the band is three hours or wider', () => {
+    expect(chartWindowLabel(4 * CHART_X_STEP)).toBe('Ride window');
+    expect(chartWindowLabel(3 * CHART_X_STEP)).toBe('Ride window');
+    expect(chartWindowLabel(2 * CHART_X_STEP)).toBe('Ride');
   });
 });

@@ -9,11 +9,11 @@ import { resolveLocationChipName } from '@/utils/locationTitle';
 import { sameCoords } from '@/utils/locationRows';
 import {
   Fonts,
-  FontWeightBlack,
   Radius,
   Spacing,
   Type,
   type WheelyPalette,
+  FontWeightSemibold,
 } from '@/constants/theme';
 import type { RecentLocation, SavedLocation } from '@/services/locationStorage';
 import { brutalShadow, HapticPressable, PlatformIcon } from './primitives';
@@ -60,7 +60,7 @@ function makeStyles(c: WheelyPalette) {
     pillTextActive: {
       color: c.primaryInk,
       fontFamily: Fonts.bold,
-      fontWeight: FontWeightBlack,
+      fontWeight: FontWeightSemibold,
     },
     iconWrap: {
       width: 14,

@@ -61,13 +61,13 @@ export function useChartViewport(count: number) {
  * drags, so the initial centering and relayouts don't buzz.
  */
 export function useScrollSelection(
-  nowIdx: number,
+  openingIdx: number,
   maxIndex: number,
   viewportWidth: number,
   onSelectedChange?: (nextIdx: number, prevIdx: number) => void,
 ) {
-  const [selectedIdx, setSelectedIdx] = useState(nowIdx);
-  const selectedIdxRef = useRef(nowIdx);
+  const [selectedIdx, setSelectedIdx] = useState(openingIdx);
+  const selectedIdxRef = useRef(openingIdx);
   const selectionHapticEnabledRef = useRef(false);
 
   const applySelection = useCallback(

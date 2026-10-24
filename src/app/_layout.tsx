@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
 import { Appearance, Platform, View } from 'react-native';
+import { Oswald_400Regular, Oswald_700Bold } from '@expo-google-fonts/oswald';
+import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, Slot, Stack, ThemeProvider } from 'expo-router';
 import Head from 'expo-router/head';
 import { StatusBar } from 'expo-status-bar';
@@ -10,7 +12,7 @@ import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { BottomNavBar } from '@/components/wheely';
 import { webFixedPosition } from '@/components/wheely/content-column';
 import { WebSafeAreaProvider } from '@/components/wheely/web-safe-area-provider';
-import { WheelyTheme, Fonts } from '@/constants/theme';
+import { POSTER_FONT, POSTER_LIGHT_FONT, WheelyTheme, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ColorSchemeOverrideContext } from '@/hooks/use-theme';
 import { SettingsProvider, useAppearance } from '@/hooks/settings-context';
@@ -112,6 +114,14 @@ function ThemedRoot() {
   const override = appearance === 'system' ? null : appearance;
   const isDark = (override ?? (systemScheme === 'dark' ? 'dark' : 'light')) === 'dark';
   const wheelyBg = WheelyTheme[isDark ? 'dark' : 'light'].background;
+  // Native waits for the poster face under the splash overlay, so titles never
+  // flash in the system font; the native header reads its font only once. Web
+  // renders straight away and swaps the face in (gating would break hydration).
+  const [postersLoaded, posterError] = useFonts({
+    [POSTER_FONT]: Oswald_700Bold,
+    [POSTER_LIGHT_FONT]: Oswald_400Regular,
+  });
+  const fontsReady = Platform.OS === 'web' || postersLoaded || posterError != null;
 
   useWebDocumentTheme(isDark);
 
@@ -152,7 +162,7 @@ function ThemedRoot() {
         </Head>
         <StatusBar style={isDark ? 'light' : 'dark'} />
         <AnimatedSplashOverlay />
-        <ForecastProvider>{navigator}</ForecastProvider>
+        {fontsReady && <ForecastProvider>{navigator}</ForecastProvider>}
       </ThemeProvider>
     </ColorSchemeOverrideContext.Provider>
   );

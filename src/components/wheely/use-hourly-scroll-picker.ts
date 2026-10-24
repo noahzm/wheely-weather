@@ -23,12 +23,12 @@ import {
 } from './hourly-scroll-selection';
 
 /**
- * Centers the "Now" hour once on mount. iOS can apply the first scrollTo
+ * Centers the opening hour once on mount. iOS can apply the first scrollTo
  * against a stale content size and land short, so the initial offset is
  * re-asserted on content-size changes until the user scrolls themselves.
  */
 function useInitialChartScroll(params: {
-  nowIdx: number;
+  openingIdx: number;
   count: number;
   maxIndex: number;
   viewportWidth: number;
@@ -39,7 +39,7 @@ function useInitialChartScroll(params: {
   selectionHapticEnabledRef: RefObject<boolean>;
 }) {
   const {
-    nowIdx,
+    openingIdx,
     count,
     maxIndex,
     viewportWidth,
@@ -53,14 +53,14 @@ function useInitialChartScroll(params: {
 
   const applyInitialScroll = useCallback(() => {
     if (viewportWidth <= 0 || count === 0) return;
-    const x = chartScrollOffsetForIndex(nowIdx, viewportWidth, maxIndex);
+    const x = chartScrollOffsetForIndex(openingIdx, viewportWidth, maxIndex);
     scrollRef.current?.scrollTo({ x, animated: false });
     scrollX.set(x);
-    lastNotifiedIdx.set(nowIdx);
+    lastNotifiedIdx.set(openingIdx);
     syncSelectionFromScroll(x, false);
   }, [
     viewportWidth,
-    nowIdx,
+    openingIdx,
     maxIndex,
     count,
     syncSelectionFromScroll,
@@ -114,7 +114,7 @@ function useDragHandlers(
 }
 
 export function useHourlyScrollPicker(
-  nowIdx: number,
+  openingIdx: number,
   count: number,
   onSelectedChange?: (nextIdx: number, prevIdx: number) => void,
 ): HourlyScrollPicker {
@@ -127,14 +127,14 @@ export function useHourlyScrollPicker(
   const lastNotifiedIdx = useSharedValue(-1);
 
   const { selectedIdx, syncSelectionFromScroll, selectionHapticEnabledRef } = useScrollSelection(
-    nowIdx,
+    openingIdx,
     maxIndex,
     viewportWidth,
     onSelectedChange,
   );
 
   const onContentSizeChange = useInitialChartScroll({
-    nowIdx,
+    openingIdx,
     count,
     maxIndex,
     viewportWidth,

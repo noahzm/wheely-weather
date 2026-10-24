@@ -6,7 +6,15 @@ import { ThemedText } from '@/components/themed-text';
 import { CONDITION_DISPLAY } from '@/domain';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { useTemperatureDisplay } from '@/hooks/use-temperature-display';
-import { Fonts, FontWeightBlack, Spacing, Type, type WheelyPalette } from '@/constants/theme';
+import {
+  Fonts,
+  PosterText,
+  Spacing,
+  Type,
+  type WheelyPalette,
+  FontWeightSemibold,
+  TabularNumbers,
+} from '@/constants/theme';
 import type { HourlyWeather } from '@/types/weather';
 import type { Thresholds } from '@/domain/constants';
 import {
@@ -16,16 +24,20 @@ import {
 } from './animated-condition-chip';
 import { BrutalCard, HapticPressable, asCondition } from './primitives';
 import {
-  CHART_HEIGHT,
   HourlyChartEdgeFades,
   HourlyChartGraphic,
   HourlyChartGridlines,
   SelectionMarker,
 } from './hourly-chart-graphic';
 import {
+  CHART_HEIGHT,
+  CHART_WINDOW_LABEL_BOTTOM,
   CHART_X_STEP,
+  chartOpeningIndex,
   chartScrollOffsetForIndex,
   chartWindowBand,
+  chartWindowIndexes,
+  chartWindowLabel,
   chartX,
 } from '@/utils/hourlyChart';
 import { withAlpha } from '@/utils/colors';
@@ -97,31 +109,34 @@ function makeStyles(c: WheelyPalette) {
       position: 'absolute',
       top: 0,
       height: CHART_HEIGHT,
-      paddingTop: Spacing.one,
+      paddingBottom: CHART_HEIGHT - CHART_WINDOW_LABEL_BOTTOM,
       backgroundColor: withAlpha(c.accent, 0.35),
       alignItems: 'center',
+      justifyContent: 'flex-end',
       pointerEvents: 'none',
     },
-    // The chart's top 24px sit above the best-rated row, so the label is clear of the line.
+    // Sits under the worst row, just above the hour labels: a recommended
+    // window never dips that low, and up top the hourly note stickers, which
+    // straddle the card's top edge, covered it.
     windowBandLabel: {
       color: c.ink,
       fontFamily: Fonts.bold,
-      fontWeight: FontWeightBlack,
-      fontSize: 10,
-      lineHeight: 14,
+      fontWeight: FontWeightSemibold,
+      ...Type.micro,
       letterSpacing: 0.4,
       textTransform: 'uppercase',
     },
     hourReason: {
       color: c.mutedInk,
       ...Type.small,
+      ...TabularNumbers,
       textAlign: 'right',
     },
+    // Poster type a step up from the readout, so the hour reads as its title.
     hourReadoutLead: {
       color: c.ink,
-      fontFamily: Fonts.bold,
-      fontWeight: FontWeightBlack,
-      ...Type.small,
+      ...PosterText,
+      fontSize: Type.body.fontSize,
     },
     emptyCard: {
       minHeight: 160,
@@ -131,7 +146,7 @@ function makeStyles(c: WheelyPalette) {
     alertTitle: {
       color: c.ink,
       fontFamily: Fonts.bold,
-      fontWeight: FontWeightBlack,
+      fontWeight: FontWeightSemibold,
       ...Type.body,
     },
     muted: {
@@ -283,17 +298,20 @@ type WindowBand = ReturnType<typeof chartWindowBand>;
 function HourlyForecastBody({
   data,
   nowIdx,
+  openingIdx,
   thresholds,
   windowBand,
 }: Readonly<{
   data: ChartHour[];
   nowIdx: number;
+  /** The hour selected on mount (see `chartOpeningIndex`). */
+  openingIdx: number;
   thresholds: Thresholds;
   windowBand: WindowBand;
 }>) {
   const { styles } = useStyles();
   const c = useWheelyColors();
-  const chart = useHourlyForecastChart(data, nowIdx, thresholds);
+  const chart = useHourlyForecastChart(data, { nowIdx, openingIdx }, thresholds);
   const maxIndex = Math.max(0, data.length - 1);
 
   // Shared by the sticker chip and the chart's selection marker so both blend
@@ -488,7 +506,7 @@ function HourlyChartScroller({
           {windowBand && (
             <View style={[styles.windowBand, { left: windowBand.left, width: windowBand.width }]}>
               <ThemedText style={styles.windowBandLabel} numberOfLines={1}>
-                Ride window
+                {chartWindowLabel(windowBand.width)}
               </ThemedText>
             </View>
           )}
@@ -598,6 +616,7 @@ export function HourlyForecast({
 
   const nowIdx = pastHourly.length;
   const windowBand = chartWindowBand(data, rideWindow);
+  const openingIdx = chartOpeningIndex(nowIdx, chartWindowIndexes(data, rideWindow));
 
   if (hourly.length === 0) {
     return (
@@ -611,10 +630,13 @@ export function HourlyForecast({
   return (
     <View style={styles.hourlyWrap}>
       <BrutalCard style={styles.hourlyCard}>
+        {/* Remounts when the opening hour moves (a new hour, or a new ride
+            window), so the chart re-centers instead of keeping a stale spot. */}
         <HourlyForecastBody
-          key={`${nowIdx}-${data.length}`}
+          key={`${nowIdx}-${openingIdx}-${data.length}`}
           data={data}
           nowIdx={nowIdx}
+          openingIdx={openingIdx}
           thresholds={thresholds}
           windowBand={windowBand}
         />

@@ -7,6 +7,8 @@ import {
   type PressableProps,
   type StyleProp,
   type TextStyle,
+  type ViewProps,
+  type ViewStyle,
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import {
@@ -24,13 +26,16 @@ import { SymbolView, type SFSymbol } from 'expo-symbols';
 import { ThemedText } from '@/components/themed-text';
 import { useColorSchemeName, useWheelyColors } from '@/hooks/use-theme';
 import {
-  FontWeightBlack,
   Fonts,
+  LabelText,
+  PosterLightText,
+  PosterText,
   Radius,
   Spacing,
   Type,
   WheelyTheme,
   type WheelyPalette,
+  FontWeightSemibold,
 } from '@/constants/theme';
 import type { Condition } from '@/types/weather';
 import { selectionFeedback } from '@/utils/haptics';
@@ -141,6 +146,61 @@ export function brutalShadow(color: string, width: number, height = width) {
 
 const ButtonRadius = Radius.card;
 
+// ─── Stickers ────────────────────────────────────────────────────────────────
+// Two sticker shapes, one job each: the burst rates conditions, and the tilted
+// tag carries notes, times and the star score. Both share this outline and
+// hard shadow, and their text is regular weight.
+
+export const StickerOutlineWidth = 1.5;
+export const StickerShadowOffset = 2;
+
+/** The outline and offset shadow every sticker shares. */
+export function stickerFrame(c: WheelyPalette) {
+  return {
+    borderWidth: StickerOutlineWidth,
+    borderColor: c.border,
+    ...brutalShadow(c.shadow, StickerShadowOffset),
+  };
+}
+
+/** A square-cornered paper tag, tilted a degree or two as if stuck on by hand. */
+export function StickerTag({
+  children,
+  tilt = -1,
+  style,
+  ...accessibility
+}: Readonly<
+  { children: ReactNode; tilt?: number; style?: StyleProp<ViewStyle> } & Pick<
+    ViewProps,
+    'accessibilityRole' | 'accessibilityLabel'
+  >
+>) {
+  const c = useWheelyColors();
+  return (
+    <View
+      {...accessibility}
+      style={[
+        stickerTagStyles.tag,
+        { backgroundColor: c.paper, ...stickerFrame(c), transform: [{ rotate: `${tilt}deg` }] },
+        style,
+      ]}
+    >
+      {children}
+    </View>
+  );
+}
+
+const stickerTagStyles = StyleSheet.create({
+  tag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.one,
+    borderRadius: Radius.none,
+    paddingHorizontal: Spacing.two + Spacing.half,
+    paddingVertical: Spacing.one,
+  },
+});
+
 export const CardBorderWidth = 2;
 
 /**
@@ -215,7 +275,7 @@ export function makeButtonStyles(c: WheelyPalette) {
       color: c.ink,
       fontFamily: Fonts.body,
       fontWeight: '400',
-      ...Type.caption,
+      ...Type.small,
     },
     pressed: {
       opacity: PressedOpacity,
@@ -271,9 +331,8 @@ const sectionHeadingStyles = StyleSheet.create({
     // unscaled font, so a self-sized box clips mid-word at large Dynamic Type.
     alignSelf: 'stretch',
     flexShrink: 1,
-    fontFamily: Fonts.bold,
+    ...PosterText,
     ...Type.heading,
-    fontWeight: FontWeightBlack,
   },
   rowHeading: {
     flexGrow: 1,
@@ -321,7 +380,7 @@ function makeChipStyles(c: WheelyPalette) {
     },
     chipText: {
       fontFamily: Fonts.bold,
-      fontWeight: FontWeightBlack,
+      fontWeight: FontWeightSemibold,
     },
   });
 }
@@ -398,9 +457,10 @@ export const burstChipStyles = StyleSheet.create({
     justifyContent: 'center',
     flexDirection: 'row',
   },
+  // The poster face's regular cut: sticker text stays regular weight, like the
+  // tags. The burst sizes itself to the label.
   text: {
-    fontFamily: Fonts.bold,
-    fontWeight: FontWeightBlack,
+    ...PosterLightText,
   },
 });
 
@@ -547,15 +607,11 @@ export function Chip({
   );
 }
 
-/**
- * A rating pill; without a `condition` it's a neutral grey pill that rates nothing.
- * `large` sets a fixed minimum width so a column of pills lines up.
- */
+/** A small rating pill; without a `condition` it's a neutral grey pill that rates nothing. */
 export function ConditionPill({
   condition,
-  large = false,
   children,
-}: Readonly<{ condition?: Condition; large?: boolean; children: string }>) {
+}: Readonly<{ condition?: Condition; children: string }>) {
   const c = useWheelyColors();
   const colors = condition
     ? c.condition[condition]
@@ -567,16 +623,14 @@ export function ConditionPill({
         borderRadius: Radius.none,
         backgroundColor: colors.bg,
         paddingHorizontal: 7,
-        paddingVertical: large ? 4 : 3,
-        ...(large ? { minWidth: 56, alignItems: 'center' as const } : null),
+        paddingVertical: 3,
       }}
     >
       <ThemedText
-        type={large ? 'smallBold' : 'micro'}
         style={{
           color: colors.ink,
-          fontFamily: Fonts.bold,
-          fontWeight: FontWeightBlack,
+          ...LabelText,
+          ...Type.micro,
         }}
       >
         {children}
@@ -592,7 +646,7 @@ function makeCardStyles(c: WheelyPalette) {
     featured: {
       backgroundColor: c.paper,
       borderWidth: CardBorderWidth,
-      borderColor: c.shadow,
+      borderColor: c.border,
       borderRadius: ButtonRadius,
       padding: Spacing.three,
       ...brutalShadow(c.shadow, 6),
@@ -601,7 +655,7 @@ function makeCardStyles(c: WheelyPalette) {
     standard: {
       backgroundColor: c.paper,
       borderWidth: CardBorderWidth,
-      borderColor: c.shadow,
+      borderColor: c.border,
       borderRadius: ButtonRadius,
       padding: Spacing.three,
       ...brutalShadow(c.shadow, 3),

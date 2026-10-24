@@ -127,13 +127,24 @@ export function chartNearestSnapOffset(offsetX: number, offsets: readonly number
   return nearest;
 }
 
-/**
- * Vertical pixel offset for a given condition string.
- * Maps the 1–5 score range onto the compact chart's usable height (24–108 px).
- */
+// Vertical layout, top to bottom: the five rating rows (good at the top, room
+// above it for the selection ring), the ride window's label under the worst
+// row, then the hour labels. The rows sit close together: on a steady day the
+// line runs flat along one of them, and wide spacing left a tall empty card.
+const CHART_LEVEL_TOP = 22;
+const CHART_LEVEL_STEP = 14;
+/** The worst ("bad") row; the deepest the line goes. */
+export const CHART_PLOT_BOTTOM = CHART_LEVEL_TOP + 4 * CHART_LEVEL_STEP;
+/** Bottom edge of the ride window's label, clear of the line and the hour labels. */
+export const CHART_WINDOW_LABEL_BOTTOM = CHART_PLOT_BOTTOM + 24;
+/** Baseline of the hour labels along the bottom. */
+export const CHART_HOUR_LABEL_Y = CHART_PLOT_BOTTOM + 38;
+export const CHART_HEIGHT = CHART_HOUR_LABEL_Y + 6;
+
+/** Vertical pixel offset for a given condition string (good at the top). */
 export function chartY(condition: string): number {
   const score = (CONDITION_SCORE as Record<string, number>)[condition] ?? 3;
-  return 108 - ((score - 1) / 4) * 84;
+  return CHART_PLOT_BOTTOM - (score - 1) * CHART_LEVEL_STEP;
 }
 
 export interface ChartSplineSegment {
@@ -349,16 +360,29 @@ export function chartSmoothPath(data: { idx: number; condition: string }[]): str
   return parts.join(' ');
 }
 
+interface ChartWindowHour {
+  idx: number;
+  hour: number;
+  isPast: boolean;
+}
+
+interface ChartRideWindow {
+  startHour: number;
+  endHour: number;
+  tomorrow?: boolean;
+}
+
 /**
- * The chart-space extent of the verdict's ride window ([startHour, endHour)),
- * or null when none of its hours are charted. Only future hours on the target
- * day (today before midnight rollover, or tomorrow after it) count: the chart
- * spans 24 hours ahead, so the same hour of day can repeat across the rollover.
+ * The first and last chart indexes of the verdict's ride window
+ * ([startHour, endHour)), or null when none of its hours are charted. Only
+ * future hours on the target day (today before midnight rollover, or tomorrow
+ * after it) count: the chart spans 24 hours ahead, so the same hour of day can
+ * repeat across the rollover.
  */
-export function chartWindowBand(
-  data: readonly { idx: number; hour: number; isPast: boolean }[],
-  window: { startHour: number; endHour: number; tomorrow?: boolean } | null,
-): { left: number; width: number } | null {
+export function chartWindowIndexes(
+  data: readonly ChartWindowHour[],
+  window: ChartRideWindow | null,
+): { first: number; last: number } | null {
   if (!window) return null;
   const future: { idx: number; hour: number; afterMidnight: boolean }[] = [];
   let afterMidnight = false;
@@ -387,7 +411,36 @@ export function chartWindowBand(
     idxs = matchesTargetDay(window.tomorrow);
   }
   if (idxs.length === 0) return null;
-  const first = Math.min(...idxs);
-  const last = Math.max(...idxs);
-  return { left: chartX(first) - CHART_X_STEP / 2, width: (last - first + 1) * CHART_X_STEP };
+  return { first: Math.min(...idxs), last: Math.max(...idxs) };
+}
+
+/** The chart-space extent of the verdict's ride window (see `chartWindowIndexes`). */
+export function chartWindowBand(
+  data: readonly ChartWindowHour[],
+  window: ChartRideWindow | null,
+): { left: number; width: number } | null {
+  const range = chartWindowIndexes(data, window);
+  if (!range) return null;
+  return {
+    left: chartX(range.first) - CHART_X_STEP / 2,
+    width: (range.last - range.first + 1) * CHART_X_STEP,
+  };
+}
+
+/**
+ * The hour the chart opens on: Now, unless the verdict's ride window starts
+ * later, in which case its first hour. The verdict then names the same hour
+ * the chart shows ("Ride at 1 PM"), and a window of up to four hours fits in
+ * view to the right of center instead of running off the card's edge.
+ */
+export function chartOpeningIndex(
+  nowIdx: number,
+  windowRange: { first: number; last: number } | null,
+): number {
+  return windowRange != null && windowRange.first > nowIdx ? windowRange.first : nowIdx;
+}
+
+/** The ride window band's label: spelled out when it fits (three hours at 13pt), else "Ride". */
+export function chartWindowLabel(bandWidth: number): string {
+  return bandWidth >= 3 * CHART_X_STEP ? 'Ride window' : 'Ride';
 }

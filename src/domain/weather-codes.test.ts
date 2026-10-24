@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  getSky,
   getWeatherCodeCondition,
   getWeatherCodeIssue,
   getWeatherDescription,
@@ -42,5 +43,50 @@ describe('Weather Code Conditions', () => {
     expect(getWeatherCodeIssue(0, 'no')).toBeNull();
     expect(getWeatherCodeIssue(null, 'no')).toBeNull();
     expect(getWeatherCodeIssue(95, 'no')).toBeNull(); // 95 is thunderstorm, rated bad, but has no issue phrase in table
+  });
+});
+
+describe('getSky', () => {
+  const skies = (codes: number[]) => codes.map((code) => getSky(code));
+
+  it('shows the sun for clear and mostly clear skies', () => {
+    expect(skies([0, 1])).toEqual(['clear', 'clear']);
+  });
+
+  it('half hides the sun when partly cloudy', () => {
+    expect(getSky(2)).toBe('partly');
+  });
+
+  it('keeps overcast dry', () => {
+    expect(getSky(3)).toBe('overcast');
+  });
+
+  it('mists over for fog and freezing fog', () => {
+    expect(skies([45, 48])).toEqual(['fog', 'fog']);
+  });
+
+  it('drizzles lightly for drizzle', () => {
+    expect(skies([51, 53, 55])).toEqual(['drizzle', 'drizzle', 'drizzle']);
+  });
+
+  it('rains for rain and showers', () => {
+    for (const code of [61, 63, 65, 80, 81, 82]) expect(getSky(code)).toBe('rain');
+  });
+
+  it('mixes sleet for freezing drizzle and freezing rain', () => {
+    expect(skies([56, 57, 66, 67])).toEqual(['sleet', 'sleet', 'sleet', 'sleet']);
+  });
+
+  it('snows for snow, snow grains and snow showers', () => {
+    for (const code of [71, 73, 75, 77, 85, 86]) expect(getSky(code)).toBe('snow');
+  });
+
+  it('storms for thunderstorms, with or without hail', () => {
+    expect(skies([95, 96, 99])).toEqual(['storm', 'storm', 'storm']);
+  });
+
+  it('returns null without a known code', () => {
+    expect(getSky(null)).toBeNull();
+    expect(getSky(10)).toBeNull();
   });
 });

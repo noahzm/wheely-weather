@@ -20,6 +20,7 @@ export function useWebDocumentTheme(isDark: boolean) {
     root.style.setProperty('--wheely-ink', palette.ink);
     root.style.setProperty('--wheely-muted-ink', palette.mutedInk);
     root.style.setProperty('--wheely-border', palette.border);
+    root.style.setProperty('--wheely-divider', palette.divider);
     root.style.setProperty('--wheely-shadow', palette.shadow);
     root.style.setProperty('--wheely-primary', palette.primary);
     root.style.setProperty('--wheely-primary-ink', palette.primaryInk);

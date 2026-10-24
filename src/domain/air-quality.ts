@@ -38,7 +38,19 @@ export function applyAirQualityToToday(
   );
   const [today, ...laterDays] = weather.daily;
   const daily = today
-    ? [{ ...today, condition: worse(today.condition, rating) }, ...laterDays]
+    ? [
+        {
+          ...today,
+          condition: worse(today.condition, rating),
+          // The week row's strip matches the chart: the rest of today, not hours gone by.
+          ...(today.daylight && {
+            daylight: today.daylight.map((h) =>
+              h.isPast || h.condition == null ? h : { ...h, condition: worse(h.condition, rating) },
+            ),
+          }),
+        },
+        ...laterDays,
+      ]
     : [];
   return { ...weather, hourly, daily };
 }

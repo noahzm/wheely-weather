@@ -3,7 +3,10 @@ import {
   dayLabel,
   getBestDayInfo,
   getDayConditionReason,
+  formatDayRowNote,
+  getDayRowNote,
   getHourConditionReasons,
+  isGenericDayReason,
 } from './forecastHelpers';
 import { THRESHOLDS } from '../domain/constants';
 import { makeDay, makeHour } from '@/test-utils/weather';
@@ -375,5 +378,90 @@ describe('getHourConditionReasons', () => {
         hour({ condition: 'poor', temperature: 72, rainChance: 45, weatherCode: 65 }),
       ),
     ).toEqual(['Heavy rain risk']);
+  });
+});
+
+describe('getDayRowNote', () => {
+  const window = { startHour: 10, endHour: 13, tempLow: 68, tempHigh: 72 };
+  const range = { startHour: 10, endHour: 13 };
+
+  it('gives a good day only its window', () => {
+    expect(getDayRowNote(day({ condition: 'good', rideWindow: window }))).toEqual({
+      reason: null,
+      window: range,
+    });
+  });
+
+  it('names what holds a rideable day back, minus the figures, beside its window', () => {
+    const windy = day({ condition: 'marginal', windSpeed: 21, rideWindow: window });
+    expect(getDayConditionReason(windy)).toBe('Windy (21 mph)');
+    expect(getDayRowNote(windy)).toEqual({ reason: 'Windy', window: range });
+    expect(getDayRowNote(day({ condition: 'fair', windSpeed: 13, rideWindow: window }))).toEqual({
+      reason: 'Breezy',
+      window: range,
+    });
+  });
+
+  it('gives poor and bad days a reason but no recommended window', () => {
+    expect(getDayRowNote(day({ condition: 'poor', windSpeed: 27, rideWindow: window }))).toEqual({
+      reason: 'Very windy',
+      window: null,
+    });
+    expect(getDayRowNote(day({ condition: 'bad', weatherCode: 95, rideWindow: window }))).toEqual({
+      reason: 'Storm risk',
+      window: null,
+    });
+  });
+
+  it('drops generic fallbacks that name no cause', () => {
+    expect(getDayRowNote(day({ condition: 'fair', rideWindow: window })).reason).toBeNull();
+    expect(getDayRowNote(day({ condition: 'bad' }))).toEqual({ reason: null, window: null });
+  });
+
+  it('uses the thresholds the day was rated with', () => {
+    const acclimatized = {
+      ...THRESHOLDS,
+      TEMPERATURE: { ...THRESHOLDS.TEMPERATURE, MARGINAL_MAX: 78, POOR_MAX: 85 },
+    };
+    const hotDay = day({ condition: 'poor', high: 86 });
+    expect(getDayRowNote(hotDay, 'fahrenheit', acclimatized).reason).toBe('Very hot');
+  });
+
+  it('has nothing to say once the day’s daylight is gone', () => {
+    expect(getDayRowNote(day({ rideWindowUnavailable: true, rideWindow: window }))).toEqual({
+      reason: null,
+      window: null,
+    });
+  });
+});
+
+describe('formatDayRowNote', () => {
+  const window = { startHour: 10, endHour: 13 };
+
+  it('pairs the reason with the best window', () => {
+    expect(formatDayRowNote({ reason: 'Breezy', window }, false)).toBe('Breezy · Best 10 AM–1 PM');
+    expect(formatDayRowNote({ reason: null, window }, false)).toBe('Best 10 AM–1 PM');
+    expect(formatDayRowNote({ reason: 'Storm risk', window: null }, false)).toBe('Storm risk');
+  });
+
+  it('drops "Best" from the window on the best day, which leads with its own label', () => {
+    expect(formatDayRowNote({ reason: 'Breezy', window }, true)).toBe('Breezy · 10 AM–1 PM');
+  });
+
+  it('is null with nothing to say', () => {
+    expect(formatDayRowNote({ reason: null, window: null }, true)).toBeNull();
+  });
+});
+
+describe('isGenericDayReason', () => {
+  it('flags the fallbacks that name no cause', () => {
+    expect(isGenericDayReason(getDayConditionReason(day({ condition: 'fair' })))).toBe(true);
+    expect(isGenericDayReason(getDayConditionReason(day({ condition: 'bad' })))).toBe(true);
+  });
+
+  it('passes reasons that say what is wrong', () => {
+    expect(
+      isGenericDayReason(getDayConditionReason(day({ condition: 'poor', windSpeed: 27 }))),
+    ).toBe(false);
   });
 });

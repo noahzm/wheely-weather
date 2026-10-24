@@ -10,11 +10,11 @@ import Animated, {
 import { ThemedText } from '@/components/themed-text';
 import {
   Fonts,
-  FontWeightBlack,
   Radius,
   Spacing,
   Type,
   type WheelyPalette,
+  FontWeightSemibold,
 } from '@/constants/theme';
 import { useColorSchemeName, useWheelyColors } from '@/hooks/use-theme';
 import { withAlpha } from '@/utils/colors';
@@ -55,11 +55,11 @@ function makeStyles(c: WheelyPalette, scheme: 'light' | 'dark') {
     text: {
       color: c.ink,
       fontFamily: Fonts.body,
-      ...Type.caption,
+      ...Type.micro,
     },
     textActive: {
       fontFamily: Fonts.bold,
-      fontWeight: FontWeightBlack,
+      fontWeight: FontWeightSemibold,
     },
   });
 }

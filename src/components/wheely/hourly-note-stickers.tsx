@@ -6,8 +6,8 @@ import { SymbolView, type SFSymbol } from 'expo-symbols';
 
 import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Radius, Spacing, Type, type WheelyPalette } from '@/constants/theme';
-import { brutalShadow, PlatformIcon } from './primitives';
+import { Spacing, Type, type WheelyPalette } from '@/constants/theme';
+import { PlatformIcon, StickerTag } from './primitives';
 
 /** The section's title-to-card gap the sticker reaches across (`section.gap` on home). */
 const TITLE_GAP = Spacing.three;
@@ -36,18 +36,8 @@ function makeStyles(c: WheelyPalette) {
       pointerEvents: 'none',
     },
     noteSticker: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: Spacing.one,
       maxWidth: '100%',
-      borderWidth: 1.5,
-      borderColor: c.border,
-      borderRadius: Radius.none,
-      backgroundColor: c.paper,
       paddingHorizontal: Spacing.two,
-      paddingVertical: Spacing.one,
-      ...brutalShadow(c.shadow, 2),
-      transform: [{ rotate: '-1deg' }],
     },
     noteStickerText: {
       color: c.ink,
@@ -77,14 +67,14 @@ function HourlyNoteSticker({ icon, text }: Readonly<{ icon: SFSymbol; text: stri
 
   return (
     <Animated.View entering={FadeInDown.delay(180).springify().damping(15)}>
-      <View style={styles.noteSticker} accessibilityRole="text" accessibilityLabel={text}>
+      <StickerTag style={styles.noteSticker} accessibilityRole="text" accessibilityLabel={text}>
         {Platform.OS === 'ios' ? (
           <SymbolView name={icon} size={13} tintColor={c.ink} />
         ) : (
           <PlatformIcon icon={FallbackIcon} size={13} color={c.ink} filled />
         )}
         <ThemedText style={styles.noteStickerText}>{formatStickerText(text)}</ThemedText>
-      </View>
+      </StickerTag>
     </Animated.View>
   );
 }

@@ -5,7 +5,7 @@ import { ChevronLeft, X } from './icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Fonts, FontWeightBlack, Spacing, TRANSPARENT, Type } from '@/constants/theme';
+import { PosterText, Spacing, TRANSPARENT, Type } from '@/constants/theme';
 import { withAlpha } from '@/utils/colors';
 import { contentColumnStyle, screenGutterStyle, webFixedPosition } from './content-column';
 import { GlassChrome } from './glass-chrome';
@@ -23,20 +23,22 @@ const COLLAPSE_OFFSET = 36;
  * title bar can take over as iOS's collapsing navigation bar does. The page
  * scrolls as a document on web, so this listens to the window; state only
  * flips at the threshold, so scrolling doesn't re-render the screen.
+ * `titleTop` is any extra room above the title (Home's sky), which the page
+ * scrolls through before the title starts to go.
  */
-export function useWebTitleCollapse() {
+export function useWebTitleCollapse(titleTop = 0) {
   const [collapsed, setCollapsed] = useState(false);
   useEffect(() => {
     if (Platform.OS !== 'web') return;
     const update = () => {
-      setCollapsed(globalThis.scrollY > COLLAPSE_OFFSET);
+      setCollapsed(globalThis.scrollY > COLLAPSE_OFFSET + titleTop);
     };
     update();
     globalThis.addEventListener('scroll', update, { passive: true });
     return () => {
       globalThis.removeEventListener('scroll', update);
     };
-  }, []);
+  }, [titleTop]);
   return collapsed;
 }
 
@@ -98,23 +100,28 @@ const compactStyles = StyleSheet.create({
     paddingHorizontal: Spacing.six,
   },
   title: {
-    fontFamily: Fonts.city,
-    fontWeight: FontWeightBlack,
-    fontSize: Type.body.fontSize,
-    lineHeight: Type.body.lineHeight,
+    ...PosterText,
+    fontSize: Type.dayTitle.fontSize,
+    lineHeight: Type.dayTitle.lineHeight,
   },
 });
 
-export function WebScreenTitle({ children }: Readonly<{ children: string }>) {
+export function WebScreenTitle({
+  children,
+  color,
+}: Readonly<{
+  children: string;
+  /** Overrides the page ink, for a title drawn over the home scene's sky. */
+  color?: string;
+}>) {
   const c = useWheelyColors();
   return (
     <Text
       numberOfLines={1}
       ellipsizeMode="tail"
       style={{
-        color: c.ink,
-        fontFamily: Fonts.city,
-        fontWeight: FontWeightBlack,
+        color: color ?? c.ink,
+        ...PosterText,
         ...Type.subtitle,
         flexShrink: 1,
       }}

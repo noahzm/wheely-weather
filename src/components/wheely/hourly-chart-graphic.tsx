@@ -17,8 +17,11 @@ import Svg, {
 } from 'react-native-svg';
 
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Fonts, Type, type WheelyPalette } from '@/constants/theme';
+import { LabelText, Type, type WheelyPalette } from '@/constants/theme';
 import {
+  CHART_HEIGHT,
+  CHART_HOUR_LABEL_Y,
+  CHART_PLOT_BOTTOM,
   chartCenterXFromClampedScroll,
   chartCenterXFromScroll,
   chartClampScrollOffset,
@@ -38,9 +41,11 @@ import { withAlpha } from '@/utils/colors';
 import { HourlyChartDot } from './hourly-chart-dot';
 import type { ChartHour } from './use-hourly-forecast-chart';
 
-export const CHART_HEIGHT = 148;
 const SELECTION_RING_SIZE = 32;
 const SELECTION_RING_RADIUS = SELECTION_RING_SIZE / 2;
+// The dashed "Now" marker stops just under the worst row, above the ride
+// window's label, which can sit beside it when the window starts now.
+const NOW_LINE_BOTTOM = CHART_PLOT_BOTTOM + 8;
 
 const GRIDLINE_CONDITIONS = ['good', 'fair', 'marginal', 'poor', 'bad'] as const;
 const GRIDLINE_INSET = 12;
@@ -132,14 +137,15 @@ function hourLabelNode(d: ChartHour, nowIdx: number, labelColor: string) {
     <SvgText
       key={`label-${d.idx}`}
       x={chartX(d.idx)}
-      y={140}
-      fontFamily={Fonts.body}
+      y={CHART_HOUR_LABEL_Y}
+      fontFamily={LabelText.fontFamily}
       fontSize={Type.micro.fontSize}
-      fontWeight="400"
+      fontWeight={LabelText.fontWeight}
+      letterSpacing={LabelText.letterSpacing}
       textAnchor="middle"
       fill={labelColor}
     >
-      {d.idx === nowIdx ? 'Now' : fullHourLabel(d.hour)}
+      {(d.idx === nowIdx ? 'Now' : fullHourLabel(d.hour)).toLocaleUpperCase()}
     </SvgText>
   );
   /* eslint-enable @typescript-eslint/no-deprecated */
@@ -196,7 +202,7 @@ export function HourlyChartGraphic({
           x1={chartX(nowIdx)}
           x2={chartX(nowIdx)}
           y1={14}
-          y2={120}
+          y2={NOW_LINE_BOTTOM}
           stroke={c.ink}
           strokeDasharray="2 3"
         />
@@ -270,7 +276,7 @@ export function HourlyChartGridlines({ width }: Readonly<{ width: number }>) {
           x2={width - GRIDLINE_INSET}
           y1={chartY(condition)}
           y2={chartY(condition)}
-          stroke={c.border}
+          stroke={c.divider}
           strokeDasharray="3 5"
           strokeWidth={1}
         />

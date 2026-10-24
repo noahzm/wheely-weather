@@ -8,7 +8,7 @@ import Animated, { type SharedValue, useAnimatedStyle } from 'react-native-reani
 import { ThemedText } from '@/components/themed-text';
 import { ExternalLink } from '@/components/external-link';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Fonts, FontWeightBlack, Spacing, Type, type WheelyPalette } from '@/constants/theme';
+import { Fonts, Spacing, Type, type WheelyPalette, FontWeightSemibold } from '@/constants/theme';
 import { withAlpha } from '@/utils/colors';
 import type { WeatherAlert } from '@/types/weather';
 import { AnimatedExpand, useExpandAnimation } from './animated-expand';
@@ -50,7 +50,7 @@ function makeStyles(c: WheelyPalette) {
     alertTitle: {
       color: c.ink,
       fontFamily: Fonts.bold,
-      fontWeight: FontWeightBlack,
+      fontWeight: FontWeightSemibold,
       ...Type.body,
     },
     muted: {
@@ -108,14 +108,14 @@ function HazardStripe({ extreme }: Readonly<{ extreme?: boolean }>) {
           <Defs>
             <Pattern id={patternId} patternUnits="userSpaceOnUse" width={20} height={20}>
               <Rect width={20} height={20} fill={stripe} />
-              <Polygon points="0,0 10,0 20,10 20,20" fill={c.shadow} />
-              <Polygon points="0,10 0,20 10,20" fill={c.shadow} />
+              <Polygon points="0,0 10,0 20,10 20,20" fill={c.ink} />
+              <Polygon points="0,10 0,20 10,20" fill={c.ink} />
             </Pattern>
           </Defs>
           <Rect width="100%" height={10} fill={`url(#${patternId})`} />
         </Svg>
       </View>
-      <View style={{ height: 2, backgroundColor: c.shadow }} />
+      <View style={{ height: 2, backgroundColor: c.ink }} />
     </>
   );
 }

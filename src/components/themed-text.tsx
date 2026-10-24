@@ -1,6 +1,13 @@
 import { StyleSheet, Text, type TextProps } from 'react-native';
 
-import { FontWeightBlack, Fonts, ThemeColor, Type } from '@/constants/theme';
+import {
+  FontWeightBold,
+  Fonts,
+  ThemeColor,
+  Type,
+  FontWeightSemibold,
+  TabularNumbers,
+} from '@/constants/theme';
 import { useWheelyColors } from '@/hooks/use-theme';
 
 type ThemedTextProps = TextProps & {
@@ -8,9 +15,8 @@ type ThemedTextProps = TextProps & {
     | 'default'
     | 'title'
     | 'small'
-    | 'smallBold'
+    | 'smallSemibold'
     | 'micro'
-    | 'caption'
     | 'heading'
     | 'stat'
     | 'subtitle'
@@ -29,9 +35,8 @@ export function ThemedText({ style, type = 'default', themeColor, ...rest }: The
         { color: c[themeColor ?? 'ink'] },
         type === 'default' && styles.default,
         type === 'micro' && styles.micro,
-        type === 'caption' && styles.caption,
         type === 'small' && styles.small,
-        type === 'smallBold' && styles.smallBold,
+        type === 'smallSemibold' && styles.smallSemibold,
         type === 'heading' && styles.heading,
         type === 'stat' && styles.stat,
         type === 'subtitle' && styles.subtitle,
@@ -52,20 +57,15 @@ const styles = StyleSheet.create({
     ...Type.micro,
     fontWeight: '400',
   },
-  caption: {
-    fontFamily: Fonts.body,
-    ...Type.caption,
-    fontWeight: '400',
-  },
   small: {
     fontFamily: Fonts.body,
     ...Type.small,
     fontWeight: '400',
   },
-  smallBold: {
+  smallSemibold: {
     fontFamily: Fonts.bold,
     ...Type.small,
-    fontWeight: FontWeightBlack,
+    fontWeight: FontWeightSemibold,
   },
   default: {
     fontFamily: Fonts.body,
@@ -75,22 +75,23 @@ const styles = StyleSheet.create({
   heading: {
     fontFamily: Fonts.bold,
     ...Type.heading,
-    fontWeight: FontWeightBlack,
+    fontWeight: FontWeightBold,
   },
   stat: {
     fontFamily: Fonts.bold,
     ...Type.stat,
-    fontWeight: FontWeightBlack,
+    fontWeight: FontWeightSemibold,
+    ...TabularNumbers,
   },
   subtitle: {
     fontFamily: Fonts.bold,
     ...Type.subtitle,
-    fontWeight: FontWeightBlack,
+    fontWeight: FontWeightBold,
   },
   title: {
     fontFamily: Fonts.bold,
     ...Type.display,
-    fontWeight: FontWeightBlack,
+    fontWeight: FontWeightBold,
   },
   link: {
     fontFamily: Fonts.body,
@@ -105,6 +106,6 @@ const styles = StyleSheet.create({
   code: {
     fontFamily: Fonts.body,
     fontWeight: '400',
-    ...Type.caption,
+    ...Type.micro,
   },
 });

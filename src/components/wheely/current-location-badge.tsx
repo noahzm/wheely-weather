@@ -5,7 +5,7 @@ import { SymbolView } from 'expo-symbols';
 
 import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Spacing, Type, type WheelyPalette } from '@/constants/theme';
+import { LabelText, SceneColors, Spacing, Type, type WheelyPalette } from '@/constants/theme';
 
 import { PlatformIcon } from './primitives';
 
@@ -22,7 +22,8 @@ function makeStyles(c: WheelyPalette) {
     },
     label: {
       color: c.mutedInk,
-      ...Type.small,
+      ...LabelText,
+      ...Type.micro,
     },
   });
 }
@@ -36,17 +37,23 @@ function makeStyles(c: WheelyPalette) {
  * The glyph matches the "Use Current Location" row on the search screen:
  * `location.fill` on iOS, Bootstrap `Navigation` elsewhere.
  */
-export function CurrentLocationBadge() {
+export function CurrentLocationBadge({
+  onScene = false,
+}: Readonly<{
+  /** Drawn over the home scene's sky, which takes dark ink in both color schemes. */
+  onScene?: boolean;
+}>) {
   const c = useWheelyColors();
   const styles = useMemo(() => makeStyles(c), [c]);
+  const ink = onScene ? SceneColors.mutedInk : c.mutedInk;
   return (
     <View style={styles.row} accessibilityRole="text">
       {Platform.OS === 'ios' ? (
-        <SymbolView name="location.fill" size={14} tintColor={c.mutedInk} />
+        <SymbolView name="location.fill" size={14} tintColor={ink} />
       ) : (
-        <PlatformIcon icon={Navigation} size={14} color={c.mutedInk} filled />
+        <PlatformIcon icon={Navigation} size={14} color={ink} filled />
       )}
-      <ThemedText style={styles.label}>Current Location</ThemedText>
+      <ThemedText style={[styles.label, { color: ink }]}>Current Location</ThemedText>
     </View>
   );
 }

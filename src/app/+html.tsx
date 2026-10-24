@@ -5,7 +5,7 @@ import { WheelyTheme } from '@/constants/theme';
 
 const APPEARANCE_KEY = 'ww_appearance';
 
-const themeBootstrapScript = `(function(){try{var p=localStorage.getItem('${APPEARANCE_KEY}');var d=p==='dark'||(p!=='light'&&window.matchMedia('(prefers-color-scheme: dark)').matches);var b=d?'#000000':'#ffffff';document.documentElement.style.setProperty('--wheely-background',b);document.documentElement.style.colorScheme=d?'dark':'light';document.documentElement.setAttribute('data-theme',d?'dark':'light');}catch(e){}})();`;
+const themeBootstrapScript = `(function(){try{var p=localStorage.getItem('${APPEARANCE_KEY}');var d=p==='dark'||(p!=='light'&&window.matchMedia('(prefers-color-scheme: dark)').matches);var b=d?'${WheelyTheme.dark.background}':'${WheelyTheme.light.background}';document.documentElement.style.setProperty('--wheely-background',b);document.documentElement.style.colorScheme=d?'dark':'light';document.documentElement.setAttribute('data-theme',d?'dark':'light');}catch(e){}})();`;
 
 export default function Root({ children }: Readonly<PropsWithChildren>) {
   // Since SDK 58 the static renderer hands the page's bundle <script> tags,

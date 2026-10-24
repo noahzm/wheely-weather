@@ -1,5 +1,14 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Platform, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+  type LayoutChangeEvent,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useAnimatedStyle,
@@ -8,7 +17,8 @@ import Animated, {
   withDelay,
   withTiming,
 } from 'react-native-reanimated';
-import { useRouter } from 'expo-router';
+import { Stack, useIsFocused, useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import Head from 'expo-router/head';
 import { Navigation } from '@/components/wheely/icons';
 
@@ -29,6 +39,7 @@ import {
   WebScreenTitle,
   bottomNavBarHeight,
 } from '@/components/wheely';
+import { HomeBackdrop, sceneFor, type SceneKind } from '@/components/wheely/home-backdrop';
 import {
   WEB_TITLE_CONTENT_SPACING,
   WebCompactTitleBar,
@@ -48,7 +59,7 @@ import type { AcclimatizationContext } from '@/services/forecastSnapshot';
 import { useForecast } from '@/hooks/forecast-context';
 import { useGearMode, useResolvedTempUnit } from '@/hooks/settings-context';
 import { useMinimumRefreshing } from '@/hooks/use-minimum-refreshing';
-import { useWheelyColors } from '@/hooks/use-theme';
+import { useColorSchemeName, useWheelyColors } from '@/hooks/use-theme';
 import { GearStylePicker } from '@/components/wheely/gear-style-picker';
 import { HourlyNoteStickers } from '@/components/wheely/hourly-note-stickers';
 import { cityFromLocation } from '@/utils/locationTitle';
@@ -56,7 +67,9 @@ import { formatUpdatedAgo } from '@/utils/timeFormat';
 import type { TempUnit } from '@/utils/temperature';
 import type { Weather } from '@/types/weather';
 import { contentColumnStyle, screenGutterStyle } from '@/components/wheely/content-column';
-import { Spacing, TRANSPARENT, Type, type WheelyPalette } from '@/constants/theme';
+import { SceneColors, Spacing, TRANSPARENT, Type, type WheelyPalette } from '@/constants/theme';
+import { isSkyUnderStatusBar } from '@/utils/homeScene';
+import { largeTitleStyle } from '@/utils/large-title-stack-options';
 
 const isWeb = Platform.OS === 'web';
 const isIOS = Platform.OS === 'ios';
@@ -66,6 +79,12 @@ const PLACE_FADE_MS = 260;
 // the first home mount per session; native tabs keep the screen mounted.
 let hasPlayedWebEntrance = false;
 
+/**
+ * Web has no navigation bar over its title, so while the scene shows, this
+ * much sky above the heading gives the sun and clouds room, as native's bar does.
+ */
+const WEB_SKY_ROOM = Spacing.six;
+
 // Color-free, so it lives outside the palette-driven `makeStyles`.
 const headingStyles = StyleSheet.create({
   cityRow: {
@@ -73,6 +92,12 @@ const headingStyles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.two,
     maxWidth: '100%',
+  },
+  heading: {
+    alignSelf: 'stretch',
+  },
+  skyRoom: {
+    paddingTop: WEB_SKY_ROOM,
   },
 });
 
@@ -165,33 +190,106 @@ function deriveHomeState(
 
 type HomeState = ReturnType<typeof deriveHomeState>;
 
-function WebCityHeading({ city, following }: Readonly<{ city: string; following: boolean }>) {
+interface HomeSectionsData {
+  weather: Weather;
+  thresholds: AcclimatizationContext['thresholds'];
+  derived: HomeState;
+}
+
+/**
+ * Lines the home backdrop up with the page. `offset` is how far the web city
+ * heading pushes the content column below where native starts it (native
+ * draws the title in its large-title bar instead), so the scene can sit under
+ * the heading; always 0 on native. `groundTop` is where the verdict card's
+ * block starts in the scroll content, so the hills stay below whatever sits
+ * above the card (the location line, the pinned places, the web title); null
+ * until it has been laid out.
+ */
+function useSceneLayout() {
+  const [contentTop, setContentTop] = useState(0);
+  const [sectionsTop, setSectionsTop] = useState<number | null>(null);
+  return {
+    offset: isWeb ? Math.max(0, contentTop - Spacing.three) : 0,
+    groundTop: sectionsTop == null ? null : contentTop + sectionsTop,
+    onContentLayout: (event: LayoutChangeEvent) => {
+      setContentTop(event.nativeEvent.layout.y);
+    },
+    onSectionsLayout: (event: LayoutChangeEvent) => {
+      setSectionsTop(event.nativeEvent.layout.y);
+    },
+  };
+}
+
+function WebCityHeading({
+  city,
+  following,
+  onScene = false,
+}: Readonly<{ city: string; following: boolean; onScene?: boolean }>) {
   const router = useRouter();
   const c = useWheelyColors();
   if (!isWeb || city.length === 0) return null;
+  const ink = onScene ? SceneColors.ink : c.ink;
   return (
-    <WebScreenHeader
-      variant="title"
-      withScreenGutter={false}
-      title={
-        <HapticPressable
-          onPress={() => {
-            router.navigate('/location');
-          }}
-          accessibilityRole="button"
-          accessibilityLabel={
-            following
-              ? `Location: ${city}, following your current location. Change location`
-              : `Location: ${city}. Change location`
-          }
-          style={({ pressed }) => [headingStyles.cityRow, pressed && { opacity: 0.7 }]}
-        >
-          {following && <PlatformIcon icon={Navigation} size={20} color={c.ink} filled />}
-          <WebScreenTitle>{city}</WebScreenTitle>
-        </HapticPressable>
-      }
-    />
+    <View style={[headingStyles.heading, onScene && headingStyles.skyRoom]}>
+      <WebScreenHeader
+        variant="title"
+        withScreenGutter={false}
+        title={
+          <HapticPressable
+            onPress={() => {
+              router.navigate('/location');
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={
+              following
+                ? `Location: ${city}, following your current location. Change location`
+                : `Location: ${city}. Change location`
+            }
+            style={({ pressed }) => [headingStyles.cityRow, pressed && { opacity: 0.7 }]}
+          >
+            {following && <PlatformIcon icon={Navigation} size={20} color={ink} filled />}
+            <WebScreenTitle color={ink}>{city}</WebScreenTitle>
+          </HapticPressable>
+        }
+      />
+    </View>
   );
+}
+
+/**
+ * What the native chrome needs while the home scene shows: its sky is
+ * daylight in both color schemes, so the large title over it takes dark ink,
+ * and so does the status bar while the sky is behind it. Once the page
+ * scrolls under the blurred navigation bar, the status bar goes back to the
+ * scheme's own style, and it is only touched while Home is the focused tab.
+ */
+function HomeSceneChrome({
+  onScene,
+  skyUnderStatusBar,
+}: Readonly<{ onScene: boolean; skyUnderStatusBar: boolean }>) {
+  const isFocused = useIsFocused();
+  const dark = useColorSchemeName() === 'dark';
+  if (!isIOS) return null;
+  return (
+    <>
+      <Stack.Screen
+        options={{ headerLargeTitleStyle: largeTitleStyle(onScene ? SceneColors.ink : undefined) }}
+      />
+      {onScene && dark && isFocused && skyUnderStatusBar && <StatusBar style="dark" />}
+    </>
+  );
+}
+
+/** Tracks whether the scene's sky is behind the status bar as the page scrolls (iOS). */
+function useSkyUnderStatusBar() {
+  const insets = useSafeAreaInsets();
+  const [skyUnder, setSkyUnder] = useState(true);
+  const onScroll = isIOS
+    ? (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+        setSkyUnder(isSkyUnderStatusBar(event.nativeEvent.contentOffset.y, insets.top));
+      }
+    : undefined;
+  return { skyUnder, onScroll };
 }
 
 function KitSection({
@@ -271,7 +369,6 @@ function HomeSections({
             score={derived.score}
             message={derived.message}
             label={derived.label}
-            weatherCode={derived.verdictWeatherCode}
             waiting={derived.waiting}
             condition={derived.condition}
           />
@@ -362,6 +459,16 @@ export default function HomeScreen() {
   const styles = useMemo(() => makeStyles(c), [c]);
   const insets = useSafeAreaInsets();
   const bottomNavInset = isWeb ? bottomNavBarHeight(insets.bottom) : Spacing.five;
+  const sky = useSkyUnderStatusBar();
+  // The scene shows only with the forecast itself, not the loading, error or location states.
+  const scene =
+    sections && !forecast.loading && !forecast.needsLocation
+      ? sceneFor(
+          sections.derived.status,
+          sections.derived.waiting,
+          sections.derived.verdictWeatherCode,
+        )
+      : null;
 
   const title = city
     ? `${city} Ride Forecast — Wheely Weather`
@@ -376,9 +483,12 @@ export default function HomeScreen() {
         <title>{title}</title>
         <meta name="description" content={desc} />
       </Head>
+      <HomeSceneChrome onScene={scene != null} skyUnderStatusBar={sky.skyUnder} />
       <HomeContent
         forecast={forecast}
         sections={sections}
+        scene={scene}
+        onScroll={sky.onScroll}
         city={city}
         followingDevice={followingDevice}
         locating={locating}
@@ -470,9 +580,41 @@ function homeRefreshControl({
   );
 }
 
+/** The place line over the verdict: the pinned places bar, or the current-location line. */
+function HomePlaceRow({
+  forecast,
+  followingDevice,
+  onScene,
+}: Readonly<{
+  forecast: ReturnType<typeof useForecast>;
+  followingDevice: boolean;
+  onScene: boolean;
+}>) {
+  if (forecast.pinnedLocations.length > 0) {
+    return (
+      <PinnedLocationsBar
+        pinnedLocations={forecast.pinnedLocations}
+        savedLocation={forecast.savedLocation}
+        followingDevice={followingDevice}
+        onSelectCurrentLocation={() => {
+          void forecast.useDeviceLocation();
+        }}
+        onSelectPinnedLocation={(place) => {
+          void forecast.setManualLocation(place);
+        }}
+      />
+    );
+  }
+  // Web shows the arrow inline beside its own heading; the pinned bar has its own Current pill.
+  if (followingDevice && !isWeb) return <CurrentLocationBadge onScene={onScene} />;
+  return null;
+}
+
 function HomeContent({
   forecast,
   sections,
+  scene,
+  onScroll,
   city,
   followingDevice,
   locating,
@@ -482,11 +624,9 @@ function HomeContent({
   bottomNavInset,
 }: Readonly<{
   forecast: ReturnType<typeof useForecast>;
-  sections: {
-    weather: Weather;
-    thresholds: AcclimatizationContext['thresholds'];
-    derived: HomeState;
-  } | null;
+  sections: HomeSectionsData | null;
+  scene: SceneKind | null;
+  onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
   city: string;
   followingDevice: boolean;
   locating: boolean;
@@ -497,7 +637,8 @@ function HomeContent({
 }>) {
   const c = useWheelyColors();
   const showRefreshing = useMinimumRefreshing(forecast.refreshing);
-  const titleCollapsed = useWebTitleCollapse();
+  const titleCollapsed = useWebTitleCollapse(scene ? WEB_SKY_ROOM : 0);
+  const sceneLayout = useSceneLayout();
   if (forecast.loading) {
     return <LoadingState />;
   }
@@ -536,6 +677,8 @@ function HomeContent({
       <ScrollView
         style={[styles.scroll, scrollHostStyle]}
         contentInsetAdjustmentBehavior="automatic"
+        onScroll={onScroll}
+        scrollEventThrottle={onScroll ? 16 : undefined}
         refreshControl={homeRefreshControl({
           refreshing: showRefreshing,
           onRefresh: forecast.refresh,
@@ -547,38 +690,35 @@ function HomeContent({
           bottomNavInset != null && { paddingBottom: bottomNavInset },
         ]}
       >
+        {scene && (
+          <HomeBackdrop
+            kind={scene}
+            offset={sceneLayout.offset}
+            groundTop={sceneLayout.groundTop}
+          />
+        )}
         <View style={styles.safeArea}>
-          <WebCityHeading city={city} following={followingDevice} />
-          <View style={styles.content}>
-            {/* Web shows the arrow inline beside its own heading above. Pinned bar already has a Current pill. */}
-            {followingDevice && !isWeb && forecast.pinnedLocations.length === 0 && (
-              <CurrentLocationBadge />
-            )}
-            {forecast.pinnedLocations.length > 0 && (
-              <PinnedLocationsBar
-                pinnedLocations={forecast.pinnedLocations}
-                savedLocation={forecast.savedLocation}
-                followingDevice={followingDevice}
-                onSelectCurrentLocation={() => {
-                  void forecast.useDeviceLocation();
-                }}
-                onSelectPinnedLocation={(place) => {
-                  void forecast.setManualLocation(place);
-                }}
-              />
-            )}
+          <WebCityHeading city={city} following={followingDevice} onScene={scene != null} />
+          <View style={styles.content} onLayout={sceneLayout.onContentLayout}>
+            <HomePlaceRow
+              forecast={forecast}
+              followingDevice={followingDevice}
+              onScene={scene != null}
+            />
             {forecast.errorKind && sections && (
               <StaleDataNotice kind={forecast.errorKind} onRetry={forecast.refresh} />
             )}
             {headerContent !== null && <Stagger order={0}>{headerContent}</Stagger>}
             {sections && (
-              <HomeSections
-                weather={sections.weather}
-                derived={sections.derived}
-                thresholds={sections.thresholds}
-                refreshing={forecast.refreshing}
-                placeKey={`${forecast.snapshot?.mockScenario ?? ''}|${forecast.snapshot?.location ?? ''}`}
-              />
+              <View onLayout={sceneLayout.onSectionsLayout}>
+                <HomeSections
+                  weather={sections.weather}
+                  derived={sections.derived}
+                  thresholds={sections.thresholds}
+                  refreshing={forecast.refreshing}
+                  placeKey={`${forecast.snapshot?.mockScenario ?? ''}|${forecast.snapshot?.location ?? ''}`}
+                />
+              </View>
             )}
             {webUpdatedText !== null && (
               <Stagger order={7}>

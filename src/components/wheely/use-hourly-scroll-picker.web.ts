@@ -206,16 +206,16 @@ function useMagnetSnap(params: {
 
 type MagnetSnap = ReturnType<typeof useMagnetSnap>;
 
-/** Centers the "Now" hour once, as soon as the viewport has a width. */
+/** Centers the opening hour once, as soon as the viewport has a width. */
 function useInitialChartScroll(params: {
-  nowIdx: number;
+  openingIdx: number;
   count: number;
   maxIndex: number;
   viewportWidth: number;
   scrollRef: ScrollRef;
   publishScrollOffset: PublishScrollOffset;
 }) {
-  const { nowIdx, count, maxIndex, viewportWidth, scrollRef, publishScrollOffset } = params;
+  const { openingIdx, count, maxIndex, viewportWidth, scrollRef, publishScrollOffset } = params;
   const hasInitialScroll = useRef(false);
 
   // Web lays out synchronously and keeps its position across relayouts, so
@@ -223,10 +223,10 @@ function useInitialChartScroll(params: {
   useEffect(() => {
     if (viewportWidth <= 0 || count === 0 || hasInitialScroll.current) return;
     hasInitialScroll.current = true;
-    const x = chartScrollOffsetForIndex(nowIdx, viewportWidth, maxIndex);
+    const x = chartScrollOffsetForIndex(openingIdx, viewportWidth, maxIndex);
     scrollRef.current?.scrollTo({ x, animated: false });
     publishScrollOffset(x, false);
-  }, [viewportWidth, count, nowIdx, maxIndex, scrollRef, publishScrollOffset]);
+  }, [viewportWidth, count, openingIdx, maxIndex, scrollRef, publishScrollOffset]);
 }
 
 /** Wires the ScrollView's scroll and drag callbacks to selection and the magnet. */
@@ -308,7 +308,7 @@ function useScrollHandlers(params: {
 }
 
 export function useHourlyScrollPicker(
-  nowIdx: number,
+  openingIdx: number,
   count: number,
   onSelectedChange?: (nextIdx: number, prevIdx: number) => void,
 ): HourlyScrollPicker {
@@ -321,7 +321,7 @@ export function useHourlyScrollPicker(
   const liveScrollXRef = useRef(-1);
 
   const { selectedIdx, syncSelectionFromScroll, selectionHapticEnabledRef } = useScrollSelection(
-    nowIdx,
+    openingIdx,
     maxIndex,
     viewportWidth,
     onSelectedChange,
@@ -347,7 +347,14 @@ export function useHourlyScrollPicker(
     setIsScrollIdle,
   });
 
-  useInitialChartScroll({ nowIdx, count, maxIndex, viewportWidth, scrollRef, publishScrollOffset });
+  useInitialChartScroll({
+    openingIdx,
+    count,
+    maxIndex,
+    viewportWidth,
+    scrollRef,
+    publishScrollOffset,
+  });
 
   const handlers = useScrollHandlers({
     magnet,

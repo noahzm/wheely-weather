@@ -62,39 +62,6 @@
       ],
       "expo-localization",
       [
-        "expo-font",
-        {
-          "android": {
-            "fonts": [
-              {
-                "fontFamily": "AlteHaasGrotesk",
-                "fontDefinitions": [
-                  {
-                    "path": "assets/fonts/AlteHaasGroteskRegular.ttf",
-                    "weight": 400
-                  }
-                ]
-              },
-              {
-                "fontFamily": "AlteHaasGrotesk_Bold",
-                "fontDefinitions": [
-                  {
-                    "path": "assets/fonts/AlteHaasGroteskBold.ttf",
-                    "weight": 700
-                  }
-                ]
-              }
-            ]
-          },
-          "ios": {
-            "fonts": [
-              "assets/fonts/AlteHaasGroteskRegular.ttf",
-              "assets/fonts/AlteHaasGroteskBold.ttf"
-            ]
-          }
-        }
-      ],
-      [
         "expo-location",
         {
           "locationWhenInUsePermission": "Allow Wheely Weather to use your location for local cycling forecasts.",

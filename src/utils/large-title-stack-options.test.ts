@@ -13,7 +13,7 @@ const platform: {
 vi.mock('react-native', () => ({ Platform: platform }));
 
 const { WheelyTheme } = await import('@/constants/theme');
-const { largeTitleStackOptions } = await import('./large-title-stack-options');
+const { largeTitleStackOptions, largeTitleStyle } = await import('./large-title-stack-options');
 
 describe('largeTitleStackOptions', () => {
   it('omits headerBlurEffect on iOS 26+ where the system auto-applies header blur', () => {
@@ -23,7 +23,8 @@ describe('largeTitleStackOptions', () => {
     const opts = largeTitleStackOptions(WheelyTheme.light, 'Wheely');
     expect(opts.headerTransparent).toBe(true);
     expect(opts.headerBlurEffect).toBeUndefined();
-    expect(opts.headerTitle).toBe('Wheely');
+    // Poster titles are capitals, set on the string: native titles can't transform text.
+    expect(opts.headerTitle).toBe('WHEELY');
     expect(opts.headerTintColor).toBe(WheelyTheme.light.ink);
   });
 
@@ -43,5 +44,18 @@ describe('largeTitleStackOptions', () => {
     const opts = largeTitleStackOptions(WheelyTheme.light, 'Search');
     expect(opts.headerTransparent).toBe(false);
     expect(opts.headerBlurEffect).toBe('regular');
+  });
+});
+
+describe('largeTitleStyle', () => {
+  it('leaves the color to the system by default', () => {
+    expect(largeTitleStyle()).not.toHaveProperty('color');
+    expect(largeTitleStackOptions(WheelyTheme.dark, 'Durham').headerLargeTitleStyle).toEqual(
+      largeTitleStyle(),
+    );
+  });
+
+  it('takes a color for a title drawn over the home scene', () => {
+    expect(largeTitleStyle('#000000')).toMatchObject({ color: '#000000' });
   });
 });

@@ -6,11 +6,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useWheelyColors } from '@/hooks/use-theme';
 import {
   Fonts,
-  FontWeightBlack,
   Radius,
   Spacing,
   Type,
   type WheelyPalette,
+  FontWeightSemibold,
 } from '@/constants/theme';
 import { withAlpha } from '@/utils/colors';
 import { GlassChrome } from './glass-chrome';
@@ -49,7 +49,7 @@ function makeStyles(c: WheelyPalette) {
   const edge = {
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: withAlpha(c.ink, 0.14),
-    boxShadow: `0 8px 24px ${withAlpha(c.shadow, 0.18)}`,
+    boxShadow: `0 8px 24px ${withAlpha(c.ink, 0.18)}`,
   };
   return StyleSheet.create({
     wrap: {
@@ -107,7 +107,7 @@ function makeStyles(c: WheelyPalette) {
     },
     tabLabel: {
       fontFamily: Fonts.bold,
-      fontWeight: FontWeightBlack,
+      fontWeight: FontWeightSemibold,
       fontSize: Type.micro.fontSize,
       lineHeight: Type.micro.lineHeight,
     },

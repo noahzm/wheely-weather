@@ -1,5 +1,5 @@
 import { THRESHOLDS, type Thresholds } from '../domain/constants';
-import { ISSUE_PHRASES, issuePhraseTier, type IssueTier } from '../domain/copy';
+import { ISSUE_PHRASES, issuePhraseTier, STATUS_MESSAGES, type IssueTier } from '../domain/copy';
 import { rainPhrase } from '../domain/ride-factors';
 import {
   evaluateColdRainHazard,
@@ -12,6 +12,7 @@ import {
 } from '../domain/scoring';
 import { formatPercent } from './percent';
 import { formatTemperature, formatWindSpeed } from './temperature';
+import { fullHourLabel } from './timeFormat';
 
 import type { Condition, DailyWeather, HourlyWeather } from '@/types/weather';
 import type { TempUnit } from './temperature';
@@ -252,12 +253,22 @@ function dayReasonAtTier(
   );
 }
 
+// What a day's reason falls back to when no metric explains its rating. They
+// name no cause, so the week row's note (`getDayRowNote`) leaves them out.
+const DAY_REASON_FALLBACK = {
+  bad: 'Rough day to ride',
+  poor: 'Tough riding',
+  marginal: 'Mixed conditions',
+  fair: 'Fair window',
+} as const;
+const GENERIC_DAY_REASONS: ReadonlySet<string> = new Set(Object.values(DAY_REASON_FALLBACK));
+
 function badDayReason(metrics: DayMetrics, tempUnit: TempUnit, thresholds: Thresholds): string {
-  return dayReasonAtTier(metrics, 'bad', tempUnit, thresholds) ?? 'Rough day to ride';
+  return dayReasonAtTier(metrics, 'bad', tempUnit, thresholds) ?? DAY_REASON_FALLBACK.bad;
 }
 
 function poorDayReason(metrics: DayMetrics, tempUnit: TempUnit, thresholds: Thresholds): string {
-  return dayReasonAtTier(metrics, 'poor', tempUnit, thresholds) ?? 'Tough riding';
+  return dayReasonAtTier(metrics, 'poor', tempUnit, thresholds) ?? DAY_REASON_FALLBACK.poor;
 }
 
 function marginalDayReason(
@@ -265,7 +276,7 @@ function marginalDayReason(
   tempUnit: TempUnit,
   thresholds: Thresholds,
 ): string {
-  return dayReasonAtTier(metrics, 'marginal', tempUnit, thresholds) ?? 'Mixed conditions';
+  return dayReasonAtTier(metrics, 'marginal', tempUnit, thresholds) ?? DAY_REASON_FALLBACK.marginal;
 }
 
 function fairDayReason(
@@ -276,7 +287,7 @@ function fairDayReason(
   if (rain > 15) return 'Chance of rain';
   if (high != null && high < thresholds.TEMPERATURE.FAIR_MIN) return 'Cool but clear';
   if (high != null && high > thresholds.TEMPERATURE.FAIR_MAX) return 'Warm but workable';
-  return 'Fair window';
+  return DAY_REASON_FALLBACK.fair;
 }
 
 function idealDayReason(
@@ -501,4 +512,68 @@ export function getDayConditionReason(
       return idealDayReason(m, thresholds);
     }
   }
+}
+
+/** True for a day reason that names no cause ("Fair window", "Tough riding"). */
+export function isGenericDayReason(reason: string): boolean {
+  return GENERIC_DAY_REASONS.has(reason);
+}
+
+/** "Very windy (24 mph)" → "Very windy": drops a reason's trailing figures. */
+function withoutFigures(reason: string): string {
+  const open = reason.lastIndexOf(' (');
+  return open > 0 && reason.endsWith(')') ? reason.slice(0, open) : reason;
+}
+
+/** Ratings worth riding, so a day's window reads as a pick rather than "least bad". */
+const RIDEABLE_DAY: ReadonlySet<Condition> = new Set(['good', 'fair', 'marginal']);
+
+export interface DayRowNote {
+  /** What holds the day back, without figures ("Windy"); null on good days. */
+  reason: string | null;
+  /** The recommended ride window, outlined on the row's strip; null on no-go days. */
+  window: { startHour: number; endHour: number } | null;
+}
+
+/**
+ * What the week row says about a day beyond its rating: what holds it back,
+ * and when to ride. Good days need no reason, so they get only the window;
+ * poor and bad days aren't worth a recommended window, so they get only the
+ * reason; a day with no daylight left gets neither.
+ *
+ * The reason is the expanded drawer's own (`getDayConditionReason`) without its
+ * figures, so the row and the drawer never disagree; reasons that name no
+ * cause are left to the drawer. `thresholds` must be the ones the day was
+ * rated with, as for that function.
+ */
+export function getDayRowNote(
+  day: DailyWeather,
+  tempUnit: TempUnit = 'fahrenheit',
+  thresholds: Thresholds = THRESHOLDS,
+): DayRowNote {
+  if (day.rideWindowUnavailable) return { reason: null, window: null };
+  let reason: string | null = null;
+  if (day.condition !== 'good') {
+    const text = withoutFigures(getDayConditionReason(day, tempUnit, thresholds));
+    if (!isGenericDayReason(text)) reason = text;
+  }
+  const window =
+    day.rideWindow && RIDEABLE_DAY.has(day.condition)
+      ? { startHour: day.rideWindow.startHour, endHour: day.rideWindow.endHour }
+      : null;
+  return { reason, window };
+}
+
+/**
+ * The row note's text: "Breezy · Best 10 AM–1 PM". The week's best day leads
+ * with its own "Best bet" label, so its window drops the "Best" ("Breezy ·
+ * 10 AM–1 PM"). Null when there's nothing to say.
+ */
+export function formatDayRowNote(note: DayRowNote, best: boolean): string | null {
+  const range = note.window
+    ? `${fullHourLabel(note.window.startHour)}–${fullHourLabel(note.window.endHour)}`
+    : null;
+  const windowText = range && !best ? STATUS_MESSAGES.BEST_WINDOW(range) : range;
+  const parts = [note.reason, windowText].filter((part): part is string => part != null);
+  return parts.length > 0 ? parts.join(' · ') : null;
 }
