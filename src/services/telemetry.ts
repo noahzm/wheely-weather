@@ -32,6 +32,10 @@ export function initSentry() {
   Sentry.init({
     dsn,
     // The app handles precise location; never attach IP/device identifiers by default.
+    // @sentry/core deprecates this for `dataCollection`, but the React Native SDK
+    // leaves `dataCollection` out of its options and still gates IP inference,
+    // route params and deep-link URLs on this flag, so it stays the switch here.
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
     sendDefaultPii: false,
     // Performance tracing (forecast load timing, see `traceAsync`). A fifth of
     // production sessions now that the app is public: enough timing data without
