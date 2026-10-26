@@ -1,5 +1,5 @@
 /** The compact navigation bar's height under the status bar (iOS). */
-const NAV_BAR_HEIGHT = 44;
+export const NAV_BAR_HEIGHT = 44;
 
 /**
  * Whether the home scene's sky is still what sits under the status bar at a

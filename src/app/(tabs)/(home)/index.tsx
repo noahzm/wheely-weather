@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   Platform,
   RefreshControl,
@@ -8,6 +8,7 @@ import {
   type LayoutChangeEvent,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
+  type ScrollViewInstance,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
@@ -59,6 +60,7 @@ import { getVerdictSky } from '@/domain/weather-codes';
 import type { AcclimatizationContext } from '@/services/forecastSnapshot';
 import { useForecast } from '@/hooks/forecast-context';
 import { useGearMode, useResolvedTempUnit } from '@/hooks/settings-context';
+import { useLargeTitleScrollToTop } from '@/hooks/use-large-title-scroll-to-top';
 import { useMinimumRefreshing } from '@/hooks/use-minimum-refreshing';
 import { useColorSchemeName, useWheelyColors } from '@/hooks/use-theme';
 import { GearStylePicker } from '@/components/wheely/gear-style-picker';
@@ -638,6 +640,9 @@ function HomeContent({
 }>) {
   const c = useWheelyColors();
   const showRefreshing = useMinimumRefreshing(forecast.refreshing);
+  const scrollRef = useRef<ScrollViewInstance>(null);
+  // A repeat Weather tab tap scrolls past the collapsed title's edge to reopen it.
+  const scrollProps = useLargeTitleScrollToTop(scrollRef, showRefreshing, onScroll);
   const titleCollapsed = useWebTitleCollapse(scene ? WEB_SKY_ROOM : 0);
   const sceneLayout = useSceneLayout();
   if (forecast.loading) {
@@ -676,10 +681,10 @@ function HomeContent({
   return (
     <View style={styles.screen} collapsable={false}>
       <ScrollView
+        ref={scrollRef}
         style={[styles.scroll, scrollHostStyle]}
         contentInsetAdjustmentBehavior="automatic"
-        onScroll={onScroll}
-        scrollEventThrottle={onScroll ? 16 : undefined}
+        {...scrollProps}
         refreshControl={homeRefreshControl({
           refreshing: showRefreshing,
           onRefresh: forecast.refresh,

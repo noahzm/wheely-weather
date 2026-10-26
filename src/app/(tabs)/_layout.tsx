@@ -20,7 +20,9 @@ export default function TabsLayout() {
       labelStyle={{ color: tintColor, fontFamily: Fonts.bold, fontWeight: FontWeightSemibold }}
       tabBarRespectsIMEInsets
     >
-      <NativeTabs.Trigger name="(home)" disableTransparentOnScrollEdge>
+      {/* Home scrolls itself to the top on a repeat tap (`useLargeTitleScrollToTop`):
+          the built-in scroll stops at the collapsed title's edge and leaves it collapsed. */}
+      <NativeTabs.Trigger name="(home)" disableTransparentOnScrollEdge disableScrollToTop>
         <NativeTabs.Trigger.Icon sf="cloud.sun.fill" md="partly_cloudy_day" />
         <NativeTabs.Trigger.Label>Weather</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
