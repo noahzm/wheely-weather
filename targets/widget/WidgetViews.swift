@@ -48,6 +48,16 @@ struct WidgetLook {
   func onSky(_ display: VerdictDisplay) -> Bool {
     display.sky != nil && fullColor && showsBackground
   }
+
+  /// The look over `sky`, the widget's backdrop (nil for the plain page). The
+  /// painted sky is daylight in both color schemes, so the card on it keeps
+  /// light mode's paper, black outline and black shadow; dark mode's grays
+  /// looked muddy against it. The plain page follows the system scheme.
+  func over(_ sky: SceneSky?) -> WidgetLook {
+    let skyShows = sky != nil && fullColor && showsBackground
+    return WidgetLook(
+      fullColor: fullColor, showsBackground: showsBackground, scheme: skyShows ? .light : scheme)
+  }
 }
 
 // ─── Layouts ─────────────────────────────────────────────────────────────────

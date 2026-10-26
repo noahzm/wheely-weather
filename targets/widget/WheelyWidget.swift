@@ -200,6 +200,7 @@ struct WheelyWidgetView: View {
   private var homeScreenContent: some View {
     if let snapshot = entry.snapshot {
       let display = display(for: snapshot)
+      let look = self.look.over(display.sky)
       Group {
         if family == .systemMedium {
           MediumVerdictView(display: display, look: look)
@@ -209,7 +210,7 @@ struct WheelyWidgetView: View {
       }
       .containerBackground(for: .widget) { background(display.sky) }
     } else {
-      EmptyVerdictView(look: look)
+      EmptyVerdictView(look: look.over(.clear))
         .containerBackground(for: .widget) { background(.clear) }
     }
   }
