@@ -10,9 +10,11 @@ name: Tabs keep the mock scenario
     timeout: 10000
 - tapOn: 'Search'
 - assertVisible: 'Search a city or place'
-# iOS 27's search tab opens focused, and the keyboard folds the tab bar down to
-# "Weather" alone; closing search brings the other tabs back.
-- tapOn: 'Close'
+# The search tab no longer opens focused, but if search is active, the keyboard
+# folds the tab bar down to "Weather" alone; closing search brings the other tabs back.
+- tapOn:
+    text: 'Close'
+    optional: true
 - tapOn: 'Settings'
 - assertVisible: 'Appearance'
 - tapOn: 'Weather'

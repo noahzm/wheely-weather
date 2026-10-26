@@ -26,7 +26,11 @@ export default function TabsLayout() {
         <NativeTabs.Trigger.Icon sf="cloud.sun.fill" md="partly_cloudy_day" />
         <NativeTabs.Trigger.Label>Weather</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="location" role="search">
+      {/* No automatic activation: with it, cancelling search (the field's X) jumps
+          back to the previous tab, so the keyboard couldn't be put away to reach
+          results under it. `prominent` keeps the detached placement on iOS 27,
+          which UIKit otherwise gives the search tab only while activation is on. */}
+      <NativeTabs.Trigger name="location" role="search" disableAutomaticSearchActivation prominent>
         <NativeTabs.Trigger.Icon md="search" />
         <NativeTabs.Trigger.Label>Search</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>

@@ -24,6 +24,7 @@ import {
   labelStyle,
   lineLimit,
   listStyle,
+  scrollDismissesKeyboard,
   tag,
 } from '@expo/ui/swift-ui/modifiers';
 
@@ -343,6 +344,9 @@ export function LocationSearchList({
         <List
           modifiers={[
             listStyle('insetGrouped'),
+            // Scrolling puts the keyboard away so results under it can be reached;
+            // the search field's X would clear the query instead.
+            scrollDismissesKeyboard('immediately'),
             animation(Animation.spring({ duration: 0.35 }), pinnedLocations.length),
           ]}
         >
