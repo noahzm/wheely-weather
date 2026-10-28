@@ -3,6 +3,10 @@
  * Separates human-readable strings from core weather logic.
  */
 
+import { formatTemperature, formatWindSpeed, type TempUnit } from '../utils/temperature';
+import { fullHourLabel } from '../utils/timeFormat';
+import type { KitReason, KitTiming, KitZone } from './kit-plan';
+
 import type { Condition, RideStatus, VerdictMessage } from '@/types/weather';
 
 /** djb2-style hash for deterministic, seed-varied picks. */
@@ -546,7 +550,70 @@ export const RIDE_LENGTH_MESSAGES = {
   ROW: 'Riding for',
   FOOTER:
     'Sizes each day’s recommended ride window and kit guide. All day uses every daylight hour, for tours and bikepacking.',
+  /** The kit card's link to the setting: "3-hour ride", "All-day ride". */
+  CHIP: (hours: number | 'allDay') => (hours === 'allDay' ? 'All-day ride' : `${hours}-hour ride`),
 };
+
+/** Row labels down the kit card: body zones head to toe, then the shelves. */
+export const KIT_ZONE_LABELS: Record<KitZone | 'pack' | 'prep', string> = {
+  head: 'Head',
+  torso: 'Torso',
+  arms: 'Arms',
+  hands: 'Hands',
+  legs: 'Legs',
+  feet: 'Feet',
+  pack: 'Pack',
+  prep: 'Before you go',
+};
+
+/** Why an item is in the kit: "46° start", "17 mph wind", "40% chance of rain". */
+export function formatKitReason(reason: KitReason, unit: TempUnit): string {
+  switch (reason.kind) {
+    case 'cold': {
+      const temperature = formatTemperature(reason.temperature, unit);
+      if (reason.when === 'low') return `Low of ${temperature}`;
+      return `${temperature} ${reason.when}`;
+    }
+    case 'swing': {
+      // A difference, not a reading: no 32° offset in Celsius.
+      const degrees = unit === 'celsius' ? (reason.degrees * 5) / 9 : reason.degrees;
+      return `${Math.round(degrees)}° swing`;
+    }
+    case 'rain': {
+      return `${Math.round(reason.chance)}% chance of rain`;
+    }
+    case 'wetRoads': {
+      return 'Wet roads';
+    }
+    case 'wind': {
+      return `${formatWindSpeed(reason.speed, unit)} wind`;
+    }
+    case 'uv': {
+      return `UV ${Math.round(reason.index)}`;
+    }
+    case 'muggy': {
+      return `${formatTemperature(reason.dewpoint, unit)} dew point`;
+    }
+  }
+}
+
+/** When a removable piece is worn: "Off by 11 AM", "Off 10 AM–5 PM". */
+export function formatKitTiming(timing: KitTiming): string {
+  switch (timing.kind) {
+    case 'offBy': {
+      return `Off by ${fullHourLabel(timing.hour)}`;
+    }
+    case 'offBetween': {
+      return `Off ${fullHourLabel(timing.from)}–${fullHourLabel(timing.to)}`;
+    }
+    case 'onBy': {
+      return `On by ${fullHourLabel(timing.hour)}`;
+    }
+    case 'only': {
+      return `${fullHourLabel(timing.from)}–${fullHourLabel(timing.to)} only`;
+    }
+  }
+}
 
 /**
  * Home climate settings copy, shared by the iOS and web forms so they can't

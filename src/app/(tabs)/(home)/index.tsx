@@ -314,7 +314,6 @@ function KitSection({
         rideHours={kit.rideHours}
         thresholds={kit.thresholds}
         mode={mode}
-        showPicker={false}
       />
     </View>
   );

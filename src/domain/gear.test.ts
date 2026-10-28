@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { THRESHOLDS } from './constants';
-import { getDayGearSuggestion, getGearSuggestion, getWearRows } from './weather';
+import { getDayGearSuggestion, getGearSuggestion } from './weather';
 import { makeDay, makeHour, makeWeather } from '@/test-utils/weather';
-import type { GearTipItem } from '@/types/weather';
 
 describe('Gear Suggestions', () => {
   const base = makeWeather({ temperature: 72, windSpeed: 5, rainChance: 0, dewpoint: 50 });
@@ -657,81 +656,5 @@ describe('Gear Suggestions', () => {
     const gear = getDayGearSuggestion(day, 'pro');
     expect(gear.wear.some((item) => /short-sleeve jersey/i.test(item.label))).toBe(true);
     expect(gear.bring.some((item) => /wind vest/i.test(item.label))).toBe(true);
-  });
-});
-
-describe('getWearRows', () => {
-  const mockItem = (label: string): GearTipItem => ({ label, icon: 'Shirt' });
-
-  it('handles empty input gracefully', () => {
-    expect(getWearRows([], false)).toEqual([]);
-    expect(getWearRows([], true)).toEqual([]);
-  });
-
-  describe('mobile (!isWide)', () => {
-    it('chunks 2 items into 1 row of 2', () => {
-      const items = [mockItem('1'), mockItem('2')];
-      const rows = getWearRows(items, false);
-      expect(rows).toEqual([[items[0], items[1]]]);
-    });
-
-    it('chunks 3 items into 2 rows (2 + 1)', () => {
-      const items = [mockItem('1'), mockItem('2'), mockItem('3')];
-      const rows = getWearRows(items, false);
-      expect(rows).toEqual([[items[0], items[1]], [items[2]]]);
-    });
-
-    it('chunks 4 items into 2 rows (2 + 2)', () => {
-      const items = [mockItem('1'), mockItem('2'), mockItem('3'), mockItem('4')];
-      const rows = getWearRows(items, false);
-      expect(rows).toEqual([
-        [items[0], items[1]],
-        [items[2], items[3]],
-      ]);
-    });
-
-    it('chunks 5 items into 3 rows (2 + 2 + 1)', () => {
-      const items = [mockItem('1'), mockItem('2'), mockItem('3'), mockItem('4'), mockItem('5')];
-      const rows = getWearRows(items, false);
-      expect(rows).toEqual([[items[0], items[1]], [items[2], items[3]], [items[4]]]);
-    });
-  });
-
-  describe('desktop (isWide)', () => {
-    it('keeps 1 to 4 items on a single full-width row', () => {
-      const two = [mockItem('1'), mockItem('2')];
-      expect(getWearRows(two, true)).toEqual([[two[0], two[1]]]);
-
-      const three = [mockItem('1'), mockItem('2'), mockItem('3')];
-      expect(getWearRows(three, true)).toEqual([[three[0], three[1], three[2]]]);
-
-      const four = [mockItem('1'), mockItem('2'), mockItem('3'), mockItem('4')];
-      expect(getWearRows(four, true)).toEqual([[four[0], four[1], four[2], four[3]]]);
-    });
-
-    it('chunks 5 items into 2 rows (3 + 2) filling 100% width on both rows', () => {
-      const items = [mockItem('1'), mockItem('2'), mockItem('3'), mockItem('4'), mockItem('5')];
-      const rows = getWearRows(items, true);
-      expect(rows).toEqual([
-        [items[0], items[1], items[2]],
-        [items[3], items[4]],
-      ]);
-    });
-
-    it('chunks 6 or more items into rows of 3', () => {
-      const items = [
-        mockItem('1'),
-        mockItem('2'),
-        mockItem('3'),
-        mockItem('4'),
-        mockItem('5'),
-        mockItem('6'),
-      ];
-      const rows = getWearRows(items, true);
-      expect(rows).toEqual([
-        [items[0], items[1], items[2]],
-        [items[3], items[4], items[5]],
-      ]);
-    });
   });
 });

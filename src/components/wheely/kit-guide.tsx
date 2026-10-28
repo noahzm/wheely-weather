@@ -1,25 +1,83 @@
-import { Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
-import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
+// The home screen's kit card: the ride's hours and temperatures, then what to
+// wear head to toe, why each add-on is there, and when layers come off, with
+// what to pack and do before setting out at the bottom. The plan comes from
+// getKitPlan; this file only lays it out.
+import { StyleSheet, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import Svg, { Line } from 'react-native-svg';
+import { useRouter } from 'expo-router';
+import type { SFSymbol } from 'expo-symbols';
 
 import { ThemedText } from '@/components/themed-text';
-import { getGearSuggestion, getWearRows, type RideHours } from '@/domain';
+import {
+  KIT_ZONE_LABELS,
+  RIDE_LENGTH_MESSAGES,
+  formatKitReason,
+  formatKitTiming,
+  getKitPlan,
+  type KitPlanHour,
+  type KitPlanItem,
+  type RideHours,
+} from '@/domain';
 import type { Thresholds } from '@/domain/constants';
+import type { KitReason } from '@/domain/kit-plan';
+import { useResolvedTempUnit, useRideDuration } from '@/hooks/settings-context';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { useGearMode, useRideDuration } from '@/hooks/settings-context';
-import { RIDE_DURATION_HOURS, type GearMode } from '@/types/settings';
 import {
   Fonts,
+  FontWeightSemibold,
+  LabelText,
+  PosterLightText,
   Radius,
   Spacing,
   Type,
   type WheelyPalette,
-  FontWeightSemibold,
 } from '@/constants/theme';
-import type { GearTipItem, Weather } from '@/types/weather';
-import { BrutalCard, CardInnerRadius, KitGearIcon } from './primitives';
-import { GearStylePicker } from './gear-style-picker';
+import { RIDE_DURATION_HOURS, type GearMode, type RideDuration } from '@/types/settings';
+import type { Weather } from '@/types/weather';
+import { withAlpha } from '@/utils/colors';
+import { formatTemperature, type TempUnit } from '@/utils/temperature';
+import { fullHourLabel } from '@/utils/timeFormat';
+import {
+  ChevronRight,
+  Droplet,
+  Sun,
+  Thermometer,
+  Umbrella,
+  Wind,
+  type IconComponent,
+} from './icons';
+import {
+  BrutalCard,
+  CardInnerRadius,
+  HapticPressable,
+  KitGearIcon,
+  PlatformIcon,
+  StickerTag,
+} from './primitives';
 
-function makeStyles(c: WheelyPalette) {
+// The timeline's time and temperature labels are wider than an hour's column
+// on long rides; only spaced-out hours are labeled, so they may overhang.
+const TIMELINE_LABEL_WIDTH = 56;
+const DOT_BOX = 14;
+// Center of the dots: the time label's line, the gap, then half a dot box.
+const TIMELINE_LINE_TOP = Type.micro.lineHeight + Spacing.one + 2 + DOT_BOX / 2 - 1;
+const ICON_SIZE = 28;
+// Wide enough for "Before you go" to wrap as two words.
+const ZONE_LABEL_WIDTH = 62;
+const STICKER_TILTS = [-1.5, 1, -1, 1.5];
+
+const REASON_GLYPHS: Record<KitReason['kind'], { icon: IconComponent; sf: SFSymbol }> = {
+  cold: { icon: Thermometer, sf: 'thermometer.medium' },
+  swing: { icon: Thermometer, sf: 'thermometer.medium' },
+  rain: { icon: Umbrella, sf: 'umbrella.fill' },
+  wetRoads: { icon: Droplet, sf: 'drop.fill' },
+  wind: { icon: Wind, sf: 'wind' },
+  uv: { icon: Sun, sf: 'sun.max.fill' },
+  muggy: { icon: Droplet, sf: 'drop.fill' },
+};
+
+function makeHeaderStyles(c: WheelyPalette) {
   return StyleSheet.create({
     cardPanel: {
       padding: 0,
@@ -29,231 +87,446 @@ function makeStyles(c: WheelyPalette) {
       borderRadius: CardInnerRadius,
       overflow: 'hidden',
     },
+    header: {
+      paddingHorizontal: Spacing.three,
+      paddingTop: Spacing.two + Spacing.one,
+      paddingBottom: Spacing.three - Spacing.half,
+      gap: Spacing.two + Spacing.half,
+      borderBottomWidth: 1,
+      borderColor: c.divider,
+    },
     headerRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      paddingHorizontal: Spacing.three,
-      paddingVertical: Spacing.two,
-      borderBottomWidth: 1,
-      borderColor: c.divider,
-      backgroundColor: c.paper,
-    },
-    headerLabel: {
-      color: c.ink,
-      fontFamily: Fonts.bold,
-      fontWeight: FontWeightSemibold,
-      ...Type.micro,
-      textTransform: 'uppercase',
-      letterSpacing: 1,
-    },
-    wearGrid: {
-      width: '100%',
-      backgroundColor: c.paper,
-    },
-    wearRow: {
-      flexDirection: 'row',
-      width: '100%',
-    },
-    wearRowBorderBottom: {
-      borderBottomWidth: 1,
-      borderColor: c.divider,
-    },
-    wearCell: {
-      flex: 1,
-      alignItems: 'center',
-      justifyContent: 'flex-start',
-      gap: Spacing.one,
-      paddingHorizontal: Spacing.two,
-      paddingVertical: Spacing.three,
-      minHeight: 110,
-    },
-    wearCellBorderRight: {
-      borderRightWidth: 1,
-      borderColor: c.divider,
-    },
-    wearIconWrap: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      width: 44,
-      height: 44,
-    },
-    wearTextWrap: {
-      alignItems: 'center',
-      justifyContent: 'flex-start',
-      gap: 2,
-      width: '100%',
-    },
-    wearLabel: {
-      color: c.ink,
-      fontFamily: Fonts.body,
-      fontWeight: '400',
-      ...Type.small,
-      textAlign: 'center',
-      flexShrink: 1,
-    },
-    bringShelf: {
-      backgroundColor: c.background,
-      paddingHorizontal: Spacing.three,
-      paddingVertical: Spacing.two,
-      borderTopWidth: 1,
-      borderColor: c.divider,
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      alignItems: 'center',
       gap: Spacing.two,
     },
-    bringHeader: {
-      color: c.mutedInk,
+    spanText: {
+      flexShrink: 1,
+      color: c.ink,
       fontFamily: Fonts.bold,
       fontWeight: FontWeightSemibold,
-      ...Type.micro,
-      textTransform: 'uppercase',
-      letterSpacing: 1,
-      marginRight: Spacing.half,
+      ...Type.small,
     },
-    bringItemsWrap: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      alignItems: 'center',
-      gap: Spacing.one,
-      flex: 1,
-    },
-    bringItem: {
+    chip: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 6,
-      backgroundColor: c.paper,
+      gap: Spacing.half,
+      marginLeft: 'auto',
+      paddingLeft: Spacing.two + Spacing.half,
+      paddingRight: Spacing.one + Spacing.half,
+      paddingVertical: Spacing.half,
       borderWidth: 1,
       borderColor: c.border,
       borderRadius: Radius.pill,
-      paddingHorizontal: Spacing.two,
-      paddingVertical: 4,
     },
-    bringLabel: {
+    chipPressed: {
+      backgroundColor: withAlpha(c.ink, 0.08),
+    },
+    chipText: {
       color: c.ink,
       fontFamily: Fonts.body,
+      fontWeight: '400',
+      ...Type.micro,
+    },
+    timeline: {
+      flexDirection: 'row',
+    },
+    timelineLine: {
+      position: 'absolute',
+      top: TIMELINE_LINE_TOP,
+      height: 2,
+    },
+    timelineColumn: {
+      flex: 1,
+      minWidth: 0,
+      alignItems: 'center',
+      gap: Spacing.one + 2,
+    },
+    timelineTime: {
+      width: TIMELINE_LABEL_WIDTH,
+      textAlign: 'center',
+      color: c.mutedInk,
+      ...LabelText,
+      ...Type.micro,
+    },
+    dotBox: {
+      width: DOT_BOX,
+      height: DOT_BOX,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    dot: {
+      borderRadius: Radius.pill,
+    },
+    dotPlain: {
+      width: 6,
+      height: 6,
+      backgroundColor: c.ink,
+    },
+    dotLabeled: {
+      width: 12,
+      height: 12,
+      borderWidth: 2,
+      borderColor: c.ink,
+      backgroundColor: c.paper,
+    },
+    dotChange: {
+      width: DOT_BOX,
+      height: DOT_BOX,
+      borderWidth: 2,
+      borderColor: c.border,
+      backgroundColor: c.accent,
+    },
+    timelineTemp: {
+      width: TIMELINE_LABEL_WIDTH,
+      minHeight: 24,
+      textAlign: 'center',
+      color: c.ink,
+      ...PosterLightText,
+      fontSize: 20,
+      lineHeight: 24,
+    },
+  });
+}
+
+function makeRowStyles(c: WheelyPalette) {
+  return StyleSheet.create({
+    zoneRow: {
+      flexDirection: 'row',
+      gap: Spacing.two + Spacing.half,
+      paddingHorizontal: Spacing.three,
+      paddingVertical: Spacing.two + Spacing.half,
+    },
+    zoneRowSoftDivider: {
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderColor: withAlpha(c.ink, 0.2),
+    },
+    zoneRowDivider: {
+      borderTopWidth: 1,
+      borderColor: c.divider,
+    },
+    shelfRow: {
+      backgroundColor: c.background,
+    },
+    zoneLabel: {
+      width: ZONE_LABEL_WIDTH,
+      paddingTop: Spacing.one + 2,
+      color: c.mutedInk,
+      ...LabelText,
+      letterSpacing: 0.6,
+      ...Type.micro,
+    },
+    zoneItems: {
+      flex: 1,
+      minWidth: 0,
+      gap: Spacing.two + Spacing.half,
+    },
+    itemRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: Spacing.two + Spacing.half,
+    },
+    itemText: {
+      flex: 1,
+      minWidth: 0,
+      gap: Spacing.one,
+      paddingTop: Spacing.half + 1,
+    },
+    itemLabel: {
+      color: c.ink,
+      fontFamily: Fonts.body,
+      fontWeight: '400',
+      ...Type.body,
+    },
+    itemMeta: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      columnGap: Spacing.two,
+      rowGap: Spacing.one + 2,
+    },
+    reason: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.one,
+    },
+    reasonText: {
+      color: c.mutedInk,
+      fontFamily: Fonts.body,
+      fontWeight: '400',
+      ...Type.micro,
+    },
+    timingSticker: {
+      backgroundColor: c.accent,
+      paddingHorizontal: Spacing.two,
+      paddingVertical: Spacing.half,
+    },
+    timingText: {
+      color: c.accentInk,
       fontWeight: '400',
       ...Type.micro,
     },
   });
 }
 
-function preventOrphan(label: string): string {
-  // A word joiner keeps hyphenated words whole: "Heavy / full-finger gloves",
-  // not "Heavy full- / finger gloves".
-  const joined = label.replaceAll('-', '-\u2060');
-  const lastSpaceIdx = joined.lastIndexOf(' ');
-  if (lastSpaceIdx <= 0 || joined.indexOf(' ') === lastSpaceIdx) return joined;
-  return `${joined.slice(0, lastSpaceIdx)}\u00A0${joined.slice(lastSpaceIdx + 1)}`;
+function makeStyles(c: WheelyPalette) {
+  return { ...makeHeaderStyles(c), ...makeRowStyles(c) };
 }
 
-function useStyles() {
-  const c = useWheelyColors();
-  const styles = makeStyles(c);
-  return { c, styles };
+type Styles = ReturnType<typeof makeStyles>;
+
+function rideLengthChip(rideDuration: RideDuration): string {
+  return RIDE_LENGTH_MESSAGES.CHIP(
+    rideDuration === 'allDay' ? 'allDay' : RIDE_DURATION_HOURS[rideDuration],
+  );
+}
+
+/** "9 AM–12 PM", plus the temperature when a one-hour ride has no timeline. */
+function spanLabel(hours: KitPlanHour[], unit: TempUnit): string | null {
+  const first = hours[0];
+  const last = hours.at(-1);
+  if (!first || !last) return null;
+  const span = `${fullHourLabel(first.hour)}–${fullHourLabel(last.hour + 1)}`;
+  return hours.length === 1 ? `${span} · ${formatTemperature(first.temperature, unit)}` : span;
+}
+
+function KitTimeline({
+  hours,
+  unit,
+  c,
+  styles,
+}: Readonly<{ hours: KitPlanHour[]; unit: TempUnit; c: WheelyPalette; styles: Styles }>) {
+  // From the first column's center to the last one's.
+  const inset = `${50 / hours.length}%` as const;
+  const description = hours
+    .map((hour) => `${fullHourLabel(hour.hour)} ${formatTemperature(hour.temperature, unit)}`)
+    .join(', ');
+  return (
+    <View
+      style={styles.timeline}
+      accessible
+      accessibilityLabel={`Ride temperatures: ${description}`}
+    >
+      <View style={[styles.timelineLine, { left: inset, right: inset }]} pointerEvents="none">
+        <Svg width="100%" height={2}>
+          <Line
+            x1="0"
+            y1="1"
+            x2="100%"
+            y2="1"
+            stroke={c.ink}
+            strokeWidth={2}
+            strokeDasharray="0.1 5"
+            strokeLinecap="round"
+          />
+        </Svg>
+      </View>
+      {hours.map((hour) => {
+        let dot = styles.dotPlain;
+        if (hour.change) dot = styles.dotChange;
+        else if (hour.labeled) dot = styles.dotLabeled;
+        return (
+          <View key={hour.hour} style={styles.timelineColumn}>
+            <ThemedText style={styles.timelineTime} numberOfLines={1}>
+              {hour.labeled ? fullHourLabel(hour.hour) : ''}
+            </ThemedText>
+            <View style={styles.dotBox}>
+              <View style={[styles.dot, dot]} />
+            </View>
+            <ThemedText style={styles.timelineTemp} numberOfLines={1}>
+              {hour.labeled ? formatTemperature(hour.temperature, unit) : ''}
+            </ThemedText>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+function KitHeader({
+  hours,
+  rideDuration,
+  unit,
+  c,
+  styles,
+}: Readonly<{
+  hours: KitPlanHour[];
+  rideDuration: RideDuration;
+  unit: TempUnit;
+  c: WheelyPalette;
+  styles: Styles;
+}>) {
+  const router = useRouter();
+  const span = spanLabel(hours, unit);
+  const chip = rideLengthChip(rideDuration);
+  return (
+    <View style={styles.header}>
+      <View style={styles.headerRow}>
+        {span && <ThemedText style={styles.spanText}>{span}</ThemedText>}
+        <HapticPressable
+          onPress={() => {
+            router.navigate('/settings');
+          }}
+          accessibilityRole="button"
+          accessibilityLabel={`${chip}. Change ride length in Settings`}
+          hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
+          style={({ pressed }) => [styles.chip, pressed && styles.chipPressed]}
+        >
+          <ThemedText style={styles.chipText}>{chip}</ThemedText>
+          <PlatformIcon
+            icon={ChevronRight}
+            sf="chevron.right"
+            size={11}
+            color={c.ink}
+            strokeWidth={2.5}
+          />
+        </HapticPressable>
+      </View>
+      {hours.length > 1 && <KitTimeline hours={hours} unit={unit} c={c} styles={styles} />}
+    </View>
+  );
+}
+
+function KitItemRow({
+  item,
+  unit,
+  tilt,
+  delay,
+  c,
+  styles,
+}: Readonly<{
+  item: KitPlanItem;
+  unit: TempUnit;
+  tilt: number;
+  delay: number;
+  c: WheelyPalette;
+  styles: Styles;
+}>) {
+  const reason = item.reason ? formatKitReason(item.reason, unit) : null;
+  const glyph = item.reason ? REASON_GLYPHS[item.reason.kind] : null;
+  const timing = item.timing ? formatKitTiming(item.timing) : null;
+  const description = [item.label, reason, timing].filter(Boolean).join('. ');
+  return (
+    <Animated.View
+      entering={FadeInDown.delay(delay).duration(200)}
+      style={styles.itemRow}
+      accessible
+      accessibilityLabel={description}
+    >
+      <KitGearIcon iconKey={item.icon} size={ICON_SIZE} color={c.ink} />
+      <View style={styles.itemText}>
+        <ThemedText style={styles.itemLabel}>{item.label}</ThemedText>
+        {(reason ?? timing) && (
+          <View style={styles.itemMeta}>
+            {reason && glyph && (
+              <View style={styles.reason}>
+                <PlatformIcon icon={glyph.icon} sf={glyph.sf} size={12} color={c.mutedInk} />
+                <ThemedText style={styles.reasonText}>{reason}</ThemedText>
+              </View>
+            )}
+            {timing && (
+              <StickerTag tilt={tilt} style={styles.timingSticker}>
+                <ThemedText style={styles.timingText}>{timing}</ThemedText>
+              </StickerTag>
+            )}
+          </View>
+        )}
+      </View>
+    </Animated.View>
+  );
+}
+
+interface ZoneRowData {
+  key: string;
+  label: string;
+  items: { item: KitPlanItem; tilt: number; delay: number }[];
+  shelf: boolean;
+}
+
+/** The card's rows: body zones, then the shelves, each item with its sticker tilt and entry delay. */
+function buildRows(plan: ReturnType<typeof getKitPlan>): ZoneRowData[] {
+  const groups = [
+    ...plan.zones.map((zone) => ({
+      key: zone.zone,
+      label: KIT_ZONE_LABELS[zone.zone],
+      items: zone.items,
+      shelf: false,
+    })),
+    { key: 'pack', label: KIT_ZONE_LABELS.pack, items: plan.pack, shelf: true },
+    { key: 'prep', label: KIT_ZONE_LABELS.prep, items: plan.prep, shelf: true },
+  ].filter((group) => group.items.length > 0);
+  let stickers = 0;
+  let delay = 0;
+  const rows: ZoneRowData[] = [];
+  for (const group of groups) {
+    const items = [];
+    for (const item of group.items) {
+      delay += 30;
+      items.push({ item, tilt: STICKER_TILTS[stickers % STICKER_TILTS.length] ?? -1, delay });
+      if (item.timing) stickers += 1;
+    }
+    rows.push({ ...group, items });
+  }
+  return rows;
 }
 
 export function KitGuide({
   weather,
   rideHours = null,
   thresholds,
-  mode: controlledMode,
-  showPicker = true,
+  mode,
 }: Readonly<{
   weather: Weather;
   /** The verdict's window to dress for; without one, the next few hours. */
   rideHours?: RideHours | null;
   thresholds: Thresholds;
-  mode?: GearMode;
-  showPicker?: boolean;
+  mode: GearMode;
 }>) {
-  const [internalMode, setMode] = useGearMode();
+  const c = useWheelyColors();
+  const styles = makeStyles(c);
+  const unit = useResolvedTempUnit();
   const [rideDuration] = useRideDuration();
-  const mode = controlledMode ?? internalMode;
-  const { width } = useWindowDimensions();
-  const gear = getGearSuggestion(
-    weather,
-    mode,
-    rideHours,
-    thresholds,
-    RIDE_DURATION_HOURS[rideDuration],
-  );
-  const { c, styles } = useStyles();
-  const isWide = Platform.OS === 'web' && width >= 640;
-  const rows = getWearRows(gear.wear, isWide);
-  const hasBring = gear.bring.length > 0;
+  const plan = getKitPlan(weather, mode, rideHours, thresholds, RIDE_DURATION_HOURS[rideDuration]);
+  const rows = buildRows(plan);
 
   return (
     <BrutalCard style={styles.cardPanel}>
       <View style={styles.cardClip} accessibilityLiveRegion="polite">
-        {showPicker && (
-          <View style={styles.headerRow}>
-            <ThemedText style={styles.headerLabel}>Today’s kit</ThemedText>
-            <GearStylePicker mode={mode} onModeChange={setMode} />
-          </View>
-        )}
-        <View style={styles.wearGrid}>
-          {rows.map((row, rowIndex) => {
-            const isLastRow = rowIndex === rows.length - 1;
-            return (
-              <View
-                key={`row-${rowIndex}`}
-                style={[styles.wearRow, !isLastRow && styles.wearRowBorderBottom]}
-              >
-                {row.map((item: GearTipItem, colIndex: number) => {
-                  const isLastCol = colIndex === row.length - 1;
-                  const itemDelay = (rowIndex * 2 + colIndex) * 35;
-                  return (
-                    <View
-                      key={`${rowIndex}-${colIndex}`}
-                      accessible={true}
-                      accessibilityLabel={item.label}
-                      style={[styles.wearCell, !isLastCol && styles.wearCellBorderRight]}
-                    >
-                      <Animated.View
-                        key={`icon-${mode}-${item.icon}-${item.label}`}
-                        entering={ZoomIn.delay(itemDelay).springify().damping(15)}
-                        style={styles.wearIconWrap}
-                      >
-                        <KitGearIcon iconKey={item.icon} size={40} color={c.ink} />
-                      </Animated.View>
-                      <Animated.View
-                        key={`label-${mode}-${item.label}`}
-                        entering={FadeInDown.delay(itemDelay).duration(200)}
-                        style={styles.wearTextWrap}
-                      >
-                        <ThemedText style={styles.wearLabel}>
-                          {preventOrphan(item.label)}
-                        </ThemedText>
-                      </Animated.View>
-                    </View>
-                  );
-                })}
+        <KitHeader
+          hours={plan.hours}
+          rideDuration={rideDuration}
+          unit={unit}
+          c={c}
+          styles={styles}
+        />
+        {rows.map((row, index) => {
+          const previous = rows[index - 1];
+          // A soft line between body zones, the card's divider where the shelves start.
+          let divider = null;
+          if (previous)
+            divider =
+              row.shelf && !previous.shelf ? styles.zoneRowDivider : styles.zoneRowSoftDivider;
+          return (
+            <View key={row.key} style={[styles.zoneRow, divider, row.shelf && styles.shelfRow]}>
+              <ThemedText style={styles.zoneLabel}>{row.label}</ThemedText>
+              <View style={styles.zoneItems}>
+                {row.items.map(({ item, tilt, delay }) => (
+                  <KitItemRow
+                    // Remount on a rider-style switch so the new kit animates in.
+                    key={`${mode}-${item.icon}-${item.label}`}
+                    item={item}
+                    unit={unit}
+                    tilt={tilt}
+                    delay={delay}
+                    c={c}
+                    styles={styles}
+                  />
+                ))}
               </View>
-            );
-          })}
-        </View>
-        {hasBring && (
-          <View style={styles.bringShelf}>
-            <ThemedText style={styles.bringHeader}>Bring</ThemedText>
-            <View style={styles.bringItemsWrap}>
-              {gear.bring.map((item: GearTipItem, index: number) => (
-                <Animated.View
-                  key={`${mode}-${item.label}-${index}`}
-                  entering={FadeInDown.delay(index * 40).duration(200)}
-                  accessible={true}
-                  accessibilityLabel={item.label}
-                  style={styles.bringItem}
-                >
-                  <KitGearIcon iconKey={item.icon} size={15} color={c.ink} />
-                  <ThemedText style={styles.bringLabel}>{preventOrphan(item.label)}</ThemedText>
-                </Animated.View>
-              ))}
             </View>
-          </View>
-        )}
+          );
+        })}
       </View>
     </BrutalCard>
   );

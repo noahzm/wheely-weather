@@ -3,8 +3,11 @@ import {
   CLIMATE_MESSAGES,
   ALERT_MESSAGES,
   ISSUE_PHRASES,
+  RIDE_LENGTH_MESSAGES,
   STATUS_MESSAGES,
   formatIssuesAsSentence,
+  formatKitReason,
+  formatKitTiming,
   formatVerdictDetail,
   getVerdictLabel,
   issuePhraseTier,
@@ -247,5 +250,40 @@ describe('formatVerdictDetail', () => {
         timing: null,
       }),
     ).toBe(STATUS_MESSAGES.THUNDERSTORM);
+  });
+});
+
+describe('kit card copy', () => {
+  it('says why each item is in the kit, in either unit', () => {
+    expect(formatKitReason({ kind: 'cold', temperature: 46, when: 'start' }, 'fahrenheit')).toBe(
+      '46° start',
+    );
+    expect(formatKitReason({ kind: 'cold', temperature: 50, when: 'finish' }, 'celsius')).toBe(
+      '10° finish',
+    );
+    expect(formatKitReason({ kind: 'cold', temperature: 41, when: 'low' }, 'fahrenheit')).toBe(
+      'Low of 41°',
+    );
+    // A swing is a difference: 18°F is 10°C, not -8°C.
+    expect(formatKitReason({ kind: 'swing', degrees: 18 }, 'celsius')).toBe('10° swing');
+    expect(formatKitReason({ kind: 'swing', degrees: 18 }, 'fahrenheit')).toBe('18° swing');
+    expect(formatKitReason({ kind: 'rain', chance: 40 }, 'fahrenheit')).toBe('40% chance of rain');
+    expect(formatKitReason({ kind: 'wetRoads' }, 'fahrenheit')).toBe('Wet roads');
+    expect(formatKitReason({ kind: 'wind', speed: 17 }, 'fahrenheit')).toBe('17 mph wind');
+    expect(formatKitReason({ kind: 'wind', speed: 17 }, 'celsius')).toBe('27 km/h wind');
+    expect(formatKitReason({ kind: 'uv', index: 4.4 }, 'fahrenheit')).toBe('UV 4');
+    expect(formatKitReason({ kind: 'muggy', dewpoint: 70 }, 'fahrenheit')).toBe('70° dew point');
+  });
+
+  it('says when a piece comes off or goes on', () => {
+    expect(formatKitTiming({ kind: 'offBy', hour: 11 })).toBe('Off by 11 AM');
+    expect(formatKitTiming({ kind: 'offBetween', from: 10, to: 17 })).toBe('Off 10 AM–5 PM');
+    expect(formatKitTiming({ kind: 'onBy', hour: 16 })).toBe('On by 4 PM');
+    expect(formatKitTiming({ kind: 'only', from: 12, to: 14 })).toBe('12 PM–2 PM only');
+  });
+
+  it('names the ride length on the card', () => {
+    expect(RIDE_LENGTH_MESSAGES.CHIP(3)).toBe('3-hour ride');
+    expect(RIDE_LENGTH_MESSAGES.CHIP('allDay')).toBe('All-day ride');
   });
 });

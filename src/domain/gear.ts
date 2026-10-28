@@ -16,7 +16,8 @@ import type {
   Weather,
 } from '@/types/weather';
 
-interface RideWindow {
+/** The worst-case conditions over the hours a kit dresses for. */
+export interface RideWindow {
   minTemp: number;
   maxTemp: number;
   maxWind: number;
@@ -27,7 +28,7 @@ interface RideWindow {
   maxUv: number;
 }
 
-interface GearTipSet {
+export interface GearTipSet {
   FREEZING: GearTip;
   COLD: GearTip;
   COOL: GearTip;
@@ -43,6 +44,17 @@ interface GearTipSet {
   UV_EXTREME: GearTip;
   UV_HIGH: GearTip;
   MUGGY: GearTip;
+}
+
+/** Which tip an item came from: the weather that put it in the kit. */
+export type GearTipKey = keyof GearTipSet;
+
+/** One item in a merged kit, with the tip it came from. */
+export interface KitEntry {
+  item: GearTipItem;
+  key: GearTipKey;
+  /** The outfit ('wear') or an add-on to pack ('bring'), as `GearSuggestion` splits them. */
+  group: 'wear' | 'bring';
 }
 
 const RIDE_WINDOW_HOURS = 3;
@@ -97,7 +109,7 @@ function findRideWindowIndices(hourly: HourlyWeather[], rideHours: RideHours): n
  * starts at the current hour and spans a day, so `tomorrow` disambiguates
  * hours that repeat across midnight.
  */
-function selectRideHours(
+export function selectRideHours(
   weather: Weather,
   rideHours: RideHours | null,
   defaultWindowHours: number = RIDE_WINDOW_HOURS,
@@ -108,7 +120,7 @@ function selectRideHours(
     .filter((h): h is HourlyWeather => h !== undefined);
 }
 
-interface BeforeRide {
+export interface BeforeRide {
   /** The last `WET_ROADS_THRESHOLD.RECENT_HOURS` hours before the ride starts. */
   hours: HourlyWeather[];
   /** How many hours from now the ride starts (0 when it starts now). */
@@ -116,7 +128,7 @@ interface BeforeRide {
 }
 
 /** The hours just before the ride: past hours, then any forecast hours before a later window. */
-function selectHoursBeforeRide(weather: Weather, rideHours: RideHours | null): BeforeRide {
+export function selectHoursBeforeRide(weather: Weather, rideHours: RideHours | null): BeforeRide {
   const indices = rideHours ? findRideWindowIndices(weather.hourly, rideHours) : [];
   const startIndex = indices[0] ?? 0;
   const hoursUntilRide = Math.max(startIndex, 0);
@@ -132,7 +144,7 @@ function maxPrecipitation(hours: { precipitation?: number | null }[]): number | 
   return amounts.every((amount): amount is number => amount != null) ? Math.max(...amounts) : null;
 }
 
-function getRideWindow(
+export function getRideWindow(
   weather: Weather,
   rideHours: RideHours | null,
   defaultWindowHours: number = RIDE_WINDOW_HOURS,
@@ -166,12 +178,8 @@ function getRideWindow(
   };
 }
 
-function getTemperatureTips(
-  w: RideWindow,
-  tipsSet: GearTipSet,
-  thresholds: Thresholds = THRESHOLDS,
-): GearTip[] {
-  const tips: GearTip[] = [];
+function getTemperatureTips(w: RideWindow, thresholds: Thresholds = THRESHOLDS): GearTipKey[] {
+  const tips: GearTipKey[] = [];
   // Shift comfort bands by the rider's acclimatization relative to the standard
   // table, the cold side only a little (KIT_MAX_COLD_SHIFT). Freezing (< 32°F)
   // stays fixed because road ice and frostbite don't acclimatize.
@@ -181,13 +189,13 @@ function getTemperatureTips(
   );
   const tempShift = thresholds.TEMPERATURE.FAIR_MAX - THRESHOLDS.TEMPERATURE.FAIR_MAX;
 
-  if (w.minTemp < 32) tips.push(tipsSet.FREEZING);
-  else if (w.minTemp < 45 - coldShift) tips.push(tipsSet.COLD);
-  else if (w.minTemp < 55 - coldShift) tips.push(tipsSet.COOL);
-  else if (w.minTemp < 65 - coldShift) tips.push(tipsSet.MILD_COOL);
+  if (w.minTemp < 32) tips.push('FREEZING');
+  else if (w.minTemp < 45 - coldShift) tips.push('COLD');
+  else if (w.minTemp < 55 - coldShift) tips.push('COOL');
+  else if (w.minTemp < 65 - coldShift) tips.push('MILD_COOL');
 
-  if (w.maxTemp > 90 + tempShift) tips.push(tipsSet.SCORCHING);
-  else if (w.maxTemp > 80 + tempShift) tips.push(tipsSet.HOT);
+  if (w.maxTemp > 90 + tempShift) tips.push('SCORCHING');
+  else if (w.maxTemp > 80 + tempShift) tips.push('HOT');
 
   return tips;
 }
@@ -220,34 +228,28 @@ function rainedInHour(hour: HourlyWeather): boolean {
 /** Builds the weather-driven add-on tips (rain, wet roads, wind, UV, temp swing, mugginess). */
 function buildSupportingTips(
   w: RideWindow,
-  tipsSet: GearTipSet,
   weather: Weather,
   before: BeforeRide,
   thresholds: Thresholds = THRESHOLDS,
-): GearTip[] {
-  const tips: GearTip[] = [];
+): GearTipKey[] {
+  const tips: GearTipKey[] = [];
   // A likely trace is a passing sprinkle, as the rating treats it: a light
   // layer covers it, not a rain jacket.
   const traceOnly = w.maxPrecip != null && w.maxPrecip < RAIN_AMOUNT_MM.TRACE;
 
-  if (w.maxRain > 50 && !traceOnly) tips.push(tipsSet.RAIN_HIGH);
-  else if (w.maxRain > 30) tips.push(tipsSet.RAIN_POSSIBLE);
-  else if (hasWetRoads(weather, w, before) && tipsSet.WET_ROADS) tips.push(tipsSet.WET_ROADS);
+  if (w.maxRain > 50 && !traceOnly) tips.push('RAIN_HIGH');
+  else if (w.maxRain > 30) tips.push('RAIN_POSSIBLE');
+  else if (hasWetRoads(weather, w, before)) tips.push('WET_ROADS');
 
   // Wind before the temperature swing: a kit takes one outer layer
   // (mergeTipItems), and a wind layer also covers a cool start.
-  if (w.maxWind > 15 && w.minTemp <= WINDBREAKER_MAX_TEMP) tips.push(tipsSet.WINDY);
-  if (w.maxTemp - w.minTemp >= 15) tips.push(tipsSet.TEMP_SWING);
-  if (w.maxUv >= UV_GEAR.SUNGLASSES) tips.push(tipsSet.UV_EXTREME);
-  else if (w.maxUv >= UV_GEAR.SUNSCREEN) tips.push(tipsSet.UV_HIGH);
-  if (w.maxDewpoint >= thresholds.DEWPOINT.MARGINAL) tips.push(tipsSet.MUGGY);
+  if (w.maxWind > 15 && w.minTemp <= WINDBREAKER_MAX_TEMP) tips.push('WINDY');
+  if (w.maxTemp - w.minTemp >= 15) tips.push('TEMP_SWING');
+  if (w.maxUv >= UV_GEAR.SUNGLASSES) tips.push('UV_EXTREME');
+  else if (w.maxUv >= UV_GEAR.SUNSCREEN) tips.push('UV_HIGH');
+  if (w.maxDewpoint >= thresholds.DEWPOINT.MARGINAL) tips.push('MUGGY');
 
   return tips;
-}
-
-interface MergedTipItem {
-  item: GearTipItem;
-  group: 'wear' | 'bring';
 }
 
 /**
@@ -259,24 +261,49 @@ interface MergedTipItem {
  * An item two tips share, like shoe covers for the cold and for the rain, is
  * listed once.
  */
-function mergeTipItems(tips: { tip: GearTip; base: boolean }[]): MergedTipItem[] {
-  const merged: MergedTipItem[] = [];
-  for (const { tip, base } of tips) {
+function mergeTipItems(tips: { key: GearTipKey; tip: GearTip; base: boolean }[]): KitEntry[] {
+  const merged: KitEntry[] = [];
+  for (const { key, tip, base } of tips) {
     for (const item of tip.items) {
       const group = item.slot || base ? 'wear' : 'bring';
       if (!item.slot) {
         const hasOuter = merged.some((existing) => existing.item.outer);
         const listed = merged.some((existing) => existing.item.label === item.label);
         if (listed || (item.outer && !base && hasOuter)) continue;
-        merged.push({ item, group });
+        merged.push({ item, key, group });
         continue;
       }
       const idx = merged.findIndex((existing) => existing.item.slot === item.slot);
-      if (idx === -1) merged.push({ item, group });
-      else merged[idx] = { item, group };
+      if (idx === -1) merged.push({ item, key, group });
+      else merged[idx] = { item, key, group };
     }
   }
   return merged;
+}
+
+/** The kit for a window: each item, the tip that put it there, and its group. */
+export function buildKitEntries(
+  w: RideWindow,
+  tipsSet: GearTipSet,
+  weather: Weather,
+  before: BeforeRide,
+  thresholds: Thresholds = THRESHOLDS,
+): KitEntry[] {
+  const temperatureTips = getTemperatureTips(w, thresholds);
+  const supportingTips = buildSupportingTips(w, weather, before, thresholds);
+
+  // An empty temperature tip means the ride window sits in the ideal band, so
+  // NEUTRAL supplies the baseline outfit.
+  const baseTips: GearTipKey[] = temperatureTips.length > 0 ? temperatureTips : ['NEUTRAL'];
+
+  const tips = [
+    ...baseTips.map((key) => ({ key, base: true })),
+    ...supportingTips.map((key) => ({ key, base: false })),
+  ].flatMap(({ key, base }) => {
+    const tip = tipsSet[key];
+    return tip ? [{ key, tip, base }] : [];
+  });
+  return mergeTipItems(tips);
 }
 
 function getGearTips(
@@ -286,18 +313,7 @@ function getGearTips(
   before: BeforeRide,
   thresholds: Thresholds = THRESHOLDS,
 ): GearSuggestion {
-  const temperatureTips = getTemperatureTips(w, tipsSet, thresholds);
-  const supportingTips = buildSupportingTips(w, tipsSet, weather, before, thresholds);
-
-  // An empty temperature tip means the ride window sits in the ideal band, so
-  // NEUTRAL supplies the baseline outfit.
-  const baseTips = temperatureTips.length > 0 ? temperatureTips : [tipsSet.NEUTRAL];
-
-  const tips = [
-    ...baseTips.map((tip) => ({ tip, base: true })),
-    ...supportingTips.map((tip) => ({ tip, base: false })),
-  ];
-  const merged = mergeTipItems(tips);
+  const merged = buildKitEntries(w, tipsSet, weather, before, thresholds);
   return {
     items: merged.map(({ item }) => item),
     wear: merged.filter(({ group }) => group === 'wear').map(({ item }) => item),
@@ -340,27 +356,4 @@ export function getDayGearSuggestion(
   const tipsSet: GearTipSet = mode === 'pro' ? GEAR_TIPS.PRO : GEAR_TIPS.CASUAL;
   const syntheticWeather = { weatherCode: day.weatherCode } as Weather;
   return getGearTips(w, tipsSet, syntheticWeather, { hours: [], hoursUntilRide: 0 }, thresholds);
-}
-
-export function getWearRows(items: GearTipItem[], isWide: boolean): GearTipItem[][] {
-  const n = items.length;
-  if (n === 0) return [];
-  if (!isWide) {
-    const rows: GearTipItem[][] = [];
-    for (let i = 0; i < n; i += 2) {
-      rows.push(items.slice(i, i + 2));
-    }
-    return rows;
-  }
-  if (n <= 4) {
-    return [items];
-  }
-  if (n === 5) {
-    return [items.slice(0, 3), items.slice(3, 5)];
-  }
-  const rows: GearTipItem[][] = [];
-  for (let i = 0; i < n; i += 3) {
-    rows.push(items.slice(i, i + 3));
-  }
-  return rows;
 }
