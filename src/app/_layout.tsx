@@ -8,7 +8,6 @@ import { StatusBar } from 'expo-status-bar';
 import * as SystemUI from 'expo-system-ui';
 import * as Sentry from '@sentry/react-native';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { BottomNavBar } from '@/components/wheely';
 import { webFixedPosition } from '@/components/wheely/content-column';
 import { WebSafeAreaProvider } from '@/components/wheely/web-safe-area-provider';
@@ -27,6 +26,13 @@ import { initSentry, sentryEnabled } from '@/services/telemetry';
 initSentry();
 // iOS only: keeps the home screen widget on a recent forecast.
 registerBackgroundRefresh();
+
+// The poster faces under the names the theme uses, which are also their
+// PostScript names: iOS finds the copies built into the app by those names.
+const POSTER_FONTS = {
+  [POSTER_FONT]: Oswald_700Bold,
+  [POSTER_LIGHT_FONT]: Oswald_400Regular,
+};
 
 function navigationTheme(isDark: boolean) {
   const base = isDark ? DarkTheme : DefaultTheme;
@@ -114,14 +120,13 @@ function ThemedRoot() {
   const override = appearance === 'system' ? null : appearance;
   const isDark = (override ?? (systemScheme === 'dark' ? 'dark' : 'light')) === 'dark';
   const wheelyBg = WheelyTheme[isDark ? 'dark' : 'light'].background;
-  // Native waits for the poster face under the splash overlay, so titles never
-  // flash in the system font; the native header reads its font only once. Web
-  // renders straight away and swaps the face in (gating would break hydration).
-  const [postersLoaded, posterError] = useFonts({
-    [POSTER_FONT]: Oswald_700Bold,
-    [POSTER_LIGHT_FONT]: Oswald_400Regular,
-  });
-  const fontsReady = Platform.OS === 'web' || postersLoaded || posterError != null;
+  // iOS has Oswald from the first frame: the expo-font plugin in app.json builds
+  // it into the app. Android loads it here and waits under the launch screen, so
+  // titles never flash in the system font (the native header reads its font only
+  // once). Web renders straight away and swaps the face in (gating would break
+  // hydration).
+  const [postersLoaded, posterError] = useFonts(Platform.OS === 'ios' ? {} : POSTER_FONTS);
+  const fontsReady = Platform.OS !== 'android' || postersLoaded || posterError != null;
 
   useWebDocumentTheme(isDark);
 
@@ -161,7 +166,6 @@ function ThemedRoot() {
           />
         </Head>
         <StatusBar style={isDark ? 'light' : 'dark'} />
-        <AnimatedSplashOverlay />
         {fontsReady && <ForecastProvider>{navigator}</ForecastProvider>}
       </ThemeProvider>
     </ColorSchemeOverrideContext.Provider>

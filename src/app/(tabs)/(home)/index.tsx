@@ -15,7 +15,6 @@ import Animated, {
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
-  withDelay,
   withTiming,
 } from 'react-native-reanimated';
 import { Stack, useIsFocused, useRouter } from 'expo-router';
@@ -41,6 +40,7 @@ import {
   bottomNavBarHeight,
 } from '@/components/wheely';
 import { HomeBackdrop, type SceneKind } from '@/components/wheely/home-backdrop';
+import { Stagger, useHomeEntrance } from '@/components/wheely/home-entrance';
 import {
   WEB_TITLE_CONTENT_SPACING,
   WebCompactTitleBar,
@@ -78,10 +78,6 @@ const isWeb = Platform.OS === 'web';
 const isIOS = Platform.OS === 'ios';
 const PLACE_FADE_MS = 260;
 
-// Web tab switches remount this screen, so play the entrance stagger only on
-// the first home mount per session; native tabs keep the screen mounted.
-let hasPlayedWebEntrance = false;
-
 /**
  * Web has no navigation bar over its title, so while the scene shows, this
  * much sky above the heading gives the sun and clouds room, as native's bar does.
@@ -111,50 +107,6 @@ const headingStyles = StyleSheet.create({
 // stamps that hang off a card's bottom (the hourly "Poor" burst) need room
 // above the next title.
 const SECTION_GAP = 28;
-
-const STAGGER_STEP_MS = 70;
-const STAGGER_DURATION_MS = 380;
-const STAGGER_RISE = 12;
-
-/**
- * Staggered entrance for each home section.
- *
- * Driven by a shared value rather than reanimated's `entering` prop: layout
- * entering animations are fire-and-forget, so an interruption (a snapshot
- * re-render as the cache hydrates and the live fetch lands, or a tab
- * transition) strands the view at a partial opacity. That washes out the whole
- * card subtree uniformly — border, text, icons, and chart colors alike — and it
- * hits later sections hardest because their delay is longest. A value that is
- * always driven toward 1 settles no matter how often the tree re-renders.
- */
-function Stagger({ order, children }: Readonly<{ order: number; children: ReactNode }>) {
-  const reduceMotion = useReducedMotion();
-  const [skipEntrance] = useState(() => isWeb && hasPlayedWebEntrance);
-  const animate = !reduceMotion && !skipEntrance;
-  const progress = useSharedValue(animate ? 0 : 1);
-
-  useEffect(() => {
-    hasPlayedWebEntrance = true;
-  }, []);
-
-  useEffect(() => {
-    if (!animate) {
-      progress.value = 1;
-      return;
-    }
-    progress.value = withDelay(
-      order * STAGGER_STEP_MS,
-      withTiming(1, { duration: STAGGER_DURATION_MS }),
-    );
-  }, [animate, order, progress]);
-
-  const style = useAnimatedStyle(() => ({
-    opacity: progress.value,
-    transform: [{ translateY: (1 - progress.value) * STAGGER_RISE }],
-  }));
-
-  return <Animated.View style={style}>{children}</Animated.View>;
-}
 
 function deriveHomeState(
   weather: Weather,
@@ -336,6 +288,7 @@ function HomeSections({
   const c = useWheelyColors();
   const styles = useMemo(() => makeStyles(c), [c]);
   const reduceMotion = useReducedMotion();
+  const entrance = useHomeEntrance();
   const sectionsOpacity = useSharedValue(1);
   const [shownPlace, setShownPlace] = useState(placeKey);
 
@@ -365,7 +318,7 @@ function HomeSections({
       {/* Alerts belong to the verdict, so they group with it and skip the
           rhythm that separates the page's sections: a tighter margin of their own. */}
       <View>
-        <Stagger order={1}>
+        <Stagger order={1} variant="slap">
           <RideVerdict
             status={derived.status}
             score={derived.score}
@@ -373,6 +326,7 @@ function HomeSections({
             label={derived.label}
             waiting={derived.waiting}
             condition={derived.condition}
+            entrance={entrance}
           />
         </Stagger>
         {derived.alerts.length > 0 && (

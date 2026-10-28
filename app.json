@@ -53,6 +53,25 @@
           "backgroundColor": "#F4F4F6",
           "dark": {
             "backgroundColor": "#000000"
+          },
+          "ios": {
+            "image": "./assets/images/launch-sky.png",
+            "resizeMode": "cover",
+            "enableFullScreenImage_legacy": true,
+            "dark": {
+              "image": "./assets/images/launch-sky-dark.png"
+            }
+          }
+        }
+      ],
+      [
+        "expo-font",
+        {
+          "ios": {
+            "fonts": [
+              "node_modules/@expo-google-fonts/oswald/700Bold/Oswald_700Bold.ttf",
+              "node_modules/@expo-google-fonts/oswald/400Regular/Oswald_400Regular.ttf"
+            ]
           }
         }
       ],

@@ -14,6 +14,11 @@ import { formatIssuesAsSentence, formatVerdictDetail } from '@/domain';
 import { BrutalCard, StickerTag } from './primitives';
 import { StarRating } from './star-rating';
 
+// The stickers land once Home's entrance has slapped the card down (its
+// Stagger in the home screen): the stars pop on, then the timing tag.
+const STARS_POP_DELAY_MS = 720;
+const TIMING_TAG_DELAY_MS = 820;
+
 type VerdictStatus = 'yes' | 'maybe' | 'no';
 
 /** How far the timing chip hangs below the card's bottom edge. */
@@ -121,6 +126,7 @@ export function RideVerdict({
   score,
   condition,
   waiting = false,
+  entrance = true,
 }: Readonly<{
   status: VerdictStatus;
   /** The rating behind `status`; colors the card like the week list. Defaults per status. */
@@ -130,6 +136,8 @@ export function RideVerdict({
   score?: number;
   /** Bad now, good later: the accent pink sets it apart from a go-now verdict. */
   waiting?: boolean;
+  /** Pop the stickers on as Home makes its entrance; off on a web return and under Reduce Motion. */
+  entrance?: boolean;
 }>) {
   const { c, styles } = useStyles();
 
@@ -170,7 +178,9 @@ export function RideVerdict({
         <View style={styles.badgeGroup}>
           {/* The entrance animates `transform`, so the tilt lives on an inner
               view: on the same view the animation overwrote it mid-entrance. */}
-          <Animated.View entering={ZoomIn.delay(160).springify()}>
+          <Animated.View
+            entering={entrance ? ZoomIn.delay(STARS_POP_DELAY_MS).springify() : undefined}
+          >
             <StickerTag tilt={1} style={styles.scoreTag}>
               <StarRating rating={scoreToStars(score)} />
             </StickerTag>
@@ -198,7 +208,7 @@ export function RideVerdict({
       {/* Bottom Floating Timing Badge Button */}
       {message.timing != null && (
         <View style={styles.bottomBadgeGroup}>
-          <Animated.View entering={FadeInDown.delay(200)}>
+          <Animated.View entering={entrance ? FadeInDown.delay(TIMING_TAG_DELAY_MS) : undefined}>
             <StickerTag tilt={-1} style={styles.timingTag}>
               {Platform.OS === 'ios' ? (
                 <SymbolView name="clock.fill" size={14} tintColor={c.ink} />

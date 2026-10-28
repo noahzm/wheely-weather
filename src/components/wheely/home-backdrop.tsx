@@ -16,7 +16,16 @@ import { SceneColors } from '@/constants/theme';
 import type { Sky } from '@/domain/weather-codes';
 import { useWheelyColors } from '@/hooks/use-theme';
 
-import { entrance, GLOW, loop, PEEK, RISE, useSceneMotion, type Motion } from './scene-motion';
+import {
+  entrance,
+  GLOW,
+  HILLS_IN,
+  loop,
+  PEEK,
+  RISE,
+  useSceneMotion,
+  type Motion,
+} from './scene-motion';
 import {
   Cloud,
   FogBand,
@@ -500,7 +509,10 @@ export function HomeBackdrop({
       {/* Keyed so a change of weather brings its sky in fresh. */}
       <SceneSky key={kind} kind={kind} width={width} motion={motion} />
       <Ground shift={groundShift} motion={motion}>
-        <Hills width={width} palette={palette} />
+        {/* Its own view: Ground's transform places the hills, this one brings them in. */}
+        <Animated.View style={[StyleSheet.absoluteFill, entrance(motion, HILLS_IN)]}>
+          <Hills width={width} palette={palette} />
+        </Animated.View>
       </Ground>
       <Image source={grainTexture} resizeMode="repeat" style={styles.grain} />
       <Ground shift={groundShift} motion={motion}>

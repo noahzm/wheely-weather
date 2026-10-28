@@ -48,6 +48,14 @@ export const RISE = css.keyframes({
   from: { opacity: 0, transform: [{ translateY: 56 }] },
   to: { opacity: 1, transform: [{ translateY: 0 }] },
 });
+/**
+ * The hills roll up into place. The iOS launch screen is the bare sky, so the
+ * landscape arriving over it is the first thing that moves.
+ */
+export const HILLS_IN = css.keyframes({
+  from: { opacity: 0, transform: [{ translateY: 40 }] },
+  to: { opacity: 1, transform: [{ translateY: 0 }] },
+});
 /** Clouds and fog drift in from the left. */
 export const DRIFT_IN = css.keyframes({
   from: { opacity: 0, transform: [{ translateX: -40 }] },
