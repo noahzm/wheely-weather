@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { resolveThresholds } from './acclimatization';
 import { THRESHOLDS } from './constants';
 import {
+  ALL_DAY_RIDE_HOURS,
   buildRideWindowCandidate,
   scoreRideWindow,
   selectBestRideWindow,
@@ -151,5 +152,32 @@ describe('selectBestRideWindows', () => {
       4,
     );
     expect(longWindows['2026-10-10']).toMatchObject({ startHour: 9, endHour: 13 });
+  });
+
+  it('spans all of each day’s daylight for an all-day ride', () => {
+    const windows = selectBestRideWindows(
+      {
+        '2026-10-09': hours(14, 18),
+        '2026-10-10': hours(7, 18),
+        // A short winter day still gets its whole daylight as one window.
+        '2026-10-11': hours(9, 15),
+      },
+      '2026-10-09',
+      THRESHOLDS,
+      ALL_DAY_RIDE_HOURS,
+    );
+    expect(windows['2026-10-09']).toMatchObject({ startHour: 14, endHour: 18 });
+    expect(windows['2026-10-10']).toMatchObject({ startHour: 7, endHour: 18 });
+    expect(windows['2026-10-11']).toMatchObject({ startHour: 9, endHour: 15 });
+  });
+
+  it('still needs two hours today for an all-day ride', () => {
+    const windows = selectBestRideWindows(
+      { '2026-10-09': [hour(17)] },
+      '2026-10-09',
+      THRESHOLDS,
+      ALL_DAY_RIDE_HOURS,
+    );
+    expect(windows).toEqual({});
   });
 });

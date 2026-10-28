@@ -5,6 +5,7 @@
 import {
   DEFAULT_EXPOSURE_LEVEL,
   DEFAULT_RIDE_DURATION,
+  RIDE_DURATION_VALUES,
   type Appearance,
   type ExposureLevel,
   type GearMode,
@@ -63,8 +64,21 @@ export function parseExposureLevel(raw: string | null): ExposureLevel {
   return raw === 'indoor' || raw === 'high' ? raw : DEFAULT_EXPOSURE_LEVEL;
 }
 
+// The three lengths the setting had before the picker, as the hours they meant.
+const LEGACY_RIDE_DURATIONS: ReadonlyMap<string, RideDuration> = new Map([
+  ['short', '1h'],
+  ['standard', '3h'],
+  ['long', '4h'],
+]);
+
+function isRideDuration(raw: string): raw is RideDuration {
+  return (RIDE_DURATION_VALUES as readonly string[]).includes(raw);
+}
+
 export function parseRideDuration(raw: string | null): RideDuration {
-  return raw === 'short' || raw === 'long' ? raw : DEFAULT_RIDE_DURATION;
+  if (raw == null) return DEFAULT_RIDE_DURATION;
+  if (isRideDuration(raw)) return raw;
+  return LEGACY_RIDE_DURATIONS.get(raw) ?? DEFAULT_RIDE_DURATION;
 }
 
 export function parseHomeLocation(raw: string | null): SavedLocation | null {

@@ -53,7 +53,7 @@ function snapshotAt(time: number): ForecastSnapshot {
 }
 
 function settings(tempUnit = 'auto') {
-  return { homeLocation: HOME, exposureLevel: 'high', tempUnit, rideDuration: 'standard' };
+  return { homeLocation: HOME, exposureLevel: 'high', tempUnit, rideDuration: '3h' };
 }
 
 const EXTRAS: ForecastExtras = { aqi: 42, nwsAlerts: [] };
@@ -102,7 +102,7 @@ describe('refreshWidgetInBackground', () => {
       savedLocation: PLACE,
       homeLocation: HOME,
       exposureLevel: 'high',
-      rideDuration: 'standard',
+      rideDuration: '3h',
     });
     // Cached with the extras merged in, under the place it was fetched for.
     const [cachedSnapshot, cachedPlace] = mocks.saveCachedForecast.mock.calls[0] ?? [];

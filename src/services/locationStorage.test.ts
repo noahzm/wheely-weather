@@ -217,7 +217,7 @@ describe('settings', () => {
     await saveAppearance('dark');
     await saveTempUnit('celsius');
     await saveExposureLevel('high');
-    await saveRideDuration('long');
+    await saveRideDuration('allDay');
     await saveHomeLocation({ lat: 10, lon: 20, name: 'Home', source: 'manual' });
 
     await expect(loadAllSettings()).resolves.toEqual({
@@ -225,7 +225,7 @@ describe('settings', () => {
       appearance: 'dark',
       tempUnit: 'celsius',
       exposureLevel: 'high',
-      rideDuration: 'long',
+      rideDuration: 'allDay',
       homeLocation: { lat: 10, lon: 20, name: 'Home', source: 'manual' },
       homeLocationChosen: true,
       homeLocationAuto: false,

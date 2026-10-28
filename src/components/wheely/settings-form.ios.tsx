@@ -30,7 +30,7 @@ import {
 import AppleWeatherKitModule from '../../../modules/apple-weatherkit/src/AppleWeatherKitModule';
 import type { WeatherKitAttribution } from '../../../modules/apple-weatherkit/src/AppleWeatherKit.types';
 import { TRANSPARENT } from '@/constants/theme';
-import { CLIMATE_MESSAGES, describeClimateAdjustment } from '@/domain';
+import { CLIMATE_MESSAGES, RIDE_LENGTH_MESSAGES, describeClimateAdjustment } from '@/domain';
 import { useResolvedTempUnit } from '@/hooks/settings-context';
 import { useWheelyColors } from '@/hooks/use-theme';
 import {
@@ -270,16 +270,17 @@ export function SettingsForm({
             </Picker>
           </Section>
 
-          <Section
-            title="Ride length"
-            footer={<Text>Sizes each day’s recommended ride window and kit guide.</Text>}
-          >
+          <Section title="Ride length" footer={<Text>{RIDE_LENGTH_MESSAGES.FOOTER}</Text>}>
+            {/* Seven lengths don't fit a segmented control. A menu row shows the
+                choice like Settings.app does; secondary tint keeps the value
+                gray like the Location row rather than the accent color. */}
             <Picker
+              label={RIDE_LENGTH_MESSAGES.ROW}
               selection={rideDuration}
               onSelectionChange={(value) => {
                 onRideDurationChange(value);
               }}
-              modifiers={[pickerStyle('segmented')]}
+              modifiers={[pickerStyle('menu'), tint({ type: 'hierarchical', style: 'secondary' })]}
             >
               {RIDE_DURATION_VALUES.map((value, index) => (
                 <Text key={value} modifiers={[tag(value)]}>

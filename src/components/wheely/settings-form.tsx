@@ -11,12 +11,11 @@ import { webBottomInset } from './bottom-nav-chrome';
 import { HomeClimateSection } from './settings-home-section';
 import { CreditsSection } from './settings-credits-section';
 import { AppStoreSection } from './settings-app-store-section';
+import { RideLengthSection } from './settings-ride-length-section';
 import { RNSegmentedPicker } from './rn-segmented-picker';
 import {
   APPEARANCE_LABELS,
   APPEARANCE_VALUES,
-  RIDE_DURATION_LABELS,
-  RIDE_DURATION_VALUES,
   TEMP_UNIT_LABELS,
   TEMP_UNIT_VALUES,
   type SettingsFormProps,
@@ -80,19 +79,7 @@ export function SettingsForm({
         </GroupedRow>
       </GroupedSection>
 
-      <GroupedSection
-        title="Ride length"
-        footer="Sizes each day's recommended ride window and kit guide."
-      >
-        <GroupedRow stacked>
-          <RNSegmentedPicker
-            values={RIDE_DURATION_VALUES}
-            labels={RIDE_DURATION_LABELS}
-            selectedValue={rideDuration}
-            onSelect={onRideDurationChange}
-          />
-        </GroupedRow>
-      </GroupedSection>
+      <RideLengthSection value={rideDuration} onChange={onRideDurationChange} />
 
       <HomeClimateSection
         homeLabel={homeLabel}

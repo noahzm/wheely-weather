@@ -47,6 +47,12 @@ const DAILY_RIDE_WINDOW_HOURS = 3;
 // from 2 PM on, and the verdict jumped to tomorrow hours too early.
 const MIN_TODAY_WINDOW_HOURS = 2;
 
+/**
+ * The ride length of the All day setting. No day has this much daylight, so
+ * each day's window is all of its daylight hours, however short the day.
+ */
+export const ALL_DAY_RIDE_HOURS = 24;
+
 function getWorstWeatherCode(codes: (number | null)[]): number | null {
   let worstCode: number | null = null;
   let worstRank = Infinity;
@@ -170,6 +176,14 @@ export function selectBestRideWindow(
 }
 
 /**
+ * How many hours a later day's window needs: the whole ride, or for an all-day
+ * ride, whatever daylight the day has.
+ */
+function minHoursForLaterDay(hours: RideWindowHour[], targetHours: number): number {
+  return targetHours >= ALL_DAY_RIDE_HOURS ? hours.length : targetHours;
+}
+
+/**
  * Each date's best window, from its remaining daylight hours. Today may settle
  * for a shorter window than later days (`MIN_TODAY_WINDOW_HOURS`).
  */
@@ -182,7 +196,7 @@ export function selectBestRideWindows(
   const bestByDate: Record<string, DailyRideWindow> = {};
   const todayMin = Math.min(MIN_TODAY_WINDOW_HOURS, targetHours);
   for (const [date, hours] of Object.entries(hoursByDate)) {
-    const minHours = date === today ? todayMin : targetHours;
+    const minHours = date === today ? todayMin : minHoursForLaterDay(hours, targetHours);
     const best = selectBestRideWindow(hours, thresholds, minHours, targetHours);
     if (best) bestByDate[date] = best;
   }

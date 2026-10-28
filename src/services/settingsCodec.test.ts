@@ -30,11 +30,19 @@ describe('setting parsers', () => {
     expect(parseTempUnit('nonsense')).toBe('auto');
     expect(parseTempUnit(null)).toBe('auto');
 
-    expect(parseRideDuration('short')).toBe('short');
-    expect(parseRideDuration('standard')).toBe('standard');
-    expect(parseRideDuration('long')).toBe('long');
-    expect(parseRideDuration('nonsense')).toBe('standard');
-    expect(parseRideDuration(null)).toBe('standard');
+    expect(parseRideDuration('1h')).toBe('1h');
+    expect(parseRideDuration('6h')).toBe('6h');
+    expect(parseRideDuration('allDay')).toBe('allDay');
+    expect(parseRideDuration('nonsense')).toBe('3h');
+    expect(parseRideDuration(null)).toBe('3h');
+  });
+
+  it('reads the ride lengths stored before the picker as their hours', () => {
+    expect(parseRideDuration('short')).toBe('1h');
+    expect(parseRideDuration('standard')).toBe('3h');
+    expect(parseRideDuration('long')).toBe('4h');
+    // Not a stored value, though every object has it.
+    expect(parseRideDuration('toString')).toBe('3h');
   });
 
   it('exposes defaults matching the parser fallbacks', () => {

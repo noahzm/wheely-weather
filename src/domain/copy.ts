@@ -540,6 +540,14 @@ export function formatVerdictDetail(status: RideStatus, message: VerdictMessage)
   return detail ? `${now} Then ${lowerFirst(detail)}` : now;
 }
 
+/** Ride length settings copy, shared by the iOS and web forms. */
+export const RIDE_LENGTH_MESSAGES = {
+  // The section is titled "Ride length", so the row reads as a sentence.
+  ROW: 'Riding for',
+  FOOTER:
+    'Sizes each day’s recommended ride window and kit guide. All day uses every daylight hour, for tours and bikepacking.',
+};
+
 /**
  * Home climate settings copy, shared by the iOS and web forms so they can't
  * drift apart. Ranges are the temperatures that still rate a ride day.

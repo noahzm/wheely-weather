@@ -231,10 +231,10 @@ describe('upcoming verdicts', () => {
   it('honors snapshot.rideDuration when rating future windows', () => {
     const snapshot = {
       ...snapshotFromForecast(makeForecastData()),
-      rideDuration: 'short' as const,
+      rideDuration: '1h' as const,
     };
     const widget = buildWidgetSnapshot(snapshot, 'fahrenheit');
-    // At 1 AM tomorrow, a 'short' (1h) window spans 7 AM–8 AM instead of 7 AM–10 AM.
+    // At 1 AM tomorrow, a 1-hour window spans 7 AM–8 AM instead of 7 AM–10 AM.
     expect(widget?.upcoming[10]?.detail).toBe('Best 7 AM–8 AM');
   });
 });
