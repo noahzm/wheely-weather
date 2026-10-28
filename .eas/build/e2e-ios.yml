@@ -1,0 +1,12 @@
+# Custom build for the `e2e` profile in eas.json: builds the Release simulator
+# app, then runs the Maestro flows in .maestro/ on a simulator in the same job.
+# Running Maestro inside a build keeps this on the Free plan, which has no
+# `maestro` workflow job; Maestro saves failure screenshots to ~/.maestro/tests,
+# and eas/maestro_test uploads them as the build's artifact.
+build:
+  name: Build and run the Maestro flows
+  steps:
+    - eas/build
+    - eas/maestro_test:
+        inputs:
+          flow_path: .maestro

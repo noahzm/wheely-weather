@@ -3,9 +3,11 @@ import * as Sentry from '@sentry/react-native';
 // Set via EXPO_PUBLIC_SENTRY_DSN (see .env.example). Dev builds never report,
 // even with the DSN in .env: simulator App Hangs (the dev bundle is slow) and
 // mid-edit errors made up most of the project's events and buried real ones.
+// Anything but an https URL counts as unset: the `e2e` EAS profile sets "off",
+// because eas.json can't blank the DSN the EAS environment provides.
 const dsn: string | undefined =
   typeof process.env.EXPO_PUBLIC_SENTRY_DSN === 'string' &&
-  process.env.EXPO_PUBLIC_SENTRY_DSN.length > 0
+  process.env.EXPO_PUBLIC_SENTRY_DSN.startsWith('https://')
     ? process.env.EXPO_PUBLIC_SENTRY_DSN
     : undefined;
 

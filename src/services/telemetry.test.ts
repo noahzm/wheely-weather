@@ -32,20 +32,14 @@ afterEach(() => {
 });
 
 describe('telemetry — disabled in dev or without a DSN', () => {
-  it('stays disabled in __DEV__ even when a DSN is configured', async () => {
-    process.env.EXPO_PUBLIC_SENTRY_DSN = 'https://example@sentry.io/123';
-    vi.stubGlobal('__DEV__', true);
-
-    const { initSentry, sentryEnabled } = await import('./telemetry');
-    initSentry();
-
-    expect(sentryEnabled).toBe(false);
-    expect(sentry.init).not.toHaveBeenCalled();
-  });
-
-  it('stays disabled when EXPO_PUBLIC_SENTRY_DSN is empty', async () => {
-    process.env.EXPO_PUBLIC_SENTRY_DSN = '';
-    vi.stubGlobal('__DEV__', false);
+  it.each([
+    { when: 'in __DEV__ even with a DSN', dsn: 'https://example@sentry.io/123', dev: true },
+    { when: 'when the DSN is empty', dsn: '', dev: false },
+    // The e2e EAS build sets "off": eas.json can't blank the environment's DSN.
+    { when: 'when the DSN is not a URL', dsn: 'off', dev: false },
+  ])('stays disabled $when', async ({ dsn, dev }) => {
+    process.env.EXPO_PUBLIC_SENTRY_DSN = dsn;
+    vi.stubGlobal('__DEV__', dev);
 
     const { initSentry, sentryEnabled } = await import('./telemetry');
     initSentry();

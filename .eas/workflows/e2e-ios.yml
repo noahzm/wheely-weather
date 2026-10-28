@@ -1,0 +1,34 @@
+# Runs the Maestro flows (.maestro/) against a Release simulator build on EAS,
+# so a release doesn't need `npm run e2e:ios` on the laptop. The flows run
+# inside the `e2e` build itself (see .eas/build/e2e-ios.yml).
+#
+# Manual only, never on push:
+#   eas workflow:run .eas/workflows/e2e-ios.yml
+#   eas workflow:run .eas/workflows/e2e-ios.yml -F production_build=true
+# The second also starts the production build, only if every flow passes.
+name: iOS e2e
+
+on:
+  workflow_dispatch:
+    inputs:
+      production_build:
+        type: boolean
+        default: false
+        description: Start the production iOS build once the flows pass
+
+jobs:
+  e2e_ios:
+    name: Build and run Maestro flows
+    type: build
+    params:
+      platform: ios
+      profile: e2e
+
+  build_production:
+    name: Production build
+    needs: [e2e_ios]
+    if: ${{ inputs.production_build }}
+    type: build
+    params:
+      platform: ios
+      profile: production
