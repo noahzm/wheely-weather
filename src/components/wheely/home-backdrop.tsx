@@ -56,6 +56,12 @@ const SKY_LINE = ABOVE + HORIZON;
 const SKY_DEPTH = 240;
 /** How strongly the film grain shows over the scene. */
 const GRAIN_OPACITY = 0.32;
+/**
+ * Fallback verdict-card offset before `onLayout` measures `groundTop` (matches
+ * `CARD_TOP - CONTENT_TOP` in `scripts/render-launch-sky.mjs`), so frame 0
+ * renders the sky, grain and page fade seamlessly with the iOS launch image.
+ */
+const DEFAULT_GROUND_TOP = 50;
 
 /** A square box of side `size` centered on (cx, cy) in scene coordinates. */
 function boxAt(cx: number, cy: number, size: number) {
@@ -478,6 +484,7 @@ export function HomeBackdrop({
   kind,
   offset = 0,
   groundTop,
+  bare = false,
 }: Readonly<{
   kind: SceneKind;
   /**
@@ -488,16 +495,21 @@ export function HomeBackdrop({
   offset?: number;
   /**
    * Where the verdict card's block starts in the scroll content, which the
-   * hills crest just above; the scene waits until it is known.
+   * hills crest just above; sun, clouds and hills wait until it is known.
    */
   groundTop: number | null;
+  /**
+   * Paints only the sky gradient, grain and page fade (frame 0 of the launch
+   * sky), holding back the sun, clouds and hills while a cold launch loads.
+   */
+  bare?: boolean;
 }>) {
   const { width } = useWindowDimensions();
   const motion = useSceneMotion();
   const palette = PALETTES[kind];
-  if (groundTop == null) return null;
   // The scene's top sits ABOVE over the content's (offset lower on web).
-  const groundShift = groundTop - offset;
+  const groundShift = (groundTop ?? DEFAULT_GROUND_TOP) - offset;
+  const showScene = !bare && groundTop != null;
 
   return (
     <View
@@ -507,15 +519,17 @@ export function HomeBackdrop({
     >
       <SkyGradient width={width} palette={palette} />
       {/* Keyed so a change of weather brings its sky in fresh. */}
-      <SceneSky key={kind} kind={kind} width={width} motion={motion} />
-      <Ground shift={groundShift} motion={motion}>
-        {/* Its own view: Ground's transform places the hills, this one brings them in. */}
-        <Animated.View style={[StyleSheet.absoluteFill, entrance(motion, HILLS_IN)]}>
-          <Hills width={width} palette={palette} />
-        </Animated.View>
-      </Ground>
+      {showScene && <SceneSky key={kind} kind={kind} width={width} motion={motion} />}
+      {showScene && (
+        <Ground shift={groundShift} motion={motion}>
+          {/* Its own view: Ground's transform places the hills, this one brings them in. */}
+          <Animated.View style={[StyleSheet.absoluteFill, entrance(motion, HILLS_IN)]}>
+            <Hills width={width} palette={palette} />
+          </Animated.View>
+        </Ground>
+      )}
       <Image source={grainTexture} resizeMode="repeat" style={styles.grain} />
-      <Ground shift={groundShift} motion={motion}>
+      <Ground shift={groundShift} motion={showScene ? motion : null}>
         <PageFade width={width} />
       </Ground>
     </View>

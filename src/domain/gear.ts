@@ -6,6 +6,7 @@ import {
   type Thresholds,
 } from './constants';
 import { GEAR_TIPS } from './copy';
+import { ALL_DAY_RIDE_HOURS } from './ride-window';
 
 import type {
   DailyWeather,
@@ -96,26 +97,38 @@ function findRideWindowIndices(hourly: HourlyWeather[], rideHours: RideHours): n
       )
       .map((entry) => entry.index);
 
-  if (rideHours.tomorrow == null) {
+  if (!rideHours.tomorrow) {
     const todayMatches = matches(false);
     return todayMatches.length > 0 ? todayMatches : matches(true);
   }
-  return matches(rideHours.tomorrow);
+  return matches(true);
+}
+
+function daylightRideHours(weather: Weather): RideHours | null {
+  const { daylight } = weather;
+  if (!daylight || daylight.sunsetHour <= daylight.sunriseHour) return null;
+  return { startHour: daylight.sunriseHour, endHour: daylight.sunsetHour };
 }
 
 /**
  * The hours the kit dresses for: the verdict's window when there is one (so a
- * wet 9 AM doesn't dress a dry noon ride), else the next few hours. `hourly`
- * starts at the current hour and spans a day, so `tomorrow` disambiguates
- * hours that repeat across midnight.
+ * wet 9 AM doesn't dress a dry noon ride), else the daylight hours for an
+ * all-day ride or the next few hours. `hourly` starts at the current hour and
+ * spans a day, so `tomorrow` disambiguates hours that repeat across midnight.
  */
 export function selectRideHours(
   weather: Weather,
   rideHours: RideHours | null,
   defaultWindowHours: number = RIDE_WINDOW_HOURS,
 ): HourlyWeather[] {
-  if (!rideHours) return weather.hourly.slice(0, defaultWindowHours);
-  return findRideWindowIndices(weather.hourly, rideHours)
+  const effectiveHours =
+    rideHours ?? (defaultWindowHours >= ALL_DAY_RIDE_HOURS ? daylightRideHours(weather) : null);
+  if (!effectiveHours) {
+    const fallbackHours =
+      defaultWindowHours >= ALL_DAY_RIDE_HOURS ? RIDE_WINDOW_HOURS : defaultWindowHours;
+    return weather.hourly.slice(0, fallbackHours);
+  }
+  return findRideWindowIndices(weather.hourly, effectiveHours)
     .map((i) => weather.hourly[i])
     .filter((h): h is HourlyWeather => h !== undefined);
 }

@@ -1,5 +1,8 @@
 import { getRideVerdict, getRideVerdictLabel } from '@/domain';
-import { getMemoryCachedForecast } from '@/services/snapshotMemoryCache';
+import {
+  getMemoryCachedForecast,
+  type ForecastCacheSettings,
+} from '@/services/snapshotMemoryCache';
 import type { Condition } from '@/types/weather';
 
 import type { TempUnit } from '@/utils/temperature';
@@ -14,14 +17,16 @@ export interface PlaceVerdict {
 
 /**
  * The verdict for a saved place from its cached forecast, or null when none is
- * cached. Never fetches: pinned places are prefetched in the background and
- * places you've viewed stay cached, so the Search list costs no network calls.
+ * cached (or when the cached forecast was built for different settings). Never
+ * fetches: pinned places are prefetched in the background and places you've
+ * viewed stay cached, so the Search list costs no network calls.
  */
 export function getCachedPlaceVerdict(
   place: { lat: number; lon: number },
   tempUnit: TempUnit,
+  settings?: ForecastCacheSettings,
 ): PlaceVerdict | null {
-  const cached = getMemoryCachedForecast(place);
+  const cached = getMemoryCachedForecast(place, undefined, settings);
   if (!cached) return null;
   const { weather, location, acclimatization } = cached.snapshot;
   const verdict = getRideVerdict(weather, acclimatization.thresholds, tempUnit);

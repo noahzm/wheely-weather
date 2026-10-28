@@ -1,9 +1,16 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from 'react';
 import { AppState, Platform } from 'react-native';
 
 import { type RecentLocation, type SavedLocation } from '@/services/locationStorage';
 import { getForecastErrorKind } from '@/services/forecastSnapshot';
-import { getMemoryCachedForecast } from '@/services/forecastCache';
+import { getMemoryCachedForecast, type ForecastCacheSettings } from '@/services/forecastCache';
 import {
   useExposureLevel,
   useHomeLocation,
@@ -28,6 +35,24 @@ import { useLocationActions } from './forecast/use-location-actions';
 import { usePrefetchPins } from './forecast/use-prefetch-pins';
 import { useSnapshotCacheHydration } from './forecast/use-snapshot-cache';
 import { useStaleRefresh } from './forecast/use-stale-refresh';
+
+function useTogglePin(
+  pinnedLocations: RecentLocation[],
+  setState: Dispatch<SetStateAction<ForecastState>>,
+) {
+  return useCallback(
+    async (place: RecentLocation) => {
+      try {
+        const pins = await togglePinnedLocation(place, pinnedLocations);
+        setState((current) => ({ ...current, pinnedLocations: pins }));
+      } catch {
+        // Best-effort persistence (matches other pin/location storage calls);
+        // on failure the UI just keeps its previous pin state.
+      }
+    },
+    [pinnedLocations, setState],
+  );
+}
 
 /**
  * Primary forecast hook driving loading, periodic/stale refresh, GPS following,
@@ -59,7 +84,10 @@ export function useWeatherForecast(mockScenario: string | null) {
   const loadForecast = useCallback(
     async (locationOverride?: SavedLocation | null, refreshOnly = false) => {
       const gen = ++loadGenRef.current;
-      const cached = locationOverride ? getMemoryCachedForecast(locationOverride) : null;
+      const settings = { homeLocation, exposureLevel, rideDuration };
+      const cached = locationOverride
+        ? getMemoryCachedForecast(locationOverride, undefined, settings)
+        : null;
       setState((current) => ({
         ...current,
         snapshot: cached ? cached.snapshot : current.snapshot,
@@ -120,7 +148,7 @@ export function useWeatherForecast(mockScenario: string | null) {
     savedLocationRef.current = state.savedLocation;
   }, [state.savedLocation]);
 
-  useSnapshotCacheHydration(setState, mockScenario);
+  const cacheHydrated = useSnapshotCacheHydration(setState, mockScenario);
   usePrefetchPins(state.pinnedLocations, homeLocation, exposureLevel, mockScenario, rideDuration);
   // Mock previews must not run GPS or mutate the real persisted device fix.
   const canRelocate = !mockScenario;
@@ -161,27 +189,18 @@ export function useWeatherForecast(mockScenario: string | null) {
       });
   }, [loadForecast, relocate]);
 
+  const cacheSettings: ForecastCacheSettings = { homeLocation, exposureLevel, rideDuration };
   const { setManualLocation, useDeviceLocation } = useLocationActions(
     setState,
     loadForecast,
     needsLocationRef,
+    cacheSettings,
   );
-
-  const togglePin = useCallback(
-    async (place: RecentLocation) => {
-      try {
-        const pins = await togglePinnedLocation(place, state.pinnedLocations);
-        setState((current) => ({ ...current, pinnedLocations: pins }));
-      } catch {
-        // Best-effort persistence (matches other pin/location storage calls);
-        // on failure the UI just keeps its previous pin state.
-      }
-    },
-    [state.pinnedLocations],
-  );
+  const togglePin = useTogglePin(state.pinnedLocations, setState);
 
   return {
     ...state,
+    cacheHydrated,
     refresh,
     setManualLocation,
     useDeviceLocation,

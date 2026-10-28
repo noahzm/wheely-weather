@@ -1,15 +1,20 @@
 import { resolveThresholds } from '../domain/acclimatization';
 
-import type { ExposureLevel } from '@/types/settings';
+import {
+  DEFAULT_RIDE_DURATION,
+  RIDE_DURATION_VALUES,
+  type ExposureLevel,
+  type RideDuration,
+} from '@/types/settings';
 import type { HomeBaseline, Weather } from '@/types/weather';
 
 import type { ForecastSnapshot } from './forecastSnapshot';
 import type { LocationSource, SavedLocation } from './locationStorage';
 
-// v2 adds `exposureLevel`. Bumping also discards v1 entries, which were rated
-// under the previous threshold table and would otherwise render for up to
-// FORECAST_CACHE_TTL_MS under semantics the current build no longer uses.
-const FORECAST_CACHE_VERSION = 2;
+// v3 adds `rideDuration` and `homeLocation` so hydrated snapshots keep the
+// window length they were rated with and know which home produced their
+// baseline. Bumping discards older entries on upgrade.
+const FORECAST_CACHE_VERSION = 3;
 // Cached content is only a bridge until the background refresh lands; when
 // offline, 6h-old data still beats a spinner, but older than that the "Now"
 // marker and hourly window drift too far to trust.
@@ -27,7 +32,9 @@ interface ForecastCachePayload {
   locationName: string;
   source: Exclude<ForecastSnapshot['source'], 'mock'>;
   homeBaseline: HomeBaseline | null;
+  homeLocation: { lat: number; lon: number } | null;
   exposureLevel: ExposureLevel;
+  rideDuration: RideDuration;
   weather: Weather;
 }
 
@@ -39,6 +46,16 @@ const isLocationSource = (value: unknown): value is LocationSource =>
 
 const isExposureLevel = (value: unknown): value is ExposureLevel =>
   value === 'indoor' || value === 'moderate' || value === 'high';
+
+const isRideDuration = (value: unknown): value is RideDuration =>
+  typeof value === 'string' && (RIDE_DURATION_VALUES as readonly string[]).includes(value);
+
+function isCoordinatesOrNull(value: unknown): value is { lat: number; lon: number } | null {
+  if (value === null) return true;
+  if (!value || typeof value !== 'object') return false;
+  const record = value as Record<string, unknown>;
+  return isFiniteNumber(record.lat) && isFiniteNumber(record.lon);
+}
 
 function isSavedLocation(value: unknown): value is SavedLocation {
   if (!value || typeof value !== 'object') return false;
@@ -88,7 +105,9 @@ function isForecastCachePayload(value: unknown): value is ForecastCachePayload {
     typeof record.locationName === 'string' &&
     isLocationSource(record.source) &&
     isHomeBaseline(record.homeBaseline) &&
+    isCoordinatesOrNull(record.homeLocation) &&
     isExposureLevel(record.exposureLevel) &&
+    isRideDuration(record.rideDuration) &&
     isWeatherShape(record.weather)
   );
 }
@@ -107,6 +126,12 @@ export function encodeForecastCache(
   savedLocation: SavedLocation,
 ): string | null {
   if (snapshot.mockScenario !== null || snapshot.source === 'mock') return null;
+  const homeLocation = snapshot.acclimatization.homeLocation
+    ? {
+        lat: snapshot.acclimatization.homeLocation.lat,
+        lon: snapshot.acclimatization.homeLocation.lon,
+      }
+    : null;
   const payload: ForecastCachePayload = {
     version: FORECAST_CACHE_VERSION,
     fetchedAt: snapshot.lastUpdated.getTime(),
@@ -114,7 +139,9 @@ export function encodeForecastCache(
     locationName: snapshot.location,
     source: snapshot.source,
     homeBaseline: snapshot.acclimatization.homeBaseline,
+    homeLocation,
     exposureLevel: snapshot.acclimatization.exposureLevel,
+    rideDuration: snapshot.rideDuration ?? DEFAULT_RIDE_DURATION,
     weather: snapshot.weather,
   };
   return JSON.stringify(payload);
@@ -144,7 +171,7 @@ export function decodeForecastCache(
   if (age < 0 || age > FORECAST_CACHE_TTL_MS) return null;
   if (!sameLocation(parsed.location, currentLocation)) return null;
 
-  const { homeBaseline, exposureLevel } = parsed;
+  const { homeBaseline, homeLocation, exposureLevel, rideDuration } = parsed;
   return {
     savedLocation: parsed.location,
     snapshot: {
@@ -155,8 +182,10 @@ export function decodeForecastCache(
       isDeviceLocation: parsed.source === 'device',
       mockScenario: null,
       source: parsed.source,
+      rideDuration,
       acclimatization: {
         homeBaseline,
+        homeLocation,
         // Must use the cached exposure level: the payload's per-hour conditions
         // were rated with it, so rebuilding on the default would pair correctly
         // rated weather with thresholds up to 7°F off.

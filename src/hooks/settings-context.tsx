@@ -67,11 +67,17 @@ export function SettingsProvider({ children }: Readonly<{ children: ReactNode }>
   // consumers gating on `hydrated` never observe a half-loaded mix.
   useEffect(() => {
     let cancelled = false;
-    void loadAllSettings().then((loaded) => {
-      if (cancelled) return;
-      setSettings(loaded);
-      setHydrated(true);
-    });
+    void loadAllSettings()
+      .then((loaded) => {
+        if (cancelled) return;
+        setSettings(loaded);
+      })
+      .catch((error: unknown) => {
+        captureError(error, { where: 'settings-context hydrate' });
+      })
+      .finally(() => {
+        if (!cancelled) setHydrated(true);
+      });
     return () => {
       cancelled = true;
     };

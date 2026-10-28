@@ -1,6 +1,7 @@
 // Deterministic fixture data for UI testing without hitting the live API.
 // Activate with `?mock=ride`, `?mock=maybe`, `?mock=rest`, `?mock=alert`, or `?mock=wait`.
 
+import { ALL_DAY_RIDE_HOURS } from '../domain/ride-window';
 import {
   getHourlyCondition,
   getDailyCondition,
@@ -32,7 +33,10 @@ interface MockScenarioSpec {
     uvIndex: number;
     uvIndexDailyMax: number;
   };
-  hourTemplate: (h: number) => {
+  hourTemplate: (
+    h: number,
+    nowHour: number,
+  ) => {
     temperature?: number;
     feelsLike: number;
     windSpeed: number;
@@ -59,8 +63,8 @@ interface MockScenarioSpec {
   todayWindow?: { startOffset: number; hours: number; tempLow: number; tempHigh: number };
 }
 
-/** Hours from now until `h` (0–23), for templates keyed to the current time. */
-const hoursFromNow = (h: number): number => (h - new Date().getHours() + 24) % 24;
+/** Hours from `nowHour` until `h` (0–23), for templates keyed to the current time. */
+const hoursFromNow = (h: number, nowHour: number): number => (h - nowHour + 24) % 24;
 
 /** Narrows an arbitrary value to a known mock scenario name. */
 export function isMockScenario(value: unknown): value is MockScenario {
@@ -247,8 +251,8 @@ const SCENARIOS: Record<MockScenario, MockScenarioSpec> = {
       uvIndexDailyMax: 5,
     },
     // Rain for the next three hours, then clearing and warming.
-    hourTemplate: (h) => {
-      const wet = hoursFromNow(h) < 3;
+    hourTemplate: (h, nowHour) => {
+      const wet = hoursFromNow(h, nowHour) < 3;
       return {
         temperature: wet ? 58 : 67,
         feelsLike: wet ? 56 : 67,
@@ -283,25 +287,42 @@ export function getMockLocationLabel(scenario: string | null | undefined): strin
   return s ? `Mock: ${s.label}` : null;
 }
 
-function buildDayRideWindow(
-  dayIndex: number,
-  nowHour: number,
-  todayWindow: MockScenarioSpec['todayWindow'],
-  condition: string,
-  day: { low: number; high: number },
-) {
+function buildDayRideWindow(params: {
+  dayIndex: number;
+  nowHour: number;
+  spec: MockScenarioSpec;
+  condition: string;
+  day: { low: number; high: number };
+  windowHours: number;
+}) {
+  const { dayIndex, nowHour, spec, condition, day, windowHours } = params;
+  const { todayWindow } = spec;
   if (dayIndex === 0 && todayWindow) {
+    const startHour = (nowHour + todayWindow.startOffset) % 24;
+    const span =
+      windowHours >= ALL_DAY_RIDE_HOURS
+        ? Math.max(todayWindow.hours, spec.sunsetHour - startHour)
+        : windowHours;
+    // Clamp at 24 rather than wrapping modulo 24: `endHour < startHour` breaks
+    // `[startHour, endHour)` range matching in the chart and kit guide.
     return {
-      startHour: (nowHour + todayWindow.startOffset) % 24,
-      endHour: (nowHour + todayWindow.startOffset + todayWindow.hours) % 24,
+      startHour,
+      endHour: Math.min(24, startHour + span),
       tempLow: todayWindow.tempLow,
       tempHigh: todayWindow.tempHigh,
     };
   }
   if (dayIndex >= 2 && condition !== 'bad' && condition !== 'poor') {
+    const daylightSpan = spec.sunsetHour - spec.sunriseHour;
+    const span =
+      windowHours >= ALL_DAY_RIDE_HOURS ? daylightSpan : Math.min(windowHours, daylightSpan);
+    const startHour =
+      windowHours >= ALL_DAY_RIDE_HOURS
+        ? spec.sunriseHour
+        : Math.max(spec.sunriseHour, Math.min(12, spec.sunsetHour - span));
     return {
-      startHour: 12,
-      endHour: 15,
+      startHour,
+      endHour: Math.min(spec.sunsetHour, startHour + span),
       tempLow: day.low + 4,
       tempHigh: day.high - 2,
     };
@@ -338,7 +359,10 @@ function buildMockDaylight(params: {
 }
 
 /** Builds the full normalized weather payload for the given scenario. */
-export function buildMockWeather(scenario: string | null | undefined): Weather | null {
+export function buildMockWeather(
+  scenario: string | null | undefined,
+  windowHours = 3,
+): Weather | null {
   const spec = isMockScenario(scenario) ? SCENARIOS[scenario] : null;
   if (!spec) return null;
 
@@ -346,7 +370,7 @@ export function buildMockWeather(scenario: string | null | undefined): Weather |
 
   const buildHour = (absHour: number): HourlyWeather => {
     const h = ((absHour % 24) + 24) % 24;
-    const t = spec.hourTemplate(h);
+    const t = spec.hourTemplate(h, nowHour);
     const temperature = t.temperature ?? t.feelsLike;
     return {
       hour: h,
@@ -387,7 +411,14 @@ export function buildMockWeather(scenario: string | null | undefined): Weather |
       code: t.weatherCode,
       dewpoint: spec.current.dewpoint,
     });
-    const rideWindow = buildDayRideWindow(i, nowHour, spec.todayWindow, condition, t);
+    const rideWindow = buildDayRideWindow({
+      dayIndex: i,
+      nowHour,
+      spec,
+      condition,
+      day: t,
+      windowHours,
+    });
     const daylight = buildMockDaylight({
       dayIndex: i,
       spec,

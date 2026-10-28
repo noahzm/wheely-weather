@@ -6,7 +6,7 @@ import {
   type RecentLocation,
   type SavedLocation,
 } from '@/services/locationStorage';
-import { getMemoryCachedForecast } from '@/services/forecastCache';
+import { getMemoryCachedForecast, type ForecastCacheSettings } from '@/services/forecastCache';
 import { captureError } from '@/services/telemetry';
 
 import {
@@ -36,6 +36,7 @@ export function useLocationActions(
   setState: Dispatch<SetStateAction<ForecastState>>,
   loadForecast: LoadForecast,
   needsLocationRef: RefObject<boolean>,
+  cacheSettings?: ForecastCacheSettings,
 ) {
   const setManualLocation = useCallback(
     async (place: RecentLocation): Promise<boolean> => {
@@ -45,7 +46,7 @@ export function useLocationActions(
         name: place.label,
         source: 'manual',
       };
-      const cached = getMemoryCachedForecast(next);
+      const cached = getMemoryCachedForecast(next, undefined, cacheSettings);
       needsLocationRef.current = false;
       // Without a cached forecast, show the loading state rather than keeping
       // the previous place's snapshot under the new location.
@@ -76,7 +77,7 @@ export function useLocationActions(
       void loadForecast(next);
       return true;
     },
-    [loadForecast, needsLocationRef, setState],
+    [cacheSettings, loadForecast, needsLocationRef, setState],
   );
 
   const useDeviceLocation = useCallback(async (): Promise<DeviceLocationOutcome> => {
@@ -86,7 +87,7 @@ export function useLocationActions(
     }
     const fastFix = getLastKnownDeviceLocation();
     if (fastFix) {
-      const cached = getMemoryCachedForecast(fastFix);
+      const cached = getMemoryCachedForecast(fastFix, undefined, cacheSettings);
       needsLocationRef.current = false;
       setState((current) => ({
         ...current,
@@ -122,7 +123,7 @@ export function useLocationActions(
 
     const next = result.location;
     setLastKnownDeviceLocation(next);
-    const cached = getMemoryCachedForecast(next);
+    const cached = getMemoryCachedForecast(next, undefined, cacheSettings);
     needsLocationRef.current = false;
     setState((current) => ({
       ...current,
@@ -134,7 +135,7 @@ export function useLocationActions(
     }));
     await loadForecast(next, true);
     return { ok: true };
-  }, [loadForecast, needsLocationRef, setState]);
+  }, [cacheSettings, loadForecast, needsLocationRef, setState]);
 
   return { setManualLocation, useDeviceLocation };
 }

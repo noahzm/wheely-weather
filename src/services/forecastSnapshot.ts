@@ -29,6 +29,11 @@ export interface AcclimatizationContext {
    * to the 'moderate' default.
    */
   exposureLevel: ExposureLevel;
+  /**
+   * Coordinates of the home location `homeBaseline` came from (null when no
+   * home was set), so cache lookups can tell when the rider changed home.
+   */
+  homeLocation?: { lat: number; lon: number } | null;
 }
 
 export interface ForecastSnapshot {
@@ -101,7 +106,7 @@ export async function getForecastSnapshot({
   const lastUpdated = new Date();
 
   if (mockScenario) {
-    const weather = buildMockWeather(mockScenario);
+    const weather = buildMockWeather(mockScenario, RIDE_DURATION_HOURS[rideDuration]);
     if (!weather) throw new Error(`Unknown mock scenario: ${mockScenario}`);
     return {
       snapshot: {
@@ -112,11 +117,13 @@ export async function getForecastSnapshot({
         isDeviceLocation: false,
         mockScenario,
         source: 'mock',
+        rideDuration,
         // Mocks bypass acclimatization so fixtures rate against the base thresholds.
         acclimatization: {
           homeBaseline: null,
           thresholds: THRESHOLDS,
           exposureLevel: DEFAULT_EXPOSURE_LEVEL,
+          homeLocation: null,
         },
       },
       // Mock fixtures carry their own alerts inside `weather`; nothing to merge.
@@ -151,7 +158,12 @@ export async function getForecastSnapshot({
       isDeviceLocation: savedLocation.source === 'device',
       mockScenario,
       source: savedLocation.source,
-      acclimatization: { homeBaseline, thresholds, exposureLevel },
+      acclimatization: {
+        homeBaseline,
+        thresholds,
+        exposureLevel,
+        homeLocation: homeLocation ? { lat: homeLocation.lat, lon: homeLocation.lon } : null,
+      },
       rideDuration,
       forecastData: data,
     },

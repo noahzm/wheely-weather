@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useSyncExternalStore } from 'react';
 import { Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 
@@ -9,8 +9,14 @@ import {
   type RowItem,
 } from '@/utils/locationRows';
 import { useForecast } from '@/hooks/forecast-context';
-import { useHomeLocation, useResolvedTempUnit } from '@/hooks/settings-context';
+import {
+  useExposureLevel,
+  useHomeLocation,
+  useResolvedTempUnit,
+  useRideDuration,
+} from '@/hooks/settings-context';
 import { MIN_SEARCH_QUERY_LENGTH, useLocationSearch } from '@/hooks/use-location-search';
+import { getMemoryCacheVersion, subscribeMemoryCache } from '@/services/forecastCache';
 import { resolveSuggestion } from '@/services/locationSearch';
 import type { RecentLocation } from '@/services/locationStorage';
 import { captureError } from '@/services/telemetry';
@@ -26,7 +32,11 @@ export function useLocationSearchScreen(onPlaceChosen?: () => void) {
   const forecast = useForecast();
 
   const [homeLocation, setHomeLocation] = useHomeLocation();
+  const [exposureLevel] = useExposureLevel();
+  const [rideDuration] = useRideDuration();
   const tempUnit = useResolvedTempUnit();
+  // Re-render when background pin prefetches populate the memory cache.
+  useSyncExternalStore(subscribeMemoryCache, getMemoryCacheVersion, getMemoryCacheVersion);
   const [query, setQuery] = useState('');
   const [busy, setBusy] = useState(false);
   // Shown under "Use Current Location" when a fix fails; cleared on the next try.
@@ -108,10 +118,11 @@ export function useLocationSearchScreen(onPlaceChosen?: () => void) {
   );
 
   const isSearching = query.trim().length >= MIN_SEARCH_QUERY_LENGTH;
+  const cacheSettings = { homeLocation, exposureLevel, rideDuration };
   // Real places only: the current-location row and unresolved search results
   // have no coordinates to look up.
   const verdictFor = (item: RowItem) =>
-    isSavablePlace(item) ? getCachedPlaceVerdict(item, tempUnit) : null;
+    isSavablePlace(item) ? getCachedPlaceVerdict(item, tempUnit, cacheSettings) : null;
   const sections = buildSections(
     isSearching,
     results,

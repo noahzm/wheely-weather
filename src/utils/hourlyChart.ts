@@ -404,11 +404,11 @@ export function chartWindowIndexes(
       .map((d) => d.idx);
 
   let idxs: number[];
-  if (window.tomorrow == null) {
+  if (window.tomorrow) {
+    idxs = matchesTargetDay(true);
+  } else {
     const todayMatches = matchesTargetDay(false);
     idxs = todayMatches.length > 0 ? todayMatches : matchesTargetDay(true);
-  } else {
-    idxs = matchesTargetDay(window.tomorrow);
   }
   if (idxs.length === 0) return null;
   return { first: Math.min(...idxs), last: Math.max(...idxs) };

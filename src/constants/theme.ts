@@ -9,9 +9,10 @@ const SANS_BOLD_FONT = 'System';
 
 /**
  * The poster face: Oswald, a condensed gothic, loaded at launch from
- * @expo-google-fonts/oswald. Each weight is registered as its own family under
- * these names (the root layout's useFonts keys), which are also their CSS
- * families on web: Bold for titles and headlines, Regular for big numbers.
+ * @expo-google-fonts/oswald. On Android and web each weight is registered as
+ * its own family under these names (the root layout's useFonts keys); on iOS
+ * the expo-font plugin builds both TTFs into the app and CoreText finds them
+ * by these PostScript names under the shared "Oswald" family.
  */
 export const POSTER_FONT = 'Oswald-Bold';
 export const POSTER_LIGHT_FONT = 'Oswald-Regular';
@@ -230,14 +231,16 @@ export const FontWeightBold = '700' as const;
 export const FontWeightSemibold = '600' as const;
 
 /**
- * Poster type, after a risograph print: Oswald Bold in capitals. Each Oswald
- * weight is its own family, so fontWeight stays regular (a bold weight would
- * make iOS fake one on top). Pair it with a Type size: heading, headline,
- * subtitle or dayTitle.
+ * Poster type, after a risograph print: Oswald Bold in capitals. On iOS both
+ * built-in TTFs share the "Oswald" CoreText family, so RCTFont needs the bold
+ * weight to keep the Bold cut instead of matching Regular ('400'); on web and
+ * Android each cut is registered as its own '400' family, so '400' avoids faux
+ * bold synthesis. Pair it with a Type size: heading, headline, subtitle or
+ * dayTitle.
  */
 export const PosterText = {
   fontFamily: Fonts.poster,
-  fontWeight: '400',
+  fontWeight: Platform.OS === 'ios' ? FontWeightBold : '400',
   textTransform: 'uppercase',
 } as const;
 
@@ -245,6 +248,7 @@ export const PosterText = {
 export const PosterLightText = {
   ...PosterText,
   fontFamily: Fonts.posterLight,
+  fontWeight: '400',
 } as const;
 
 /**

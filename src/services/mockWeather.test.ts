@@ -1,6 +1,13 @@
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import { isMockScenario, getMockLocationLabel, buildMockWeather } from './mockWeather';
 import { getRideVerdict } from '@/domain';
+import { selectRideHours } from '@/domain/gear';
+import { ALL_DAY_RIDE_HOURS } from '@/domain/ride-window';
+import { chartWindowBand } from '@/utils/hourlyChart';
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe('mockWeather', () => {
   it('isMockScenario validates known scenarios', () => {
@@ -44,13 +51,31 @@ describe('mockWeather', () => {
     expect(unknown).toBeNull();
   });
 
-  it('wait scenario is a no-go now with a good window later today', () => {
-    const wait = buildMockWeather('wait');
-    expect(wait).not.toBeNull();
-    if (!wait) return;
-    expect(wait.daily[0]?.rideWindow).toBeDefined();
-    const verdict = getRideVerdict(wait);
-    expect(verdict.when).toBe('wait');
-    expect(verdict.status).toBe('yes');
+  it('wait scenario is a no-go now with a good window across all 24 clock hours', () => {
+    vi.useFakeTimers();
+    for (let hour = 0; hour < 24; hour++) {
+      vi.setSystemTime(new Date(2026, 6, 15, hour, 15, 0));
+      const wait = buildMockWeather('wait');
+      expect(wait).not.toBeNull();
+      if (!wait) continue;
+      expect(wait.daily[0]?.rideWindow).toBeDefined();
+      const verdict = getRideVerdict(wait);
+      expect(verdict.when).toBe('wait');
+      expect(verdict.status).toBe('yes');
+      expect(verdict.window).not.toBeNull();
+
+      const windowWithDay = verdict.window ? { ...verdict.window, tomorrow: false } : null;
+      expect(selectRideHours(wait, windowWithDay).length).toBeGreaterThan(0);
+      const chartData = wait.hourly.map((h, idx) => ({ idx, hour: h.hour, isPast: false }));
+      expect(chartWindowBand(chartData, windowWithDay)).not.toBeNull();
+    }
+  });
+
+  it('sizes future ride windows from the requested windowHours', () => {
+    const fiveHour = buildMockWeather('ride', 5);
+    expect(fiveHour?.daily[2]?.rideWindow).toMatchObject({ startHour: 12, endHour: 17 });
+
+    const allDay = buildMockWeather('ride', ALL_DAY_RIDE_HOURS);
+    expect(allDay?.daily[2]?.rideWindow).toMatchObject({ startHour: 6, endHour: 19 });
   });
 });

@@ -52,4 +52,11 @@ describe('getCachedPlaceVerdict', () => {
     expect(verdict?.waiting).toBe(true);
     expect(verdict?.label).toMatch(/(AM|PM)$/);
   });
+
+  it('ignores a cached forecast built for different settings', () => {
+    cache('ride');
+    expect(getCachedPlaceVerdict(RALEIGH, 'fahrenheit', { rideDuration: '3h' })).not.toBeNull();
+    expect(getCachedPlaceVerdict(RALEIGH, 'fahrenheit', { rideDuration: 'allDay' })).toBeNull();
+    expect(getCachedPlaceVerdict(RALEIGH, 'fahrenheit', { exposureLevel: 'high' })).toBeNull();
+  });
 });

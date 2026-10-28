@@ -4,9 +4,12 @@ import { THRESHOLDS } from '../domain/constants';
 
 import {
   clearMemoryCachedForecasts,
+  getMemoryCacheVersion,
   getMemoryCachedForecast,
   getSnapshotLocationKey,
+  isSnapshotForSettings,
   setMemoryCachedForecast,
+  subscribeMemoryCache,
 } from './snapshotMemoryCache';
 import type { ForecastSnapshot } from './forecastSnapshot';
 import { buildMockWeather } from './mockWeather';
@@ -94,5 +97,55 @@ describe('snapshotMemoryCache', () => {
 
     expect(getMemoryCachedForecast(PORTLAND)).toBeNull();
     expect(getMemoryCachedForecast(RALEIGH)).toBeNull();
+  });
+
+  it('matches cached snapshots against active settings', () => {
+    const snap = buildSnapshot('Portland', {
+      rideDuration: '4h',
+      acclimatization: {
+        homeBaseline: null,
+        thresholds: THRESHOLDS,
+        exposureLevel: 'high',
+        homeLocation: RALEIGH,
+      },
+    });
+    setMemoryCachedForecast(PORTLAND, snap);
+
+    expect(
+      getMemoryCachedForecast(PORTLAND, undefined, {
+        rideDuration: '4h',
+        exposureLevel: 'high',
+        homeLocation: { lat: RALEIGH.lat, lon: RALEIGH.lon },
+      }),
+    ).not.toBeNull();
+    expect(getMemoryCachedForecast(PORTLAND, undefined, { rideDuration: '2h' })).toBeNull();
+    expect(getMemoryCachedForecast(PORTLAND, undefined, { exposureLevel: 'indoor' })).toBeNull();
+    expect(getMemoryCachedForecast(PORTLAND, undefined, { homeLocation: PORTLAND })).toBeNull();
+    expect(getMemoryCachedForecast(PORTLAND, undefined, { homeLocation: null })).toBeNull();
+    expect(isSnapshotForSettings(snap)).toBe(true);
+  });
+
+  it('notifies subscribers when entries are added, expired, or cleared', () => {
+    let notifications = 0;
+    const unsubscribe = subscribeMemoryCache(() => {
+      notifications += 1;
+    });
+    const startVersion = getMemoryCacheVersion();
+
+    // Clearing an empty cache is a no-op.
+    clearMemoryCachedForecasts();
+    expect(notifications).toBe(0);
+
+    setMemoryCachedForecast(PORTLAND, buildSnapshot('Portland'));
+    expect(notifications).toBe(1);
+    expect(getMemoryCacheVersion()).toBe(startVersion + 1);
+
+    // Expiring an entry evicts and notifies.
+    expect(getMemoryCachedForecast(PORTLAND, -1)).toBeNull();
+    expect(notifications).toBe(2);
+
+    unsubscribe();
+    setMemoryCachedForecast(RALEIGH, buildSnapshot('Raleigh'));
+    expect(notifications).toBe(2);
   });
 });

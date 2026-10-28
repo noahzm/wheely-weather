@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { Appearance, Platform, View } from 'react-native';
 import { Oswald_400Regular, Oswald_700Bold } from '@expo-google-fonts/oswald';
 import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, Slot, Stack, ThemeProvider } from 'expo-router';
 import Head from 'expo-router/head';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import * as SystemUI from 'expo-system-ui';
 import * as Sentry from '@sentry/react-native';
@@ -14,8 +15,8 @@ import { WebSafeAreaProvider } from '@/components/wheely/web-safe-area-provider'
 import { POSTER_FONT, POSTER_LIGHT_FONT, WheelyTheme, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ColorSchemeOverrideContext } from '@/hooks/use-theme';
-import { SettingsProvider, useAppearance } from '@/hooks/settings-context';
-import { ForecastProvider } from '@/hooks/forecast-context';
+import { SettingsProvider, useAppearance, useSettingsHydrated } from '@/hooks/settings-context';
+import { ForecastProvider, useForecast } from '@/hooks/forecast-context';
 import { registerBackgroundRefresh } from '@/hooks/forecast/register-background-refresh';
 import { useWebDocumentTheme } from '@/hooks/use-web-document-theme';
 import { useWebScrollMemory } from '@/hooks/use-web-scroll-memory';
@@ -26,6 +27,14 @@ import { initSentry, sentryEnabled } from '@/services/telemetry';
 initSentry();
 // iOS only: keeps the home screen widget on a recent forecast.
 registerBackgroundRefresh();
+if (Platform.OS !== 'web') {
+  // Hold the native launch screen until local storage (and Oswald on Android)
+  // has hydrated; expo-router otherwise hides it on the first animation frame,
+  // briefly exposing LoadingState before the cached forecast paints.
+  void SplashScreen.preventAutoHideAsync().catch(() => {
+    // Already prevented or unsupported in this environment.
+  });
+}
 
 // The poster faces under the names the theme uses, which are also their
 // PostScript names: iOS finds the copies built into the app by those names.
@@ -166,8 +175,34 @@ function ThemedRoot() {
           />
         </Head>
         <StatusBar style={isDark ? 'light' : 'dark'} />
-        {fontsReady && <ForecastProvider>{navigator}</ForecastProvider>}
+        {fontsReady && (
+          <ForecastProvider>
+            <NativeSplashGate>{navigator}</NativeSplashGate>
+          </ForecastProvider>
+        )}
       </ThemeProvider>
     </ColorSchemeOverrideContext.Provider>
   );
+}
+
+function NativeSplashGate({ children }: Readonly<{ children: ReactNode }>) {
+  const settingsHydrated = useSettingsHydrated();
+  const { cacheHydrated } = useForecast();
+  const hiddenRef = useRef(false);
+  const ready = settingsHydrated && cacheHydrated;
+
+  useEffect(() => {
+    if (Platform.OS === 'web' || !ready || hiddenRef.current) return;
+    const frame = requestAnimationFrame(() => {
+      hiddenRef.current = true;
+      void SplashScreen.hideAsync().catch(() => {
+        // Already hidden or no native splash registered.
+      });
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+    };
+  }, [ready]);
+
+  return children;
 }

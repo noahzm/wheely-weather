@@ -13,8 +13,11 @@ import { setMemoryCachedForecast } from './snapshotMemoryCache';
 
 export {
   clearMemoryCachedForecasts,
+  getMemoryCacheVersion,
   getMemoryCachedForecast,
   setMemoryCachedForecast,
+  subscribeMemoryCache,
+  type ForecastCacheSettings,
 } from './snapshotMemoryCache';
 
 const FORECAST_CACHE_KEY = 'ww_forecast_snapshot';

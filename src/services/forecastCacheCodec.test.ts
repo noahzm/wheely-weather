@@ -167,6 +167,55 @@ describe('decodeForecastCache', () => {
     expect(decodeForecastCache(tampered, LOCATION, NOW + 1000)).toBeNull();
   });
 
+  it('round-trips rideDuration and homeLocation and defaults rideDuration to 3h', () => {
+    const withSettings = buildSnapshot({
+      rideDuration: 'allDay',
+      acclimatization: {
+        homeBaseline: GULF_BASELINE,
+        thresholds: resolveThresholds(GULF_BASELINE),
+        exposureLevel: 'moderate',
+        homeLocation: { lat: 29.95, lon: -90.07 },
+      },
+    });
+    const decoded = decodeForecastCache(
+      encodeForecastCache(withSettings, LOCATION),
+      LOCATION,
+      NOW + 1000,
+    );
+    expect(decoded?.snapshot.rideDuration).toBe('allDay');
+    expect(decoded?.snapshot.acclimatization.homeLocation).toEqual({ lat: 29.95, lon: -90.07 });
+
+    const defaulted = decodeForecastCache(
+      encodeForecastCache(buildSnapshot(), LOCATION),
+      LOCATION,
+      NOW + 1000,
+    );
+    expect(defaulted?.snapshot.rideDuration).toBe('3h');
+    expect(defaulted?.snapshot.acclimatization.homeLocation).toBeNull();
+  });
+
+  it('rejects a payload with an invalid rideDuration or homeLocation', () => {
+    const encoded = encodeForecastCache(buildSnapshot(), LOCATION) ?? '';
+    const parsed = JSON.parse(encoded) as Record<string, unknown>;
+    expect(
+      decodeForecastCache(JSON.stringify({ ...parsed, rideDuration: '12h' }), LOCATION, NOW + 1000),
+    ).toBeNull();
+    expect(
+      decodeForecastCache(
+        JSON.stringify({ ...parsed, homeLocation: { lat: 'bad', lon: 0 } }),
+        LOCATION,
+        NOW + 1000,
+      ),
+    ).toBeNull();
+    expect(
+      decodeForecastCache(
+        JSON.stringify({ ...parsed, homeLocation: 'portland' }),
+        LOCATION,
+        NOW + 1000,
+      ),
+    ).toBeNull();
+  });
+
   it('rejects a payload whose weather is truncated', () => {
     const encoded = encodeForecastCache(buildSnapshot(), LOCATION) ?? '';
     const parsed = JSON.parse(encoded) as Record<string, unknown>;

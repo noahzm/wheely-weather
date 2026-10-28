@@ -65,6 +65,7 @@ describe('getForecastSnapshot — mock scenarios', () => {
     const { snapshot, extras } = await getForecastSnapshot({
       savedLocation: RALEIGH_MANUAL,
       mockScenario: 'ride',
+      rideDuration: '5h',
     });
 
     expect(snapshot).toMatchObject({
@@ -73,10 +74,12 @@ describe('getForecastSnapshot — mock scenarios', () => {
       isDeviceLocation: false,
       mockScenario: 'ride',
       source: 'mock',
+      rideDuration: '5h',
       acclimatization: {
         homeBaseline: null,
         thresholds: THRESHOLDS,
         exposureLevel: 'moderate',
+        homeLocation: null,
       },
     });
     await expect(extras).resolves.toBeNull();
@@ -127,6 +130,7 @@ describe('getForecastSnapshot — live locations', () => {
       acclimatization: {
         homeBaseline: baseline,
         exposureLevel: 'high',
+        homeLocation: { lat: RALEIGH_MANUAL.lat, lon: RALEIGH_MANUAL.lon },
       },
     });
     await expect(extras).resolves.toEqual({ aqi: 28, nwsAlerts: [] });

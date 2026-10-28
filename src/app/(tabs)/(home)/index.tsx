@@ -68,6 +68,7 @@ import { HourlyNoteStickers } from '@/components/wheely/hourly-note-stickers';
 import { cityFromLocation } from '@/utils/locationTitle';
 import { formatUpdatedAgo } from '@/utils/timeFormat';
 import type { TempUnit } from '@/utils/temperature';
+import type { RideDuration } from '@/types/settings';
 import type { Weather } from '@/types/weather';
 import { contentColumnStyle, screenGutterStyle } from '@/components/wheely/content-column';
 import { SceneColors, Spacing, TRANSPARENT, Type, type WheelyPalette } from '@/constants/theme';
@@ -113,6 +114,7 @@ function deriveHomeState(
   location: string,
   acclimatization: AcclimatizationContext,
   tempUnit: TempUnit,
+  rideDuration?: RideDuration,
 ) {
   const { thresholds } = acclimatization;
   // Rates the day's best ride window (tomorrow's after dark), not this hour.
@@ -136,6 +138,7 @@ function deriveHomeState(
       weather: verdict.rated,
       rideHours: windowWithDay,
       thresholds,
+      rideDuration,
     },
     rainTiming: getRainTiming(weather.hourly),
     daylightWarning: getDaylightWarning(weather.hourly, weather.daylight),
@@ -266,6 +269,7 @@ function KitSection({
         rideHours={kit.rideHours}
         thresholds={kit.thresholds}
         mode={mode}
+        rideDuration={kit.rideDuration}
       />
     </View>
   );
@@ -397,6 +401,7 @@ export default function HomeScreen() {
     ? forecast.savedLocation.source === 'device'
     : forecast.snapshot?.isDeviceLocation === true;
   const acclimatization = forecast.snapshot?.acclimatization ?? null;
+  const snapshotRideDuration = forecast.snapshot?.rideDuration;
   const tempUnit = useResolvedTempUnit();
   // Bundle the non-null trio so rendering needs a single presence check.
   const sections = useMemo(
@@ -405,10 +410,16 @@ export default function HomeScreen() {
         ? {
             weather,
             thresholds: acclimatization.thresholds,
-            derived: deriveHomeState(weather, location, acclimatization, tempUnit),
+            derived: deriveHomeState(
+              weather,
+              location,
+              acclimatization,
+              tempUnit,
+              snapshotRideDuration,
+            ),
           }
         : null,
-    [weather, location, acclimatization, tempUnit],
+    [weather, location, acclimatization, tempUnit, snapshotRideDuration],
   );
 
   const c = useWheelyColors();
@@ -416,7 +427,9 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const bottomNavInset = isWeb ? bottomNavBarHeight(insets.bottom) : Spacing.five;
   const sky = useSkyUnderStatusBar();
-  // The scene shows only with the forecast itself, not the loading, error or location states.
+  // The scene shows only with the forecast itself, not error or location states;
+  // on iOS a cold load keeps the bare fair-day launch sky until the forecast lands.
+  const showLaunchSky = isIOS && forecast.loading;
   const scene =
     sections && !forecast.loading && !forecast.needsLocation
       ? getVerdictSky(
@@ -439,7 +452,7 @@ export default function HomeScreen() {
         <title>{title}</title>
         <meta name="description" content={desc} />
       </Head>
-      <HomeSceneChrome onScene={scene != null} skyUnderStatusBar={sky.skyUnder} />
+      <HomeSceneChrome onScene={scene != null || showLaunchSky} skyUnderStatusBar={sky.skyUnder} />
       <HomeContent
         forecast={forecast}
         sections={sections}
@@ -566,6 +579,23 @@ function HomePlaceRow({
   return null;
 }
 
+function HomeLoadingScreen({ styles }: Readonly<{ styles: ReturnType<typeof makeStyles> }>) {
+  if (!isIOS) return <LoadingState />;
+  return (
+    <View style={styles.screen}>
+      <ScrollView
+        style={styles.scroll}
+        contentInsetAdjustmentBehavior="automatic"
+        scrollEnabled={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        <HomeBackdrop kind="clear" groundTop={null} bare />
+        <LoadingState />
+      </ScrollView>
+    </View>
+  );
+}
+
 function HomeContent({
   forecast,
   sections,
@@ -599,7 +629,7 @@ function HomeContent({
   const titleCollapsed = useWebTitleCollapse(scene ? WEB_SKY_ROOM : 0);
   const sceneLayout = useSceneLayout();
   if (forecast.loading) {
-    return <LoadingState />;
+    return <HomeLoadingScreen styles={styles} />;
   }
   // Only surface a full-page error when there is no content to show; with a
   // (possibly cached) snapshot on screen, a failed refresh keeps the content.

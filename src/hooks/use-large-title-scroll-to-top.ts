@@ -34,6 +34,7 @@ export function useLargeTitleScrollToTop(
   refreshing: boolean,
   onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void,
 ) {
+  const isIOS = Platform.OS === 'ios';
   const insets = useSafeAreaInsets();
   // A refresh already running at mount moves the page before it is measured.
   const tracking = useRef<RestTracking>({ rest: null, frozen: refreshing, topInset: insets.top });
@@ -49,12 +50,13 @@ export function useLargeTitleScrollToTop(
   const target = useRef({
     scrollToTop: () => {
       const { rest, topInset } = tracking.current;
-      scrollRef.current?.scrollTo({ y: largeTitleTopOffset(rest, topInset), animated: true });
+      const y = isIOS ? largeTitleTopOffset(rest, topInset) : 0;
+      scrollRef.current?.scrollTo({ y, animated: true });
     },
   });
   useScrollToTop(target);
 
-  if (Platform.OS === 'web') return { onScroll };
+  if (!isIOS) return { onScroll };
   return {
     scrollToOverflowEnabled: true,
     scrollEventThrottle: 16,

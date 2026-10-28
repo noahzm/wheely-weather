@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { ALL_DAY_RIDE_HOURS } from './ride-window';
 import { describeTiming, getKitPlan, labelTimelineHours, smoothNeeded } from './kit-plan';
 import type { KitPlan, KitPlanItem } from './kit-plan';
 import { makeHour, makeWeather } from '@/test-utils/weather';
@@ -185,6 +186,29 @@ describe('getKitPlan', () => {
     const plan = getKitPlan(makeWeather({ temperature: 72 }), 'casual');
     expect(plan.hours).toEqual([]);
     expect(zoneLabels(plan)).toEqual({ torso: ['Short-sleeve top'], legs: ['Shorts'] });
+  });
+
+  it('limits an unwindowed all-day plan to daylight hours instead of overnight', () => {
+    // Starts at 8 AM and spans 24 hours: warm daylight (65°F) and freezing overnight (28°F).
+    const hourly = Array.from({ length: 24 }, (_, i) => {
+      const hour = (8 + i) % 24;
+      const inDaylight = hour >= 6 && hour < 19;
+      return makeHour({ hour, temperature: inDaylight ? 65 : 28 });
+    });
+    const withDaylight = makeWeather({
+      temperature: 65,
+      hourly,
+      daylight: { sunriseHour: 6, sunsetHour: 19 },
+    });
+    const plan = getKitPlan(withDaylight, 'pro', null, undefined, ALL_DAY_RIDE_HOURS);
+    // Today's remaining daylight: 8 AM through 6 PM (11 hours), skipping the 28°F night.
+    expect(plan.hours.map((h) => h.hour)).toEqual([8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]);
+    expect(item(plan, /insulated|balaclava/i)).toBeUndefined();
+
+    // Without daylight bounds, falls back to the standard 3-hour slice rather than 24 hours.
+    const withoutDaylight = makeWeather({ temperature: 65, hourly });
+    const fallbackPlan = getKitPlan(withoutDaylight, 'pro', null, undefined, ALL_DAY_RIDE_HOURS);
+    expect(fallbackPlan.hours).toHaveLength(3);
   });
 });
 

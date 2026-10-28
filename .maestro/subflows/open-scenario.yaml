@@ -13,7 +13,7 @@ appId: app.wheelyweather
     commands:
       - openLink: exp+wheely-weather://expo-development-client/?url=http%3A%2F%2F127.0.0.1%3A8081
       - extendedWaitUntil:
-          visible: 'Hour by hour'
+          visible: 'Hour by hour|Where are you riding\?|Forecast unavailable|Something went sideways'
           timeout: 60000
 - runFlow:
     when:

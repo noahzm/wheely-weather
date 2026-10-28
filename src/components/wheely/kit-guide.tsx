@@ -2,6 +2,7 @@
 // wear head to toe, why each add-on is there, and when layers come off, with
 // what to pack and do before setting out at the bottom. The plan comes from
 // getKitPlan; this file only lays it out.
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import Svg, { Line } from 'react-native-svg';
@@ -322,12 +323,12 @@ function KitTimeline({
           />
         </Svg>
       </View>
-      {hours.map((hour) => {
+      {hours.map((hour, index) => {
         let dot = styles.dotPlain;
         if (hour.change) dot = styles.dotChange;
         else if (hour.labeled) dot = styles.dotLabeled;
         return (
-          <View key={hour.hour} style={styles.timelineColumn}>
+          <View key={`${index}-${hour.hour}`} style={styles.timelineColumn}>
             <ThemedText style={styles.timelineTime} numberOfLines={1}>
               {hour.labeled ? fullHourLabel(hour.hour) : ''}
             </ThemedText>
@@ -393,6 +394,7 @@ function KitItemRow({
   unit,
   tilt,
   delay,
+  animate,
   c,
   styles,
 }: Readonly<{
@@ -400,6 +402,7 @@ function KitItemRow({
   unit: TempUnit;
   tilt: number;
   delay: number;
+  animate: boolean;
   c: WheelyPalette;
   styles: Styles;
 }>) {
@@ -409,7 +412,7 @@ function KitItemRow({
   const description = [item.label, reason, timing].filter(Boolean).join('. ');
   return (
     <Animated.View
-      entering={FadeInDown.delay(delay).duration(200)}
+      entering={animate ? FadeInDown.delay(delay).duration(200) : undefined}
       style={styles.itemRow}
       accessible
       accessibilityLabel={description}
@@ -476,18 +479,35 @@ export function KitGuide({
   rideHours = null,
   thresholds,
   mode,
+  rideDuration,
 }: Readonly<{
   weather: Weather;
   /** The verdict's window to dress for; without one, the next few hours. */
   rideHours?: RideHours | null;
   thresholds: Thresholds;
   mode: GearMode;
+  /** The ride length `weather` was built for; falls back to the active setting. */
+  rideDuration?: RideDuration;
 }>) {
   const c = useWheelyColors();
   const styles = makeStyles(c);
   const unit = useResolvedTempUnit();
-  const [rideDuration] = useRideDuration();
-  const plan = getKitPlan(weather, mode, rideHours, thresholds, RIDE_DURATION_HOURS[rideDuration]);
+  const [settingRideDuration] = useRideDuration();
+  const activeRideDuration = rideDuration ?? settingRideDuration;
+  // Stagger brings the whole section in on launch; item rows only fade in when
+  // the rider flips Casual/Roadie after mount.
+  const [initialMode] = useState(mode);
+  const [animateModeSwitch, setAnimateModeSwitch] = useState(false);
+  if (!animateModeSwitch && mode !== initialMode) {
+    setAnimateModeSwitch(true);
+  }
+  const plan = getKitPlan(
+    weather,
+    mode,
+    rideHours,
+    thresholds,
+    RIDE_DURATION_HOURS[activeRideDuration],
+  );
   const rows = buildRows(plan);
 
   return (
@@ -495,7 +515,7 @@ export function KitGuide({
       <View style={styles.cardClip} accessibilityLiveRegion="polite">
         <KitHeader
           hours={plan.hours}
-          rideDuration={rideDuration}
+          rideDuration={activeRideDuration}
           unit={unit}
           c={c}
           styles={styles}
@@ -519,6 +539,7 @@ export function KitGuide({
                     unit={unit}
                     tilt={tilt}
                     delay={delay}
+                    animate={animateModeSwitch}
                     c={c}
                     styles={styles}
                   />
