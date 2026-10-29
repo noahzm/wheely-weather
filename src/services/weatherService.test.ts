@@ -707,4 +707,34 @@ describe('buildWeatherFromData — daylight strip', () => {
     );
     expect(weather.daily[0]?.daylight).toBeUndefined();
   });
+
+  it('picks after-dark ride windows and builds a 24-hour strip when nightRiding is enabled', () => {
+    const fullDay = Array.from({ length: 24 }, (_, h) => hourTime('2024-01-15', h));
+    // Daytime (7 AM–6 PM) is stormy; evening (8 PM–11 PM) is clear and mild.
+    const rain = fullDay.map((_, h) => (h >= 7 && h < 18 ? 90 : 0));
+    const codes = fullDay.map((_, h) => (h >= 7 && h < 18 ? 95 : 1));
+    const data = makeOpenMeteoData({
+      current: { time: hourTime('2024-01-15', 19), weather_code: 1 },
+      hourly: { time: fullDay, precipitation_probability: rain, weather_code: codes },
+      daily: {
+        time: ['2024-01-15'],
+        sunrise: [hourTime('2024-01-15', 7)],
+        sunset: [hourTime('2024-01-15', 18)],
+      },
+    });
+
+    const daylightOnly = buildWeatherFromData(data, THRESHOLDS, 3, false);
+    expect(daylightOnly.daily[0]?.rideWindow).toBeUndefined();
+    expect(daylightOnly.daily[0]?.daylight).toBeUndefined();
+
+    const withNight = buildWeatherFromData(data, THRESHOLDS, 3, true);
+    expect(withNight.daily[0]?.condition).toBe('good');
+    expect(withNight.daily[0]?.rideWindow).toMatchObject({
+      startHour: 19,
+      endHour: 22,
+    });
+    expect(withNight.daily[0]?.daylight).toHaveLength(24);
+    expect(withNight.daily[0]?.daylight?.[0]?.hour).toBe(0);
+    expect(withNight.daily[0]?.daylight?.[23]?.hour).toBe(23);
+  });
 });

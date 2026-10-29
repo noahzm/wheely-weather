@@ -71,11 +71,21 @@ describe('mockWeather', () => {
     }
   });
 
-  it('sizes future ride windows from the requested windowHours', () => {
+  it('sizes future ride windows from the requested windowHours and spans 0–24 when nightRiding is enabled', () => {
     const fiveHour = buildMockWeather('ride', 5);
     expect(fiveHour?.daily[2]?.rideWindow).toMatchObject({ startHour: 12, endHour: 17 });
 
     const allDay = buildMockWeather('ride', ALL_DAY_RIDE_HOURS);
     expect(allDay?.daily[2]?.rideWindow).toMatchObject({ startHour: 6, endHour: 19 });
+
+    const nightAllDay = buildMockWeather('ride', ALL_DAY_RIDE_HOURS, true);
+    expect(nightAllDay?.daily[2]?.rideWindow).toMatchObject({ startHour: 0, endHour: 24 });
+    expect(nightAllDay?.daily[2]?.daylight).toHaveLength(24);
+
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 6, 15, 19, 0, 0));
+    const lateNightWait = buildMockWeather('wait', ALL_DAY_RIDE_HOURS, true);
+    expect(lateNightWait?.daily[0]?.rideWindow).toMatchObject({ startHour: 22, endHour: 24 });
+    expect(lateNightWait?.daily[0]?.daylight).toHaveLength(24);
   });
 });

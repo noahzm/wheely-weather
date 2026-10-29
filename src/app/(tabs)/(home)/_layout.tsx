@@ -5,16 +5,16 @@ import { useForecast } from '@/hooks/forecast-context';
 import { useWheelyColors } from '@/hooks/use-theme';
 
 import { largeTitleStackOptions } from '@/utils/large-title-stack-options';
-import { cityFromLocation } from '@/utils/locationTitle';
+import { resolveHomeCity } from '@/utils/locationTitle';
 
 export default function HomeTabLayout() {
   const c = useWheelyColors();
   const forecast = useForecast();
+  const isMock = Boolean(forecast.snapshot?.mockScenario);
   // Plain city only: the native header title is a string, so the "following your
   // device" arrow lives in `CurrentLocationBadge` just below it.
   const title =
-    cityFromLocation(forecast.savedLocation?.name) ||
-    cityFromLocation(forecast.snapshot?.location) ||
+    resolveHomeCity(forecast.savedLocation?.name, forecast.snapshot?.location, isMock) ||
     'Set location';
 
   // Web: no stack, so the screen sits in the document flow and the page

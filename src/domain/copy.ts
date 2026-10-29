@@ -544,12 +544,15 @@ export function formatVerdictDetail(status: RideStatus, message: VerdictMessage)
   return detail ? `${now} Then ${lowerFirst(detail)}` : now;
 }
 
-/** Ride length settings copy, shared by the iOS and web forms. */
+/** Ride window settings copy, shared by the iOS and web forms. */
 export const RIDE_LENGTH_MESSAGES = {
-  // The section is titled "Ride length", so the row reads as a sentence.
+  SECTION: 'Ride window',
   ROW: 'Riding for',
-  FOOTER:
-    'Sizes each day’s recommended ride window and kit guide. All day uses every daylight hour, for tours and bikepacking.',
+  NIGHT_RIDING: 'Night riding',
+  FOOTER: (nightRiding = false) =>
+    nightRiding
+      ? 'Includes hours before sunrise and after sunset in each day’s recommended ride window and kit guide. Bring front and rear lights after dark.'
+      : 'Sizes each day’s recommended ride window and kit guide. All day uses every daylight hour, for tours and bikepacking. Turn on night riding to include hours after dark.',
   /** The kit card's link to the setting: "3-hour ride", "All-day ride". */
   CHIP: (hours: number | 'allDay') => (hours === 'allDay' ? 'All-day ride' : `${hours}-hour ride`),
 };

@@ -167,9 +167,10 @@ describe('decodeForecastCache', () => {
     expect(decodeForecastCache(tampered, LOCATION, NOW + 1000)).toBeNull();
   });
 
-  it('round-trips rideDuration and homeLocation and defaults rideDuration to 3h', () => {
+  it('round-trips rideDuration, nightRiding, and homeLocation and defaults omitted flags', () => {
     const withSettings = buildSnapshot({
       rideDuration: 'allDay',
+      nightRiding: true,
       acclimatization: {
         homeBaseline: GULF_BASELINE,
         thresholds: resolveThresholds(GULF_BASELINE),
@@ -183,22 +184,26 @@ describe('decodeForecastCache', () => {
       NOW + 1000,
     );
     expect(decoded?.snapshot.rideDuration).toBe('allDay');
+    expect(decoded?.snapshot.nightRiding).toBe(true);
     expect(decoded?.snapshot.acclimatization.homeLocation).toEqual({ lat: 29.95, lon: -90.07 });
 
-    const defaulted = decodeForecastCache(
-      encodeForecastCache(buildSnapshot(), LOCATION),
-      LOCATION,
-      NOW + 1000,
-    );
+    const legacyRaw = encodeForecastCache(buildSnapshot(), LOCATION) ?? '';
+    const legacyParsed = JSON.parse(legacyRaw) as Record<string, unknown>;
+    delete legacyParsed.nightRiding;
+    const defaulted = decodeForecastCache(JSON.stringify(legacyParsed), LOCATION, NOW + 1000);
     expect(defaulted?.snapshot.rideDuration).toBe('3h');
+    expect(defaulted?.snapshot.nightRiding).toBe(false);
     expect(defaulted?.snapshot.acclimatization.homeLocation).toBeNull();
   });
 
-  it('rejects a payload with an invalid rideDuration or homeLocation', () => {
+  it('rejects a payload with an invalid rideDuration, nightRiding, or homeLocation', () => {
     const encoded = encodeForecastCache(buildSnapshot(), LOCATION) ?? '';
     const parsed = JSON.parse(encoded) as Record<string, unknown>;
     expect(
       decodeForecastCache(JSON.stringify({ ...parsed, rideDuration: '12h' }), LOCATION, NOW + 1000),
+    ).toBeNull();
+    expect(
+      decodeForecastCache(JSON.stringify({ ...parsed, nightRiding: 'yes' }), LOCATION, NOW + 1000),
     ).toBeNull();
     expect(
       decodeForecastCache(

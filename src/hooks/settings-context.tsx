@@ -10,6 +10,7 @@ import {
   saveExposureLevel,
   saveGearMode,
   saveHomeLocation,
+  saveNightRiding,
   saveRideDuration,
   saveTempUnit,
   type PersistedSettings,
@@ -47,6 +48,7 @@ interface SettingsValue {
   tempUnit: SettingTuple<TempUnitPreference>;
   exposureLevel: SettingTuple<ExposureLevel>;
   rideDuration: SettingTuple<RideDuration>;
+  nightRiding: SettingTuple<boolean>;
   /** True once the persisted values have been read from storage. */
   hydrated: boolean;
 }
@@ -143,6 +145,13 @@ export function SettingsProvider({ children }: Readonly<{ children: ReactNode }>
           saveRideDuration(next).catch(swallowWriteError);
         },
       ],
+      nightRiding: [
+        settings.nightRiding,
+        (next: boolean) => {
+          setSettings((current) => ({ ...current, nightRiding: next }));
+          saveNightRiding(next).catch(swallowWriteError);
+        },
+      ],
       hydrated,
     }),
     [settings, hydrated],
@@ -193,6 +202,10 @@ export function useExposureLevel(): SettingTuple<ExposureLevel> {
 
 export function useRideDuration(): SettingTuple<RideDuration> {
   return useSettings().rideDuration;
+}
+
+export function useNightRiding(): SettingTuple<boolean> {
+  return useSettings().nightRiding;
 }
 
 /**

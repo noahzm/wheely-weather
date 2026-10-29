@@ -43,6 +43,7 @@ import {
   TEMP_UNIT_LABELS,
   TEMP_UNIT_VALUES,
   type ExposureLevel,
+  type RideDuration,
   type SettingsFormProps,
 } from './settings-form.types';
 
@@ -100,7 +101,7 @@ function ExternalLinkRow({
         });
       }}
     >
-      <HStack>
+      <HStack modifiers={[contentShape(shapes.rectangle())]}>
         <Label title={title} systemImage={systemImage} />
         <Spacer />
         <Image
@@ -199,6 +200,54 @@ function HomeClimateSectionIOS({
   );
 }
 
+function RideWindowSectionIOS({
+  rideDuration,
+  onRideDurationChange,
+  nightRiding,
+  onNightRidingChange,
+  accentColor,
+}: Readonly<{
+  rideDuration: RideDuration;
+  onRideDurationChange: (value: RideDuration) => void;
+  nightRiding: boolean;
+  onNightRidingChange: (value: boolean) => void;
+  accentColor: string;
+}>) {
+  return (
+    <Section
+      title={RIDE_LENGTH_MESSAGES.SECTION}
+      footer={<Text>{RIDE_LENGTH_MESSAGES.FOOTER(nightRiding)}</Text>}
+    >
+      {/* Seven lengths don't fit a segmented control. A menu row shows the
+          choice like Settings.app does; secondary tint keeps the value
+          gray like the Location row rather than the accent color. */}
+      <Picker
+        label={RIDE_LENGTH_MESSAGES.ROW}
+        selection={rideDuration}
+        onSelectionChange={(value) => {
+          onRideDurationChange(value);
+        }}
+        modifiers={[pickerStyle('menu'), tint({ type: 'hierarchical', style: 'secondary' })]}
+      >
+        {RIDE_DURATION_VALUES.map((value, index) => (
+          <Text key={value} modifiers={[tag(value)]}>
+            {RIDE_DURATION_LABELS[index]}
+          </Text>
+        ))}
+      </Picker>
+      <Toggle
+        isOn={nightRiding}
+        onIsOnChange={(value: boolean) => {
+          onNightRidingChange(value);
+        }}
+        modifiers={[tint(accentColor)]}
+      >
+        <Text>{RIDE_LENGTH_MESSAGES.NIGHT_RIDING}</Text>
+      </Toggle>
+    </Section>
+  );
+}
+
 /**
  * iOS settings body — a native SwiftUI inset-grouped List (matching the
  * location search screen) with segmented pickers, the home-climate toggle,
@@ -211,6 +260,8 @@ export function SettingsForm({
   onTempUnitChange,
   rideDuration,
   onRideDurationChange,
+  nightRiding,
+  onNightRidingChange,
   exposureLevel,
   onExposureChange,
   homeBaseline,
@@ -270,25 +321,13 @@ export function SettingsForm({
             </Picker>
           </Section>
 
-          <Section title="Ride length" footer={<Text>{RIDE_LENGTH_MESSAGES.FOOTER}</Text>}>
-            {/* Seven lengths don't fit a segmented control. A menu row shows the
-                choice like Settings.app does; secondary tint keeps the value
-                gray like the Location row rather than the accent color. */}
-            <Picker
-              label={RIDE_LENGTH_MESSAGES.ROW}
-              selection={rideDuration}
-              onSelectionChange={(value) => {
-                onRideDurationChange(value);
-              }}
-              modifiers={[pickerStyle('menu'), tint({ type: 'hierarchical', style: 'secondary' })]}
-            >
-              {RIDE_DURATION_VALUES.map((value, index) => (
-                <Text key={value} modifiers={[tag(value)]}>
-                  {RIDE_DURATION_LABELS[index]}
-                </Text>
-              ))}
-            </Picker>
-          </Section>
+          <RideWindowSectionIOS
+            rideDuration={rideDuration}
+            onRideDurationChange={onRideDurationChange}
+            nightRiding={nightRiding}
+            onNightRidingChange={onNightRidingChange}
+            accentColor={c.accent}
+          />
 
           <HomeClimateSectionIOS
             homeOn={homeOn}

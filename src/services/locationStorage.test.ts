@@ -15,6 +15,7 @@ import {
   saveGearMode,
   saveHomeLocation,
   saveLocation,
+  saveNightRiding,
   saveRecentLocation,
   saveRideDuration,
   saveTempUnit,
@@ -218,6 +219,7 @@ describe('settings', () => {
     await saveTempUnit('celsius');
     await saveExposureLevel('high');
     await saveRideDuration('allDay');
+    await saveNightRiding(true);
     await saveHomeLocation({ lat: 10, lon: 20, name: 'Home', source: 'manual' });
 
     await expect(loadAllSettings()).resolves.toEqual({
@@ -226,6 +228,7 @@ describe('settings', () => {
       tempUnit: 'celsius',
       exposureLevel: 'high',
       rideDuration: 'allDay',
+      nightRiding: true,
       homeLocation: { lat: 10, lon: 20, name: 'Home', source: 'manual' },
       homeLocationChosen: true,
       homeLocationAuto: false,

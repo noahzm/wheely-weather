@@ -1,6 +1,19 @@
 import { describe, expect, it } from 'vitest';
 
-import { cityFromLocation, formatPlaceLabel, resolveLocationChipName } from './locationTitle';
+import {
+  cityFromLocation,
+  formatPlaceLabel,
+  resolveHomeCity,
+  resolveLocationChipName,
+} from './locationTitle';
+
+describe('resolveHomeCity', () => {
+  it('prefers the saved location name in live mode and the mock label in mock mode', () => {
+    expect(resolveHomeCity('Durham, NC', 'Mock: Wait For It', false)).toBe('Durham');
+    expect(resolveHomeCity('Durham, NC', 'Mock: Wait For It', true)).toBe('Mock: Wait For It');
+    expect(resolveHomeCity(null, 'Raleigh, NC')).toBe('Raleigh');
+  });
+});
 
 describe('cityFromLocation', () => {
   it('takes the first component of a comma-separated label', () => {

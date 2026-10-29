@@ -10,6 +10,7 @@ import {
   useExposureLevel,
   useHomeLocation,
   useHomeLocationAuto,
+  useNightRiding,
   useRideDuration,
   useTempUnit,
 } from '@/hooks/settings-context';
@@ -24,6 +25,7 @@ export default function SettingsScreen() {
   const [homeLocation, setHomeLocation] = useHomeLocation();
   const [tempUnit, setTempUnit] = useTempUnit();
   const [rideDuration, setRideDuration] = useRideDuration();
+  const [nightRiding, setNightRiding] = useNightRiding();
   const [exposureLevel, setExposureLevel] = useExposureLevel();
   const forecast = useForecast();
 
@@ -80,6 +82,8 @@ export default function SettingsScreen() {
           onTempUnitChange={setTempUnit}
           rideDuration={rideDuration}
           onRideDurationChange={setRideDuration}
+          nightRiding={nightRiding}
+          onNightRidingChange={setNightRiding}
           exposureLevel={exposureLevel}
           onExposureChange={setExposureLevel}
           homeBaseline={homeBaseline}

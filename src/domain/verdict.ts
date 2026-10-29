@@ -11,7 +11,7 @@ import {
 } from './scoring';
 import { getWeatherDescription, isThunderstorm } from './weather-codes';
 
-import { fullHourLabel } from '../utils/timeFormat';
+import { formatHourSpan, fullHourLabel } from '../utils/timeFormat';
 import type { TempUnit } from '../utils/temperature';
 
 import type { Condition, DailyWeather, RideStatus, VerdictMessage, Weather } from '@/types/weather';
@@ -84,7 +84,7 @@ function windowWeather(
 }
 
 const windowRange = ({ startHour, endHour }: { startHour: number; endHour: number }): string =>
-  `${fullHourLabel(startHour)}–${fullHourLabel(endHour)}`;
+  formatHourSpan(startHour, endHour);
 
 /** Timing chip for the rated window; none when the best window is already underway. */
 function windowTiming(

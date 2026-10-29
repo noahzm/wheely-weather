@@ -11,6 +11,15 @@ export function fullHourLabel(h: number): string {
 }
 
 /**
+ * Formats a `[startHour, endHour)` span: "9 AM–12 PM", or "12 AM–midnight"
+ * when a 24-hour night-riding day runs from 0 to 24.
+ */
+export function formatHourSpan(startHour: number, endHour: number): string {
+  if (startHour === 0 && endHour === 24) return '12 AM–midnight';
+  return `${fullHourLabel(startHour)}–${fullHourLabel(endHour)}`;
+}
+
+/**
  * Age label for the forecast snapshot's fetch time: "Updated just now",
  * "Updated 5 min ago", then an absolute "Updated 3:42 PM" past the hour so a
  * very stale snapshot never reads fresher than it is. Computed at render time

@@ -18,6 +18,7 @@ import {
   animation,
   bold,
   buttonStyle,
+  contentShape,
   controlSize,
   disabled,
   foregroundStyle,
@@ -25,6 +26,7 @@ import {
   lineLimit,
   listStyle,
   scrollDismissesKeyboard,
+  shapes,
   tag,
 } from '@expo/ui/swift-ui/modifiers';
 
@@ -141,18 +143,20 @@ function PinnableRow({
   return (
     <HStack alignment="center">
       <Button modifiers={[buttonStyle('plain'), disabled(busy)]} onPress={onSelect}>
-        <LocationRowTexts item={item} active={active} />
-        <Spacer />
-        <PlaceVerdictBadge verdict={verdict} />
-        {/* A checkmark is the native idiom for the selected row, and it does not
-            fight the group's own rounding or separators the way a stroked
-            outline does. Always rendered so rows keep a stable width; it is
-            simply invisible for the locations that are not on screen. */}
-        <Image
-          systemName="checkmark"
-          size={15}
-          modifiers={[foregroundStyle(active ? activeGlyphColor : TRANSPARENT)]}
-        />
+        <HStack alignment="center" modifiers={[contentShape(shapes.rectangle())]}>
+          <LocationRowTexts item={item} active={active} />
+          <Spacer />
+          <PlaceVerdictBadge verdict={verdict} />
+          {/* A checkmark is the native idiom for the selected row, and it does not
+              fight the group's own rounding or separators the way a stroked
+              outline does. Always rendered so rows keep a stable width; it is
+              simply invisible for the locations that are not on screen. */}
+          <Image
+            systemName="checkmark"
+            size={15}
+            modifiers={[foregroundStyle(active ? activeGlyphColor : TRANSPARENT)]}
+          />
+        </HStack>
       </Button>
       {/* No controlSize('small') here: at the default size these clear the 44pt
           minimum, which the previous 15pt icon buttons did not. Colour carries
@@ -212,8 +216,10 @@ function ResultRow({
         onSelect(item);
       }}
     >
-      <LocationRowTexts item={item} withSubtitle />
-      <Spacer />
+      <HStack modifiers={[contentShape(shapes.rectangle())]}>
+        <LocationRowTexts item={item} withSubtitle />
+        <Spacer />
+      </HStack>
     </Button>
   );
 }
@@ -234,8 +240,10 @@ function OptionsRow({
         onSelect(item);
       }}
     >
-      <Label title={item.label} systemImage="location.fill" modifiers={[tag(placeKey(item))]} />
-      <Spacer />
+      <HStack modifiers={[contentShape(shapes.rectangle())]}>
+        <Label title={item.label} systemImage="location.fill" modifiers={[tag(placeKey(item))]} />
+        <Spacer />
+      </HStack>
     </Button>
   );
 }

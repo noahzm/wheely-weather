@@ -1,4 +1,9 @@
-import { DEFAULT_RIDE_DURATION, type ExposureLevel, type RideDuration } from '@/types/settings';
+import {
+  DEFAULT_NIGHT_RIDING,
+  DEFAULT_RIDE_DURATION,
+  type ExposureLevel,
+  type RideDuration,
+} from '@/types/settings';
 
 import type { ForecastSnapshot } from './forecastSnapshot';
 import { FORECAST_CACHE_TTL_MS, type CachedForecast } from './forecastCacheCodec';
@@ -8,6 +13,7 @@ export interface ForecastCacheSettings {
   homeLocation?: { lat: number; lon: number } | null;
   exposureLevel?: ExposureLevel;
   rideDuration?: RideDuration;
+  nightRiding?: boolean;
 }
 
 const memorySnapshotCache = new Map<string, CachedForecast & { timestamp: number }>();
@@ -62,6 +68,12 @@ export function isSnapshotForSettings(
   if (
     settings.rideDuration !== undefined &&
     (snapshot.rideDuration ?? DEFAULT_RIDE_DURATION) !== settings.rideDuration
+  ) {
+    return false;
+  }
+  if (
+    settings.nightRiding !== undefined &&
+    (snapshot.nightRiding ?? DEFAULT_NIGHT_RIDING) !== settings.nightRiding
   ) {
     return false;
   }

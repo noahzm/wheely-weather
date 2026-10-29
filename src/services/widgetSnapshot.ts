@@ -9,7 +9,7 @@ import type { Thresholds } from '@/domain/constants';
 import { getVerdictSky, type Sky } from '@/domain/weather-codes';
 import type { ForecastSnapshot } from '@/services/forecastSnapshot';
 import { buildWeatherFromData, forecastFromHour } from '@/services/weatherParsing';
-import { DEFAULT_RIDE_DURATION, RIDE_DURATION_HOURS } from '@/types/settings';
+import { DEFAULT_NIGHT_RIDING, DEFAULT_RIDE_DURATION, RIDE_DURATION_HOURS } from '@/types/settings';
 import type { Condition, RideStatus, Weather } from '@/types/weather';
 
 import { formatTemperature, type TempUnit } from '@/utils/temperature';
@@ -112,6 +112,7 @@ export function upcomingForecasts(
   if (!data) return [];
   const { thresholds } = snapshot.acclimatization;
   const windowHours = RIDE_DURATION_HOURS[snapshot.rideDuration ?? DEFAULT_RIDE_DURATION];
+  const nightRiding = snapshot.nightRiding ?? DEFAULT_NIGHT_RIDING;
   const { aqi, nwsAlerts } = snapshot.weather;
   const topOfHour = new Date(snapshot.lastUpdated);
   topOfHour.setMinutes(0, 0, 0);
@@ -120,7 +121,7 @@ export function upcomingForecasts(
     const later = forecastFromHour(data, k);
     if (!later) break;
     const weather = applyAirQualityToToday(
-      { ...buildWeatherFromData(later, thresholds, windowHours), aqi, nwsAlerts },
+      { ...buildWeatherFromData(later, thresholds, windowHours, nightRiding), aqi, nwsAlerts },
       thresholds,
     );
     upcoming.push({ at: new Date(topOfHour.getTime() + k * HOUR_MS), weather });

@@ -1,6 +1,7 @@
 import { resolveThresholds } from '../domain/acclimatization';
 
 import {
+  DEFAULT_NIGHT_RIDING,
   DEFAULT_RIDE_DURATION,
   RIDE_DURATION_VALUES,
   type ExposureLevel,
@@ -35,6 +36,7 @@ interface ForecastCachePayload {
   homeLocation: { lat: number; lon: number } | null;
   exposureLevel: ExposureLevel;
   rideDuration: RideDuration;
+  nightRiding?: boolean;
   weather: Weather;
 }
 
@@ -108,6 +110,7 @@ function isForecastCachePayload(value: unknown): value is ForecastCachePayload {
     isCoordinatesOrNull(record.homeLocation) &&
     isExposureLevel(record.exposureLevel) &&
     isRideDuration(record.rideDuration) &&
+    (record.nightRiding === undefined || typeof record.nightRiding === 'boolean') &&
     isWeatherShape(record.weather)
   );
 }
@@ -142,6 +145,7 @@ export function encodeForecastCache(
     homeLocation,
     exposureLevel: snapshot.acclimatization.exposureLevel,
     rideDuration: snapshot.rideDuration ?? DEFAULT_RIDE_DURATION,
+    nightRiding: snapshot.nightRiding ?? DEFAULT_NIGHT_RIDING,
     weather: snapshot.weather,
   };
   return JSON.stringify(payload);
@@ -171,7 +175,7 @@ export function decodeForecastCache(
   if (age < 0 || age > FORECAST_CACHE_TTL_MS) return null;
   if (!sameLocation(parsed.location, currentLocation)) return null;
 
-  const { homeBaseline, homeLocation, exposureLevel, rideDuration } = parsed;
+  const { homeBaseline, homeLocation, exposureLevel, rideDuration, nightRiding } = parsed;
   return {
     savedLocation: parsed.location,
     snapshot: {
@@ -183,6 +187,7 @@ export function decodeForecastCache(
       mockScenario: null,
       source: parsed.source,
       rideDuration,
+      nightRiding: nightRiding ?? DEFAULT_NIGHT_RIDING,
       acclimatization: {
         homeBaseline,
         homeLocation,

@@ -5,6 +5,7 @@ import { THRESHOLDS } from './constants';
 import {
   ALL_DAY_RIDE_HOURS,
   buildRideWindowCandidate,
+  hoursFromDaylight,
   scoreRideWindow,
   selectBestRideWindow,
   selectBestRideWindows,
@@ -125,6 +126,63 @@ describe('selectBestRideWindow', () => {
   });
 });
 
+describe('hoursFromDaylight', () => {
+  const daylight = { sunriseHour: 6, sunsetHour: 20 };
+
+  it('is 0 in daylight and counts out from dusk and dawn', () => {
+    expect(hoursFromDaylight(6, daylight)).toBe(0);
+    expect(hoursFromDaylight(19, daylight)).toBe(0);
+    expect(hoursFromDaylight(20, daylight)).toBe(1);
+    expect(hoursFromDaylight(22, daylight)).toBe(3);
+    expect(hoursFromDaylight(5, daylight)).toBe(1);
+    expect(hoursFromDaylight(3, daylight)).toBe(3);
+  });
+
+  it('measures the middle of the night to the nearer of dusk and dawn', () => {
+    expect(hoursFromDaylight(0, daylight)).toBe(5);
+    expect(hoursFromDaylight(1, daylight)).toBe(5);
+    expect(hoursFromDaylight(2, daylight)).toBe(4);
+  });
+});
+
+/**
+ * A summer day with night riding on: 72°F and calm overnight, 88°F and breezy
+ * mid-afternoon, so the small hours score best on weather alone.
+ */
+function summerNight(): RideWindowHour[] {
+  const daylight = { sunriseHour: 6, sunsetHour: 20 };
+  return Array.from({ length: 24 }, (_, h) => {
+    const wind = h >= 9 && h <= 19 ? 9 : 4;
+    return hour(h, {
+      temperature: 72 + 16 * Math.max(0, Math.sin(((h - 6) / 12) * Math.PI)),
+      windSpeed: wind,
+      windGust: wind + 4,
+      dewpoint: 60,
+      darkness: hoursFromDaylight(h, daylight),
+    });
+  });
+}
+
+describe('selectBestRideWindow with night riding', () => {
+  it('escapes a rained-out day at dusk or dawn, not the middle of the night', () => {
+    const rainyDay = summerNight().map((h) =>
+      h.darkness ? h : { ...h, rainChance: 90, precipitation: 3, weatherCode: 63 },
+    );
+    const best = selectBestRideWindow(rainyDay, THRESHOLDS);
+    expect(best?.condition).not.toBe('bad');
+    expect([
+      [20, 23],
+      [3, 6],
+    ]).toContainEqual([best?.startHour, best?.endHour]);
+  });
+
+  it('keeps daylight when the calm, cool small hours rate no better', () => {
+    const best = selectBestRideWindow(summerNight(), THRESHOLDS);
+    expect(best?.startHour).toBeGreaterThanOrEqual(6);
+    expect(best?.endHour).toBeLessThanOrEqual(20);
+  });
+});
+
 describe('selectBestRideWindows', () => {
   it('lets only today settle for a shorter window', () => {
     const windows = selectBestRideWindows(
@@ -171,7 +229,7 @@ describe('selectBestRideWindows', () => {
     expect(windows['2026-10-11']).toMatchObject({ startHour: 9, endHour: 15 });
   });
 
-  it('still needs two hours today for an all-day ride', () => {
+  it('still needs two hours today for an all-day ride unless nightRiding is enabled', () => {
     const windows = selectBestRideWindows(
       { '2026-10-09': [hour(17)] },
       '2026-10-09',
@@ -179,5 +237,14 @@ describe('selectBestRideWindows', () => {
       ALL_DAY_RIDE_HOURS,
     );
     expect(windows).toEqual({});
+
+    const lateNightWindows = selectBestRideWindows(
+      { '2026-10-09': [hour(23)] },
+      '2026-10-09',
+      THRESHOLDS,
+      3,
+      true,
+    );
+    expect(lateNightWindows['2026-10-09']).toMatchObject({ startHour: 23, endHour: 24 });
   });
 });

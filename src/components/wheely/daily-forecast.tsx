@@ -257,7 +257,7 @@ function DayRowDetail({
   const styles = useMemo(() => makeDetailStyles(c), [c]);
   const openProgress = useExpandAnimation(isExpanded);
   const [gearMode] = useGearMode();
-  const { format: formatTemp, formatWind } = useTemperatureDisplay();
+  const { formatRange, formatWind } = useTemperatureDisplay();
   const dayReason = getDayConditionReason(day, tempUnit, thresholds);
   // A reason that names no cause ("Fair window") is left out; the numbers speak.
   const reasonText = bestRationale ?? (isGenericDayReason(dayReason) ? null : dayReason);
@@ -277,7 +277,7 @@ function DayRowDetail({
       ? [
           {
             label: 'Ride temps',
-            value: `${formatTemp(window.tempLow)}–${formatTemp(window.tempHigh)}`,
+            value: formatRange(window.tempLow, window.tempHigh),
           },
         ]
       : []),

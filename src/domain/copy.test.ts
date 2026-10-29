@@ -282,8 +282,11 @@ describe('kit card copy', () => {
     expect(formatKitTiming({ kind: 'only', from: 12, to: 14 })).toBe('12 PM–2 PM only');
   });
 
-  it('names the ride length on the card', () => {
+  it('names the ride length on the card and explains daylight vs night riding', () => {
     expect(RIDE_LENGTH_MESSAGES.CHIP(3)).toBe('3-hour ride');
     expect(RIDE_LENGTH_MESSAGES.CHIP('allDay')).toBe('All-day ride');
+    expect(RIDE_LENGTH_MESSAGES.FOOTER()).toContain('every daylight hour');
+    expect(RIDE_LENGTH_MESSAGES.FOOTER(false)).toContain('after dark');
+    expect(RIDE_LENGTH_MESSAGES.FOOTER(true)).toContain('front and rear lights');
   });
 });

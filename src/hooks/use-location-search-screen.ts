@@ -12,6 +12,7 @@ import { useForecast } from '@/hooks/forecast-context';
 import {
   useExposureLevel,
   useHomeLocation,
+  useNightRiding,
   useResolvedTempUnit,
   useRideDuration,
 } from '@/hooks/settings-context';
@@ -34,6 +35,7 @@ export function useLocationSearchScreen(onPlaceChosen?: () => void) {
   const [homeLocation, setHomeLocation] = useHomeLocation();
   const [exposureLevel] = useExposureLevel();
   const [rideDuration] = useRideDuration();
+  const [nightRiding] = useNightRiding();
   const tempUnit = useResolvedTempUnit();
   // Re-render when background pin prefetches populate the memory cache.
   useSyncExternalStore(subscribeMemoryCache, getMemoryCacheVersion, getMemoryCacheVersion);
@@ -118,7 +120,7 @@ export function useLocationSearchScreen(onPlaceChosen?: () => void) {
   );
 
   const isSearching = query.trim().length >= MIN_SEARCH_QUERY_LENGTH;
-  const cacheSettings = { homeLocation, exposureLevel, rideDuration };
+  const cacheSettings = { homeLocation, exposureLevel, rideDuration, nightRiding };
   // Real places only: the current-location row and unresolved search results
   // have no coordinates to look up.
   const verdictFor = (item: RowItem) =>

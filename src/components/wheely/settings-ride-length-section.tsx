@@ -13,16 +13,21 @@ import {
   type RideDuration,
 } from '@/types/settings';
 import { withAlpha } from '@/utils/colors';
-import { GroupedSection, useGroupedListStyles } from './grouped-list';
+import { GroupedRow, GroupedSection, useGroupedListStyles } from './grouped-list';
 import { Check, ChevronDown } from './icons';
 import { HapticPressable, PlatformIcon } from './primitives';
+import { RNSwitch } from './rn-switch';
 
 export function RideLengthSection({
   value,
   onChange,
+  nightRiding,
+  onNightRidingChange,
 }: Readonly<{
   value: RideDuration;
   onChange: (value: RideDuration) => void;
+  nightRiding: boolean;
+  onNightRidingChange: (value: boolean) => void;
 }>) {
   const c = useWheelyColors();
   const styles = useGroupedListStyles();
@@ -30,7 +35,10 @@ export function RideLengthSection({
   const label = rideDurationLabel(value);
 
   return (
-    <GroupedSection title="Ride length" footer={RIDE_LENGTH_MESSAGES.FOOTER}>
+    <GroupedSection
+      title={RIDE_LENGTH_MESSAGES.SECTION}
+      footer={RIDE_LENGTH_MESSAGES.FOOTER(nightRiding)}
+    >
       <HapticPressable
         onPress={() => {
           setOpen((current) => !current);
@@ -75,6 +83,16 @@ export function RideLengthSection({
             </HapticPressable>
           );
         })}
+      <GroupedRow>
+        <ThemedText style={styles.rowLabel} numberOfLines={1}>
+          {RIDE_LENGTH_MESSAGES.NIGHT_RIDING}
+        </ThemedText>
+        <RNSwitch
+          value={nightRiding}
+          accessibilityLabel={RIDE_LENGTH_MESSAGES.NIGHT_RIDING}
+          onValueChange={onNightRidingChange}
+        />
+      </GroupedRow>
     </GroupedSection>
   );
 }

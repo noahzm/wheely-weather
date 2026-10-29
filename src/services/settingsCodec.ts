@@ -4,6 +4,7 @@
 
 import {
   DEFAULT_EXPOSURE_LEVEL,
+  DEFAULT_NIGHT_RIDING,
   DEFAULT_RIDE_DURATION,
   RIDE_DURATION_VALUES,
   type Appearance,
@@ -81,6 +82,10 @@ export function parseRideDuration(raw: string | null): RideDuration {
   return LEGACY_RIDE_DURATIONS.get(raw) ?? DEFAULT_RIDE_DURATION;
 }
 
+export function parseNightRiding(raw: string | null): boolean {
+  return raw === 'true';
+}
+
 export function parseHomeLocation(raw: string | null): SavedLocation | null {
   try {
     return normalizeLocationRecord(raw ? JSON.parse(raw) : null);
@@ -121,6 +126,7 @@ export interface PersistedSettings {
   tempUnit: TempUnitPreference;
   exposureLevel: ExposureLevel;
   rideDuration: RideDuration;
+  nightRiding: boolean;
 }
 
 export const DEFAULT_SETTINGS: PersistedSettings = {
@@ -132,4 +138,5 @@ export const DEFAULT_SETTINGS: PersistedSettings = {
   tempUnit: 'auto',
   exposureLevel: DEFAULT_EXPOSURE_LEVEL,
   rideDuration: DEFAULT_RIDE_DURATION,
+  nightRiding: DEFAULT_NIGHT_RIDING,
 };

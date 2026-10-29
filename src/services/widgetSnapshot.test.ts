@@ -237,4 +237,14 @@ describe('upcoming verdicts', () => {
     // At 1 AM tomorrow, a 1-hour window spans 7 AM–8 AM instead of 7 AM–10 AM.
     expect(widget?.upcoming[10]?.detail).toBe('Best 7 AM–8 AM');
   });
+
+  it('keeps rating tonight after sunset when snapshot.nightRiding is true', () => {
+    const snapshot = {
+      ...snapshotFromForecast(makeForecastData()),
+      nightRiding: true,
+    };
+    const widget = buildWidgetSnapshot(snapshot, 'fahrenheit');
+    // 8 PM (upcoming[5]): instead of moving on to Tomorrow, tonight is still open.
+    expect(widget?.upcoming[5]?.detail).not.toMatch(/^Tomorrow/);
+  });
 });

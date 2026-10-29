@@ -15,7 +15,7 @@ import {
 import { getWeatherCodeCondition, isSnowy } from '../domain/weather-codes';
 import { formatPercent } from './percent';
 import { formatTemperature, formatWindSpeed } from './temperature';
-import { fullHourLabel } from './timeFormat';
+import { formatHourSpan } from './timeFormat';
 
 import type { Condition, DailyWeather, HourlyWeather } from '@/types/weather';
 import type { TempUnit } from './temperature';
@@ -619,9 +619,7 @@ export function getDayRowNote(
  * 10 AM–1 PM"). Null when there's nothing to say.
  */
 export function formatDayRowNote(note: DayRowNote, best: boolean): string | null {
-  const range = note.window
-    ? `${fullHourLabel(note.window.startHour)}–${fullHourLabel(note.window.endHour)}`
-    : null;
+  const range = note.window ? formatHourSpan(note.window.startHour, note.window.endHour) : null;
   const windowText = range && !best ? STATUS_MESSAGES.BEST_WINDOW(range) : range;
   const parts = [note.reason, windowText].filter((part): part is string => part != null);
   return parts.length > 0 ? parts.join(' · ') : null;

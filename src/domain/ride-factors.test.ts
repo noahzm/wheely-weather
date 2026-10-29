@@ -241,4 +241,14 @@ describe('getDaylightWarning', () => {
     const daylight = { sunriseHour: 6, sunsetHour: 18 };
     expect(getDaylightWarning(hourly, daylight)).toBeNull();
   });
+
+  it('warns to use lights when the recommended ride window extends before sunrise or past sunset', () => {
+    const hourly = [{ condition: 'good', hour: 12 }] as unknown as HourlyWeather[];
+    const daylight = { sunriseHour: 6, sunsetHour: 18 };
+    expect(getDaylightWarning(hourly, daylight, { startHour: 5, endHour: 8 })).toContain('lights');
+    expect(getDaylightWarning(hourly, daylight, { startHour: 17, endHour: 20 })).toContain(
+      'lights',
+    );
+    expect(getDaylightWarning(hourly, daylight, { startHour: 6, endHour: 18 })).toBeNull();
+  });
 });

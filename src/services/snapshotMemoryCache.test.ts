@@ -102,6 +102,7 @@ describe('snapshotMemoryCache', () => {
   it('matches cached snapshots against active settings', () => {
     const snap = buildSnapshot('Portland', {
       rideDuration: '4h',
+      nightRiding: true,
       acclimatization: {
         homeBaseline: null,
         thresholds: THRESHOLDS,
@@ -114,11 +115,20 @@ describe('snapshotMemoryCache', () => {
     expect(
       getMemoryCachedForecast(PORTLAND, undefined, {
         rideDuration: '4h',
+        nightRiding: true,
         exposureLevel: 'high',
         homeLocation: { lat: RALEIGH.lat, lon: RALEIGH.lon },
       }),
     ).not.toBeNull();
     expect(getMemoryCachedForecast(PORTLAND, undefined, { rideDuration: '2h' })).toBeNull();
+    expect(
+      getMemoryCachedForecast(PORTLAND, undefined, {
+        rideDuration: '4h',
+        nightRiding: false,
+        exposureLevel: 'high',
+        homeLocation: { lat: RALEIGH.lat, lon: RALEIGH.lon },
+      }),
+    ).toBeNull();
     expect(getMemoryCachedForecast(PORTLAND, undefined, { exposureLevel: 'indoor' })).toBeNull();
     expect(getMemoryCachedForecast(PORTLAND, undefined, { homeLocation: PORTLAND })).toBeNull();
     expect(getMemoryCachedForecast(PORTLAND, undefined, { homeLocation: null })).toBeNull();

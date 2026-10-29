@@ -24,6 +24,19 @@ export function cityFromLocation(location: string | null | undefined): string {
   return location?.split(',')[0]?.trim() ?? '';
 }
 
+/**
+ * Heading city for the home screen: in mock mode the scenario's own label wins
+ * over any saved location on disk.
+ */
+export function resolveHomeCity(
+  savedName: string | null | undefined,
+  snapshotLocation: string | null | undefined,
+  isMock = false,
+): string {
+  if (isMock) return cityFromLocation(snapshotLocation);
+  return cityFromLocation(savedName) || cityFromLocation(snapshotLocation);
+}
+
 /** Resolves a concise display name for a location chip or pill. */
 export function resolveLocationChipName(place: {
   label?: string | null;

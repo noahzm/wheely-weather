@@ -27,6 +27,21 @@ export function formatTemperature(
 }
 
 /**
+ * Formats a Fahrenheit low–high span in the given unit, collapsing to a single
+ * value when both endpoints round to the same displayed degree (e.g. "71°"
+ * instead of "71°–71°" on flat windows or 1-hour rides).
+ */
+export function formatTemperatureRange(
+  lowFahrenheit: number,
+  highFahrenheit: number,
+  unit: TempUnit,
+): string {
+  const low = formatTemperature(lowFahrenheit, unit);
+  const high = formatTemperature(highFahrenheit, unit);
+  return low === high ? low : `${low}–${high}`;
+}
+
+/**
  * Formats an mph source wind speed in the unit paired with the temperature
  * preference: mph for Fahrenheit, km/h for Celsius. All scoring stays in mph.
  */

@@ -10,6 +10,7 @@ import {
   parseHomeLocation,
   parseHomeLocationAuto,
   parseHomeLocationChosen,
+  parseNightRiding,
   parseRideDuration,
   parseTempUnit,
   type PersistedSettings,
@@ -35,6 +36,7 @@ const GEAR_MODE_KEY = 'gearMode';
 const APPEARANCE_KEY = 'ww_appearance';
 const TEMP_UNIT_KEY = 'ww_temp_unit';
 const RIDE_DURATION_KEY = 'ww_ride_duration';
+const NIGHT_RIDING_KEY = 'ww_night_riding';
 const RECENTS_MAX = 4;
 const PINS_MAX = 8;
 
@@ -156,6 +158,10 @@ export async function saveRideDuration(value: RideDuration) {
   await AsyncStorage.setItem(RIDE_DURATION_KEY, value);
 }
 
+export async function saveNightRiding(value: boolean) {
+  await AsyncStorage.setItem(NIGHT_RIDING_KEY, String(value));
+}
+
 /**
  * Loads all persisted settings in a single storage round-trip so the provider
  * can hydrate them in one state commit (no per-setting flicker). Never
@@ -170,6 +176,7 @@ export async function loadAllSettings(): Promise<PersistedSettings> {
       TEMP_UNIT_KEY,
       EXPOSURE_LEVEL_KEY,
       RIDE_DURATION_KEY,
+      NIGHT_RIDING_KEY,
     ]);
     const byKey = new Map(entries);
     return {
@@ -181,6 +188,7 @@ export async function loadAllSettings(): Promise<PersistedSettings> {
       tempUnit: parseTempUnit(byKey.get(TEMP_UNIT_KEY) ?? null),
       exposureLevel: parseExposureLevel(byKey.get(EXPOSURE_LEVEL_KEY) ?? null),
       rideDuration: parseRideDuration(byKey.get(RIDE_DURATION_KEY) ?? null),
+      nightRiding: parseNightRiding(byKey.get(NIGHT_RIDING_KEY) ?? null),
     };
   } catch (error) {
     captureError(error, { where: 'loadAllSettings' });

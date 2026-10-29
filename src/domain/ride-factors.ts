@@ -382,9 +382,13 @@ function isNextDay(hourly: HourlyWeather[], index: number): boolean {
 export const getDaylightWarning = (
   hourly: HourlyWeather[] | undefined,
   daylight: DaylightWindow | null | undefined,
+  rideWindow: { startHour: number; endHour: number } | null = null,
 ): string | null => {
   if (!hourly || !daylight) return null;
   const { sunriseHour, sunsetHour } = daylight;
+  if (rideWindow && (rideWindow.startHour < sunriseHour || rideWindow.endHour > sunsetHour)) {
+    return DAYLIGHT_MESSAGES.DARK_WARNING;
+  }
   const goodHours = hourly.filter((h) => h.condition === 'good' || h.condition === 'fair');
   if (goodHours.length === 0) return null;
   if (goodHours.every((h) => h.hour < sunriseHour || h.hour >= sunsetHour))

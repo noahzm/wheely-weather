@@ -23,6 +23,8 @@ export interface SettingsFormProps {
   onTempUnitChange: (value: TempUnitPreference) => void;
   rideDuration: RideDuration;
   onRideDurationChange: (value: RideDuration) => void;
+  nightRiding: boolean;
+  onNightRidingChange: (value: boolean) => void;
   // Required, not optional: the settings screen always supplies these, so an
   // optional prop would convert a wiring break into a silently missing control
   // plus a default-exposure fallback that disagrees with the live forecast.

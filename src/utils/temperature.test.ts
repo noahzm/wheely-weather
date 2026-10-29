@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { fahrenheitToCelsius, formatTemperature, formatWindSpeed, mphToKmh } from './temperature';
+import {
+  fahrenheitToCelsius,
+  formatTemperature,
+  formatTemperatureRange,
+  formatWindSpeed,
+  mphToKmh,
+} from './temperature';
 
 describe('fahrenheitToCelsius', () => {
   it('converts freezing and boiling points', () => {
@@ -26,6 +32,18 @@ describe('formatTemperature', () => {
   it('appends the unit label when requested', () => {
     expect(formatTemperature(95, 'fahrenheit', { withUnitLabel: true })).toBe('95°F');
     expect(formatTemperature(95, 'celsius', { withUnitLabel: true })).toBe('35°C');
+  });
+});
+
+describe('formatTemperatureRange', () => {
+  it('formats distinct low and high temperatures with an en-dash', () => {
+    expect(formatTemperatureRange(58, 65, 'fahrenheit')).toBe('58°–65°');
+    expect(formatTemperatureRange(59, 68, 'celsius')).toBe('15°–20°');
+  });
+
+  it('collapses to a single value when both endpoints round to the same degree', () => {
+    expect(formatTemperatureRange(71, 71, 'fahrenheit')).toBe('71°');
+    expect(formatTemperatureRange(70.8, 71.4, 'celsius')).toBe('22°');
   });
 });
 

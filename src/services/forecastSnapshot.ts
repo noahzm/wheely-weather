@@ -12,6 +12,7 @@ import type { SavedLocation } from '@/services/locationStorage';
 import { THRESHOLDS, resolveThresholds } from '@/domain';
 import {
   DEFAULT_EXPOSURE_LEVEL,
+  DEFAULT_NIGHT_RIDING,
   DEFAULT_RIDE_DURATION,
   RIDE_DURATION_HOURS,
   type ExposureLevel,
@@ -50,6 +51,8 @@ export interface ForecastSnapshot {
    * re-rate the hours ahead with the same window length.
    */
   rideDuration?: RideDuration;
+  /** Whether `weather` was built with night riding enabled. */
+  nightRiding?: boolean;
   /**
    * The payload `weather` was parsed from, so the widget can rate the hours
    * ahead (`forecastFromHour`). Memory only: the disk cache doesn't store it,
@@ -95,18 +98,20 @@ export async function getForecastSnapshot({
   homeLocation = null,
   exposureLevel = DEFAULT_EXPOSURE_LEVEL,
   rideDuration = DEFAULT_RIDE_DURATION,
+  nightRiding = DEFAULT_NIGHT_RIDING,
   mockScenario = null,
 }: {
   savedLocation: SavedLocation | null;
   homeLocation?: SavedLocation | null;
   exposureLevel?: ExposureLevel;
   rideDuration?: RideDuration;
+  nightRiding?: boolean;
   mockScenario?: string | null;
 }): Promise<ForecastSnapshotResult> {
   const lastUpdated = new Date();
 
   if (mockScenario) {
-    const weather = buildMockWeather(mockScenario, RIDE_DURATION_HOURS[rideDuration]);
+    const weather = buildMockWeather(mockScenario, RIDE_DURATION_HOURS[rideDuration], nightRiding);
     if (!weather) throw new Error(`Unknown mock scenario: ${mockScenario}`);
     return {
       snapshot: {
@@ -118,6 +123,7 @@ export async function getForecastSnapshot({
         mockScenario,
         source: 'mock',
         rideDuration,
+        nightRiding,
         // Mocks bypass acclimatization so fixtures rate against the base thresholds.
         acclimatization: {
           homeBaseline: null,
@@ -147,7 +153,12 @@ export async function getForecastSnapshot({
     fetchSafeLocationName(savedLocation),
   ]);
   const thresholds = resolveThresholds(homeBaseline, THRESHOLDS, exposureLevel);
-  const weather = buildWeatherFromData(data, thresholds, RIDE_DURATION_HOURS[rideDuration]);
+  const weather = buildWeatherFromData(
+    data,
+    thresholds,
+    RIDE_DURATION_HOURS[rideDuration],
+    nightRiding,
+  );
 
   return {
     snapshot: {
@@ -165,6 +176,7 @@ export async function getForecastSnapshot({
         homeLocation: homeLocation ? { lat: homeLocation.lat, lon: homeLocation.lon } : null,
       },
       rideDuration,
+      nightRiding,
       forecastData: data,
     },
     extras,

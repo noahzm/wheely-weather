@@ -65,7 +65,7 @@ import { useMinimumRefreshing } from '@/hooks/use-minimum-refreshing';
 import { useColorSchemeName, useWheelyColors } from '@/hooks/use-theme';
 import { GearStylePicker } from '@/components/wheely/gear-style-picker';
 import { HourlyNoteStickers } from '@/components/wheely/hourly-note-stickers';
-import { cityFromLocation } from '@/utils/locationTitle';
+import { resolveHomeCity } from '@/utils/locationTitle';
 import { formatUpdatedAgo } from '@/utils/timeFormat';
 import type { TempUnit } from '@/utils/temperature';
 import type { RideDuration } from '@/types/settings';
@@ -122,6 +122,8 @@ function deriveHomeState(
   const windowWithDay = verdict.window
     ? { ...verdict.window, tomorrow: verdict.when === 'tomorrow' }
     : null;
+  // Shaded on the chart when it's a recommendation; the best of a no-go day isn't.
+  const rideWindow = verdict.status === 'no' ? null : windowWithDay;
   return {
     status: verdict.status,
     condition: verdict.condition,
@@ -130,8 +132,7 @@ function deriveHomeState(
     label: getRideVerdictLabel(verdict, location),
     verdictWeatherCode: verdict.weatherCode,
     waiting: verdict.when === 'wait',
-    // Shaded on the chart when it's a recommendation; the best of a no-go day isn't.
-    rideWindow: verdict.status === 'no' ? null : windowWithDay,
+    rideWindow,
     // Dress for the window the verdict rates, not the current hour.
     kit: {
       title: getRideKitTitle(verdict),
@@ -141,7 +142,7 @@ function deriveHomeState(
       rideDuration,
     },
     rainTiming: getRainTiming(weather.hourly),
-    daylightWarning: getDaylightWarning(weather.hourly, weather.daylight),
+    daylightWarning: getDaylightWarning(weather.hourly, weather.daylight, rideWindow),
     alerts: getWeatherAlerts(weather, tempUnit),
   };
 }
@@ -396,10 +397,13 @@ export default function HomeScreen() {
 
   const weather = forecast.snapshot?.weather ?? null;
   const location = forecast.snapshot?.location ?? '';
-  const city = cityFromLocation(forecast.savedLocation?.name) || cityFromLocation(location);
-  const followingDevice = forecast.savedLocation
-    ? forecast.savedLocation.source === 'device'
-    : forecast.snapshot?.isDeviceLocation === true;
+  const isMock = Boolean(forecast.snapshot?.mockScenario);
+  const city = resolveHomeCity(forecast.savedLocation?.name, location, isMock);
+  const followingDevice =
+    !isMock &&
+    (forecast.savedLocation
+      ? forecast.savedLocation.source === 'device'
+      : forecast.snapshot?.isDeviceLocation === true);
   const acclimatization = forecast.snapshot?.acclimatization ?? null;
   const snapshotRideDuration = forecast.snapshot?.rideDuration;
   const tempUnit = useResolvedTempUnit();
@@ -559,7 +563,7 @@ function HomePlaceRow({
   followingDevice: boolean;
   onScene: boolean;
 }>) {
-  if (forecast.pinnedLocations.length > 0) {
+  if (!forecast.snapshot?.mockScenario && forecast.pinnedLocations.length > 0) {
     return (
       <PinnedLocationsBar
         pinnedLocations={forecast.pinnedLocations}

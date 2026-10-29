@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatUpdatedAgo, fullHourLabel } from './timeFormat';
+import { formatHourSpan, formatUpdatedAgo, fullHourLabel } from './timeFormat';
 
 describe('fullHourLabel', () => {
   it('formats midnight as 12 AM', () => {
@@ -15,6 +15,17 @@ describe('fullHourLabel', () => {
   it('formats PM hours with space', () => {
     expect(fullHourLabel(15)).toBe('3 PM');
     expect(fullHourLabel(23)).toBe('11 PM');
+  });
+});
+
+describe('formatHourSpan', () => {
+  it('joins normal start and end hours with an en dash', () => {
+    expect(formatHourSpan(9, 12)).toBe('9 AM–12 PM');
+    expect(formatHourSpan(21, 24)).toBe('9 PM–12 AM');
+  });
+
+  it('names a full 0–24 span as 12 AM–midnight rather than 12 AM–12 AM', () => {
+    expect(formatHourSpan(0, 24)).toBe('12 AM–midnight');
   });
 });
 

@@ -73,6 +73,8 @@ export const RIDE_DURATION_VALUES = [
 
 export const DEFAULT_RIDE_DURATION: RideDuration = '3h';
 
+export const DEFAULT_NIGHT_RIDING = false;
+
 export const RIDE_DURATION_HOURS: Record<RideDuration, number> = {
   '1h': 1,
   '2h': 2,

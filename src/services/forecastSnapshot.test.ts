@@ -66,6 +66,7 @@ describe('getForecastSnapshot — mock scenarios', () => {
       savedLocation: RALEIGH_MANUAL,
       mockScenario: 'ride',
       rideDuration: '5h',
+      nightRiding: true,
     });
 
     expect(snapshot).toMatchObject({
@@ -75,6 +76,7 @@ describe('getForecastSnapshot — mock scenarios', () => {
       mockScenario: 'ride',
       source: 'mock',
       rideDuration: '5h',
+      nightRiding: true,
       acclimatization: {
         homeBaseline: null,
         thresholds: THRESHOLDS,
@@ -118,6 +120,7 @@ describe('getForecastSnapshot — live locations', () => {
         }) as unknown,
       }),
       3,
+      false,
     );
     expect(snapshot).toMatchObject({
       weather: WEATHER,
@@ -126,6 +129,7 @@ describe('getForecastSnapshot — live locations', () => {
       isDeviceLocation: false,
       mockScenario: null,
       source: 'manual',
+      nightRiding: false,
       forecastData: PAYLOAD,
       acclimatization: {
         homeBaseline: baseline,
@@ -134,6 +138,17 @@ describe('getForecastSnapshot — live locations', () => {
       },
     });
     await expect(extras).resolves.toEqual({ aqi: 28, nwsAlerts: [] });
+  });
+
+  it('forwards nightRiding to buildWeatherFromData and stores it on the snapshot', async () => {
+    const { snapshot } = await getForecastSnapshot({
+      savedLocation: RALEIGH_MANUAL,
+      rideDuration: '2h',
+      nightRiding: true,
+    });
+
+    expect(mocks.buildWeatherFromData).toHaveBeenCalledWith(PAYLOAD, THRESHOLDS, 2, true);
+    expect(snapshot.nightRiding).toBe(true);
   });
 
   it('reverse-geocodes an unnamed device location and falls back to "Your Location"', async () => {

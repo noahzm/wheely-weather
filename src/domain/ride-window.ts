@@ -8,7 +8,7 @@ import { getWeatherCodeCondition } from './weather-codes';
 
 import type { DailyWeather } from '@/types/weather';
 
-/** One daylight hour's forecast, as the window search reads it. */
+/** One rideable hour's forecast (daylight, or any hour with night riding), as the window search reads it. */
 export interface RideWindowHour {
   hour: number;
   temperature: number;
@@ -20,6 +20,11 @@ export interface RideWindowHour {
   weatherCode: number | null;
   /** UV index; unrated (it sets the kit's sunscreen, not the ride). */
   uv?: number | null;
+  /**
+   * Hours from daylight with night riding on: 0 (or absent) in daylight, 1 for
+   * the first hour after sunset or before sunrise, rising toward midnight.
+   */
+  darkness?: number;
 }
 
 /** A rated window: worst-case metrics over hours `startHour`–`endHour` (exclusive). */
@@ -65,6 +70,34 @@ function getWorstWeatherCode(codes: (number | null)[]): number | null {
     }
   }
   return worstCode;
+}
+
+/**
+ * Score lost per hour of darkness, times how deep into the night that hour is.
+ * Big enough to outweigh the calm, cool hours of the small hours, small next to
+ * a rating step (1000), so a night rider still escapes a hot, stormy or windy
+ * day, but into the evening or the hour before sunrise, not the middle of the
+ * night.
+ */
+const DARK_HOUR_PENALTY = 15;
+
+/**
+ * How many hours `hour` sits outside daylight (`[sunriseHour, sunsetHour)`):
+ * 0 in daylight, 1 for the hour after sunset or before sunrise, and so on to
+ * the middle of the night, measured to the nearer of dusk and dawn.
+ */
+export function hoursFromDaylight(
+  hour: number,
+  { sunriseHour, sunsetHour }: { sunriseHour: number; sunsetHour: number },
+): number {
+  if (hour >= sunriseHour && hour < sunsetHour) return 0;
+  const afterDusk = (hour - sunsetHour + 24) % 24;
+  const beforeDawn = (sunriseHour - hour + 24) % 24;
+  return Math.min(afterDusk + 1, beforeDawn);
+}
+
+function darknessPenalty(hours: RideWindowHour[]): number {
+  return hours.reduce((sum, hour) => sum + (hour.darkness ?? 0), 0) * DARK_HOUR_PENALTY;
 }
 
 /** Ranks windows that share a rating: drier, calmer and nearer 68°F wins. */
@@ -164,9 +197,11 @@ export function selectBestRideWindow(
   let best: DailyRideWindow | null = null;
   let bestScore = -Infinity;
   for (let start = 0; start <= hours.length - windowHours; start++) {
-    const candidate = buildRideWindowCandidate(hours.slice(start, start + windowHours), thresholds);
+    const slice = hours.slice(start, start + windowHours);
+    const candidate = buildRideWindowCandidate(slice, thresholds);
     if (!candidate) continue;
-    const score = scoreRideWindow(candidate);
+    // Night riding: dark hours count against a window, the deeper the more.
+    const score = scoreRideWindow(candidate) - darknessPenalty(slice);
     if (score > bestScore) {
       best = candidate;
       bestScore = score;
@@ -184,17 +219,19 @@ function minHoursForLaterDay(hours: RideWindowHour[], targetHours: number): numb
 }
 
 /**
- * Each date's best window, from its remaining daylight hours. Today may settle
- * for a shorter window than later days (`MIN_TODAY_WINDOW_HOURS`).
+ * Each date's best window, from its remaining rideable hours. Today may settle
+ * for a shorter window than later days (`MIN_TODAY_WINDOW_HOURS` in daylight,
+ * or 1 hour when night riding is on so 11 PM still rates tonight).
  */
 export function selectBestRideWindows(
   hoursByDate: Record<string, RideWindowHour[]>,
   today: string,
   thresholds: Thresholds,
   targetHours: number = DAILY_RIDE_WINDOW_HOURS,
+  nightRiding = false,
 ): Record<string, DailyRideWindow> {
   const bestByDate: Record<string, DailyRideWindow> = {};
-  const todayMin = Math.min(MIN_TODAY_WINDOW_HOURS, targetHours);
+  const todayMin = nightRiding ? 1 : Math.min(MIN_TODAY_WINDOW_HOURS, targetHours);
   for (const [date, hours] of Object.entries(hoursByDate)) {
     const minHours = date === today ? todayMin : minHoursForLaterDay(hours, targetHours);
     const best = selectBestRideWindow(hours, thresholds, minHours, targetHours);

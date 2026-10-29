@@ -42,6 +42,8 @@ export function SettingsForm({
   onTempUnitChange,
   rideDuration,
   onRideDurationChange,
+  nightRiding,
+  onNightRidingChange,
   exposureLevel,
   onExposureChange,
   homeBaseline,
@@ -79,7 +81,12 @@ export function SettingsForm({
         </GroupedRow>
       </GroupedSection>
 
-      <RideLengthSection value={rideDuration} onChange={onRideDurationChange} />
+      <RideLengthSection
+        value={rideDuration}
+        onChange={onRideDurationChange}
+        nightRiding={nightRiding}
+        onNightRidingChange={onNightRidingChange}
+      />
 
       <HomeClimateSection
         homeLabel={homeLabel}

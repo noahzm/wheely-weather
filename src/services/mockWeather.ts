@@ -294,14 +294,16 @@ function buildDayRideWindow(params: {
   condition: string;
   day: { low: number; high: number };
   windowHours: number;
+  nightRiding: boolean;
 }) {
-  const { dayIndex, nowHour, spec, condition, day, windowHours } = params;
+  const { dayIndex, nowHour, spec, condition, day, windowHours, nightRiding } = params;
   const { todayWindow } = spec;
   if (dayIndex === 0 && todayWindow) {
     const startHour = (nowHour + todayWindow.startOffset) % 24;
+    const dayEnd = nightRiding ? 24 : spec.sunsetHour;
     const span =
       windowHours >= ALL_DAY_RIDE_HOURS
-        ? Math.max(todayWindow.hours, spec.sunsetHour - startHour)
+        ? Math.max(todayWindow.hours, dayEnd - startHour)
         : windowHours;
     // Clamp at 24 rather than wrapping modulo 24: `endHour < startHour` breaks
     // `[startHour, endHour)` range matching in the chart and kit guide.
@@ -313,16 +315,18 @@ function buildDayRideWindow(params: {
     };
   }
   if (dayIndex >= 2 && condition !== 'bad' && condition !== 'poor') {
-    const daylightSpan = spec.sunsetHour - spec.sunriseHour;
+    const minStart = nightRiding ? 0 : spec.sunriseHour;
+    const maxEnd = nightRiding ? 24 : spec.sunsetHour;
+    const availableSpan = maxEnd - minStart;
     const span =
-      windowHours >= ALL_DAY_RIDE_HOURS ? daylightSpan : Math.min(windowHours, daylightSpan);
+      windowHours >= ALL_DAY_RIDE_HOURS ? availableSpan : Math.min(windowHours, availableSpan);
     const startHour =
       windowHours >= ALL_DAY_RIDE_HOURS
-        ? spec.sunriseHour
-        : Math.max(spec.sunriseHour, Math.min(12, spec.sunsetHour - span));
+        ? minStart
+        : Math.max(minStart, Math.min(12, maxEnd - span));
     return {
       startHour,
-      endHour: Math.min(spec.sunsetHour, startHour + span),
+      endHour: Math.min(maxEnd, startHour + span),
       tempLow: day.low + 4,
       tempHigh: day.high - 2,
     };
@@ -330,10 +334,10 @@ function buildDayRideWindow(params: {
 }
 
 /**
- * A mock day's daylight strip. Today's hours come from the same template as
- * the mock chart; later days have no hourly template (some scenarios' are
- * keyed to the current time), so every hour carries the day's own rating
- * rather than an invented shape. None once today's daylight is over.
+ * A mock day's strip. Today's hours come from the same template as the mock
+ * chart; later days have no hourly template (some scenarios' are keyed to the
+ * current time), so every hour carries the day's own rating rather than an
+ * invented shape. None once today's rideable hours are over.
  */
 function buildMockDaylight(params: {
   dayIndex: number;
@@ -341,10 +345,13 @@ function buildMockDaylight(params: {
   nowHour: number;
   condition: Condition;
   todayHour: (h: number) => HourlyWeather;
+  nightRiding: boolean;
 }): DaylightHour[] | undefined {
-  const { dayIndex, spec, nowHour, condition, todayHour } = params;
+  const { dayIndex, spec, nowHour, condition, todayHour, nightRiding } = params;
+  const startHour = nightRiding ? 0 : spec.sunriseHour;
+  const endHour = nightRiding ? 24 : spec.sunsetHour;
   const hours: DaylightHour[] = [];
-  for (let h = spec.sunriseHour; h < spec.sunsetHour; h++) {
+  for (let h = startHour; h < endHour; h++) {
     if (dayIndex === 0) {
       hours.push({
         hour: h,
@@ -362,6 +369,7 @@ function buildMockDaylight(params: {
 export function buildMockWeather(
   scenario: string | null | undefined,
   windowHours = 3,
+  nightRiding = false,
 ): Weather | null {
   const spec = isMockScenario(scenario) ? SCENARIOS[scenario] : null;
   if (!spec) return null;
@@ -418,6 +426,7 @@ export function buildMockWeather(
       condition,
       day: t,
       windowHours,
+      nightRiding,
     });
     const daylight = buildMockDaylight({
       dayIndex: i,
@@ -425,6 +434,7 @@ export function buildMockWeather(
       nowHour,
       condition,
       todayHour: buildHour,
+      nightRiding,
     });
     return {
       ...(rideWindow && { rideWindow }),

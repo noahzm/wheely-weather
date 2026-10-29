@@ -38,7 +38,7 @@ import { RIDE_DURATION_HOURS, type GearMode, type RideDuration } from '@/types/s
 import type { Weather } from '@/types/weather';
 import { withAlpha } from '@/utils/colors';
 import { formatTemperature, type TempUnit } from '@/utils/temperature';
-import { fullHourLabel } from '@/utils/timeFormat';
+import { formatHourSpan, fullHourLabel } from '@/utils/timeFormat';
 import {
   ChevronRight,
   Droplet,
@@ -288,7 +288,7 @@ function spanLabel(hours: KitPlanHour[], unit: TempUnit): string | null {
   const first = hours[0];
   const last = hours.at(-1);
   if (!first || !last) return null;
-  const span = `${fullHourLabel(first.hour)}–${fullHourLabel(last.hour + 1)}`;
+  const span = formatHourSpan(first.hour, last.hour + 1);
   return hours.length === 1 ? `${span} · ${formatTemperature(first.temperature, unit)}` : span;
 }
 

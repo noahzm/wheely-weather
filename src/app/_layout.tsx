@@ -129,13 +129,13 @@ function ThemedRoot() {
   const override = appearance === 'system' ? null : appearance;
   const isDark = (override ?? (systemScheme === 'dark' ? 'dark' : 'light')) === 'dark';
   const wheelyBg = WheelyTheme[isDark ? 'dark' : 'light'].background;
-  // iOS has Oswald from the first frame: the expo-font plugin in app.json builds
-  // it into the app. Android loads it here and waits under the launch screen, so
-  // titles never flash in the system font (the native header reads its font only
-  // once). Web renders straight away and swaps the face in (gating would break
-  // hydration).
-  const [postersLoaded, posterError] = useFonts(Platform.OS === 'ios' ? {} : POSTER_FONTS);
-  const fontsReady = Platform.OS !== 'android' || postersLoaded || posterError != null;
+  // Production iOS builds bundle Oswald via the expo-font plugin in app.json, so
+  // `useFonts` sees `isLoaded` synchronously on frame 0; older local dev clients
+  // without a native rebuild fall back to loading it at runtime under the splash
+  // screen (just like Android) so native large titles still get Oswald on mount.
+  // Web renders straight away and swaps the face in without gating hydration.
+  const [postersLoaded, posterError] = useFonts(POSTER_FONTS);
+  const fontsReady = Platform.OS === 'web' || postersLoaded || posterError != null;
 
   useWebDocumentTheme(isDark);
 

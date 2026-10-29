@@ -16,6 +16,7 @@ import { saveCachedForecast } from '@/services/forecastCache';
 import { traceAsync } from '@/services/telemetry';
 import {
   DEFAULT_EXPOSURE_LEVEL,
+  DEFAULT_NIGHT_RIDING,
   DEFAULT_RIDE_DURATION,
   type ExposureLevel,
   type RideDuration,
@@ -64,6 +65,13 @@ type ForecastLoadResult =
       pinnedLocations: RecentLocation[];
     };
 
+export interface ForecastLoadSettings {
+  homeLocation: SavedLocation | null;
+  exposureLevel?: ExposureLevel;
+  rideDuration?: RideDuration;
+  nightRiding?: boolean;
+}
+
 /**
  * Loads everything the forecast screen needs, traced as `forecast.load` with
  * the location check and the forecast fetch as child spans, so Sentry shows
@@ -72,27 +80,22 @@ type ForecastLoadResult =
 export function loadForecastData(
   locationOverride: SavedLocation | null | undefined,
   mockScenario: string | null,
-  homeLocation: SavedLocation | null,
-  exposureLevel: ExposureLevel = DEFAULT_EXPOSURE_LEVEL,
-  rideDuration: RideDuration = DEFAULT_RIDE_DURATION,
+  settings: ForecastLoadSettings,
 ): Promise<ForecastLoadResult> {
   return traceAsync('forecast.load', 'forecast', () =>
-    loadForecastDataUntraced(
-      locationOverride,
-      mockScenario,
-      homeLocation,
-      exposureLevel,
-      rideDuration,
-    ),
+    loadForecastDataUntraced(locationOverride, mockScenario, settings),
   );
 }
 
 async function loadForecastDataUntraced(
   locationOverride: SavedLocation | null | undefined,
   mockScenario: string | null,
-  homeLocation: SavedLocation | null,
-  exposureLevel: ExposureLevel,
-  rideDuration: RideDuration,
+  {
+    homeLocation,
+    exposureLevel = DEFAULT_EXPOSURE_LEVEL,
+    rideDuration = DEFAULT_RIDE_DURATION,
+    nightRiding = DEFAULT_NIGHT_RIDING,
+  }: ForecastLoadSettings,
 ): Promise<ForecastLoadResult> {
   const [storedLocation, recentLocations, pinnedLocations] = await Promise.all([
     locationOverride === undefined ? loadSavedLocation() : Promise.resolve(locationOverride),
@@ -131,6 +134,7 @@ async function loadForecastDataUntraced(
       homeLocation,
       exposureLevel,
       rideDuration,
+      nightRiding,
       mockScenario,
     }),
   );

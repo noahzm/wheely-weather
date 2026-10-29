@@ -9,6 +9,7 @@ import {
   parseHomeLocation,
   parseHomeLocationAuto,
   parseHomeLocationChosen,
+  parseNightRiding,
   parseRideDuration,
   parseTempUnit,
 } from './settingsCodec';
@@ -35,6 +36,11 @@ describe('setting parsers', () => {
     expect(parseRideDuration('allDay')).toBe('allDay');
     expect(parseRideDuration('nonsense')).toBe('3h');
     expect(parseRideDuration(null)).toBe('3h');
+
+    expect(parseNightRiding('true')).toBe(true);
+    expect(parseNightRiding('false')).toBe(false);
+    expect(parseNightRiding('nonsense')).toBe(false);
+    expect(parseNightRiding(null)).toBe(false);
   });
 
   it('reads the ride lengths stored before the picker as their hours', () => {
@@ -55,6 +61,7 @@ describe('setting parsers', () => {
       tempUnit: parseTempUnit(null),
       exposureLevel: parseExposureLevel(null),
       rideDuration: parseRideDuration(null),
+      nightRiding: parseNightRiding(null),
     });
   });
 });

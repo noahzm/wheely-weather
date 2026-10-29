@@ -14,6 +14,7 @@ import { getMemoryCachedForecast, type ForecastCacheSettings } from '@/services/
 import {
   useExposureLevel,
   useHomeLocation,
+  useNightRiding,
   useRideDuration,
   useSettingsHydrated,
 } from '@/hooks/settings-context';
@@ -68,6 +69,7 @@ export function useWeatherForecast(mockScenario: string | null) {
   const [homeLocation] = useHomeLocation();
   const [exposureLevel] = useExposureLevel();
   const [rideDuration] = useRideDuration();
+  const [nightRiding] = useNightRiding();
   const autoSetHome = useAutoHomeLocation(mockScenario);
   const settingsHydrated = useSettingsHydrated();
   const lastLoadedAt = useRef(0);
@@ -84,7 +86,7 @@ export function useWeatherForecast(mockScenario: string | null) {
   const loadForecast = useCallback(
     async (locationOverride?: SavedLocation | null, refreshOnly = false) => {
       const gen = ++loadGenRef.current;
-      const settings = { homeLocation, exposureLevel, rideDuration };
+      const settings = { homeLocation, exposureLevel, rideDuration, nightRiding };
       const cached = locationOverride
         ? getMemoryCachedForecast(locationOverride, undefined, settings)
         : null;
@@ -97,13 +99,7 @@ export function useWeatherForecast(mockScenario: string | null) {
       }));
 
       try {
-        const result = await loadForecastData(
-          locationOverride,
-          mockScenario,
-          homeLocation,
-          exposureLevel,
-          rideDuration,
-        );
+        const result = await loadForecastData(locationOverride, mockScenario, settings);
         if (gen !== loadGenRef.current) return;
         if (result.kind === 'needsLocation') {
           applyNeedsLocation(result, setState, needsLocationRef);
@@ -131,7 +127,7 @@ export function useWeatherForecast(mockScenario: string | null) {
         }));
       }
     },
-    [mockScenario, homeLocation, exposureLevel, rideDuration, autoSetHome],
+    [mockScenario, homeLocation, exposureLevel, rideDuration, nightRiding, autoSetHome],
   );
 
   // Wait for settings so the first fetch reads the real home location; without
@@ -149,7 +145,17 @@ export function useWeatherForecast(mockScenario: string | null) {
   }, [state.savedLocation]);
 
   const cacheHydrated = useSnapshotCacheHydration(setState, mockScenario);
-  usePrefetchPins(state.pinnedLocations, homeLocation, exposureLevel, mockScenario, rideDuration);
+  const cacheSettings: ForecastCacheSettings = {
+    homeLocation,
+    exposureLevel,
+    rideDuration,
+    nightRiding,
+  };
+  usePrefetchPins(
+    state.pinnedLocations,
+    { homeLocation, exposureLevel, rideDuration, nightRiding },
+    mockScenario,
+  );
   // Mock previews must not run GPS or mutate the real persisted device fix.
   const canRelocate = !mockScenario;
   const relocate = useCallback(
@@ -189,7 +195,6 @@ export function useWeatherForecast(mockScenario: string | null) {
       });
   }, [loadForecast, relocate]);
 
-  const cacheSettings: ForecastCacheSettings = { homeLocation, exposureLevel, rideDuration };
   const { setManualLocation, useDeviceLocation } = useLocationActions(
     setState,
     loadForecast,
