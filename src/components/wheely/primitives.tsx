@@ -60,6 +60,11 @@ export function HapticPressable({
         onPress?.(event);
       }}
       android_ripple={ripple}
+      // RN web expects individual ARIA states; native retains accessibilityState.
+      aria-checked={props.accessibilityState?.checked}
+      aria-expanded={props.accessibilityState?.expanded}
+      aria-selected={props.accessibilityState?.selected}
+      aria-busy={props.accessibilityState?.busy}
       {...props}
     >
       {slop

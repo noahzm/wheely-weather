@@ -43,7 +43,7 @@ export function useLocationSearchScreen(onPlaceChosen?: () => void) {
   const [busy, setBusy] = useState(false);
   // Shown under "Use Current Location" when a fix fails; cleared on the next try.
   const [deviceMessage, setDeviceMessage] = useState('');
-  const { results, message, isLoading } = useLocationSearch(query);
+  const { results, message, isLoading, submitSearch } = useLocationSearch(query);
 
   const goToHome = useCallback(() => {
     setQuery('');
@@ -136,6 +136,7 @@ export function useLocationSearchScreen(onPlaceChosen?: () => void) {
   return {
     query,
     setQuery,
+    submitSearch,
     busy,
     message,
     deviceMessage,

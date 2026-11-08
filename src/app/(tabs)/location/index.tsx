@@ -44,9 +44,11 @@ const SEARCH_FIELD_HEIGHT = 44;
 function SearchField({
   query,
   onQueryChange,
+  onSubmit,
 }: Readonly<{
   query: string;
   onQueryChange: (text: string) => void;
+  onSubmit: () => void;
 }>) {
   const c = useWheelyColors();
   const inputRef = useRef<TextInputInstance>(null);
@@ -60,6 +62,7 @@ function SearchField({
           ref={inputRef}
           value={query}
           onChangeText={onQueryChange}
+          onSubmitEditing={onSubmit}
           placeholder="Search a city or place"
           placeholderTextColor={c.mutedInk}
           style={[styles.searchInput, { color: c.ink }]}
@@ -92,6 +95,15 @@ function SearchField({
           </HapticPressable>
         )}
       </View>
+      <HapticPressable
+        onPress={onSubmit}
+        accessibilityRole="button"
+        accessibilityLabel="Search places"
+        disabled={query.trim().length < 2}
+        hitSlop={8}
+      >
+        <ThemedText style={[styles.cancelText, { color: c.ink }]}>Search</ThemedText>
+      </HapticPressable>
       {showCancel && (
         <HapticPressable
           onPress={() => {
@@ -131,6 +143,7 @@ export default function LocationSearchScreen() {
   const {
     query,
     setQuery,
+    submitSearch,
     busy,
     message,
     deviceMessage,
@@ -203,7 +216,7 @@ export default function LocationSearchScreen() {
                   title={<WebScreenTitle>Search</WebScreenTitle>}
                 />
               )}
-              <SearchField query={query} onQueryChange={setQuery} />
+              <SearchField query={query} onQueryChange={setQuery} onSubmit={submitSearch} />
               <LocationSearchList {...listProps} />
             </WebContentColumn>
           </ScrollView>

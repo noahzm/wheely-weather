@@ -28,7 +28,7 @@ export async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Pr
   }
 }
 
-/** Wraps fetch with an abort timeout so slow secondary APIs fail predictably. */
+/** Fetches and buffers the response under one deadline, including body reads. */
 export async function fetchWithTimeout(
   url: string,
   options: RequestInit = {},
@@ -49,7 +49,18 @@ export async function fetchWithTimeout(
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
   try {
-    const fetchPromise = fetch(url, { ...options, signal: controller.signal });
+    const fetchPromise = fetch(url, { ...options, signal: controller.signal }).then(
+      async (response) => {
+        const body = await response.arrayBuffer();
+        // These responses cannot carry a body, even an empty ArrayBuffer.
+        const bodyless = options.method === 'HEAD' || [204, 205, 304].includes(response.status);
+        return new Response(bodyless ? null : body, {
+          status: response.status,
+          statusText: response.statusText,
+          headers: response.headers,
+        });
+      },
+    );
     // Suppress the AbortError rejection that fires when the timeout wins the race.
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     fetchPromise.catch(() => {});
@@ -57,8 +68,8 @@ export async function fetchWithTimeout(
       fetchPromise,
       new Promise<never>((_, reject) => {
         timeoutId = setTimeout(() => {
-          controller.abort();
           reject(new Error(REQUEST_TIMEOUT_ERROR));
+          controller.abort();
         }, timeoutMs);
       }),
     ]);

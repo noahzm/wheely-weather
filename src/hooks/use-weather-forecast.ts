@@ -55,6 +55,24 @@ function useTogglePin(
   );
 }
 
+function useForecastRelocation(
+  mockScenario: string | null,
+  savedLocationRef: { current: SavedLocation | null },
+) {
+  // Mock previews must not run GPS or mutate the persisted device fix.
+  const canRelocate = !mockScenario;
+  const relocate = useCallback(
+    (allowGps: boolean) =>
+      canRelocate
+        ? refreshFollowedLocation(savedLocationRef.current, { allowGps })
+        : Promise.resolve(null),
+    [canRelocate, savedLocationRef],
+  );
+  // Native's foreground watch brings a fresh fix on resume; only web waits on GPS.
+  const relocateOnResume = useCallback(() => relocate(Platform.OS === 'web'), [relocate]);
+  return { canRelocate, relocate, relocateOnResume };
+}
+
 /**
  * Primary forecast hook driving loading, periodic/stale refresh, GPS following,
  * snapshot caching, and manual/device location actions.
@@ -82,10 +100,12 @@ export function useWeatherForecast(mockScenario: string | null) {
   const relocatingRef = useRef(false);
   // Last-initiated-wins sequencing: a slower in-flight load must not overwrite a newer one.
   const loadGenRef = useRef(0);
+  const loadingRef = useRef(false);
 
   const loadForecast = useCallback(
     async (locationOverride?: SavedLocation | null, refreshOnly = false) => {
       const gen = ++loadGenRef.current;
+      loadingRef.current = true;
       const settings = { homeLocation, exposureLevel, rideDuration, nightRiding };
       const cached = locationOverride
         ? getMemoryCachedForecast(locationOverride, undefined, settings)
@@ -125,6 +145,8 @@ export function useWeatherForecast(mockScenario: string | null) {
           errorKind: getForecastErrorKind(error),
           statusMessage: '', // the error UI speaks for the failure now
         }));
+      } finally {
+        if (gen === loadGenRef.current) loadingRef.current = false;
       }
     },
     [mockScenario, homeLocation, exposureLevel, rideDuration, nightRiding, autoSetHome],
@@ -145,34 +167,26 @@ export function useWeatherForecast(mockScenario: string | null) {
   }, [state.savedLocation]);
 
   const cacheHydrated = useSnapshotCacheHydration(setState, mockScenario);
-  const cacheSettings: ForecastCacheSettings = {
+  const cacheSettings = {
     homeLocation,
     exposureLevel,
     rideDuration,
     nightRiding,
-  };
-  usePrefetchPins(
-    state.pinnedLocations,
-    { homeLocation, exposureLevel, rideDuration, nightRiding },
-    mockScenario,
-  );
-  // Mock previews must not run GPS or mutate the real persisted device fix.
-  const canRelocate = !mockScenario;
-  const relocate = useCallback(
-    (allowGps: boolean) =>
-      canRelocate
-        ? refreshFollowedLocation(savedLocationRef.current, { allowGps })
-        : Promise.resolve(null),
-    [canRelocate],
-  );
-  // On resume the foreground watch re-arms and brings a fresh fix, so only web
-  // (which has no watch) waits on GPS here.
-  const relocateOnResume = useCallback(() => relocate(Platform.OS === 'web'), [relocate]);
-  useStaleRefresh(loadForecast, lastLoadedAt, needsLocationRef, relocateOnResume, relocatingRef);
+  } satisfies ForecastCacheSettings;
+  usePrefetchPins(state.pinnedLocations, cacheSettings, mockScenario);
+  const relocation = useForecastRelocation(mockScenario, savedLocationRef);
+  useStaleRefresh({
+    loadForecast,
+    lastLoadedAt,
+    needsLocationRef,
+    relocate: relocation.relocateOnResume,
+    relocatingRef,
+    loadingRef,
+  });
   useFollowDeviceLocation(
     savedLocationRef,
     relocatingRef,
-    state.savedLocation?.source === 'device' && canRelocate,
+    state.savedLocation?.source === 'device' && relocation.canRelocate,
     loadForecast,
   );
 
@@ -187,13 +201,14 @@ export function useWeatherForecast(mockScenario: string | null) {
     if (needsLocationRef.current || relocatingRef.current) return;
     relocatingRef.current = true;
     setState((current) => ({ ...current, refreshing: true }));
-    void relocate(true)
+    void relocation
+      .relocate(true)
       .catch(() => null)
       .then((moved) => loadForecast(moved ?? undefined, true))
       .finally(() => {
         relocatingRef.current = false;
       });
-  }, [loadForecast, relocate]);
+  }, [loadForecast, relocation]);
 
   const { setManualLocation, useDeviceLocation } = useLocationActions(
     setState,

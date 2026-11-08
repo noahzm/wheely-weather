@@ -30,7 +30,7 @@ describe('searchLocations', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('queries Nominatim with a User-Agent on native and parses valid candidates', async () => {
+  it('routes native search through the shared proxy and parses valid candidates', async () => {
     const fetchMock = stubFetchJson([
       {
         lat: '35.7796',
@@ -66,9 +66,9 @@ describe('searchLocations', () => {
     const results = await searchLocations('  Raleigh  ');
 
     expect(fetchMock).toHaveBeenCalledWith(
-      'https://nominatim.openstreetmap.org/search?q=Raleigh&format=json&addressdetails=1&limit=5',
+      'https://wheelyweather.app/api/geocode/search?q=Raleigh',
       expect.objectContaining({
-        headers: { 'User-Agent': 'WheelyWeather/1.0' },
+        signal: expect.any(AbortSignal) as AbortSignal,
       }),
     );
     expect(results).toEqual([
@@ -99,7 +99,7 @@ describe('searchLocations', () => {
     ]);
   });
 
-  it('uses the /api/geocode/search Worker proxy in web production and omits User-Agent on web dev', async () => {
+  it('uses the shared Worker proxy in web production and development', async () => {
     platform.OS = 'web';
     vi.stubGlobal('__DEV__', false);
     const prodFetch = stubFetchJson([]);
@@ -114,8 +114,8 @@ describe('searchLocations', () => {
     const devFetch = stubFetchJson([]);
     await searchLocations('Portland');
     expect(devFetch).toHaveBeenCalledWith(
-      expect.stringContaining('nominatim.openstreetmap.org/search'),
-      expect.objectContaining({ headers: {} }),
+      expect.stringContaining('wheelyweather.app/api/geocode/search'),
+      expect.objectContaining({ signal: expect.any(AbortSignal) as AbortSignal }),
     );
   });
 
@@ -165,9 +165,9 @@ describe('fetchLocationName', () => {
 
     await expect(fetchLocationName(35.78, -78.64)).resolves.toBe('Raleigh, NC');
     expect(fetchMock).toHaveBeenCalledWith(
-      'https://nominatim.openstreetmap.org/reverse?lat=35.78&lon=-78.64&format=json',
+      'https://wheelyweather.app/api/geocode/reverse?lat=35.78&lon=-78.64',
       expect.objectContaining({
-        headers: { 'User-Agent': 'WheelyWeather/1.0' },
+        signal: expect.any(AbortSignal) as AbortSignal,
       }),
     );
   });

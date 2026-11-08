@@ -110,7 +110,7 @@
     },
     "owner": "noahzm",
     "runtimeVersion": {
-      "policy": "appVersion"
+      "policy": "fingerprint"
     },
     "updates": {
       "url": "https://u.expo.dev/ef6ed602-3db3-4a98-8498-52ad5442e138"

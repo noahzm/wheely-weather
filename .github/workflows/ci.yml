@@ -35,18 +35,8 @@ jobs:
           NPM_CONFIG_FUND: 'false'
         timeout-minutes: 5
 
-      - name: Format check
-        run: npm run format:check
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Typecheck
-        run: npm run typecheck
-
-      # Same tests as `npm test`, plus the coverage floors in vitest.config.mts.
-      - name: Unit tests and coverage
-        run: npm run test:coverage
+      - name: Format, lint, types, tests and coverage
+        run: npm run check:code
 
       - name: Web export
         run: npm run build:web
@@ -55,3 +45,26 @@ jobs:
       # without its JS bundle <script> tags (the SDK 58 regression).
       - name: Verify web export
         run: npm run verify:web
+
+      - name: Expo compatibility
+        run: npm run doctor
+
+      - name: Worker runtime integration
+        run: npm run verify:worker
+
+      - name: Install test browsers
+        run: npx playwright install --with-deps chromium webkit
+
+      - name: Browser and accessibility smoke tests
+        run: npm run test:web
+
+      - name: Upload browser test results
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: browser-test-results
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 7

@@ -47,6 +47,14 @@ describe('encodeForecastCache', () => {
 });
 
 describe('decodeForecastCache', () => {
+  it('rejects windows cached before observed hazards were included in window selection', () => {
+    const encoded = encodeForecastCache(buildSnapshot(), LOCATION);
+    const previous: unknown = JSON.parse(encoded ?? '{}');
+    const oldCache = JSON.stringify({ ...(previous as Record<string, unknown>), version: 3 });
+
+    expect(decodeForecastCache(oldCache, LOCATION, NOW + 1000)).toBeNull();
+  });
+
   it('round-trips a live snapshot', () => {
     const snapshot = buildSnapshot();
     const encoded = encodeForecastCache(snapshot, LOCATION);

@@ -36,3 +36,24 @@ Best-effort response targets:
 ## Supported versions
 
 Only the latest release is supported: the current App Store release and the live site, both built from `main`.
+
+## Dependency audit exceptions
+
+Reviewed November 7, 2026 after aligning Expo SDK 58 dependencies. The remaining
+audit findings are in build and lint tooling, with no identified path from rider
+input to the affected APIs:
+
+- `uuid@8` through `@bacons/xcode`: the dependency is declared but not imported.
+- `deepmerge` through `@expo/config`: merges local build configuration.
+- `glob` ([GHSA-3g3m-2fjr-6pw4](https://github.com/advisories/GHSA-3g3m-2fjr-6pw4)):
+  Apple-target config plugins, Expo CLI/fingerprinting and Sentry source-map bundling.
+  These traverse local project files; the app and Worker do not accept glob patterns.
+- `minimatch` ([GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249)):
+  the same build tooling plus ESLint rules and TypeScript parser project discovery.
+  Patterns come from local configuration, not weather/location requests.
+
+The SDK update removed the earlier vulnerable Zod path and the `glob` dependency
+from `expo-updates`. The remaining fixes for `glob` and `minimatch` cross major
+versions, so do not force them into their parents with blanket overrides. Prefer
+compatible upstream releases and recheck these paths on each dependency sweep.
+Do not use `npm audit fix --force`, which proposes incompatible toolchain downgrades.

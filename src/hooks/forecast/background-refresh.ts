@@ -8,6 +8,7 @@ import type { TempUnit } from '@/utils/temperature';
 import { buildWidgetSnapshot } from '@/services/widgetSnapshot';
 
 import { applyExtras } from './merge-extras';
+import { isSnapshotForSettings } from '@/services/snapshotMemoryCache';
 
 /**
  * A forecast younger than this is left alone: the app (or an earlier run)
@@ -34,7 +35,12 @@ export async function refreshWidgetInBackground(
     loadCachedForecast(),
   ]);
   if (!savedLocation) return 'no-location';
-  if (cached && now - cached.snapshot.lastUpdated.getTime() < BACKGROUND_REFRESH_MIN_AGE_MS) {
+  if (
+    cached?.savedLocation.lat === savedLocation.lat &&
+    cached.savedLocation.lon === savedLocation.lon &&
+    isSnapshotForSettings(cached.snapshot, settings) &&
+    now - cached.snapshot.lastUpdated.getTime() < BACKGROUND_REFRESH_MIN_AGE_MS
+  ) {
     return 'fresh';
   }
 

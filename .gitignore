@@ -59,6 +59,8 @@ pnpm-debug.log*
 
 # Test coverage
 coverage/
+playwright-report/
+test-results/
 
 # Generated Lighthouse reports
 lighthouse-report.json

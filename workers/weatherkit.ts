@@ -1,3 +1,4 @@
+import { fetchWithTimeout } from '../src/services/http';
 // WeatherKit REST forecasts for the web app, reshaped into the Open-Meteo wire
 // format (`OpenMeteoData`) that `buildWeatherFromData` already parses, so web
 // rates the same forecast as iOS (whose native module does the same reshape in
@@ -412,11 +413,11 @@ export async function fetchWeatherKitForecast(
   const timeZone = tzLookup(lat, lon);
   const token = await weatherKitToken(env, now.getTime());
   const init = { headers: { Authorization: `Bearer ${token}` } };
-  let res = await fetch(weatherKitUrl(lat, lon, timeZone, now), init);
+  let res = await fetchWithTimeout(weatherKitUrl(lat, lon, timeZone, now), init, 15_000);
   // Asking for alerts where Apple has none fails the whole request with a 400
   // (iOS hit it as WHEELY-WEATHER-G); the forecast alone still comes through.
   if (res.status === 400 && alertCountry(timeZone)) {
-    res = await fetch(weatherKitUrl(lat, lon, timeZone, now, null), init);
+    res = await fetchWithTimeout(weatherKitUrl(lat, lon, timeZone, now, null), init, 15_000);
   }
   if (!res.ok) throw new Error(`WeatherKit ${res.status}`);
   const body = (await res.json()) as WeatherKitRestResponse;

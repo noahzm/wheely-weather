@@ -111,7 +111,7 @@ export function DaylightAxis({
   const last = hours.at(-1);
   if (!first || !last) return null;
   return (
-    <AnimatedExpand openProgress={openProgress}>
+    <AnimatedExpand open={isExpanded} openProgress={openProgress}>
       <View
         style={styles.axis}
         accessibilityElementsHidden

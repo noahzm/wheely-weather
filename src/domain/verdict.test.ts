@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { resolveThresholds } from './acclimatization';
 import { THRESHOLDS } from './constants';
-import { getOverallStatus } from './scoring';
+import { getDailyCondition, getOverallStatus } from './scoring';
 import { formatVerdictDetail } from './copy';
 import { getRideKitTitle, getRideVerdict, getRideVerdictLabel } from './verdict';
 
@@ -240,6 +240,70 @@ describe('getRideVerdict', () => {
     expect(verdict.when).toBe('current');
     expect(verdict.window).toBeNull();
     expect(verdict.status).toBe(getOverallStatus(weather, THRESHOLDS));
+  });
+});
+
+describe('cold rain in the rated window', () => {
+  it.each([
+    { tempLow: 40, condition: 'bad' },
+    { tempLow: 43, condition: 'poor' },
+  ] as const)(
+    'preserves a $condition cold-rain rating as the window warms',
+    ({ tempLow, condition }) => {
+      const wetDay = day(
+        { rainChance: 20, precipitation: 0.3, weatherCode: 51, dewpoint: 35 },
+        window(9, 12, tempLow, 49),
+      );
+      wetDay.condition = getDailyCondition(
+        {
+          tempLow,
+          tempHigh: 49,
+          wind: 5,
+          rain: 20,
+          precip: 0.3,
+          code: 51,
+          dewpoint: 35,
+        },
+        THRESHOLDS,
+      );
+      // Tomorrow's window isolates this from any disagreement with current weather.
+      const weather = { ...rainyMorning([day(), wetDay]), hourly: [hour(20)] };
+
+      const verdict = getRideVerdict(weather, THRESHOLDS);
+
+      expect(wetDay.condition).toBe(condition);
+      expect(verdict).toMatchObject({ when: 'tomorrow', status: 'no', condition });
+      expect(verdict.rated.temperature).toBe(tempLow);
+      expect(verdict.score).toBeLessThanOrEqual(condition === 'bad' ? 1 : 3);
+      expect(verdict.message.issues.join(' ')).toMatch(/(cold|freezing).*rain/i);
+    },
+  );
+
+  it('keeps the warmer temperature on a dry comfort-band tie', () => {
+    const weather = rainyMorning([day({}, window(14, 17, 40, 49))]);
+    expect(getRideVerdict(weather, THRESHOLDS).rated.temperature).toBe(49);
+  });
+
+  it.each([
+    { tempLow: 40, condition: 'bad', status: 'no' },
+    { tempLow: 43, condition: 'marginal', status: 'maybe' },
+  ])('uses the rider’s cold-rain thresholds at $tempLow°F', ({ tempLow, condition, status }) => {
+    const thresholds = resolveThresholds(
+      { warmTemp: 40, warmDewpoint: 30, coolTemp: 25 },
+      THRESHOLDS,
+      'high',
+    );
+    const weather = rainyMorning([
+      day(),
+      day(
+        { rainChance: 20, precipitation: 0.3, weatherCode: 51, dewpoint: 35 },
+        window(9, 12, tempLow, 49),
+      ),
+    ]);
+    const verdict = getRideVerdict(weather, thresholds);
+
+    expect(verdict).toMatchObject({ when: 'tomorrow', condition, status });
+    expect(verdict.rated.temperature).toBe(tempLow);
   });
 });
 

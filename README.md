@@ -37,7 +37,7 @@ A cyclist-first weather app for iOS, Android, and the web. Live at [wheelyweathe
 |                 | iOS              | Web                                                           | Android                     |
 | --------------- | ---------------- | ------------------------------------------------------------- | --------------------------- |
 | **Weather**     | Apple WeatherKit | WeatherKit via a Cloudflare Worker (Open-Meteo fallback)      | Open-Meteo                  |
-| **Search**      | Apple MapKit     | Nominatim via the Worker                                      | Nominatim                   |
+| **Search**      | Apple MapKit     | Nominatim via the Worker                                      | Nominatim via the Worker    |
 | **Alerts**      | WeatherKit       | WeatherKit via the Worker (National Weather Service fallback) | US National Weather Service |
 | **Air quality** | Open-Meteo       | Open-Meteo                                                    | Open-Meteo                  |
 
@@ -55,13 +55,26 @@ npm run web            # or: npm run ios / npm run android
 
 ## Commands
 
-| Command                 | What it does                                                  |
-| ----------------------- | ------------------------------------------------------------- |
-| `npm run check`         | Everything CI runs: format, lint, types, tests, build         |
-| `npm test`              | Unit tests                                                    |
-| `npm run test:coverage` | Unit tests with coverage floors                               |
-| `npm run e2e:ios`       | iOS end-to-end flows (Maestro, needs the simulator and Metro) |
-| `npm run ios:clean`     | Regenerate the native iOS project and run                     |
+| Command                  | What it does                                                         |
+| ------------------------ | -------------------------------------------------------------------- |
+| `npm run check`          | Format, lint, types, coverage, web export, Doctor and Worker runtime |
+| `npm test`               | Unit tests                                                           |
+| `npm run test:coverage`  | Unit tests with coverage floors                                      |
+| `npm run test:web`       | Chromium and mobile WebKit smoke tests against `dist/`               |
+| `npm run doctor`         | Expo SDK dependency and project compatibility checks                 |
+| `npm run check:deploy`   | Code, coverage, export and compatibility gate before deploying       |
+| `npm run e2e:ios`        | iOS end-to-end flows (Maestro, needs the simulator and Metro)        |
+| `npm run verify:worker`  | Worker runtime, SQLite object and cache with mocked APIs             |
+| `npm run preflight:ios`  | Read-only simulator, dev-client, Metro, Java and Maestro checks      |
+| `npm run references:web` | Regenerate the light/dark mobile web reference screenshots           |
+| `npm run ios:clean`      | Regenerate the native iOS project and run                            |
+
+For browser tests, install the browsers once with `npx playwright install chromium webkit`,
+then run `npm run check` followed by `npm run test:web`. CI installs the browser dependencies
+and runs both. The tests use mock forecasts and block external network requests.
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the local iOS preflight, resource
+constraints, EAS fallback and [visual references](./docs/visual-references/README.md).
 
 ## Project structure
 
@@ -82,6 +95,21 @@ workers/         # Cloudflare Worker (forecast and geocoding API)
 
 - **Web**: every push to `main` deploys to Cloudflare.
 - **iOS**: built and submitted with EAS (`npm run eas:build:ios-prod`).
+
+OTA updates use a native fingerprint, including the custom modules and `targets/` widget.
+Changing to this policy requires a new native build: existing App Store binaries keep
+their old runtime version and will not receive updates for the fingerprint runtime.
+
+Web and Android place search runs only after submitting Search (keyboard or button).
+All Nominatim requests, including development, go through the deployed Worker;
+there is no direct fallback. The `GEOCODER` SQLite Durable Object serializes cache
+misses globally, spaces upstream starts by at least 1.1 seconds, and returns 429
+when busy. Successful searches are edge-cached for an hour and reverse lookups
+for a day. `wrangler.jsonc` creates the binding and object with its migration on
+the next deployment. Keep this shared throttle when changing geocoding:
+[Nominatim's policy](https://operations.osmfoundation.org/policies/nominatim/)
+prohibits autocomplete and limits total app traffic to one request per second.
+iOS continues to use Apple's autocomplete and reverse geocoder.
 
 ## More
 

@@ -286,7 +286,7 @@ function DayRowDetail({
   ];
 
   return (
-    <AnimatedExpand openProgress={openProgress}>
+    <AnimatedExpand open={isExpanded} openProgress={openProgress}>
       <View style={styles.drawer} accessibilityLiveRegion="polite">
         {reasonText != null && (
           <ThemedText style={styles.reason}>{preventOrphans(reasonText)}</ThemedText>

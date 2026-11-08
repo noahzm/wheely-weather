@@ -133,7 +133,8 @@ export function RNSegmentedPicker<T extends string>({
             style={styles.segment}
             hitSlop={SEGMENT_HIT_SLOP}
             accessibilityRole="radio"
-            accessibilityState={{ selected: active }}
+            accessibilityState={{ checked: active }}
+            aria-checked={active}
             accessibilityLabel={labels[idx]}
             onPress={() => {
               selectionFeedback();

@@ -7,15 +7,13 @@ import {
 
 const NOMINATIM_SEARCH = 'https://nominatim.openstreetmap.org/search';
 const NOMINATIM_REVERSE = 'https://nominatim.openstreetmap.org/reverse';
-const USER_AGENT = 'WheelyWeather/1.0 (https://wheelyweather.app; contact@wheelyweather.app)';
+export { NominatimProxy } from './nominatim';
 
 const SEARCH_CACHE_CONTROL = 'public, max-age=3600';
 const REVERSE_CACHE_CONTROL = 'public, max-age=86400';
 // Nominatim's usage policy requires caching results. Its answers are cached at
 // the edge for as long as browsers keep them, so a place looked up by one rider
 // is answered from the cache for the next.
-const SEARCH_EDGE_TTL_S = 3600;
-const REVERSE_EDGE_TTL_S = 86_400;
 // Reverse lookups only name the town: round to ~100 m so nearby riders share
 // cache entries and Nominatim never sees a precise position.
 const REVERSE_COORD_DECIMALS = 3;
@@ -31,9 +29,8 @@ const PARTIAL_FORECAST_CACHE_CONTROL = 'public, max-age=60';
 // and the edge cache answers.
 const BROWSER_FORECAST_CACHE_CONTROL = 'no-cache';
 
-// Only the app's own origin may read proxied responses cross-origin. Native
-// clients call Nominatim and WeatherKit directly, so the API only serves the
-// web app.
+// Production web uses its own origin; geocoding also permits loopback dev origins.
+// Android also calls geocoding here; native fetch is not subject to CORS.
 const ALLOWED_ORIGIN = 'https://wheelyweather.app';
 // Nominatim place queries are short; cap input size to blunt proxy abuse.
 const MAX_QUERY_LENGTH = 200;
@@ -46,6 +43,10 @@ interface Context {
 /** Bindings from wrangler.jsonc, plus the WeatherKit secrets. */
 export interface Env extends WeatherKitSecrets {
   ASSETS: { fetch(request: Request): Promise<Response> };
+  GEOCODER?: {
+    idFromName(name: string): unknown;
+    get(id: unknown): { fetch(request: Request): Promise<Response> };
+  };
 }
 
 const SECURITY_HEADERS = {
@@ -59,17 +60,24 @@ export default {
   async fetch(request: Request, env: Env, ctx?: Context): Promise<Response> {
     const url = new URL(request.url);
 
-    if (url.pathname === '/api/geocode/search') {
-      return handleGeocode(request, buildSearchUrl(url), {
-        cacheControl: SEARCH_CACHE_CONTROL,
-        edgeTtl: SEARCH_EDGE_TTL_S,
-      });
-    }
-    if (url.pathname === '/api/geocode/reverse') {
-      return handleGeocode(request, buildReverseUrl(url), {
-        cacheControl: REVERSE_CACHE_CONTROL,
-        edgeTtl: REVERSE_EDGE_TTL_S,
-      });
+    if (url.pathname === '/api/geocode/search' || url.pathname === '/api/geocode/reverse') {
+      const search = url.pathname.endsWith('/search');
+      const response = await handleGeocode(
+        request,
+        search ? buildSearchUrl(url) : buildReverseUrl(url),
+        { cacheControl: search ? SEARCH_CACHE_CONTROL : REVERSE_CACHE_CONTROL },
+        env,
+      );
+      // Local Expo web clients use this deployed proxy too, so they cannot
+      // bypass the global limit. No cookies or credentialed CORS are allowed.
+      const origin = request.headers.get('Origin');
+      if (origin && /^http:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?$/.test(origin)) {
+        const local = new Response(response.body, response);
+        local.headers.set('Access-Control-Allow-Origin', origin);
+        local.headers.set('Vary', 'Origin');
+        return local;
+      }
+      return response;
     }
     if (url.pathname === '/api/forecast') {
       return handleForecast(request, url, env, ctx);
@@ -122,11 +130,6 @@ function buildReverseUrl(url: URL): GeocodeTarget {
   const lon = coords.lon.toFixed(REVERSE_COORD_DECIMALS);
   return { url: `${NOMINATIM_REVERSE}?lat=${lat}&lon=${lon}&format=json` };
 }
-
-/** `fetch` options plus the Workers-only `cf` cache controls. */
-type EdgeCachedInit = RequestInit & {
-  cf: { cacheEverything: boolean; cacheTtlByStatus: Record<string, number> };
-};
 
 /** Workers' shared edge cache; absent outside the Workers runtime (tests). */
 function edgeCache(): Cache | null {
@@ -199,7 +202,8 @@ async function handleForecast(
 async function handleGeocode(
   request: Request,
   target: GeocodeTarget,
-  { cacheControl, edgeTtl }: { cacheControl: string; edgeTtl: number },
+  { cacheControl }: { cacheControl: string },
+  env: Env,
 ): Promise<Response> {
   if (request.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders() });
@@ -208,15 +212,21 @@ async function handleGeocode(
   if ('error' in target) return badRequest(target.error);
 
   try {
-    const init: EdgeCachedInit = {
-      headers: { 'User-Agent': USER_AGENT },
-      // JSON isn't cached by default; only successful answers are kept.
-      cf: { cacheEverything: true, cacheTtlByStatus: { '200-299': edgeTtl, '300-599': -1 } },
-    };
-    const res = await fetch(target.url, init);
+    const cache = edgeCache();
+    const cacheKey = new Request(
+      `${new URL(request.url).origin}/api/geocode/cache?target=${encodeURIComponent(target.url)}`,
+    );
+    const cached = await cache?.match(cacheKey);
+    if (cached) return cached;
+    // Fail closed if the binding is missing; never bypass the shared limit.
+    if (!env.GEOCODER) return errorResponse(503, 'Geocoding is not configured');
+    const proxy = env.GEOCODER.get(env.GEOCODER.idFromName('public-nominatim'));
+    const res = await proxy.fetch(new Request(target.url));
 
     if (res.status === 429) {
-      return errorResponse(429, 'Rate limited. Try again shortly.');
+      const response = errorResponse(429, 'Rate limited. Try again shortly.');
+      response.headers.set('Retry-After', res.headers.get('Retry-After') ?? '2');
+      return response;
     }
 
     if (!res.ok) {
@@ -224,13 +234,19 @@ async function handleGeocode(
     }
 
     const body = await res.text();
-    return new Response(body, {
+    const response = new Response(body, {
       status: res.status,
       headers: {
         ...jsonHeaders(),
         'Cache-Control': cacheControl,
       },
     });
+    // The object handles all misses; successful answers remain cached at each
+    // edge for the policy-required TTL. Cache errors must not discard results.
+    if (cache) {
+      await cache.put(cacheKey, response.clone()).catch(() => null);
+    }
+    return response;
   } catch {
     return new Response(JSON.stringify({ error: 'Geocoding service unavailable' }), {
       status: 502,
@@ -270,6 +286,7 @@ function badRequest(message: string) {
 function corsHeaders() {
   return {
     'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+    Vary: 'Origin',
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
     ...SECURITY_HEADERS,

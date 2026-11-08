@@ -15,6 +15,8 @@ module.exports = defineConfig([
       '.expo/**',
       'node_modules/**',
       'coverage/**',
+      'playwright-report/**',
+      'test-results/**',
       'ios/**',
       'android/**',
       '.wrangler/**',
@@ -25,8 +27,8 @@ module.exports = defineConfig([
   expoConfig,
 
   // ── TypeScript files: type-aware strict rules ────────────────────────────
-  // The tree is clean, so all rules are `error` and CI runs with
-  // `--max-warnings 0` — any violation (warning or error) fails the build.
+  // CI runs with `--max-warnings 0`, so inherited warnings and errors both
+  // fail the build.
   ...tseslint.configs.strictTypeChecked.map((c) => ({
     ...c,
     files: ['**/*.{ts,tsx}'],
@@ -52,8 +54,8 @@ module.exports = defineConfig([
       // member, so adding one to the type flags each switch that ignores it.
       // A `default` branch doesn't count: it would silently absorb the new member.
       '@typescript-eslint/switch-exhaustiveness-check': 'error',
-      // React Compiler rule (from eslint-plugin-react-hooks, but not part of its
-      // `recommended` preset, which eslint-config-expo spreads): flags mutating
+      // React Compiler rule included in the React Hooks recommended preset.
+      // Keep its error severity explicit here: it flags mutating
       // compiler-managed React values (e.g. a `useState` result) in render scope.
       // It does NOT understand Reanimated's `useSharedValue` — the `.set()` over
       // `.value =` convention is enforced by review, not by this rule.
@@ -67,6 +69,27 @@ module.exports = defineConfig([
         { selector: 'variable', format: ['camelCase', 'PascalCase', 'UPPER_CASE'] },
         { selector: 'function', format: ['camelCase', 'PascalCase'] },
         { selector: 'typeLike', format: ['PascalCase'] },
+      ],
+    },
+  },
+
+  // ── Platform weather-service boundary ──────────────────────────────────
+  {
+    files: ['src/services/weatherService.{ios,web}.ts'],
+    rules: {
+      // Metro resolves this module back to the platform file itself. Imports
+      // and re-exports must use weatherFetch / weatherParsing for shared code.
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              regex: String.raw`(^|/)weatherService(?:\.[cm]?[jt]sx?)?$`,
+              message:
+                'Platform weather services must import shared code from weatherFetch or weatherParsing; weatherService resolves back to this platform file.',
+            },
+          ],
+        },
       ],
     },
   },
@@ -121,6 +144,15 @@ module.exports = defineConfig([
       'max-params': ['error', 5],
       'max-lines': ['error', { max: 700, skipBlankLines: true, skipComments: true }],
       'max-lines-per-function': ['error', { max: 120, skipBlankLines: true, skipComments: true }],
+    },
+  },
+
+  // JSX takes space without adding branches. Give UI functions more room,
+  // while retaining the same complexity, nesting, parameter and file limits.
+  {
+    files: ['src/components/**/*.tsx', 'src/app/**/*.tsx'],
+    rules: {
+      'max-lines-per-function': ['error', { max: 200, skipBlankLines: true, skipComments: true }],
     },
   },
 

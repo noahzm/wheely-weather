@@ -19,17 +19,10 @@ interface SearchOptions {
 const SECONDARY_FETCH_TIMEOUT_MS = 6000;
 const SEARCH_TIMEOUT_MS = 8000;
 
-// Note: `globalThis.window` is NOT a web check — React Native polyfills
-// `window = global` on iOS/Android, so use Platform.OS instead.
-function isWebProduction(): boolean {
-  return Platform.OS === 'web' && !__DEV__;
-}
-
-// Browsers treat User-Agent as a forbidden fetch header (inconsistently
-// ignored or rejected); only native callers send Nominatim's required UA.
-// Web production goes through the /api/geocode proxy, which sets its own.
-function nominatimHeaders(): Record<string, string> {
-  return Platform.OS === 'web' ? {} : { 'User-Agent': 'WheelyWeather/1.0' };
+// Every non-iOS caller shares the deployed proxy's application-wide limit,
+// including development and Android. iOS shadows this file with Apple's APIs.
+function geocodeUrl(path: string): string {
+  return Platform.OS === 'web' && !__DEV__ ? path : `https://wheelyweather.app${path}`;
 }
 
 async function parseNominatimSearchResponse(res: Response): Promise<LocationSearchResult[]> {
@@ -83,21 +76,9 @@ export async function searchLocations(
   const q = query.trim();
   if (!q) return [];
 
-  if (isWebProduction()) {
-    const res = await fetchWithTimeout(
-      `/api/geocode/search?q=${encodeURIComponent(q)}`,
-      { signal },
-      SEARCH_TIMEOUT_MS,
-    );
-    return parseNominatimSearchResponse(res);
-  }
-
-  const url =
-    `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}` +
-    `&format=json&addressdetails=1&limit=5`;
   const res = await fetchWithTimeout(
-    url,
-    { headers: nominatimHeaders(), signal },
+    geocodeUrl(`/api/geocode/search?q=${encodeURIComponent(q)}`),
+    { signal },
     SEARCH_TIMEOUT_MS,
   );
   return parseNominatimSearchResponse(res);
@@ -110,11 +91,11 @@ export async function searchLocations(
  */
 export async function fetchLocationName(lat: number, lon: number): Promise<string | null> {
   try {
-    const reverseUrl = isWebProduction()
-      ? `/api/geocode/reverse?lat=${lat}&lon=${lon}`
-      : `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`;
-    const fetchOptions = isWebProduction() ? {} : { headers: nominatimHeaders() };
-    const res = await fetchWithTimeout(reverseUrl, fetchOptions, SECONDARY_FETCH_TIMEOUT_MS);
+    const res = await fetchWithTimeout(
+      geocodeUrl(`/api/geocode/reverse?lat=${lat}&lon=${lon}`),
+      {},
+      SECONDARY_FETCH_TIMEOUT_MS,
+    );
     const data = (await res.json()) as NominatimResult;
     if (data.address) {
       const { city, town, village, county, state } = data.address;

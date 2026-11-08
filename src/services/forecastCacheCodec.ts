@@ -12,10 +12,10 @@ import type { HomeBaseline, Weather } from '@/types/weather';
 import type { ForecastSnapshot } from './forecastSnapshot';
 import type { LocationSource, SavedLocation } from './locationStorage';
 
-// v3 adds `rideDuration` and `homeLocation` so hydrated snapshots keep the
-// window length they were rated with and know which home produced their
-// baseline. Bumping discards older entries on upgrade.
-const FORECAST_CACHE_VERSION = 3;
+// v4 discards windows picked before current observations were merged into
+// the hourly forecast. Those derived ratings cannot be repaired from the
+// disk payload, which does not retain the raw forecast.
+const FORECAST_CACHE_VERSION = 4;
 // Cached content is only a bridge until the background refresh lands; when
 // offline, 6h-old data still beats a spinner, but older than that the "Now"
 // marker and hourly window drift too far to trust.

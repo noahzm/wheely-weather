@@ -489,44 +489,36 @@ function parseDaylightHours(data: OpenMeteoData): DaylightHours | null {
 }
 
 /**
- * Reconciles the "Now" hour with the current observation. The hourly forecast
- * row for the current hour is model output while `current` is a real
- * observation (WeatherKit especially), so left unmerged the chart's Now row
- * can contradict the verdict and Numbers card, which both read `current`.
- * Rain chance and UV stay with the hourly row — the observation has no
- * precipitation probability — and the merged hour is re-rated.
+ * Reconciles the current hourly row with the observation before any ratings
+ * or windows are built. Otherwise a storm outside can still be selected as
+ * the start of a clear ride window. Rain chance, amount and UV stay with the
+ * forecast. Copy the arrays so the widget can still project future hours
+ * from the provider's original forecast.
  */
 function mergeNowObservation(
-  hourly: HourlyWeather[],
+  data: OpenMeteoData,
   current: NonNullable<OpenMeteoData['current']>,
   hourIdx: number,
-  thresholds: Thresholds,
-): HourlyWeather[] {
-  const now = hourly[0];
-  if (hourIdx === -1 || !now) return hourly;
-  const windGust = current.wind_gusts_10m ?? now.windGust;
-  const merged: HourlyWeather = {
-    ...now,
-    temperature: current.temperature_2m,
-    feelsLike: current.apparent_temperature,
-    windSpeed: current.wind_speed_10m,
-    windGust,
-    dewpoint: current.dewpoint_2m,
-    weatherCode: current.weather_code,
-    condition: getHourlyCondition(
-      {
-        temperature: current.temperature_2m,
-        wind: current.wind_speed_10m,
-        gust: windGust,
-        rain: now.rainChance,
-        precip: now.precipitation,
-        code: current.weather_code,
-        dewpoint: current.dewpoint_2m,
-      },
-      thresholds,
-    ),
+): OpenMeteoData {
+  if (hourIdx === -1) return data;
+  const { hourly } = data;
+  const observed = <T>(values: T[], value: T): T[] =>
+    values.map((forecast, index) => (index === hourIdx ? value : forecast));
+  return {
+    ...data,
+    hourly: {
+      ...hourly,
+      temperature_2m: observed(hourly.temperature_2m, current.temperature_2m),
+      apparent_temperature: observed(hourly.apparent_temperature, current.apparent_temperature),
+      wind_speed_10m: observed(hourly.wind_speed_10m, current.wind_speed_10m),
+      wind_gusts_10m:
+        current.wind_gusts_10m == null
+          ? hourly.wind_gusts_10m
+          : observed(hourly.wind_gusts_10m ?? hourly.time.map(() => null), current.wind_gusts_10m),
+      dewpoint_2m: observed(hourly.dewpoint_2m, current.dewpoint_2m),
+      weather_code: observed(hourly.weather_code, current.weather_code),
+    },
   };
-  return [merged, ...hourly.slice(1)];
 }
 
 /** The daily series from `start` on, every array cut alike. */
@@ -601,7 +593,7 @@ export function buildWeatherFromData(
   const currentRainChance =
     hourIdx === -1 ? 0 : normalizeRainChance(data.hourly.precipitation_probability[hourIdx]);
 
-  const hourlyParsed = parseHourly(data, currentHourStr, thresholds);
+  const observedData = mergeNowObservation(data, data.current, hourIdx);
 
   return {
     temperature: data.current.temperature_2m,
@@ -618,9 +610,9 @@ export function buildWeatherFromData(
     aqi: null,
     uvIndex: hourIdx === -1 ? null : (data.hourly.uv_index?.[hourIdx] ?? null),
     uvIndexDailyMax: data.daily.uv_index_max?.[0] ?? null,
-    hourly: mergeNowObservation(hourlyParsed, data.current, hourIdx, thresholds),
-    pastHourly: parsePastHourly(data, currentHourStr, 12, thresholds),
-    daily: parseDaily(data, thresholds, rideWindowHours, nightRiding),
+    hourly: parseHourly(observedData, currentHourStr, thresholds),
+    pastHourly: parsePastHourly(observedData, currentHourStr, 12, thresholds),
+    daily: parseDaily(observedData, thresholds, rideWindowHours, nightRiding),
     sunrise: parseSunrise(data),
     sunset: parseSunset(data),
     daylight: parseDaylightHours(data),

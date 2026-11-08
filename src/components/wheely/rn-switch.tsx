@@ -61,6 +61,7 @@ export function RNSwitch({
       hitSlop={SWITCH_HIT_SLOP}
       accessibilityRole="switch"
       accessibilityState={{ checked: value, disabled }}
+      aria-checked={value}
       accessibilityLabel={accessibilityLabel}
       style={{
         width: SWITCH_WIDTH,

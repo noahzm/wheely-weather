@@ -42,13 +42,67 @@ describe('fetchWithTimeout', () => {
     const fetchMock = vi.fn().mockResolvedValue(response);
     vi.stubGlobal('fetch', fetchMock);
 
-    await expect(
-      fetchWithTimeout('https://example.test', { headers: { Accept: 'application/json' } }, 1000),
-    ).resolves.toBe(response);
+    const buffered = await fetchWithTimeout(
+      'https://example.test',
+      { headers: { Accept: 'application/json' } },
+      1000,
+    );
+    expect(await buffered.json()).toEqual({});
+    expect(vi.getTimerCount()).toBe(0);
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe('https://example.test');
     expect(init.headers).toEqual({ Accept: 'application/json' });
     expect(init.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('times out a stalled response body after headers arrive', async () => {
+    const response = new Response('{}');
+    vi.spyOn(response, 'arrayBuffer').mockReturnValue(new Promise<never>(vi.fn()));
+    const fetchMock = vi.fn().mockResolvedValue(response);
+    vi.stubGlobal('fetch', fetchMock);
+    const pending = fetchWithTimeout('https://example.test', {}, 100);
+    const assertion = expect(pending).rejects.toThrow(REQUEST_TIMEOUT_ERROR);
+    await vi.advanceTimersByTimeAsync(100);
+    await assertion;
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(init.signal?.aborted).toBe(true);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('keeps caller cancellation connected while reading the body', async () => {
+    const response = new Response('{}');
+    const caller = new AbortController();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((_url: string, init: RequestInit) => {
+        vi.spyOn(response, 'arrayBuffer').mockImplementation(
+          () =>
+            new Promise((_, reject) => {
+              init.signal?.addEventListener('abort', () => {
+                reject(new Error('Body aborted'));
+              });
+            }),
+        );
+        return Promise.resolve(response);
+      }),
+    );
+    const pending = fetchWithTimeout('https://example.test', { signal: caller.signal }, 1000);
+    const assertion = expect(pending).rejects.toThrow('Body aborted');
+    await vi.advanceTimersByTimeAsync(0);
+    caller.abort();
+    await assertion;
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('preserves response status and headers, including responses without a body', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(new Response(null, { status: 204, headers: { 'X-Test': 'yes' } })),
+    );
+    const response = await fetchWithTimeout('https://example.test');
+    expect(response.status).toBe(204);
+    expect(response.headers.get('X-Test')).toBe('yes');
+    expect(await response.text()).toBe('');
   });
 
   it('aborts and rejects with the timeout error when fetch never resolves', async () => {

@@ -1,9 +1,14 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import worker, { type Env } from './index';
+import { NominatimProxy } from './nominatim';
 import * as weatherkit from './weatherkit';
 
 // API routes must never fall through to static assets.
 const apiEnv: Env = {
+  GEOCODER: {
+    idFromName: (name) => name,
+    get: () => ({ fetch: (request) => globalThis.fetch(request.url) }),
+  },
   ASSETS: {
     fetch: () => Promise.reject(new Error('API route reached ASSETS')),
   },
@@ -28,6 +33,34 @@ describe('Cloudflare Worker geocode proxy', () => {
       expect(response.headers.get('Access-Control-Allow-Origin')).toBe('https://wheelyweather.app');
       expect(response.headers.get('Access-Control-Allow-Methods')).toContain('GET');
     });
+  });
+
+  it.each(['http://localhost:8081', 'http://127.0.0.1:8082'])(
+    'allows the local development origin %s through the shared proxy',
+    async (origin) => {
+      const response = await worker.fetch(
+        new Request('https://wheelyweather.app/api/geocode/search?q=Boston', {
+          method: 'OPTIONS',
+          headers: { Origin: origin },
+        }),
+        apiEnv,
+      );
+      expect(response.status).toBe(204);
+      expect(response.headers.get('Access-Control-Allow-Origin')).toBe(origin);
+      expect(response.headers.get('Vary')).toBe('Origin');
+      expect(response.headers.get('Access-Control-Allow-Credentials')).toBeNull();
+    },
+  );
+
+  it('does not reflect arbitrary website origins', async () => {
+    const response = await worker.fetch(
+      new Request('https://wheelyweather.app/api/geocode/search?q=Boston', {
+        method: 'OPTIONS',
+        headers: { Origin: 'https://unrelated.example' },
+      }),
+      apiEnv,
+    );
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBe('https://wheelyweather.app');
   });
 
   describe('/api/geocode/search', () => {
@@ -81,10 +114,41 @@ describe('Cloudflare Worker geocode proxy', () => {
       );
       const data: unknown = await response.json();
       expect(data).toEqual(mockNominatimResponse);
-      // Nominatim's policy requires caching: successful answers stay at the edge.
-      expect(vi.mocked(globalThis.fetch).mock.calls[0]?.[1]).toMatchObject({
-        cf: { cacheEverything: true, cacheTtlByStatus: { '200-299': 3600, '300-599': -1 } },
+    });
+
+    it('fails closed if the global throttle is not configured', async () => {
+      globalThis.fetch = vi.fn();
+      const response = await worker.fetch(
+        new Request('https://wheelyweather.app/api/geocode/search?q=Boston'),
+        { ASSETS: apiEnv.ASSETS },
+      );
+      expect(response.status).toBe(503);
+      expect(globalThis.fetch).not.toHaveBeenCalled();
+    });
+
+    it('serves cached searches without consuming another global request', async () => {
+      const entries = new Map<string, Response>();
+      vi.stubGlobal('caches', {
+        default: {
+          match: (key: Request) => Promise.resolve(entries.get(key.url)?.clone()),
+          put: (key: Request, response: Response) => {
+            entries.set(key.url, response);
+            return Promise.resolve();
+          },
+        },
       });
+      const proxyFetch = vi.fn(() => Promise.resolve(new Response('[]')));
+      const env = {
+        ...apiEnv,
+        GEOCODER: { idFromName: (name: string) => name, get: () => ({ fetch: proxyFetch }) },
+      };
+      const request = new Request('https://wheelyweather.app/api/geocode/search?q=Boston');
+      const first = await worker.fetch(request, env);
+      expect(first.status).toBe(200);
+      const second = await worker.fetch(request, env);
+      expect(await second.json()).toEqual([]);
+      expect(proxyFetch).toHaveBeenCalledTimes(1);
+      expect(second.headers.get('Cache-Control')).toBe('public, max-age=3600');
     });
 
     it('handles 429 rate limit with no-store', async () => {
@@ -170,11 +234,10 @@ describe('Cloudflare Worker geocode proxy', () => {
       expect(response.status).toBe(200);
       expect(response.headers.get('Cache-Control')).toBe('public, max-age=86400');
       // Rounded to ~100 m before it leaves for Nominatim, and cached for a day.
-      const [upstream, init] = vi.mocked(globalThis.fetch).mock.calls[0] ?? [];
+      const [upstream] = vi.mocked(globalThis.fetch).mock.calls[0] ?? [];
       expect(upstream).toBe(
         'https://nominatim.openstreetmap.org/reverse?lat=42.360&lon=-71.059&format=json',
       );
-      expect(init).toMatchObject({ cf: { cacheTtlByStatus: { '200-299': 86_400 } } });
       const data: unknown = await response.json();
       expect(data).toEqual(mockResult);
     });
@@ -321,5 +384,77 @@ describe('Cloudflare Worker geocode proxy', () => {
       expect(fakeAssetFetch).toHaveBeenCalledWith(request);
       expect(response).toBe(assetResponse);
     });
+  });
+});
+
+describe('Nominatim shared throttle', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  function objectState() {
+    const values = new Map<string, number>();
+    let queue: Promise<unknown> = Promise.resolve();
+    return {
+      storage: {
+        get: <T>(key: string): Promise<T | undefined> =>
+          Promise.resolve(values.get(key) as T | undefined),
+        put: (key: string, value: number) => {
+          values.set(key, value);
+          return Promise.resolve();
+        },
+      },
+      blockConcurrencyWhile<T>(callback: () => Promise<T>): Promise<T> {
+        const result = queue.then(callback);
+        queue = result.then(
+          () => null,
+          () => null,
+        );
+        return result;
+      },
+    };
+  }
+
+  it('shares the limit across requests and object restarts, then allows the next request', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(10_000);
+    const fetchMock = vi.fn(() => Promise.resolve(new Response('[]')));
+    vi.stubGlobal('fetch', fetchMock);
+    const state = objectState();
+    const request = new Request('https://nominatim.openstreetmap.org/search?q=Boston');
+    const first = new NominatimProxy(state);
+    const responses = await Promise.all([first.fetch(request), first.fetch(request)]);
+    expect(responses.map((response) => response.status)).toEqual([200, 429]);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0]).toMatchObject([
+      request.url,
+      {
+        headers: {
+          'User-Agent': 'WheelyWeather/1.0 (https://wheelyweather.app; contact@wheelyweather.app)',
+        },
+      },
+    ]);
+    const restarted = new NominatimProxy(state);
+    const throttled = await restarted.fetch(request);
+    expect(throttled.status).toBe(429);
+    vi.setSystemTime(11_100);
+    const allowed = await restarted.fetch(request);
+    expect(allowed.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('never proxies arbitrary origins or paths', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const proxy = new NominatimProxy(objectState());
+    for (const url of [
+      'https://example.test/search',
+      'https://nominatim.openstreetmap.org/details',
+    ]) {
+      const response = await proxy.fetch(new Request(url));
+      expect(response.status).toBe(400);
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

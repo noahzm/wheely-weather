@@ -34,10 +34,12 @@ export function useExpandAnimation(open: boolean) {
 }
 
 export function AnimatedExpand({
+  open,
   openProgress,
   style,
   children,
 }: Readonly<{
+  open: boolean;
   openProgress: SharedValue<number>;
   style?: StyleProp<ViewStyle>;
   children: ReactNode;
@@ -76,6 +78,8 @@ export function AnimatedExpand({
       {hasContent ? (
         <View
           accessible={false}
+          accessibilityElementsHidden
+          aria-hidden
           importantForAccessibility="no-hide-descendants"
           style={[styles.hiddenMeasure, { pointerEvents: 'none' }]}
           onLayout={(event) => {
@@ -85,7 +89,12 @@ export function AnimatedExpand({
           <View style={style}>{children}</View>
         </View>
       ) : null}
-      <Animated.View style={[animatedStyle, styles.expandClip]}>
+      <Animated.View
+        accessibilityElementsHidden={!open}
+        aria-hidden={!open}
+        importantForAccessibility={open ? 'auto' : 'no-hide-descendants'}
+        style={[animatedStyle, styles.expandClip]}
+      >
         {hasContent ? (
           <Animated.View style={[style, innerAnimatedStyle]}>{children}</Animated.View>
         ) : null}

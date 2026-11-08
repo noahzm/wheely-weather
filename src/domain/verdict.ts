@@ -4,6 +4,7 @@ import { describeNow, getMessage } from './ride-factors';
 import {
   calculateRideScore,
   conditionToStatus,
+  evaluateColdRainHazard,
   evaluateCondition,
   getCurrentCondition,
   getOverallCondition,
@@ -53,7 +54,8 @@ const hasWindow = (day: DailyWeather | undefined): day is DayWithWindow => day?.
  * The window's worst-case conditions as a `Weather`, so the existing rating,
  * scoring and copy apply unchanged. Temperature takes whichever end of the
  * window rates worse (the warm end on a tie, which reads naturally in "68°F,
- * sunny"). Today's AQI carries over; tomorrow has no reading.
+ * sunny"). Cold rain also counts at the low end, so a warmer finish cannot
+ * erase its hazard. Today's AQI carries over; tomorrow has no reading.
  */
 function windowWeather(
   weather: Weather,
@@ -62,7 +64,14 @@ function windowWeather(
   thresholds: Thresholds,
 ): Weather {
   const { tempLow, tempHigh } = day.rideWindow;
-  const lowRank = RANK[evaluateCondition(tempLow, 'temperature', thresholds)];
+  const coldRain = evaluateColdRainHazard(
+    { temp: tempLow, rainChance: day.rainChance, precip: day.precipitation, code: day.weatherCode },
+    thresholds,
+  );
+  const lowRank = Math.min(
+    RANK[evaluateCondition(tempLow, 'temperature', thresholds)],
+    coldRain ? RANK[coldRain] : RANK.good,
+  );
   const highRank = RANK[evaluateCondition(tempHigh, 'temperature', thresholds)];
   const temperature = lowRank < highRank ? tempLow : tempHigh;
   return {

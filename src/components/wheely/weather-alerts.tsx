@@ -165,17 +165,20 @@ function AlertChevron({
 
 function AlertDetails({
   alert,
+  open,
   openProgress,
   extreme,
   styles,
 }: Readonly<{
   alert: WeatherAlert;
+  open: boolean;
   openProgress: SharedValue<number>;
   extreme: boolean;
   styles: ReturnType<typeof makeStyles>;
 }>) {
   return (
     <AnimatedExpand
+      open={open}
       openProgress={openProgress}
       style={[styles.alertContent, extreme && styles.alertExtremeBody]}
     >
@@ -258,6 +261,7 @@ function AlertCard({ alert, primary }: Readonly<{ alert: WeatherAlert; primary: 
         {hasDetails && (
           <AlertDetails
             alert={alert}
+            open={open}
             openProgress={openProgress}
             extreme={extreme}
             styles={styles}

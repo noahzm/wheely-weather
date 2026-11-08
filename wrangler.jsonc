@@ -2,15 +2,19 @@
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "wheely-weather",
   "main": "workers/index.ts",
-  // Runs before every `wrangler deploy`, so a failing unit test or a broken web
-  // export stops Cloudflare's deploy (it runs on every push to main, separately
-  // from GitHub CI). The dashboard runs `npm run build:web` first, so dist/ exists;
-  // verify:web fails if any page ships without its JS bundle <script> tags.
-  "build": { "command": "npm test && npm run verify:web" },
+  // The dashboard exports first. Before deployment, run the same code/coverage
+  // and Expo compatibility checks as CI, then verify that export. Browser smoke
+  // tests run in GitHub CI, where Playwright's browser dependencies are installed.
+  "build": { "command": "npm run check:deploy" },
   "compatibility_date": "2026-06-01",
   "routes": [{ "pattern": "wheelyweather.app", "custom_domain": true }],
   // Workers Logs: without it a failing /api/geocode proxy leaves nothing to inspect.
   "observability": { "enabled": true },
+  // One shared object enforces Nominatim's app-wide one-request/second limit.
+  "durable_objects": {
+    "bindings": [{ "name": "GEOCODER", "class_name": "NominatimProxy" }],
+  },
+  "migrations": [{ "tag": "v1-geocoder", "new_sqlite_classes": ["NominatimProxy"] }],
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",

@@ -48,7 +48,14 @@ function snapshotAt(time: number): ForecastSnapshot {
     isDeviceLocation: true,
     mockScenario: null,
     source: 'device',
-    acclimatization: { homeBaseline: null, thresholds: THRESHOLDS, exposureLevel: 'moderate' },
+    acclimatization: {
+      homeBaseline: null,
+      homeLocation: HOME,
+      thresholds: THRESHOLDS,
+      exposureLevel: 'high',
+    },
+    rideDuration: '3h',
+    nightRiding: true,
   };
 }
 
@@ -93,6 +100,31 @@ describe('refreshWidgetInBackground', () => {
     await expect(refreshWidgetInBackground(NOW)).resolves.toBe('fresh');
     expect(mocks.getForecastSnapshot).not.toHaveBeenCalled();
     expect(mocks.publishWidgetSnapshot).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { rideDuration: '1h' },
+    { nightRiding: false },
+    { exposureLevel: 'low' },
+    { homeLocation: null },
+  ])('refreshes a recent forecast when settings changed: %j', async (changed) => {
+    mocks.loadCachedForecast.mockResolvedValue({
+      snapshot: snapshotAt(NOW - 60_000),
+      savedLocation: PLACE,
+    });
+    mocks.loadAllSettings.mockResolvedValue({ ...settings(), ...changed });
+    stubFetch();
+    await expect(refreshWidgetInBackground(NOW)).resolves.toBe('refreshed');
+    expect(mocks.getForecastSnapshot).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not skip a refresh if the saved place changed during the cache read', async () => {
+    mocks.loadCachedForecast.mockResolvedValue({
+      snapshot: snapshotAt(NOW - 60_000),
+      savedLocation: HOME,
+    });
+    stubFetch();
+    await expect(refreshWidgetInBackground(NOW)).resolves.toBe('refreshed');
   });
 
   it('fetches with the rider’s settings, then caches and publishes the complete forecast', async () => {

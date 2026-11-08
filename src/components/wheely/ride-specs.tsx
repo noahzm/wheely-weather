@@ -370,7 +370,7 @@ function MetricExplainerDrawer({
   if (!activeExplainer) return null;
 
   return (
-    <AnimatedExpand openProgress={openProgress}>
+    <AnimatedExpand open={isOpen} openProgress={openProgress}>
       <View
         style={[
           styles.explainerDrawer,

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { THRESHOLDS } from '../domain/constants';
+import { getRideVerdict } from '../domain/verdict';
 
 import { forecastFromHour } from './weatherParsing';
 import { buildWeatherFromData, type OpenMeteoData } from './weatherService';
@@ -238,6 +239,60 @@ describe('buildWeatherFromData — rain amount', () => {
   });
 });
 
+describe('buildWeatherFromData — observed hazards in ride windows', () => {
+  const morning = Array.from({ length: 5 }, (_, i) => hourTime('2024-01-15', i + 9));
+  const daily = {
+    sunrise: [hourTime('2024-01-15', 7)],
+    sunset: [hourTime('2024-01-15', 14)],
+  };
+
+  it('waits for a later window when an observed storm contradicts a clear hourly forecast', () => {
+    const data = makeOpenMeteoData({
+      current: { time: morning[0], weather_code: 95 },
+      hourly: { time: morning },
+      daily,
+    });
+
+    const weather = buildWeatherFromData(data, THRESHOLDS);
+    const verdict = getRideVerdict(weather, THRESHOLDS);
+
+    expect(weather.hourly[0]?.condition).toBe('bad');
+    expect(weather.daily[0]?.daylight?.find((h) => h.hour === 9)?.condition).toBe('bad');
+    expect(weather.daily[0]?.rideWindow).toMatchObject({ startHour: 10, endHour: 13 });
+    expect(verdict).toMatchObject({ when: 'wait', status: 'yes', weatherCode: 95 });
+    expect(verdict.message.now).toBe('Thunderstorms');
+    // Keep the provider's forecast intact for the widget's future-hour projections.
+    expect(data.hourly.weather_code[0]).toBe(1);
+  });
+
+  it.each([
+    { weather_code: 95 },
+    { wind_speed_10m: 35 },
+    { wind_gusts_10m: 45 },
+    { temperature_2m: 100 },
+    { dewpoint_2m: 80 },
+  ])(
+    'keeps a no-go verdict when every remaining window includes an observed hazard: %j',
+    (current) => {
+      const weather = buildWeatherFromData(
+        makeOpenMeteoData({
+          current: { time: morning[0], ...current },
+          hourly: { time: morning.slice(0, 3) },
+          daily,
+        }),
+        THRESHOLDS,
+      );
+
+      expect(weather.daily[0]?.condition).toBe('bad');
+      expect(getRideVerdict(weather, THRESHOLDS)).toMatchObject({
+        when: 'now',
+        status: 'no',
+        condition: 'bad',
+      });
+    },
+  );
+});
+
 describe('buildWeatherFromData — past hourly window', () => {
   it('clips past hours at the start of the array when fewer than the requested count are available', () => {
     const hourlyTime = Array.from({ length: 6 }, (_, i) => hourTime('2024-01-15', i));
@@ -430,7 +485,7 @@ describe('buildWeatherFromData — daily parsing', () => {
   it('does not select a best window that has already passed today', () => {
     const hours = Array.from({ length: 9 }, (_, i) => hourTime('2024-01-20', i + 7));
     const data = makeOpenMeteoData({
-      current: { time: hourTime('2024-01-20', 10) },
+      current: { time: hourTime('2024-01-20', 10), wind_speed_10m: 18, wind_gusts_10m: 8 },
       hourly: {
         time: hours,
         wind_speed_10m: [5, 5, 5, 18, 18, 18, 18, 18, 18],

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 
 import { searchLocations } from '@/services/locationSearch';
 import type { RecentLocation } from '@/services/locationStorage';
@@ -11,11 +12,12 @@ interface LocationSearchState {
   results: RecentLocation[];
   message: string;
   isLoading: boolean;
+  submitSearch: () => void;
 }
 
 /**
- * Debounced city search shared by the location screen and the home-climate
- * picker, so both get the same staleness guarantees.
+ * iOS uses debounced MapKit autocomplete. Other platforms only send an
+ * explicitly submitted query: public Nominatim prohibits autocomplete.
  *
  * The two guards below are the whole point of this hook, and both are easy to
  * omit when reimplementing it: shortening the query back under the minimum must
@@ -26,17 +28,27 @@ interface LocationSearchState {
  */
 export function useLocationSearch(query: string): LocationSearchState {
   const trimmed = query.trim();
-  const [fetchKey, setFetchKey] = useState('');
+  const autocomplete = Platform.OS === 'ios';
+  const [submission, setSubmission] = useState({ draft: '', query: '', attempt: 0 });
+  if (submission.draft !== trimmed) {
+    setSubmission({ draft: trimmed, query: '', attempt: submission.attempt });
+  }
+  const submitted = autocomplete || (submission.draft === trimmed && submission.query === trimmed);
+  const attempt = submission.attempt;
+  const submitSearch = () => {
+    setSubmission((current) => ({ draft: trimmed, query: trimmed, attempt: current.attempt + 1 }));
+  };
+  const [fetchKey, setFetchKey] = useState({ query: '', attempt: 0 });
   const [results, setResults] = useState<RecentLocation[]>([]);
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (trimmed.length < MIN_SEARCH_QUERY_LENGTH) return;
+    if (trimmed.length < MIN_SEARCH_QUERY_LENGTH || !submitted) return;
 
     const controller = new AbortController();
     const runSearch = async () => {
-      setFetchKey(trimmed);
+      setFetchKey({ query: trimmed, attempt });
       setResults([]);
       setMessage('Searching…');
       setIsLoading(true);
@@ -59,18 +71,26 @@ export function useLocationSearch(query: string): LocationSearchState {
         }
       }
     };
-    const timer = setTimeout(() => void runSearch(), SEARCH_DEBOUNCE_MS);
+    const timer = setTimeout(() => void runSearch(), autocomplete ? SEARCH_DEBOUNCE_MS : 0);
     return () => {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [trimmed]);
+  }, [trimmed, submitted, attempt, autocomplete]);
 
   if (trimmed.length < MIN_SEARCH_QUERY_LENGTH) {
-    return { results: [], message: '', isLoading: false };
+    return { results: [], message: '', isLoading: false, submitSearch };
   }
-  if (fetchKey !== trimmed) {
-    return { results: [], message: 'Searching…', isLoading: true };
+  if (!submitted) {
+    return {
+      results: [],
+      message: 'Press Search to find a place.',
+      isLoading: false,
+      submitSearch,
+    };
   }
-  return { results, message, isLoading };
+  if (fetchKey.query !== trimmed || fetchKey.attempt !== attempt) {
+    return { results: [], message: 'Searching…', isLoading: true, submitSearch };
+  }
+  return { results, message, isLoading, submitSearch };
 }
