@@ -13,10 +13,11 @@ updates:
     commit-message:
       prefix: 'deps'
     groups:
-      vitest:
+      # Keep routine updates in one weekly PR instead of one per package.
+      weekly-dependencies:
+        applies-to: version-updates
         patterns:
-          - 'vitest*'
-          - '@vitest/*'
+          - '*'
       # Advisories often land in bursts; one PR per burst instead of one per package.
       security:
         applies-to: security-updates
@@ -56,6 +57,11 @@ updates:
       time: '08:15'
       timezone: America/New_York
     open-pull-requests-limit: 5
+    groups:
+      weekly-actions:
+        applies-to: version-updates
+        patterns:
+          - '*'
     labels:
       - dependencies
       - ci
