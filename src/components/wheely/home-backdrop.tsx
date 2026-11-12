@@ -57,13 +57,13 @@ const SKY_LINE = ABOVE + HORIZON;
 /** How high above the horizon the sky's gradient starts from its top color. */
 const SKY_DEPTH = 240;
 /** How strongly the film grain shows over the scene. */
-const GRAIN_OPACITY = 0.16;
+const GRAIN_OPACITY = 0.32;
 /**
  * Fallback verdict-card offset before `onLayout` measures `groundTop` (matches
  * `CARD_TOP - CONTENT_TOP` in `scripts/render-launch-sky.mjs`), so frame 0
  * renders the sky, grain and page fade seamlessly with the iOS launch image.
  */
-const DEFAULT_GROUND_TOP = 138;
+const DEFAULT_GROUND_TOP = 114;
 
 /** A square box of side `size` centered on (cx, cy) in scene coordinates. */
 function boxAt(cx: number, cy: number, size: number) {
@@ -134,24 +134,24 @@ function ClearSky({ width, motion }: Readonly<{ width: number; motion: Motion }>
   return (
     <>
       <Cloud cx={width * 0.72} cy={SKY_LINE - 280} scale={0.6} motion={motion} swayMs={15_000} />
-
-      <Sun cx={width * 0.7} cy={SKY_LINE - 44} r={48} motion={motion} />
+      <Cloud cx={width * 0.24} cy={SKY_LINE - 122} scale={0.95} motion={motion} />
+      <Sun cx={width - 56} cy={SKY_LINE - 104} r={36} motion={motion} />
     </>
   );
 }
 
 /** Partly cloudy: the sun half hidden behind a cloud that drifts off it and back. */
 function PartlySky({ width, motion }: Readonly<{ width: number; motion: Motion }>) {
-  const sunX = width - 74;
-  const sunY = SKY_LINE - 96;
+  const sunX = width - 56;
+  const sunY = SKY_LINE - 104;
   return (
     <>
       <Cloud cx={width * 0.72} cy={SKY_LINE - 280} scale={0.6} motion={motion} swayMs={15_000} />
-      <Cloud cx={width * 0.24} cy={SKY_LINE - 160} scale={0.85} motion={motion} />
-      <Sun cx={sunX} cy={sunY} r={36} motion={motion} glow={0.8} />
+      <Cloud cx={width * 0.22} cy={SKY_LINE - 122} scale={0.78} motion={motion} />
+      <Sun cx={sunX} cy={sunY} r={34} motion={motion} glow={0.8} />
       <Cloud
-        cx={sunX - 48}
-        cy={sunY + 34}
+        cx={sunX - 44}
+        cy={sunY + 30}
         sway={PEEK}
         swayMs={7000}
         motion={motion}
@@ -228,7 +228,7 @@ function GraySky({
   return (
     <>
       {!lightning && precip === 'rain' && (
-        <Sun cx={width - 80} cy={SKY_LINE - 100} r={30} motion={motion} glow={0.45} />
+        <Sun cx={width - 80} cy={SKY_LINE - 116} r={28} motion={motion} glow={0.45} />
       )}
       <Cloud
         cx={width * 0.72}
@@ -277,7 +277,7 @@ function SceneSky({
 }: Readonly<{ kind: SceneKind; width: number; motion: Motion }>) {
   switch (kind) {
     case 'heat': {
-      return <Sun cx={width * 0.7} cy={SKY_LINE - 44} r={52} motion={motion} glow={1.25} />;
+      return <Sun cx={width - 56} cy={SKY_LINE - 102} r={40} motion={motion} glow={1.25} />;
     }
     case 'clear': {
       return <ClearSky width={width} motion={motion} />;
@@ -421,8 +421,8 @@ function Hills({
   const w = width;
   const y = belowCardTop;
   const hills =
-    `M0,${y(-80)} C${0.174 * w},${y(-112)} ${0.348 * w},${y(-102)} ${0.5 * w},${y(-64)}` +
-    ` C${0.652 * w},${y(-102)} ${0.826 * w},${y(-112)} ${w},${y(-84)} V${HEIGHT} H0 Z`;
+    `M0,${y(-48)} C${0.14 * w},${y(-68)} ${0.34 * w},${y(-44)} ${0.5 * w},${y(-44)}` +
+    ` C${0.66 * w},${y(-44)} ${0.86 * w},${y(-68)} ${w},${y(-50)} V${HEIGHT} H0 Z`;
   return (
     <Svg width={width} height={HEIGHT} style={StyleSheet.absoluteFill}>
       <Defs>
@@ -430,37 +430,37 @@ function Hills({
           id={id}
           gradientUnits="userSpaceOnUse"
           x1={0}
-          y1={y(-112)}
+          y1={y(-68)}
           x2={0}
-          y2={y(140)}
+          y2={y(120)}
         >
           <Stop offset={0} stopColor={palette.hillsTop} />
           <Stop offset={1} stopColor={palette.hillsBottom} />
         </LinearGradient>
         <ClipPath id={`${id}roadClip`}>
-          <Rect width={width} height={y(8)} />
+          <Rect width={width} height={y(10)} />
         </ClipPath>
       </Defs>
       <Path d={hills} fill={`url(#${id})`} />
-      {/* Both edges widen continuously from one vanishing point; a single
-          gentle curve avoids a pinch or hairpin near the horizon. */}
+      {/* Both edges widen continuously from the horizon saddle; horizontal
+          tangents at the saddle avoid a V-cusp behind the road. */}
       <G clipPath={`url(#${id}roadClip)`}>
         <Path
-          d={`M${w * 0.52},${y(-64)} C${w * 0.49},${y(-42)} ${w * 0.28},${y(-18)} ${w * 0.16},${y(12)} H${w * 0.64} C${w * 0.54},${y(-18)} ${w * 0.54},${y(-42)} ${w * 0.52},${y(-64)} Z`}
+          d={`M${w * 0.488},${y(-44)} C${w * 0.445},${y(-26)} ${w * 0.345},${y(-8)} ${w * 0.23},${y(10)} H${w * 0.55} C${w * 0.535},${y(-8)} ${w * 0.525},${y(-26)} ${w * 0.512},${y(-44)} Z`}
           fill={wet ? SceneColors.wetRoad : SceneColors.road}
         />
         <Path
-          d={`M${w * 0.495},${y(-46)} H${w * 0.503} L${w * 0.486},${y(-35)} H${w * 0.472} Z M${w * 0.439},${y(-22)} H${w * 0.455} L${w * 0.432},${y(-6)} H${w * 0.402} Z`}
+          d={`M${w * 0.4825},${y(-33)} H${w * 0.4905} L${w * 0.4745},${y(-23.5)} H${w * 0.4615} Z M${w * 0.434},${y(-12.7)} H${w * 0.454} L${w * 0.426},${y(1.4)} H${w * 0.395} Z`}
           fill={SceneColors.roadMarking}
           opacity={wet ? 0.8 : 1}
         />
         {wet && (
           <Path
-            d={`M${w * 0.49},${y(-40)} Q${w * 0.46},${y(-25)} ${w * 0.42},${y(-8)}`}
+            d={`M${w * 0.492},${y(-32)} Q${w * 0.465},${y(-18)} ${w * 0.425},${y(-2)}`}
             fill="none"
             stroke={SceneColors.roadReflection}
-            strokeWidth={3}
-            opacity={0.25}
+            strokeWidth={2.5}
+            opacity={0.2}
           />
         )}
       </G>

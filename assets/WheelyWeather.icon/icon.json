@@ -21,11 +21,13 @@
   "groups": [
     {
       "name": "Road",
+      "lighting": "combined",
+      "specular": true,
       "layers": [
         {
           "name": "dashes",
           "image-name": "dashes.png",
-          "glass": false,
+          "glass": true,
           "hidden": false,
           "fill-specializations": [
             {
@@ -39,7 +41,7 @@
         {
           "name": "road",
           "image-name": "road.png",
-          "glass": false,
+          "glass": true,
           "hidden": false,
           "fill-specializations": [
             {
@@ -53,7 +55,7 @@
       ],
       "shadow": {
         "kind": "neutral",
-        "opacity": 0.5
+        "opacity": 0.35
       },
       "translucency": {
         "enabled": false,
@@ -62,11 +64,13 @@
     },
     {
       "name": "Land",
+      "lighting": "combined",
+      "specular": true,
       "layers": [
         {
           "name": "land",
           "image-name": "land.png",
-          "glass": false,
+          "glass": true,
           "hidden": false,
           "fill-specializations": [
             {
@@ -80,7 +84,7 @@
       ],
       "shadow": {
         "kind": "neutral",
-        "opacity": 0.5
+        "opacity": 0.35
       },
       "translucency": {
         "enabled": false,
@@ -89,11 +93,21 @@
     },
     {
       "name": "Sun",
+      "lighting": "combined",
+      "specular": true,
       "layers": [
         {
           "name": "sun",
           "image-name": "sun.png",
-          "glass": false,
+          "glass-specializations": [
+            {
+              "value": false
+            },
+            {
+              "appearance": "tinted",
+              "value": true
+            }
+          ],
           "hidden": false,
           "fill-specializations": [
             {
@@ -106,7 +120,7 @@
         }
       ],
       "shadow": {
-        "kind": "neutral",
+        "kind": "none",
         "opacity": 0.5
       },
       "translucency": {

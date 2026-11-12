@@ -49,9 +49,9 @@ private enum SceneColor {
   static let rainCloudRim = Color(hex: 0xC8BFDA)
   static let rainCloudShade = Color(hex: 0x8F84AD)
   static let rain = Color(hex: 0xF4FBFF)
-  static let hillsTop = Color(hex: 0x2DBE6D)
+  static let hillsTop = Color(hex: 0x4CC983)
   static let hillsBottom = Color(hex: 0x14773F)
-  static let wetHillsTop = Color(hex: 0x399769)
+  static let wetHillsTop = Color(hex: 0x6BA486)
   static let wetHillsBottom = Color(hex: 0x2C5B42)
   static let fogSkyTop = Color(hex: 0xB5ABC6)
   static let fogSky = Color(hex: 0xD1CADD)
@@ -171,7 +171,7 @@ extension SceneSky {
 // ─── Scene ───────────────────────────────────────────────────────────────────
 
 /// How strongly the film grain shows (`GRAIN_OPACITY` in home-backdrop.tsx).
-private let grainOpacity = 0.16
+private let grainOpacity = 0.32
 
 /// The widget's painted backdrop. `horizon` is where the hills crest, as a
 /// fraction of the height; the verdict card sits on them.
@@ -199,8 +199,8 @@ struct SceneBackdrop: View {
           .fill(
             LinearGradient(
               colors: [palette.hillsTop, palette.hillsBottom],
-              startPoint: UnitPoint(x: 0.5, y: (ground - 67) / size.height),
-              endPoint: UnitPoint(x: 0.5, y: (ground + 84) / size.height)
+              startPoint: UnitPoint(x: 0.5, y: (ground - 41) / size.height),
+              endPoint: UnitPoint(x: 0.5, y: (ground + 72) / size.height)
             ))
         let wet = sky == .rain || sky == .drizzle || sky == .storm
         SceneRoad(ground: ground)
@@ -211,15 +211,15 @@ struct SceneBackdrop: View {
           func point(_ x: CGFloat, _ dy: CGFloat) -> CGPoint {
             CGPoint(x: w * x, y: ground + dy * 0.6)
           }
-          path.move(to: point(0.495, -46))
-          path.addLine(to: point(0.503, -46))
-          path.addLine(to: point(0.486, -35))
-          path.addLine(to: point(0.472, -35))
+          path.move(to: point(0.4825, -33))
+          path.addLine(to: point(0.4905, -33))
+          path.addLine(to: point(0.4745, -23.5))
+          path.addLine(to: point(0.4615, -23.5))
           path.closeSubpath()
-          path.move(to: point(0.439, -22))
-          path.addLine(to: point(0.455, -22))
-          path.addLine(to: point(0.432, -6))
-          path.addLine(to: point(0.402, -6))
+          path.move(to: point(0.434, -12.7))
+          path.addLine(to: point(0.454, -12.7))
+          path.addLine(to: point(0.426, 1.4))
+          path.addLine(to: point(0.395, 1.4))
           path.closeSubpath()
         }
         .fill(SceneColor.roadMarking)
@@ -227,12 +227,12 @@ struct SceneBackdrop: View {
         if wet {
           Path { path in
             let w = size.width
-            path.move(to: CGPoint(x: w * 0.49, y: ground - 24))
+            path.move(to: CGPoint(x: w * 0.492, y: ground - 19.2))
             path.addQuadCurve(
-              to: CGPoint(x: w * 0.42, y: ground - 4.8),
-              control: CGPoint(x: w * 0.46, y: ground - 15))
+              to: CGPoint(x: w * 0.425, y: ground - 1.2),
+              control: CGPoint(x: w * 0.465, y: ground - 10.8))
           }
-          .stroke(SceneColor.roadReflection.opacity(0.25), lineWidth: 2)
+          .stroke(SceneColor.roadReflection.opacity(0.2), lineWidth: 2)
         }
         Image("sceneGrain")
           .resizable(resizingMode: .tile)
@@ -253,15 +253,15 @@ private struct Hills: Shape {
     // The app's crest heights, flattened for the widget's smaller frame.
     func y(_ dy: CGFloat) -> CGFloat { ground + dy * 0.6 }
     var path = Path()
-    path.move(to: CGPoint(x: 0, y: y(-80)))
+    path.move(to: CGPoint(x: 0, y: y(-48)))
     path.addCurve(
-      to: CGPoint(x: 0.5 * w, y: y(-64)),
-      control1: CGPoint(x: 0.174 * w, y: y(-112)),
-      control2: CGPoint(x: 0.348 * w, y: y(-102)))
+      to: CGPoint(x: 0.5 * w, y: y(-44)),
+      control1: CGPoint(x: 0.14 * w, y: y(-68)),
+      control2: CGPoint(x: 0.34 * w, y: y(-44)))
     path.addCurve(
-      to: CGPoint(x: w, y: y(-84)),
-      control1: CGPoint(x: 0.652 * w, y: y(-102)),
-      control2: CGPoint(x: 0.826 * w, y: y(-112)))
+      to: CGPoint(x: w, y: y(-50)),
+      control1: CGPoint(x: 0.66 * w, y: y(-44)),
+      control2: CGPoint(x: 0.86 * w, y: y(-68)))
     path.addLine(to: CGPoint(x: w, y: rect.maxY))
     path.addLine(to: CGPoint(x: 0, y: rect.maxY))
     path.closeSubpath()
@@ -279,10 +279,10 @@ private struct SceneRoad: Shape {
       CGPoint(x: w * x, y: ground + dy * 0.6)
     }
     var path = Path()
-    path.move(to: point(0.52, -64))
-    path.addCurve(to: point(0.1, 24), control1: point(0.49, -40), control2: point(0.24, -10))
-    path.addLine(to: point(0.66, 24))
-    path.addCurve(to: point(0.52, -64), control1: point(0.55, -10), control2: point(0.54, -40))
+    path.move(to: point(0.488, -44))
+    path.addCurve(to: point(0.23, 10), control1: point(0.445, -26), control2: point(0.345, -8))
+    path.addLine(to: point(0.55, 10))
+    path.addCurve(to: point(0.512, -44), control1: point(0.535, -8), control2: point(0.525, -26))
     path.closeSubpath()
     return path
   }
@@ -307,6 +307,10 @@ private struct SkyArt: View {
       case .clear:
         SceneSun(radius: 21 * k)
           .position(x: w - 42 * k, y: 38 * k)
+        SceneCloud(look: .fair, scale: 0.5 * k)
+          .position(x: wide ? w * 0.5 : w * 0.12, y: 10 * k)
+        SceneCloud(look: .fair, scale: 0.26 * k)
+          .position(x: w - 18 * k, y: 66 * k)
       case .partly:
         SceneCloud(look: .fair, scale: 0.5 * k)
           .position(x: wide ? w * 0.5 : w * 0.12, y: 10 * k)
@@ -383,27 +387,22 @@ private struct SceneSun: View {
 private let cloudBox = CGSize(width: 200, height: 100)
 private let cloudAnchor = CGPoint(x: 100, y: 60)
 
-/// The cumulus silhouette: a tall crown and shoulders behind a lower front row
-/// on a flat base, as one shape so it shades as one body.
+/// Sculpted, windblown cloud silhouette in 200x100 drawing units matching the app.
 private struct CloudBody: Shape {
-  private static let lobes: [(CGFloat, CGFloat, CGFloat)] = [
-    (100, 44, 34), (66, 52, 26), (136, 52, 24), (44, 68, 20), (82, 66, 22), (120, 66, 22),
-    (158, 70, 18),
-  ]
-
   func path(in rect: CGRect) -> Path {
     let sx = rect.width / cloudBox.width
     let sy = rect.height / cloudBox.height
-    // Joined piece by piece, so overlaps fill as one however each is wound.
-    var path = Path(
-      roundedRect: CGRect(x: 28 * sx, y: 60 * sy, width: 146 * sx, height: 28 * sy),
-      cornerSize: CGSize(width: 14 * sx, height: 14 * sy))
-    for (cx, cy, r) in Self.lobes {
-      path = path.union(
-        Path(
-          ellipseIn: CGRect(
-            x: (cx - r) * sx, y: (cy - r) * sy, width: 2 * r * sx, height: 2 * r * sy)))
+    func pt(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
+      CGPoint(x: x * sx, y: y * sy)
     }
+    var path = Path()
+    path.move(to: pt(22, 78))
+    path.addCurve(to: pt(28, 58), control1: pt(14, 78), control2: pt(14, 62))
+    path.addCurve(to: pt(64, 44), control1: pt(30, 44), control2: pt(48, 38))
+    path.addCurve(to: pt(128, 36), control1: pt(74, 26), control2: pt(108, 20))
+    path.addCurve(to: pt(166, 54), control1: pt(144, 32), control2: pt(162, 42))
+    path.addCurve(to: pt(170, 78), control1: pt(184, 54), control2: pt(188, 78))
+    path.closeSubpath()
     return path
   }
 }
@@ -436,7 +435,7 @@ private struct SceneCloud: View {
             endPoint: UnitPoint(x: 0.5, y: 88 / cloudBox.height)))
     }
     .frame(width: width, height: height)
-    .blur(radius: max(0.6, 1.8 * scale))
+    .blur(radius: max(1.0, 3.0 * scale))
     // Placed by the body's middle rather than the box's.
     .offset(
       x: (cloudBox.width / 2 - cloudAnchor.x) * scale,

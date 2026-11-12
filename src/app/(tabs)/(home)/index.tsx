@@ -759,7 +759,7 @@ function makeStyles(c: WheelyPalette) {
       // verdict reserves its star pill's overhang, so this lands on the pill.
       gap: Spacing.three,
     },
-    sceneRoom: { marginTop: 88 },
+    sceneRoom: { marginTop: 64 },
     sectionsWrap: {
       gap: SECTION_GAP,
     },

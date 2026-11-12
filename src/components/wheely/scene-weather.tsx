@@ -28,31 +28,14 @@ const CLOUD_H = 100;
 const CLOUD_ANCHOR_X = 100;
 const CLOUD_ANCHOR_Y = 60;
 /**
- * A cumulus drawn as lobes [cx, cy, r], back row first: a tall crown and its
- * shoulders behind a lower front row, all on a flat base.
+ * Sculpted, windblown cloud silhouette in 200x100 drawing units: an asymmetric
+ * rising bank tapering to a trailing edge over a soft condensation base.
  */
-const LOBES = [
-  [100, 44, 34],
-  [66, 52, 26],
-  [136, 52, 24],
-  [44, 68, 20],
-  [82, 66, 22],
-  [120, 66, 22],
-  [158, 70, 18],
-] as const;
-const CLOUD_BASE = 'M42,60 H160 A14,14 0 0 1 160,88 H42 A14,14 0 0 1 42,60 Z';
-/**
- * The whole silhouette as one path: the base and every lobe wound the same
- * way (clockwise), so where they overlap they fill rather than cancel.
- */
-const CLOUD_BODY = [
-  CLOUD_BASE,
-  ...LOBES.map(
-    ([cx, cy, r]) => `M${cx - r},${cy} a${r},${r} 0 1,1 ${2 * r},0 a${r},${r} 0 1,1 ${-2 * r},0 Z`,
-  ),
-].join(' ');
+const CLOUD_BODY =
+  'M22,78 C14,78 14,62 28,58 C30,44 48,38 64,44 C74,26 108,20 128,36' +
+  ' C144,32 162,42 166,54 C184,54 188,78 170,78 Z';
 /** The airbrushed softness of a cloud's edge, in drawing units. */
-const CLOUD_SOFTNESS = 1.8;
+const CLOUD_SOFTNESS = 3.2;
 
 export interface CloudLook {
   fill: string;

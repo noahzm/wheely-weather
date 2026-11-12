@@ -156,9 +156,9 @@ export const SceneColors = {
   rainCloudShade: '#8F84AD',
   rain: '#F4FBFF',
   /** Hills, lit on top and darkening downhill. */
-  hillsTop: '#2DBE6D',
+  hillsTop: '#4CC983',
   hillsBottom: '#14773F',
-  wetHillsTop: '#399769',
+  wetHillsTop: '#6BA486',
   wetHillsBottom: '#2C5B42',
   /** Fog: a milky lavender sky, pale bands drifting across it, hills faded by mist. */
   fogSkyTop: '#B5ABC6',
