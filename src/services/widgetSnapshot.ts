@@ -94,7 +94,13 @@ function buildVerdict(
     temperature: formatTemperature(weather.temperature, tempUnit),
     symbol: weatherSfSymbol(verdict.weatherCode),
     waiting: verdict.when === 'wait',
-    sky: getVerdictSky(verdict.status, verdict.when === 'wait', verdict.weatherCode),
+    sky: getVerdictSky(
+      verdict.status,
+      verdict.when === 'wait',
+      verdict.weatherCode,
+      verdict.rated,
+      thresholds,
+    ),
   };
 }
 

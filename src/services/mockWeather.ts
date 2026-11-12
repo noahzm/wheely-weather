@@ -1,5 +1,5 @@
 // Deterministic fixture data for UI testing without hitting the live API.
-// Activate with `?mock=ride`, `?mock=maybe`, `?mock=rest`, `?mock=alert`, or `?mock=wait`.
+// Activate with `?mock=ride`, `?mock=maybe`, `?mock=rest`, `?mock=alert`, `?mock=wait`, or `?mock=heat`.
 
 import { ALL_DAY_RIDE_HOURS } from '../domain/ride-window';
 import {
@@ -104,6 +104,45 @@ const SCENARIOS: Record<MockScenario, MockScenarioSpec> = {
       windGust: 12,
       rainChance: 5,
       weatherCode: 1,
+    }),
+    sunrise: '6:30 AM',
+    sunset: '7:45 PM',
+    sunriseHour: 6,
+    sunsetHour: 19,
+    nwsAlerts: [],
+  },
+  heat: {
+    label: 'Hot Day',
+    current: {
+      temperature: 93,
+      feelsLike: 97,
+      windSpeed: 5,
+      windGust: 9,
+      windDirection: 180,
+      rainChance: 0,
+      weatherCode: 0,
+      dewpoint: 52,
+      aqi: 32,
+      uvIndex: 8,
+      uvIndexDailyMax: 9,
+    },
+    hourTemplate: (h) => ({
+      temperature: 93 + 3 * Math.sin(((h - 6) * Math.PI) / 12),
+      feelsLike: 97,
+      windSpeed: 5,
+      windGust: 9,
+      rainChance: 0,
+      dewpoint: 52,
+      weatherCode: 0,
+      uv: Math.max(0, 9 * Math.sin(((h - 6) * Math.PI) / 12)),
+    }),
+    dayTemplate: () => ({
+      high: 96,
+      low: 90,
+      windSpeed: 5,
+      windGust: 9,
+      rainChance: 0,
+      weatherCode: 0,
     }),
     sunrise: '6:30 AM',
     sunset: '7:45 PM',

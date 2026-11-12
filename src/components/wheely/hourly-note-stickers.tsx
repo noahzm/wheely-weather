@@ -12,7 +12,7 @@ import { PlatformIcon, StickerTag } from './primitives';
 /** The section's title-to-card gap the sticker reaches across (`section.gap` on home). */
 const TITLE_GAP = Spacing.three;
 /** How deep the sticker dips into the card below its top border. */
-const CARD_OVERLAP = Spacing.three;
+const CARD_OVERLAP = Spacing.two + Spacing.half;
 
 function makeStyles(c: WheelyPalette) {
   return StyleSheet.create({

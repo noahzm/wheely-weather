@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { THRESHOLDS } from './constants';
 import {
   getSky,
   getVerdictSky,
@@ -109,6 +110,49 @@ describe('getVerdictSky', () => {
     expect(getVerdictSky('yes', false, null)).toBe('clear');
     expect(getVerdictSky('maybe', false, 10)).toBe('partly');
     expect(getVerdictSky('no', false, null)).toBe('rain');
+  });
+
+  it('shows heat for a dry hot ride, including heat index and missing codes', () => {
+    const dry = { temperature: 93, dewpoint: 45 };
+    expect(getVerdictSky('no', false, 0, dry)).toBe('heat');
+    expect(getVerdictSky('maybe', false, 2, dry)).toBe('heat');
+    expect(getVerdictSky('no', false, null, dry)).toBe('heat');
+    expect(getVerdictSky('no', false, 0, { temperature: 80, dewpoint: 78, heatIndex: 103 })).toBe(
+      'heat',
+    );
+    expect(
+      getVerdictSky(
+        'no',
+        false,
+        0,
+        { temperature: 90, dewpoint: 85 },
+        {
+          ...THRESHOLDS,
+          TEMPERATURE: { ...THRESHOLDS.TEMPERATURE, MARGINAL_MAX: 94 },
+        },
+      ),
+    ).toBe('heat');
+  });
+
+  it('keeps wet and wintry skies, and never mistakes cold for heat', () => {
+    for (const code of [3, 45, 63, 95, 71, 66]) {
+      expect(getVerdictSky('no', false, code, { temperature: 100, dewpoint: 60 })).toBe(
+        getSky(code),
+      );
+    }
+    expect(getVerdictSky('no', false, 0, { temperature: 20, dewpoint: 10 })).toBe('clear');
+    expect(getVerdictSky('yes', false, 0, { temperature: 68, dewpoint: 40 })).toBe('clear');
+  });
+
+  it('uses the rating’s acclimatized hot band and leaves waiting scenes blank', () => {
+    const thresholds = {
+      ...THRESHOLDS,
+      TEMPERATURE: { ...THRESHOLDS.TEMPERATURE, MARGINAL_MAX: 94 },
+    };
+    const weather = { temperature: 86, dewpoint: 40 };
+    expect(getVerdictSky('maybe', false, 0, weather, thresholds)).toBe('clear');
+    expect(getVerdictSky('maybe', false, 0, weather)).toBe('heat');
+    expect(getVerdictSky('yes', true, 0, weather)).toBeNull();
   });
 
   it('keeps the plain page while waiting for a later window', () => {

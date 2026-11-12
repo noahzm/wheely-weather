@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="sky-fill" x2="0" y2="1">
+      <stop stop-color="#DE93E3"/>
+      <stop offset=".52" stop-color="#F1BDF2"/>
+      <stop offset="1" stop-color="#FCE0EE"/>
+    </linearGradient>
+    <radialGradient id="sun-fill" cx=".38" cy=".32" r=".8">
+      <stop stop-color="#FFF2A2"/>
+      <stop offset=".48" stop-color="#FFE14D"/>
+      <stop offset="1" stop-color="#FFB61C"/>
+    </radialGradient>
+    <radialGradient id="sun-glow">
+      <stop stop-color="#FFE68A" stop-opacity=".5"/>
+      <stop offset="1" stop-color="#FFE68A" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="land-fill" x2=".3" y2="1">
+      <stop stop-color="#2DBE6D"/>
+      <stop offset="1" stop-color="#14773F"/>
+    </linearGradient>
+    <linearGradient id="road-fill" x2=".25" y2="1">
+      <stop stop-color="#45434E"/>
+      <stop offset="1" stop-color="#24232F"/>
+    </linearGradient>
+  </defs>
+  <g id="sky">
+    <rect width="1024" height="1024" fill="url(#sky-fill)"/>
+  </g>
+  <g id="glow">
+    <circle cx="512" cy="480" r="470" fill="url(#sun-glow)"/>
+  </g>
+  <g id="sun">
+    <circle cx="512" cy="482" r="312" fill="url(#sun-fill)"/>
+  </g>
+  <g id="land">
+    <path d="M0 623 C174 576 348 599 512 697 C680 599 850 576 1024 619 V1024 H0 Z" fill="url(#land-fill)"/>
+  </g>
+  <g id="road">
+    <path d="M512 697 C534 760 620 842 788 1024 H256 C390 842 493 760 512 697 Z" fill="url(#road-fill)"/>
+  </g>
+  <g id="dashes">
+    <path d="M513 780 H527 L537 830 H511 Z M507 910 H545 L568 990 H495 Z" fill="#FFF8E3"/>
+  </g>
+</svg>

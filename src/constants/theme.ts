@@ -130,6 +130,16 @@ export const SceneColors = {
   rainSkyTop: '#7D7398',
   rainSky: '#9A8FB5',
   rainSkyHorizon: '#CBC3DA',
+  /** A dry, hot ride: bleached peach sky and olive hills. */
+  heatSkyTop: '#F3B1AD',
+  heatSky: '#F9CEB6',
+  heatSkyHorizon: '#FFF0C9',
+  heatHillsTop: '#A3A34D',
+  heatHillsBottom: '#6D7536',
+  road: '#34343E',
+  roadMarking: '#FFF8E3',
+  wetRoad: '#424653',
+  roadReflection: '#E4DFEF',
   /** The sun's hot center, body and rim, and the glow around it. */
   sunCore: '#FFFBE0',
   sun: '#FFE14D',
@@ -146,9 +156,9 @@ export const SceneColors = {
   rainCloudShade: '#8F84AD',
   rain: '#F4FBFF',
   /** Hills, lit on top and darkening downhill. */
-  hillsTop: '#4CC983',
+  hillsTop: '#2DBE6D',
   hillsBottom: '#14773F',
-  wetHillsTop: '#6BA486',
+  wetHillsTop: '#399769',
   wetHillsBottom: '#2C5B42',
   /** Fog: a milky lavender sky, pale bands drifting across it, hills faded by mist. */
   fogSkyTop: '#B5ABC6',

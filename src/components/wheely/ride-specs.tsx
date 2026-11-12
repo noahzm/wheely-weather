@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
 import {
+  ChevronDown,
   Droplet,
   Droplets,
   Gauge,
@@ -59,6 +60,7 @@ interface RideSpecMetric {
   Icon: IconComponent;
   sf: string;
   label: string;
+  shortLabel?: string;
   value: string;
   qualifier?: string | null;
   condition?: string;
@@ -95,6 +97,7 @@ function rideSpecMetrics(
       Icon: Droplet,
       sf: 'drop.fill',
       label: 'Rain Chance',
+      shortLabel: 'Rain',
       value: formatPercent(weather.rainChance),
       condition: evaluateRain(weather.rainChance, weather.precipitation, thresholds),
     },
@@ -102,6 +105,7 @@ function rideSpecMetrics(
       Icon: Thermometer,
       sf: 'thermometer.medium',
       label: 'Temperature',
+      shortLabel: 'Temp',
       value: formatTemp(weather.temperature),
       qualifier:
         formatTemp(weather.feelsLike) === formatTemp(weather.temperature)
@@ -186,6 +190,20 @@ function makeStyles(c: WheelyPalette) {
       borderColor: c.divider,
       ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as object) : null),
     },
+    compactCell: { padding: Spacing.two, minWidth: 0 },
+    compactValue: { ...Type.heading },
+    disclosure: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: Spacing.two,
+      minHeight: 48,
+      padding: Spacing.three,
+      borderTopWidth: 1,
+      borderColor: c.divider,
+    },
+    disclosureText: { flex: 1, gap: Spacing.one },
+    moreMetrics: { borderTopWidth: 1, borderColor: c.divider },
     metricCellActive: {
       backgroundColor: c.accent,
     },
@@ -201,6 +219,7 @@ function makeStyles(c: WheelyPalette) {
       justifyContent: 'center',
     },
     metricLabel: {
+      flexShrink: 1,
       color: c.ink,
       ...LabelText,
       ...Type.micro,
@@ -260,15 +279,22 @@ function makeStyles(c: WheelyPalette) {
 
 function useStyles() {
   const c = useWheelyColors();
-  const { width } = useWindowDimensions();
+  const { width, fontScale } = useWindowDimensions();
   const isCompact = Platform.OS !== 'web' || width < 640;
   const styles = useMemo(() => makeStyles(c), [c]);
-  return { c, styles, columns: isCompact ? 2 : 4 };
+  const columns = isCompact ? 2 : 4;
+  return {
+    c,
+    styles,
+    columns: fontScale > 1.15 ? 1 : columns,
+    primaryColumns: fontScale > 1.15 ? 1 : 3,
+  };
 }
 
 function MetricCell({
   metric,
   isLastColumn,
+  compact,
   hasBottomBorder,
   isSelected,
   onPress,
@@ -277,6 +303,7 @@ function MetricCell({
 }: Readonly<{
   metric: RideSpecMetric;
   isLastColumn: boolean;
+  compact: boolean;
   hasBottomBorder: boolean;
   isSelected: boolean;
   onPress: () => void;
@@ -304,6 +331,7 @@ function MetricCell({
       accessibilityState={{ selected: isSelected, expanded: isSelected }}
       style={({ pressed }) => [
         styles.metricCell,
+        compact && styles.compactCell,
         {
           borderRightWidth: isLastColumn ? 0 : 1,
           borderBottomWidth: hasBottomBorder ? 1 : 0,
@@ -326,17 +354,23 @@ function MetricCell({
           )}
         </View>
         <ThemedText style={[styles.metricLabel, isSelected && { color: c.accentInk }]}>
-          {label}
+          {compact ? (metric.shortLabel ?? label) : label}
         </ThemedText>
       </View>
-      <ThemedText style={[styles.metricValue, isSelected && { color: c.accentInk }]}>
+      <ThemedText
+        style={[
+          styles.metricValue,
+          compact && styles.compactValue,
+          isSelected && { color: c.accentInk },
+        ]}
+      >
         {value}
       </ThemedText>
       {hasFooter && (
         <View style={styles.metricFooter}>
           {!!qualifier && (
             <ThemedText style={[styles.muted, isSelected && { color: c.accentInk }]}>
-              {qualifier}
+              {compact ? qualifier.replaceAll('\u00A0', ' ') : qualifier}
             </ThemedText>
           )}
           {showChip && (
@@ -393,6 +427,7 @@ function MetricExplainerDrawer({
 
 function MetricRow({
   rowMetrics,
+  compact = false,
   rowIndex,
   totalRows,
   selectedLabel,
@@ -402,6 +437,7 @@ function MetricRow({
   c,
 }: Readonly<{
   rowMetrics: RideSpecMetric[];
+  compact?: boolean;
   rowIndex: number;
   totalRows: number;
   selectedLabel: string | null;
@@ -423,6 +459,7 @@ function MetricRow({
             <MetricCell
               key={metric.label}
               metric={metric}
+              compact={compact}
               isLastColumn={isLastColumn}
               hasBottomBorder={hasBottomBorder}
               isSelected={selectedLabel === metric.label}
@@ -448,8 +485,10 @@ export function RideSpecs({
   weather,
   thresholds = THRESHOLDS,
 }: Readonly<{ weather: Weather; thresholds?: typeof THRESHOLDS }>) {
-  const { c, styles, columns } = useStyles();
+  const { c, styles, columns, primaryColumns } = useStyles();
   const { format: formatTemp, formatWind, unit } = useTemperatureDisplay();
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreProgress = useExpandAnimation(moreOpen);
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
   const metrics = rideSpecMetrics(weather, thresholds, formatTemp, formatWind);
   // The tip quotes the same thresholds the cells are rated with, in the rider's unit.
@@ -457,11 +496,21 @@ export function RideSpecs({
 
   const rows = useMemo(() => {
     const chunked: RideSpecMetric[][] = [];
-    for (let i = 0; i < metrics.length; i += columns) {
+    for (let i = 3; i < metrics.length; i += columns) {
       chunked.push(metrics.slice(i, i + columns));
     }
     return chunked;
   }, [metrics, columns]);
+
+  const primaryRows: RideSpecMetric[][] = [];
+  for (let i = 0; i < 3; i += primaryColumns) {
+    primaryRows.push(metrics.slice(i, i + primaryColumns));
+  }
+  const concerns = metrics
+    .slice(3)
+    .filter((metric) => metric.condition && HOLDS_RIDE_BACK.has(asCondition(metric.condition)))
+    .map((metric) => `${metric.label}: ${CONDITION_DISPLAY[asCondition(metric.condition)]}`)
+    .join(' · ');
 
   const handleSelectMetric = (label: string) => {
     setSelectedLabel((prev) => (prev === label ? null : label));
@@ -470,12 +519,13 @@ export function RideSpecs({
   return (
     <BrutalCard style={styles.metricsPanel}>
       <View style={styles.metricsClip}>
-        {rows.map((rowMetrics, rowIndex) => (
+        {primaryRows.map((rowMetrics, rowIndex) => (
           <MetricRow
-            key={`row-${rowIndex}`}
+            key={`primary-${rowIndex}`}
             rowMetrics={rowMetrics}
+            compact
             rowIndex={rowIndex}
-            totalRows={rows.length}
+            totalRows={primaryRows.length}
             selectedLabel={selectedLabel}
             onSelectMetric={handleSelectMetric}
             explainer={explainer}
@@ -483,6 +533,53 @@ export function RideSpecs({
             c={c}
           />
         ))}
+        <HapticPressable
+          accessibilityRole="button"
+          accessibilityLabel={moreOpen ? 'Fewer weather details' : 'More weather details'}
+          accessibilityState={{ expanded: moreOpen }}
+          accessibilityHint={concerns || 'Air quality, dewpoint, UV index, sunrise and sunset'}
+          onPress={() => {
+            setMoreOpen(!moreOpen);
+            if (moreOpen && metrics.slice(3).some((metric) => metric.label === selectedLabel)) {
+              setSelectedLabel(null);
+            }
+          }}
+          style={({ pressed }) => [
+            styles.disclosure,
+            pressed && { backgroundColor: withAlpha(c.ink, 0.06) },
+          ]}
+        >
+          <View style={styles.disclosureText}>
+            <ThemedText style={styles.muted}>
+              {moreOpen ? 'Fewer weather details' : 'More weather details'}
+            </ThemedText>
+            {!!concerns && <ThemedText style={styles.muted}>{concerns}</ThemedText>}
+          </View>
+          <PlatformIcon
+            icon={ChevronDown}
+            sf="chevron.down"
+            size={14}
+            color={c.mutedInk}
+            style={moreOpen ? { transform: [{ rotate: '180deg' }] } : undefined}
+          />
+        </HapticPressable>
+        <AnimatedExpand open={moreOpen} openProgress={moreProgress}>
+          <View style={styles.moreMetrics}>
+            {rows.map((rowMetrics, rowIndex) => (
+              <MetricRow
+                key={`secondary-${rowIndex}`}
+                rowMetrics={rowMetrics}
+                rowIndex={rowIndex}
+                totalRows={rows.length}
+                selectedLabel={selectedLabel}
+                onSelectMetric={handleSelectMetric}
+                explainer={explainer}
+                styles={styles}
+                c={c}
+              />
+            ))}
+          </View>
+        </AnimatedExpand>
       </View>
     </BrutalCard>
   );

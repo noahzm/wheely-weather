@@ -6,12 +6,20 @@ import { Clock } from './icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { Fonts, PosterText, Spacing, Type, type WheelyPalette } from '@/constants/theme';
+import {
+  Fonts,
+  PosterText,
+  Spacing,
+  Type,
+  WheelyTheme,
+  type WheelyPalette,
+} from '@/constants/theme';
 import { verdictFeedback } from '@/utils/haptics';
+import { formatHourSpan } from '@/utils/timeFormat';
 import { scoreToStars } from '@/utils/starRating';
 import type { Condition, VerdictMessage } from '@/types/weather';
 import { formatIssuesAsSentence, formatVerdictDetail } from '@/domain';
-import { BrutalCard, StickerTag } from './primitives';
+import { BrutalCard, StickerTag, brutalShadow, stickerFrame } from './primitives';
 import { StarRating } from './star-rating';
 
 // The stickers land once Home's entrance has slapped the card down (its
@@ -113,6 +121,17 @@ function preventOrphans(text: string): string {
   return `${glued.slice(0, lastSpaceIdx)}\u00A0${glued.slice(lastSpaceIdx + 1)}`;
 }
 
+function formatRecommendedTime(
+  rideWindow: { startHour: number; endHour: number; tomorrow?: boolean } | null | undefined,
+  waiting: boolean,
+  timing?: string | null,
+): string | null {
+  if (!rideWindow) return null;
+  if (waiting && timing) return timing;
+  const timeLabel = rideWindow.tomorrow ? 'Tomorrow' : 'Best riding';
+  return `${timeLabel} · ${formatHourSpan(rideWindow.startHour, rideWindow.endHour)}`;
+}
+
 const BY_STATUS = {
   yes: { defaultLabel: 'Ride day', rating: 'good' },
   maybe: { defaultLabel: 'Mixed conditions', rating: 'marginal' },
@@ -127,7 +146,9 @@ export function RideVerdict({
   condition,
   waiting = false,
   entrance = true,
+  rideWindow,
 }: Readonly<{
+  rideWindow?: { startHour: number; endHour: number; tomorrow?: boolean } | null;
   status: VerdictStatus;
   /** The rating behind `status`; colors the card like the week list. Defaults per status. */
   condition?: Condition;
@@ -149,12 +170,17 @@ export function RideVerdict({
   const meta = waiting
     ? { defaultLabel: 'Ride later', bg: c.accent, ink: c.accentInk }
     : { defaultLabel, ...c.condition[condition ?? rating] };
+  // The painted sky is daylight in both color schemes, so the card and its
+  // stickers keep light mode's paper, black outline and black shadow; waiting
+  // sits on the plain page and follows the active scheme.
+  const chrome = waiting ? c : WheelyTheme.light;
 
   const headlineText = (label ?? message.lead).replace(/(, but|:)$/i, '').trim();
   const issuesSentence = formatIssuesAsSentence(message.issues);
   // Without a label the lead is the headline, so it isn't repeated below.
   const detailSentence = label ? formatVerdictDetail(status, message) : issuesSentence;
-  const hasBottomBadge = message.timing != null;
+  const recommendedTime = formatRecommendedTime(rideWindow, waiting, message.timing);
+  const hasBottomBadge = !recommendedTime && message.timing != null;
   const cardPaddingBottom = hasBottomBadge ? Spacing.four + Spacing.two : Spacing.four;
 
   const spokenMessage = [
@@ -162,7 +188,7 @@ export function RideVerdict({
     headlineText,
     score == null ? '' : `Ride score ${scoreToStars(score)} out of 5 stars.`,
     detailSentence,
-    message.timing,
+    recommendedTime ?? message.timing,
   ]
     .filter(Boolean)
     .join(' ');
@@ -181,8 +207,15 @@ export function RideVerdict({
           <Animated.View
             entering={entrance ? ZoomIn.delay(STARS_POP_DELAY_MS).springify() : undefined}
           >
-            <StickerTag tilt={1} style={styles.scoreTag}>
-              <StarRating rating={scoreToStars(score)} />
+            <StickerTag
+              tilt={1}
+              style={[styles.scoreTag, { backgroundColor: chrome.paper, ...stickerFrame(chrome) }]}
+            >
+              <StarRating
+                rating={scoreToStars(score)}
+                color={chrome.ink}
+                emptyColor={chrome.border}
+              />
             </StickerTag>
           </Animated.View>
         </View>
@@ -190,13 +223,26 @@ export function RideVerdict({
 
       <BrutalCard
         variant="featured"
-        style={[styles.verdictCard, { backgroundColor: meta.bg, paddingBottom: cardPaddingBottom }]}
+        style={[
+          styles.verdictCard,
+          {
+            backgroundColor: meta.bg,
+            borderColor: chrome.border,
+            paddingBottom: cardPaddingBottom,
+            ...brutalShadow(chrome.shadow, 6),
+          },
+        ]}
       >
         <View style={styles.textColumn}>
           <ThemedText style={[styles.leadText, { color: meta.ink }]}>
             {preventOrphans(headlineText)}
           </ThemedText>
 
+          {recommendedTime && (
+            <ThemedText style={[styles.timingTagText, { color: meta.ink, marginTop: Spacing.two }]}>
+              {preventOrphans(recommendedTime)}
+            </ThemedText>
+          )}
           {detailSentence.length > 0 && (
             <ThemedText style={[styles.issueSentenceText, { color: meta.ink }]}>
               {preventOrphans(detailSentence)}
@@ -206,16 +252,21 @@ export function RideVerdict({
       </BrutalCard>
 
       {/* Bottom Floating Timing Badge Button */}
-      {message.timing != null && (
+      {hasBottomBadge && (
         <View style={styles.bottomBadgeGroup}>
           <Animated.View entering={entrance ? FadeInDown.delay(TIMING_TAG_DELAY_MS) : undefined}>
-            <StickerTag tilt={-1} style={styles.timingTag}>
+            <StickerTag
+              tilt={-1}
+              style={[styles.timingTag, { backgroundColor: chrome.paper, ...stickerFrame(chrome) }]}
+            >
               {Platform.OS === 'ios' ? (
-                <SymbolView name="clock.fill" size={14} tintColor={c.ink} />
+                <SymbolView name="clock.fill" size={14} tintColor={chrome.ink} />
               ) : (
-                <Clock size={14} color={c.ink} strokeWidth={2.5} />
+                <Clock size={14} color={chrome.ink} strokeWidth={2.5} />
               )}
-              <ThemedText style={styles.timingTagText}>{preventOrphans(message.timing)}</ThemedText>
+              <ThemedText style={[styles.timingTagText, { color: chrome.ink }]}>
+                {preventOrphans(message.timing ?? '')}
+              </ThemedText>
             </StickerTag>
           </Animated.View>
         </View>

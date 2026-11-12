@@ -3,10 +3,10 @@
 // what to pack and do before setting out at the bottom. The plan comes from
 // getKitPlan; this file only lays it out.
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import Svg, { Line } from 'react-native-svg';
-import { useRouter } from 'expo-router';
+import { RideLengthPicker } from './ride-length-picker';
 import type { SFSymbol } from 'expo-symbols';
 
 import { ThemedText } from '@/components/themed-text';
@@ -102,6 +102,8 @@ function makeHeaderStyles(c: WheelyPalette) {
       justifyContent: 'space-between',
       gap: Spacing.two,
     },
+    headerStacked: { flexDirection: 'column', alignItems: 'flex-start' },
+    chipStacked: { marginLeft: 0, maxWidth: '100%' },
     spanText: {
       flexShrink: 1,
       color: c.ink,
@@ -125,6 +127,7 @@ function makeHeaderStyles(c: WheelyPalette) {
       backgroundColor: withAlpha(c.ink, 0.08),
     },
     chipText: {
+      flexShrink: 1,
       color: c.ink,
       fontFamily: Fonts.body,
       fontWeight: '400',
@@ -298,6 +301,20 @@ function KitTimeline({
   c,
   styles,
 }: Readonly<{ hours: KitPlanHour[]; unit: TempUnit; c: WheelyPalette; styles: Styles }>) {
+  const { fontScale } = useWindowDimensions();
+  if (fontScale > 1.15) {
+    return (
+      <View style={{ gap: Spacing.two }} accessibilityLabel="Ride temperatures">
+        {hours
+          .filter((hour) => hour.labeled)
+          .map((hour) => (
+            <ThemedText key={hour.hour} style={styles.spanText}>
+              {fullHourLabel(hour.hour)} · {formatTemperature(hour.temperature, unit)}
+            </ThemedText>
+          ))}
+      </View>
+    );
+  }
   // From the first column's center to the last one's.
   const inset = `${50 / hours.length}%` as const;
   const description = hours
@@ -358,21 +375,27 @@ function KitHeader({
   c: WheelyPalette;
   styles: Styles;
 }>) {
-  const router = useRouter();
+  const { width, fontScale } = useWindowDimensions();
+  const stacked = width < 380 || fontScale > 1.15;
+  const [pickerOpen, setPickerOpen] = useState(false);
   const span = spanLabel(hours, unit);
   const chip = rideLengthChip(rideDuration);
   return (
     <View style={styles.header}>
-      <View style={styles.headerRow}>
+      <View style={[styles.headerRow, stacked && styles.headerStacked]}>
         {span && <ThemedText style={styles.spanText}>{span}</ThemedText>}
         <HapticPressable
           onPress={() => {
-            router.navigate('/settings');
+            setPickerOpen(true);
           }}
           accessibilityRole="button"
-          accessibilityLabel={`${chip}. Change ride length in Settings`}
+          accessibilityLabel={`${chip}. Change ride length`}
           hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
-          style={({ pressed }) => [styles.chip, pressed && styles.chipPressed]}
+          style={({ pressed }) => [
+            styles.chip,
+            stacked && styles.chipStacked,
+            pressed && styles.chipPressed,
+          ]}
         >
           <ThemedText style={styles.chipText}>{chip}</ThemedText>
           <PlatformIcon
@@ -384,6 +407,12 @@ function KitHeader({
           />
         </HapticPressable>
       </View>
+      <RideLengthPicker
+        visible={pickerOpen}
+        onClose={() => {
+          setPickerOpen(false);
+        }}
+      />
       {hours.length > 1 && <KitTimeline hours={hours} unit={unit} c={c} styles={styles} />}
     </View>
   );

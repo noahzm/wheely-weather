@@ -9,6 +9,7 @@ import { useTemperatureDisplay } from '@/hooks/use-temperature-display';
 import {
   Fonts,
   PosterText,
+  Radius,
   Spacing,
   Type,
   type WheelyPalette,
@@ -39,6 +40,7 @@ import {
   chartWindowIndexes,
   chartWindowLabel,
   chartX,
+  chartY,
 } from '@/utils/hourlyChart';
 import { withAlpha } from '@/utils/colors';
 import { fullHourLabel } from '@/utils/timeFormat';
@@ -59,6 +61,28 @@ function makeStyles(c: WheelyPalette) {
       paddingHorizontal: Spacing.two,
       paddingVertical: Spacing.two,
     },
+    shortcutRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: Spacing.two,
+      marginTop: Spacing.two,
+      marginBottom: Spacing.two,
+      paddingHorizontal: Spacing.one,
+    },
+    shortcutButtons: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
+    shortcut: {
+      justifyContent: 'center',
+      paddingHorizontal: Spacing.two + Spacing.half,
+      paddingVertical: Spacing.half,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: Radius.pill,
+    },
+    shortcutSelected: { backgroundColor: c.accent },
+    shortcutText: { color: c.ink, ...Type.micro },
+    shortcutSelectedText: { color: c.accentInk },
     hourlyBody: {
       position: 'relative',
       overflow: 'visible',
@@ -309,6 +333,7 @@ function HourlyForecastBody({
   data,
   nowIdx,
   openingIdx,
+  bestRideIdx,
   thresholds,
   windowBand,
 }: Readonly<{
@@ -316,6 +341,7 @@ function HourlyForecastBody({
   nowIdx: number;
   /** The hour selected on mount (see `chartOpeningIndex`). */
   openingIdx: number;
+  bestRideIdx: number | null;
   thresholds: Thresholds;
   windowBand: WindowBand;
 }>) {
@@ -344,6 +370,41 @@ function HourlyForecastBody({
 
   return (
     <View style={styles.hourlyBody}>
+      <View style={styles.shortcutRow}>
+        <ThemedText style={[styles.muted, { ...Type.micro }]}>Swipe or tap to explore</ThemedText>
+        <View style={styles.shortcutButtons}>
+          {[
+            { label: 'Now', index: nowIdx },
+            ...(bestRideIdx == null ? [] : [{ label: 'Best ride', index: bestRideIdx }]),
+          ].map(({ label, index }) => (
+            <HapticPressable
+              key={label}
+              accessibilityRole="button"
+              accessibilityLabel={label}
+              accessibilityState={{ selected: chart.selectedIdx === index }}
+              accessibilityHint="Center this hour on the riding conditions chart"
+              hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
+              onPress={() => {
+                chart.scrollToIndex(index);
+              }}
+              style={({ pressed }) => [
+                styles.shortcut,
+                chart.selectedIdx === index && styles.shortcutSelected,
+                pressed && { opacity: 0.85 },
+              ]}
+            >
+              <ThemedText
+                style={[
+                  styles.shortcutText,
+                  chart.selectedIdx === index && styles.shortcutSelectedText,
+                ]}
+              >
+                {label}
+              </ThemedText>
+            </HapticPressable>
+          ))}
+        </View>
+      </View>
       <ConditionChipWidthProbe labels={conditionLabels} large onLayouts={handleChipLayouts} />
       <HourlyChartShell
         chart={chart}
@@ -496,6 +557,7 @@ function HourlyChartScroller({
       accessibilityRole="adjustable"
       accessibilityLabel="Hourly ride-condition chart"
       accessibilityValue={{ text: accessibilityText }}
+      aria-valuetext={accessibilityText}
       accessibilityActions={[
         { name: 'increment', label: 'Next hour' },
         { name: 'decrement', label: 'Previous hour' },
@@ -574,33 +636,53 @@ function HourlyChartShell({
   } = chart;
 
   return (
-    <View
-      style={styles.chartShell}
-      onLayout={(event) => {
-        onViewportLayout(event.nativeEvent.layout.width);
-      }}
-    >
-      <HourlyChartGridlines width={viewportWidth} />
-      <HourlyChartScroller
-        chart={chart}
-        data={data}
-        nowIdx={nowIdx}
-        maxIndex={maxIndex}
-        windowBand={windowBand}
-        styles={styles}
-      />
-      <HourlyChartEdgeFades />
-      <SelectionMarker
-        segments={splineSegments}
-        scrollX={scrollX}
-        liveScrollX={liveScrollX}
-        isScrollIdle={isScrollIdle}
-        snapOffsets={snapOffsets}
-        viewportWidth={viewportWidth}
-        maxIndex={maxIndex}
-        initialScrollX={initialScrollX}
-        selectedCondition={selected.condition}
-      />
+    <View style={{ flexDirection: 'row' }}>
+      <View style={{ width: 46 }} accessible={false} accessibilityElementsHidden>
+        {(['good', 'marginal', 'bad'] as const).map((condition) => (
+          <ThemedText
+            key={condition}
+            maxFontSizeMultiplier={1.2}
+            style={[
+              styles.muted,
+              {
+                position: 'absolute',
+                top: chartY(condition) - Type.micro.lineHeight / 2,
+                ...Type.micro,
+              },
+            ]}
+          >
+            {CONDITION_DISPLAY[condition]}
+          </ThemedText>
+        ))}
+      </View>
+      <View
+        style={[styles.chartShell, { flex: 1 }]}
+        onLayout={(event) => {
+          onViewportLayout(event.nativeEvent.layout.width);
+        }}
+      >
+        <HourlyChartGridlines width={viewportWidth} />
+        <HourlyChartScroller
+          chart={chart}
+          data={data}
+          nowIdx={nowIdx}
+          maxIndex={maxIndex}
+          windowBand={windowBand}
+          styles={styles}
+        />
+        <HourlyChartEdgeFades />
+        <SelectionMarker
+          segments={splineSegments}
+          scrollX={scrollX}
+          liveScrollX={liveScrollX}
+          isScrollIdle={isScrollIdle}
+          snapOffsets={snapOffsets}
+          viewportWidth={viewportWidth}
+          maxIndex={maxIndex}
+          initialScrollX={initialScrollX}
+          selectedCondition={selected.condition}
+        />
+      </View>
     </View>
   );
 }
@@ -626,7 +708,8 @@ export function HourlyForecast({
 
   const nowIdx = pastHourly.length;
   const windowBand = chartWindowBand(data, rideWindow);
-  const openingIdx = chartOpeningIndex(nowIdx, chartWindowIndexes(data, rideWindow));
+  const windowIndexes = chartWindowIndexes(data, rideWindow);
+  const openingIdx = chartOpeningIndex(nowIdx, windowIndexes);
 
   if (hourly.length === 0) {
     return (
@@ -647,6 +730,7 @@ export function HourlyForecast({
           data={data}
           nowIdx={nowIdx}
           openingIdx={openingIdx}
+          bestRideIdx={windowIndexes?.first ?? null}
           thresholds={thresholds}
           windowBand={windowBand}
         />

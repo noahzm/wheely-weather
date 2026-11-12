@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { SymbolView, type SFSymbol } from 'expo-symbols';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { ChevronRight, type IconComponent } from './icons';
@@ -73,6 +73,8 @@ function makeStyles(c: WheelyPalette) {
     },
     // Fits "Tomorrow"; the label shrinks a little on the narrowest phones.
     dayLabelCell: { width: 98 },
+    dayLabelFlexible: { flex: 1, minWidth: 0 },
+    dayWeather: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two, flexShrink: 1 },
     // The note runs under the whole row, so it isn't squeezed into the label's column.
     dayNote: {
       color: c.mutedInk,
@@ -357,6 +359,8 @@ function DayRow({
   thresholds: Thresholds;
 }>) {
   const { c, styles } = useStyles();
+  const { width, fontScale } = useWindowDimensions();
+  const reflow = width < 380 || fontScale > 1.15;
   const { format: formatTemp } = useTemperatureDisplay();
   const tempUnit = useResolvedTempUnit();
   const condition = asCondition(day.condition);
@@ -370,6 +374,35 @@ function DayRow({
   const rowA11yLabel =
     `${dayLabel(day.date, index)}: high ${formatTemp(day.high)}, low ${formatTemp(day.low)}, ${ratingLabel}` +
     (noteA11y ? '. ' + noteA11y : '');
+
+  const temperature = (
+    <View style={styles.dayWeather}>
+      <View style={styles.weatherGlyph}>
+        {Platform.OS === 'ios' ? (
+          <SymbolView
+            name={weatherSfSymbol(day.weatherCode) as SFSymbol}
+            size={20}
+            tintColor={c.mutedInk}
+          />
+        ) : (
+          <PlatformIcon icon={DayIcon} size={20} color={c.mutedInk} filled />
+        )}
+      </View>
+      <ThemedText style={styles.dayTemp} numberOfLines={reflow ? undefined : 1}>
+        {formatTemp(day.high)}
+        <ThemedText style={styles.dayLow}>/{formatTemp(day.low)}</ThemedText>
+      </ThemedText>
+    </View>
+  );
+
+  const rating = (
+    <ThemedText
+      style={[styles.dayRating, { flexShrink: 1 }, dayDone && styles.dayRatingDone]}
+      numberOfLines={reflow ? undefined : 1}
+    >
+      {dayDone ? DAYLIGHT_MESSAGES.DAY_DONE : CONDITION_DISPLAY[condition]}
+    </ThemedText>
+  );
 
   return (
     <View
@@ -392,39 +425,28 @@ function DayRow({
         ]}
       >
         <View style={styles.dayRowMain}>
-          <View style={styles.dayLabelCell}>
+          <View style={[styles.dayLabelCell, reflow && styles.dayLabelFlexible]}>
             <ThemedText
               style={styles.dayLabel}
-              numberOfLines={1}
-              adjustsFontSizeToFit
+              numberOfLines={reflow ? undefined : 1}
+              adjustsFontSizeToFit={!reflow}
               minimumFontScale={0.85}
             >
               {dayLabel(day.date, index)}
             </ThemedText>
           </View>
-          <View style={styles.weatherGlyph}>
-            {Platform.OS === 'ios' ? (
-              <SymbolView
-                name={weatherSfSymbol(day.weatherCode) as SFSymbol}
-                size={20}
-                tintColor={c.mutedInk}
-              />
-            ) : (
-              <PlatformIcon icon={DayIcon} size={20} color={c.mutedInk} filled />
-            )}
-          </View>
-          <ThemedText style={styles.dayTemp} numberOfLines={1}>
-            {formatTemp(day.high)}
-            <ThemedText style={styles.dayLow}>/{formatTemp(day.low)}</ThemedText>
-          </ThemedText>
-          {/* A plain word: the strip below carries the color. */}
-          <ThemedText style={[styles.dayRating, dayDone && styles.dayRatingDone]} numberOfLines={1}>
-            {dayDone ? DAYLIGHT_MESSAGES.DAY_DONE : CONDITION_DISPLAY[condition]}
-          </ThemedText>
+          {!reflow && temperature}
+          {!reflow && rating}
           <View style={styles.chevronWrap}>
             <DayRowChevron isExpanded={isExpanded} color={c.mutedInk} />
           </View>
         </View>
+        {reflow && (
+          <View style={[styles.dayRowMain, { flexWrap: 'wrap' }]}>
+            {temperature}
+            {rating}
+          </View>
+        )}
         {day.daylight && !dayDone && (
           <>
             <DaylightStrip hours={day.daylight} window={note.window} />

@@ -16,6 +16,7 @@ describe('mockWeather', () => {
     expect(isMockScenario('rest')).toBe(true);
     expect(isMockScenario('alert')).toBe(true);
     expect(isMockScenario('wait')).toBe(true);
+    expect(isMockScenario('heat')).toBe(true);
     expect(isMockScenario('unknown')).toBe(false);
     expect(isMockScenario(null)).toBe(false);
   });
@@ -26,6 +27,16 @@ describe('mockWeather', () => {
     expect(getMockLocationLabel('rest')).toBe('Mock: Rest Day');
     expect(getMockLocationLabel('alert')).toBe('Mock: Severe Weather');
     expect(getMockLocationLabel('unknown')).toBeNull();
+  });
+
+  it('provides a dry heat preview distinct from the rainy rest day', () => {
+    const weather = buildMockWeather('heat');
+    expect(weather?.weatherCode).toBe(0);
+    expect(weather?.temperature).toBe(93);
+    expect(weather?.hourly).toHaveLength(24);
+    if (!weather) throw new Error('Missing heat fixture');
+    expect(getRideVerdict(weather).status).toBe('no');
+    expect(getMockLocationLabel('heat')).toBe('Mock: Hot Day');
   });
 
   it('buildMockWeather builds weather object for all scenarios', () => {

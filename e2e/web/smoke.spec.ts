@@ -134,3 +134,78 @@ test('place search requires submission and supports keyboard, button and retries
   ).toBeVisible();
   await expect.poll(() => searches).toBe(4);
 });
+
+test('home ride length previews, cancels, and applies without leaving home', async ({ page }) => {
+  await page.goto('/?mock=wait');
+  const chip = page.getByRole('button', { name: /3-hour ride\. Change ride length/ });
+  await chip.click();
+  await expect(page.getByText(/^Today · /)).toBeVisible();
+  await page.getByRole('radio', { name: '1 hour', exact: true }).click();
+  await expect(page.getByRole('radio', { name: '1 hour', exact: true })).toBeChecked();
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(chip).toBeVisible();
+  await chip.click();
+  await expect(page.getByRole('radio', { name: '3 hours', exact: true })).toBeChecked();
+  await page.getByRole('radio', { name: '1 hour', exact: true }).click();
+  await page.getByRole('button', { name: 'Use this ride length' }).click();
+  await expect(
+    page.getByRole('button', { name: /1-hour ride\. Change ride length/ }),
+  ).toBeVisible();
+  await expect(page).toHaveURL(/\/?\?mock=wait$/);
+  await page.reload();
+  await expect(
+    page.getByRole('button', { name: /1-hour ride\. Change ride length/ }),
+  ).toBeVisible();
+});
+
+test('hourly shortcuts return to now and the recommended ride', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-07-15T11:00:00') });
+  await page.goto('/?mock=wait');
+  const chart = page.getByRole('slider', { name: 'Hourly ride-condition chart' });
+  const now = page.getByRole('button', { name: 'Now', exact: true });
+  const best = page.getByRole('button', { name: 'Best ride', exact: true });
+  await expect(best).toHaveAttribute('aria-selected', 'true');
+  const bestValue = await chart.getAttribute('aria-valuetext');
+  expect(bestValue).toBeTruthy();
+  await now.click();
+  await expect(now).toHaveAttribute('aria-selected', 'true');
+  await expect(chart).toHaveAttribute('aria-valuetext', /^Now, Bad/);
+  await best.click();
+  await expect(best).toHaveAttribute('aria-selected', 'true');
+  await expect(chart).toHaveAttribute('aria-valuetext', bestValue ?? '');
+  await page.goto('/?mock=rest');
+  await expect(page.getByRole('button', { name: 'Now', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Best ride', exact: true })).toHaveCount(0);
+});
+
+test('secondary current weather details expand accessibly and retain metric guidance', async ({
+  page,
+}) => {
+  await page.goto('/?mock=ride');
+  await expect(page.getByRole('button', { name: /^Temperature:/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Rain Chance:/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Wind:/ })).toBeVisible();
+  const air = page.getByRole('button', { name: /^Air Quality:/ });
+  const more = page.getByRole('button', { name: 'More weather details', exact: true });
+  await expect(air).toHaveCount(0);
+  await more.click();
+  await expect(
+    page.getByRole('button', { name: 'Fewer weather details', exact: true }),
+  ).toHaveAttribute('aria-expanded', 'true');
+  await expect(air).toBeVisible();
+  await air.click();
+  await expect(air).toHaveAttribute('aria-expanded', 'true');
+  await page.getByRole('button', { name: 'Fewer weather details', exact: true }).click();
+  await expect(air).toHaveCount(0);
+  await more.click();
+  await expect(air).toHaveAttribute('aria-expanded', 'false');
+});
+
+test('dry heat and heavy rain keep distinct verdict landscapes', async ({ page }) => {
+  await page.goto('/?mock=heat');
+  await expect(page.getByRole('button', { name: /Location: Mock: Hot Day/ })).toBeVisible();
+  await expect(page.getByTestId('verdict-scene-heat')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Best ride', exact: true })).toHaveCount(0);
+  await page.goto('/?mock=rest');
+  await expect(page.getByTestId('verdict-scene-rain')).toBeVisible();
+});

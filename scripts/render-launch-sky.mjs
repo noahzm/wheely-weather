@@ -27,11 +27,11 @@ const PAGES = { light: '#F4F4F6', dark: '#000000' };
 
 // Where the home screen draws its sky on that iPhone, in points from the top:
 // the scroll content starts under the large title at about 158, and the
-// verdict card's top sits at about 208. The sky's gradient runs SKY_DEPTH (240)
+// verdict card's top sits at about 296. The sky's gradient runs SKY_DEPTH (240)
 // up from the horizon, HORIZON (34) below the content's top; the page fade runs
 // from 24 to 176 below the card's top (home-backdrop.tsx).
 const CONTENT_TOP = 158;
-const CARD_TOP = 208;
+const CARD_TOP = 296;
 const SKY_END = CONTENT_TOP + 34;
 const SKY_START = SKY_END - 240;
 const FADE_START = CARD_TOP + 24;
@@ -41,7 +41,7 @@ const FADE_END = CARD_TOP + 176;
 // scene's GRAIN_OPACITY, starting where the scene's top lands (900 pt above
 // the content's top).
 const GRAIN_TILE_PT = 128;
-const GRAIN_OPACITY = 0.32;
+const GRAIN_OPACITY = 0.16;
 const GRAIN_ORIGIN_Y = CONTENT_TOP - 900;
 
 function hex(color) {

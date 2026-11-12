@@ -12,9 +12,14 @@ the widget still need native verification.
 | Maybe    | [Screenshot](maybe-light.png) | [Screenshot](maybe-dark.png) |
 | Rest     | [Screenshot](rest-light.png)  | [Screenshot](rest-dark.png)  |
 | Alert    | [Screenshot](alert-light.png) | [Screenshot](alert-dark.png) |
+| Heat     | [Screenshot](heat-light.png)  | [Screenshot](heat-dark.png)  |
 | Wait     | [Screenshot](wait-light.png)  | [Screenshot](wait-dark.png)  |
 
 ## Reproduce
+
+For a closer look at the artwork, the capture also saves just the city, landscape
+and verdict card: [clear](scene-ride-light.png), [heat](scene-heat-light.png) and
+[rain](scene-rest-light.png), with matching `-dark.png` versions.
 
 ```bash
 npx playwright install webkit   # once, or after a Playwright update
@@ -22,7 +27,7 @@ npm run build:web
 npm run references:web
 ```
 
-The separate Playwright configuration captures all five existing mock scenarios
+The separate Playwright configuration captures all six mock scenarios
 in light and dark mode, with a clock starting at July 15, 2026, 11 AM in New York and advancing normally,
 `en-US`, default rider settings, reduced motion, loaded fonts, collapsed drawers,
 and full-page screenshots at CSS resolution. External requests are blocked, and
@@ -35,6 +40,6 @@ Ordinary tests and CI never regenerate these files. Run this command only when
 intending to update the references, inspect the resulting images, and review the
 changes along with the UI change. The capture configuration always updates the images; it does not gate normal
 tests on a pixel comparison. These are review aids:
-WebKit versions, fonts and OS rendering can affect pixels. The floating nav
-remains at the bottom of the first viewport in these full-page captures. Capture native iOS
+WebKit versions, fonts and OS rendering can affect pixels. The floating nav is
+anchored at the bottom of the full-page capture rather than the first viewport. Capture native iOS
 references separately when the simulator or a device is available.

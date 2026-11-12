@@ -8,7 +8,7 @@ import SwiftUI
 
 /// The home scene's sky (`Sky` in src/domain/weather-codes.ts).
 enum SceneSky: String {
-  case clear, partly, overcast, fog, drizzle, rain, storm, snow, sleet
+  case heat, clear, partly, overcast, fog, drizzle, rain, storm, snow, sleet
 
   /// The sky for a payload without one: the home screen's fallback by verdict.
   static func fallback(status: String) -> SceneSky {
@@ -28,6 +28,15 @@ private enum SceneColor {
   static let rainSkyTop = Color(hex: 0x7D7398)
   static let rainSky = Color(hex: 0x9A8FB5)
   static let rainSkyHorizon = Color(hex: 0xCBC3DA)
+  static let heatSkyTop = Color(hex: 0xF3B1AD)
+  static let heatSky = Color(hex: 0xF9CEB6)
+  static let heatSkyHorizon = Color(hex: 0xFFF0C9)
+  static let heatHillsTop = Color(hex: 0xA3A34D)
+  static let heatHillsBottom = Color(hex: 0x6D7536)
+  static let road = Color(hex: 0x34343E)
+  static let roadMarking = Color(hex: 0xFFF8E3)
+  static let wetRoad = Color(hex: 0x424653)
+  static let roadReflection = Color(hex: 0xE4DFEF)
   static let sunCore = Color(hex: 0xFFFBE0)
   static let sun = Color(hex: 0xFFE14D)
   static let sunEdge = Color(hex: 0xFFB61C)
@@ -40,9 +49,9 @@ private enum SceneColor {
   static let rainCloudRim = Color(hex: 0xC8BFDA)
   static let rainCloudShade = Color(hex: 0x8F84AD)
   static let rain = Color(hex: 0xF4FBFF)
-  static let hillsTop = Color(hex: 0x4CC983)
+  static let hillsTop = Color(hex: 0x2DBE6D)
   static let hillsBottom = Color(hex: 0x14773F)
-  static let wetHillsTop = Color(hex: 0x6BA486)
+  static let wetHillsTop = Color(hex: 0x399769)
   static let wetHillsBottom = Color(hex: 0x2C5B42)
   static let fogSkyTop = Color(hex: 0xB5ABC6)
   static let fogSky = Color(hex: 0xD1CADD)
@@ -85,6 +94,9 @@ private struct SkyPalette {
   static let fair = SkyPalette(
     top: SceneColor.skyTop, middle: SceneColor.sky, horizon: SceneColor.skyHorizon,
     hillsTop: SceneColor.hillsTop, hillsBottom: SceneColor.hillsBottom)
+  static let heat = SkyPalette(
+    top: SceneColor.heatSkyTop, middle: SceneColor.heatSky, horizon: SceneColor.heatSkyHorizon,
+    hillsTop: SceneColor.heatHillsTop, hillsBottom: SceneColor.heatHillsBottom)
   static let wet = SkyPalette(
     top: SceneColor.rainSkyTop, middle: SceneColor.rainSky, horizon: SceneColor.rainSkyHorizon,
     hillsTop: SceneColor.wetHillsTop, hillsBottom: SceneColor.wetHillsBottom)
@@ -127,6 +139,7 @@ private enum Precip { case drizzle, rain, snow, sleet }
 extension SceneSky {
   fileprivate var palette: SkyPalette {
     switch self {
+    case .heat: return .heat
     case .clear, .partly: return .fair
     case .overcast, .drizzle, .rain: return .wet
     case .fog: return .fog
@@ -137,7 +150,7 @@ extension SceneSky {
 
   fileprivate var cloudLook: CloudLook {
     switch self {
-    case .clear, .partly, .fog: return .fair
+    case .heat, .clear, .partly, .fog: return .fair
     case .overcast, .drizzle, .rain: return .rain
     case .storm: return .storm
     case .snow, .sleet: return .snow
@@ -158,7 +171,7 @@ extension SceneSky {
 // ─── Scene ───────────────────────────────────────────────────────────────────
 
 /// How strongly the film grain shows (`GRAIN_OPACITY` in home-backdrop.tsx).
-private let grainOpacity = 0.32
+private let grainOpacity = 0.16
 
 /// The widget's painted backdrop. `horizon` is where the hills crest, as a
 /// fraction of the height; the verdict card sits on them.
@@ -186,9 +199,41 @@ struct SceneBackdrop: View {
           .fill(
             LinearGradient(
               colors: [palette.hillsTop, palette.hillsBottom],
-              startPoint: UnitPoint(x: 0.5, y: (ground - 10) / size.height),
-              endPoint: UnitPoint(x: 0.5, y: (ground + 90) / size.height)
+              startPoint: UnitPoint(x: 0.5, y: (ground - 67) / size.height),
+              endPoint: UnitPoint(x: 0.5, y: (ground + 84) / size.height)
             ))
+        let wet = sky == .rain || sky == .drizzle || sky == .storm
+        SceneRoad(ground: ground)
+          .fill(wet ? SceneColor.wetRoad : SceneColor.road)
+          .mask(alignment: .top) { Rectangle().frame(height: ground + 14) }
+        Path { path in
+          let w = size.width
+          func point(_ x: CGFloat, _ dy: CGFloat) -> CGPoint {
+            CGPoint(x: w * x, y: ground + dy * 0.6)
+          }
+          path.move(to: point(0.495, -46))
+          path.addLine(to: point(0.503, -46))
+          path.addLine(to: point(0.486, -35))
+          path.addLine(to: point(0.472, -35))
+          path.closeSubpath()
+          path.move(to: point(0.439, -22))
+          path.addLine(to: point(0.455, -22))
+          path.addLine(to: point(0.432, -6))
+          path.addLine(to: point(0.402, -6))
+          path.closeSubpath()
+        }
+        .fill(SceneColor.roadMarking)
+        .opacity(wet ? 0.8 : 1)
+        if wet {
+          Path { path in
+            let w = size.width
+            path.move(to: CGPoint(x: w * 0.49, y: ground - 24))
+            path.addQuadCurve(
+              to: CGPoint(x: w * 0.42, y: ground - 4.8),
+              control: CGPoint(x: w * 0.46, y: ground - 15))
+          }
+          .stroke(SceneColor.roadReflection.opacity(0.25), lineWidth: 2)
+        }
         Image("sceneGrain")
           .resizable(resizingMode: .tile)
           .opacity(grainOpacity)
@@ -208,17 +253,36 @@ private struct Hills: Shape {
     // The app's crest heights, flattened for the widget's smaller frame.
     func y(_ dy: CGFloat) -> CGFloat { ground + dy * 0.6 }
     var path = Path()
-    path.move(to: CGPoint(x: 0, y: y(-2)))
+    path.move(to: CGPoint(x: 0, y: y(-80)))
     path.addCurve(
-      to: CGPoint(x: 0.5 * w, y: y(4)),
-      control1: CGPoint(x: 0.174 * w, y: y(-16)),
-      control2: CGPoint(x: 0.348 * w, y: y(-12)))
+      to: CGPoint(x: 0.5 * w, y: y(-64)),
+      control1: CGPoint(x: 0.174 * w, y: y(-112)),
+      control2: CGPoint(x: 0.348 * w, y: y(-102)))
     path.addCurve(
-      to: CGPoint(x: w, y: y(-4)),
-      control1: CGPoint(x: 0.652 * w, y: y(-12)),
-      control2: CGPoint(x: 0.826 * w, y: y(-16)))
+      to: CGPoint(x: w, y: y(-84)),
+      control1: CGPoint(x: 0.652 * w, y: y(-102)),
+      control2: CGPoint(x: 0.826 * w, y: y(-112)))
     path.addLine(to: CGPoint(x: w, y: rect.maxY))
     path.addLine(to: CGPoint(x: 0, y: rect.maxY))
+    path.closeSubpath()
+    return path
+  }
+}
+
+/// The same widening bend as the app, visible above the verdict's foreground card.
+private struct SceneRoad: Shape {
+  let ground: CGFloat
+
+  func path(in rect: CGRect) -> Path {
+    let w = rect.width
+    func point(_ x: CGFloat, _ dy: CGFloat) -> CGPoint {
+      CGPoint(x: w * x, y: ground + dy * 0.6)
+    }
+    var path = Path()
+    path.move(to: point(0.52, -64))
+    path.addCurve(to: point(0.1, 24), control1: point(0.49, -40), control2: point(0.24, -10))
+    path.addLine(to: point(0.66, 24))
+    path.addCurve(to: point(0.52, -64), control1: point(0.55, -10), control2: point(0.54, -40))
     path.closeSubpath()
     return path
   }
@@ -237,38 +301,41 @@ private struct SkyArt: View {
     let wide = w > size.height * 1.5
     ZStack(alignment: .topLeading) {
       switch sky {
+      case .heat:
+        SceneSun(radius: 23 * k, glow: 1.25)
+          .position(x: w - 42 * k, y: 38 * k)
       case .clear:
-        SceneCloud(look: .fair, scale: 0.5 * k)
-          .position(x: wide ? w * 0.5 : w * 0.12, y: 10 * k)
-        SceneSun(radius: 16 * k)
-          .position(x: w - 38 * k, y: 40 * k)
-        SceneCloud(look: .fair, scale: 0.26 * k)
-          .position(x: w - 18 * k, y: 66 * k)
+        SceneSun(radius: 21 * k)
+          .position(x: w - 42 * k, y: 38 * k)
       case .partly:
         SceneCloud(look: .fair, scale: 0.5 * k)
           .position(x: wide ? w * 0.5 : w * 0.12, y: 10 * k)
         SceneSun(radius: 15 * k, glow: 0.8)
-          .position(x: w - 36 * k, y: 38 * k)
+          .position(x: w - 36 * k, y: 32 * k)
         SceneCloud(look: .fair, scale: 0.4 * k)
-          .position(x: w - 54 * k, y: 56 * k)
+          .position(x: w - 54 * k, y: 24 * k)
       case .fog:
         SceneSun(radius: 14 * k, glow: 0.5)
-          .position(x: w - 38 * k, y: 38 * k)
+          .position(x: w - 38 * k, y: 32 * k)
           .opacity(0.55)
-        FogBand(width: w * 1.3, height: 34 * k, opacity: 0.7)
-          .position(x: w * 0.45, y: 20 * k)
-        FogBand(width: w * 1.2, height: 38 * k, opacity: 0.85)
-          .position(x: w * 0.6, y: 52 * k)
-        FogBand(width: w * 1.4, height: 40 * k, opacity: 0.9)
-          .position(x: w * 0.4, y: ground - 18 * k)
+        FogBand(width: w * 1.3, height: 30 * k, opacity: 0.7)
+          .position(x: w * 0.45, y: 14 * k)
+        FogBand(width: w * 1.2, height: 34 * k, opacity: 0.85)
+          .position(x: w * 0.6, y: 30 * k)
+        FogBand(width: w * 1.4, height: 36 * k, opacity: 0.9)
+          .position(x: w * 0.4, y: 46 * k)
       default:
         let look = sky.cloudLook
+        if sky == .rain {
+          SceneSun(radius: 13 * k, glow: 0.45)
+            .position(x: w - 32 * k, y: 28 * k)
+        }
         SceneCloud(look: look, scale: 0.5 * k)
-          .position(x: wide ? w * 0.42 : w * 0.1, y: 12 * k)
+          .position(x: wide ? w * 0.42 : w * 0.1, y: 10 * k)
         SceneCloud(look: look, scale: 0.36 * k)
-          .position(x: wide ? w * 0.64 : w * 0.56, y: 18 * k)
+          .position(x: wide ? w * 0.64 : w * 0.52, y: 12 * k)
         StormCloud(look: look, precip: sky.precip, lightning: sky == .storm, scale: 0.46 * k)
-          .position(x: w - 40 * k, y: 44 * k)
+          .position(x: w - 42 * k, y: 16 * k)
       }
     }
     .frame(width: size.width, height: size.height, alignment: .topLeading)

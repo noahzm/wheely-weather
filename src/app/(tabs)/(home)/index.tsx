@@ -325,6 +325,7 @@ function HomeSections({
       <View>
         <Stagger order={1} variant="slap">
           <RideVerdict
+            rideWindow={derived.rideWindow}
             status={derived.status}
             score={derived.score}
             message={derived.message}
@@ -440,6 +441,8 @@ export default function HomeScreen() {
           sections.derived.status,
           sections.derived.waiting,
           sections.derived.verdictWeatherCode,
+          sections.derived.kit.weather,
+          sections.thresholds,
         )
       : null;
 
@@ -703,7 +706,7 @@ function HomeContent({
             )}
             {headerContent !== null && <Stagger order={0}>{headerContent}</Stagger>}
             {sections && (
-              <View onLayout={sceneLayout.onSectionsLayout}>
+              <View onLayout={sceneLayout.onSectionsLayout} style={scene && styles.sceneRoom}>
                 <HomeSections
                   weather={sections.weather}
                   derived={sections.derived}
@@ -756,6 +759,7 @@ function makeStyles(c: WheelyPalette) {
       // verdict reserves its star pill's overhang, so this lands on the pill.
       gap: Spacing.three,
     },
+    sceneRoom: { marginTop: 88 },
     sectionsWrap: {
       gap: SECTION_GAP,
     },

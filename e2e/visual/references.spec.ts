@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-const scenarios = ['ride', 'maybe', 'rest', 'alert', 'wait'] as const;
+const scenarios = ['ride', 'maybe', 'rest', 'alert', 'wait', 'heat'] as const;
 const appearances = ['light', 'dark'] as const;
 
 for (const appearance of appearances) {
@@ -24,9 +24,15 @@ for (const appearance of appearances) {
       });
       const chart = page.getByLabel('Hourly ride-condition chart', { exact: true });
       await expect.poll(() => chart.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
-      // All home sections render in the document; no scrolling is needed to
-      // capture them, which also leaves fixed chrome in its first-viewport position.
+      // All home sections render in the document without scrolling; unpin the
+      // floating nav wrapper from the first viewport so it sits in the bottom
+      // inset at the foot of the full-page capture instead of over the chart.
       await expect(page.getByRole('button', { name: /^Today:/ })).toBeVisible();
+      await page.getByRole('tablist').evaluate((tablist) => {
+        if (tablist.parentElement) {
+          tablist.parentElement.style.position = 'absolute';
+        }
+      });
       // The capture config updates files deliberately; the screenshot matcher
       // waits for two matching frames so references never record an entrance.
       await expect(page).toHaveScreenshot(`${scenario}-${appearance}.png`, {
@@ -35,6 +41,16 @@ for (const appearance of appearances) {
         caret: 'hide',
         scale: 'css',
       });
+      if (['ride', 'heat', 'rest'].includes(scenario)) {
+        const heading = await page.getByRole('heading', { name: 'Hour by hour' }).boundingBox();
+        if (!heading) throw new Error('Missing hourly heading for the scene crop');
+        await expect(page).toHaveScreenshot(`scene-${scenario}-${appearance}.png`, {
+          clip: { x: 0, y: 0, width: 390, height: Math.ceil(heading.y) - 16 },
+          animations: 'disabled',
+          caret: 'hide',
+          scale: 'css',
+        });
+      }
     });
   }
 }

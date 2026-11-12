@@ -90,6 +90,11 @@ describe('buildWidgetSnapshot', () => {
     expect(buildWidgetSnapshot(snapshot, 'fahrenheit')?.sky).toBe('storm');
   });
 
+  it('shares the dry heat scene with the app', () => {
+    const snapshot = buildSnapshot('heat');
+    expect(buildWidgetSnapshot(snapshot, 'fahrenheit')?.sky).toBe('heat');
+  });
+
   it('keeps the plain page while waiting', () => {
     expect(buildWidgetSnapshot(buildSnapshot('wait'), 'fahrenheit')?.sky).toBeNull();
   });

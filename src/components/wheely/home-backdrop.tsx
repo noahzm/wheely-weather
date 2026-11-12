@@ -3,7 +3,9 @@ import { Image, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import Svg, {
   Circle,
+  ClipPath,
   Defs,
+  G,
   LinearGradient,
   Path,
   RadialGradient,
@@ -55,13 +57,13 @@ const SKY_LINE = ABOVE + HORIZON;
 /** How high above the horizon the sky's gradient starts from its top color. */
 const SKY_DEPTH = 240;
 /** How strongly the film grain shows over the scene. */
-const GRAIN_OPACITY = 0.32;
+const GRAIN_OPACITY = 0.16;
 /**
  * Fallback verdict-card offset before `onLayout` measures `groundTop` (matches
  * `CARD_TOP - CONTENT_TOP` in `scripts/render-launch-sky.mjs`), so frame 0
  * renders the sky, grain and page fade seamlessly with the iOS launch image.
  */
-const DEFAULT_GROUND_TOP = 50;
+const DEFAULT_GROUND_TOP = 138;
 
 /** A square box of side `size` centered on (cx, cy) in scene coordinates. */
 function boxAt(cx: number, cy: number, size: number) {
@@ -132,16 +134,8 @@ function ClearSky({ width, motion }: Readonly<{ width: number; motion: Motion }>
   return (
     <>
       <Cloud cx={width * 0.72} cy={SKY_LINE - 280} scale={0.6} motion={motion} swayMs={15_000} />
-      <Cloud cx={width * 0.26} cy={SKY_LINE - 158} scale={0.85} motion={motion} />
-      <Sun cx={width - 80} cy={SKY_LINE - 84} r={38} motion={motion} />
-      <Cloud
-        cx={width * 0.7}
-        cy={SKY_LINE - 38}
-        scale={0.55}
-        motion={motion}
-        swayMs={9000}
-        enterDelay={350}
-      />
+
+      <Sun cx={width * 0.7} cy={SKY_LINE - 44} r={48} motion={motion} />
     </>
   );
 }
@@ -233,6 +227,9 @@ function GraySky({
 }>) {
   return (
     <>
+      {!lightning && precip === 'rain' && (
+        <Sun cx={width - 80} cy={SKY_LINE - 100} r={30} motion={motion} glow={0.45} />
+      )}
       <Cloud
         cx={width * 0.72}
         cy={SKY_LINE - 280}
@@ -279,6 +276,9 @@ function SceneSky({
   motion,
 }: Readonly<{ kind: SceneKind; width: number; motion: Motion }>) {
   switch (kind) {
+    case 'heat': {
+      return <Sun cx={width * 0.7} cy={SKY_LINE - 44} r={52} motion={motion} glow={1.25} />;
+    }
     case 'clear': {
       return <ClearSky width={width} motion={motion} />;
     }
@@ -322,6 +322,13 @@ const FAIR_PALETTE: Palette = {
   hillsTop: SceneColors.hillsTop,
   hillsBottom: SceneColors.hillsBottom,
 };
+const HEAT_PALETTE: Palette = {
+  skyTop: SceneColors.heatSkyTop,
+  sky: SceneColors.heatSky,
+  skyHorizon: SceneColors.heatSkyHorizon,
+  hillsTop: SceneColors.heatHillsTop,
+  hillsBottom: SceneColors.heatHillsBottom,
+};
 const WET_PALETTE: Palette = {
   skyTop: SceneColors.rainSkyTop,
   sky: SceneColors.rainSky,
@@ -354,6 +361,7 @@ const SNOW_PALETTE: Palette = {
 /** Each sky's colors, daylight in both color schemes: see SceneColors. */
 const PALETTES: Readonly<Record<SceneKind, Palette>> = {
   clear: FAIR_PALETTE,
+  heat: HEAT_PALETTE,
   partly: FAIR_PALETTE,
   overcast: WET_PALETTE,
   fog: FOG_PALETTE,
@@ -404,13 +412,17 @@ function belowCardTop(dy: number): number {
  * just above the verdict card, under whatever sits above it, and roll on
  * beneath it.
  */
-function Hills({ width, palette }: Readonly<{ width: number; palette: Palette }>) {
+function Hills({
+  width,
+  palette,
+  wet,
+}: Readonly<{ width: number; palette: Palette; wet: boolean }>) {
   const id = useId();
   const w = width;
   const y = belowCardTop;
   const hills =
-    `M0,${y(-2)} C${0.174 * w},${y(-16)} ${0.348 * w},${y(-12)} ${0.5 * w},${y(4)}` +
-    ` C${0.652 * w},${y(-12)} ${0.826 * w},${y(-16)} ${w},${y(-4)} V${HEIGHT} H0 Z`;
+    `M0,${y(-80)} C${0.174 * w},${y(-112)} ${0.348 * w},${y(-102)} ${0.5 * w},${y(-64)}` +
+    ` C${0.652 * w},${y(-102)} ${0.826 * w},${y(-112)} ${w},${y(-84)} V${HEIGHT} H0 Z`;
   return (
     <Svg width={width} height={HEIGHT} style={StyleSheet.absoluteFill}>
       <Defs>
@@ -418,15 +430,40 @@ function Hills({ width, palette }: Readonly<{ width: number; palette: Palette }>
           id={id}
           gradientUnits="userSpaceOnUse"
           x1={0}
-          y1={y(-16)}
+          y1={y(-112)}
           x2={0}
           y2={y(140)}
         >
           <Stop offset={0} stopColor={palette.hillsTop} />
           <Stop offset={1} stopColor={palette.hillsBottom} />
         </LinearGradient>
+        <ClipPath id={`${id}roadClip`}>
+          <Rect width={width} height={y(8)} />
+        </ClipPath>
       </Defs>
       <Path d={hills} fill={`url(#${id})`} />
+      {/* Both edges widen continuously from one vanishing point; a single
+          gentle curve avoids a pinch or hairpin near the horizon. */}
+      <G clipPath={`url(#${id}roadClip)`}>
+        <Path
+          d={`M${w * 0.52},${y(-64)} C${w * 0.49},${y(-42)} ${w * 0.28},${y(-18)} ${w * 0.16},${y(12)} H${w * 0.64} C${w * 0.54},${y(-18)} ${w * 0.54},${y(-42)} ${w * 0.52},${y(-64)} Z`}
+          fill={wet ? SceneColors.wetRoad : SceneColors.road}
+        />
+        <Path
+          d={`M${w * 0.495},${y(-46)} H${w * 0.503} L${w * 0.486},${y(-35)} H${w * 0.472} Z M${w * 0.439},${y(-22)} H${w * 0.455} L${w * 0.432},${y(-6)} H${w * 0.402} Z`}
+          fill={SceneColors.roadMarking}
+          opacity={wet ? 0.8 : 1}
+        />
+        {wet && (
+          <Path
+            d={`M${w * 0.49},${y(-40)} Q${w * 0.46},${y(-25)} ${w * 0.42},${y(-8)}`}
+            fill="none"
+            stroke={SceneColors.roadReflection}
+            strokeWidth={3}
+            opacity={0.25}
+          />
+        )}
+      </G>
     </Svg>
   );
 }
@@ -513,6 +550,7 @@ export function HomeBackdrop({
 
   return (
     <View
+      testID={`verdict-scene-${kind}`}
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
       style={[styles.backdrop, offset > 0 && { top: offset - ABOVE }]}
@@ -524,7 +562,11 @@ export function HomeBackdrop({
         <Ground shift={groundShift} motion={motion}>
           {/* Its own view: Ground's transform places the hills, this one brings them in. */}
           <Animated.View style={[StyleSheet.absoluteFill, entrance(motion, HILLS_IN)]}>
-            <Hills width={width} palette={palette} />
+            <Hills
+              width={width}
+              palette={palette}
+              wet={['rain', 'drizzle', 'storm'].includes(kind)}
+            />
           </Animated.View>
         </Ground>
       )}

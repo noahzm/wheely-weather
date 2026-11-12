@@ -161,7 +161,7 @@ export interface LocationSearchResult {
   displayName?: string;
 }
 
-export type MockScenario = 'ride' | 'maybe' | 'rest' | 'alert' | 'wait';
+export type MockScenario = 'ride' | 'maybe' | 'rest' | 'alert' | 'wait' | 'heat';
 
 /**
  * A rider's home-climate baseline: representative *warm* exposure at home, used

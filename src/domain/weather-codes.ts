@@ -1,7 +1,8 @@
-import { SNOW_BELOW_TEMP } from './constants';
+import { HEAT_INDEX_HAZARD, SNOW_BELOW_TEMP, THRESHOLDS, type Thresholds } from './constants';
+import { heatIndex } from './heat-index';
 import { WEATHER_DESCRIPTIONS } from './copy';
 
-import type { Condition, RideStatus } from '@/types/weather';
+import type { Condition, RideStatus, Weather } from '@/types/weather';
 
 /** Returns the human-readable description for a WMO weather interpretation code. */
 export const getWeatherDescription = (code: number | null | undefined): string =>
@@ -95,7 +96,16 @@ export const getWeatherCodeIssue = (
 
 /** The home scene's sky for a forecast: what the rider would see overhead. */
 export type Sky =
-  'clear' | 'partly' | 'overcast' | 'fog' | 'drizzle' | 'rain' | 'storm' | 'snow' | 'sleet';
+  | 'heat'
+  | 'clear'
+  | 'partly'
+  | 'overcast'
+  | 'fog'
+  | 'drizzle'
+  | 'rain'
+  | 'storm'
+  | 'snow'
+  | 'sleet';
 
 /**
  * Every WMO code by the sky it gets. Freezing drizzle and rain get sleet's
@@ -154,7 +164,17 @@ export function getVerdictSky(
   status: RideStatus,
   waiting: boolean,
   weatherCode: number | null | undefined,
+  weather?: Pick<Weather, 'temperature' | 'dewpoint' | 'heatIndex'>,
+  thresholds: Thresholds = THRESHOLDS,
 ): Sky | null {
   if (waiting) return null;
-  return getSky(weatherCode) ?? SKY_BY_STATUS[status];
+  const sky = getSky(weatherCode);
+  // Heat changes the dry sky's atmosphere; it must never erase rain, fog or storms.
+  const hot =
+    weather != null &&
+    (weather.temperature >= thresholds.TEMPERATURE.MARGINAL_MAX ||
+      (weather.heatIndex ?? heatIndex(weather.temperature, weather.dewpoint) ?? 0) >=
+        HEAT_INDEX_HAZARD.WARNING);
+  if (hot && (sky == null || sky === 'clear' || sky === 'partly')) return 'heat';
+  return sky ?? SKY_BY_STATUS[status];
 }
