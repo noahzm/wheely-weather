@@ -257,6 +257,20 @@ export function labelTimelineHours(
   return hours.map((_, i) => picked.includes(i));
 }
 
+/** The finish-boundary point appended to multi-hour timelines so "12 PM–3 PM" plots to 3 PM. */
+function finishPoint(
+  hourly: HourlyWeather[],
+  last: HourlyWeather,
+): { hour: number; temperature: number; change: false } {
+  const endHour = (last.hour + 1) % 24;
+  const next = hourly[hourly.indexOf(last) + 1];
+  return {
+    hour: endHour,
+    temperature: next?.hour === endHour ? next.temperature : last.temperature,
+    change: false,
+  };
+}
+
 /**
  * The kit card's plan for the verdict's window (or, without one, the next
  * `defaultWindowHours` hours).
@@ -303,11 +317,16 @@ export function getKitPlan(
 
   const changeAt = (i: number): boolean =>
     i > 0 && planned.some(({ changes }) => !!changes && changes[i] !== changes[i - 1]);
-  const timeline = rideHourly.map((hour, i) => ({
-    hour: hour.hour,
-    temperature: hour.temperature,
-    change: changeAt(i),
-  }));
+  const lastRideHour = rideHourly.length > 1 ? rideHourly.at(-1) : undefined;
+  const finishHour = lastRideHour ? finishPoint(weather.hourly, lastRideHour) : null;
+  const timeline = [
+    ...rideHourly.map((hour, i) => ({
+      hour: hour.hour,
+      temperature: hour.temperature,
+      change: changeAt(i),
+    })),
+    ...(finishHour ? [finishHour] : []),
+  ];
   const labeled = labelTimelineHours(timeline);
 
   const placed = (placement: Placement) =>

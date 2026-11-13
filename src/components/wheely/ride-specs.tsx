@@ -190,7 +190,7 @@ function makeStyles(c: WheelyPalette) {
       borderColor: c.divider,
       ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as object) : null),
     },
-    compactCell: { padding: Spacing.two, minWidth: 0 },
+    compactCell: { minWidth: 0 },
     compactValue: { ...Type.heading },
     disclosure: {
       flexDirection: 'row',
@@ -282,11 +282,12 @@ function useStyles() {
   const { width, fontScale } = useWindowDimensions();
   const isCompact = Platform.OS !== 'web' || width < 640;
   const styles = useMemo(() => makeStyles(c), [c]);
-  const columns = isCompact ? 2 : 4;
+  const columns = isCompact ? 2 : 3;
   return {
     c,
     styles,
     columns: fontScale > 1.15 ? 1 : columns,
+    daylightColumns: fontScale > 1.15 ? 1 : 2,
     primaryColumns: fontScale > 1.15 ? 1 : 3,
   };
 }
@@ -485,7 +486,7 @@ export function RideSpecs({
   weather,
   thresholds = THRESHOLDS,
 }: Readonly<{ weather: Weather; thresholds?: typeof THRESHOLDS }>) {
-  const { c, styles, columns, primaryColumns } = useStyles();
+  const { c, styles, columns, daylightColumns, primaryColumns } = useStyles();
   const { format: formatTemp, formatWind, unit } = useTemperatureDisplay();
   const [moreOpen, setMoreOpen] = useState(false);
   const moreProgress = useExpandAnimation(moreOpen);
@@ -496,11 +497,14 @@ export function RideSpecs({
 
   const rows = useMemo(() => {
     const chunked: RideSpecMetric[][] = [];
-    for (let i = 3; i < metrics.length; i += columns) {
-      chunked.push(metrics.slice(i, i + columns));
+    for (let i = 3; i < 6; i += columns) {
+      chunked.push(metrics.slice(i, Math.min(6, i + columns)));
+    }
+    for (let i = 6; i < metrics.length; i += daylightColumns) {
+      chunked.push(metrics.slice(i, i + daylightColumns));
     }
     return chunked;
-  }, [metrics, columns]);
+  }, [metrics, columns, daylightColumns]);
 
   const primaryRows: RideSpecMetric[][] = [];
   for (let i = 0; i < 3; i += primaryColumns) {

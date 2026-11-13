@@ -1,8 +1,10 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import type { SharedValue } from 'react-native-reanimated';
 
 import { getHourConditionReasons } from '@/utils';
 import { fullHourLabel } from '@/utils/timeFormat';
 import { useResolvedTempUnit } from '@/hooks/settings-context';
+import { useWheelyColors } from '@/hooks/use-theme';
 import { type Thresholds } from '@/domain/constants';
 import {
   CHART_X_ORIGIN,
@@ -14,6 +16,7 @@ import {
 import { CONDITION_DISPLAY } from '@/domain';
 import type { HourlyWeather } from '@/types/weather';
 
+import type { ChipLayoutSize } from './animated-condition-chip';
 import { useExpandAnimation } from './animated-expand';
 import { asCondition } from './primitives';
 import { useHourlyScrollPicker } from './use-hourly-scroll-picker';
@@ -26,10 +29,11 @@ export function useHourlyForecastChart(
     nowIdx: number;
     /** The hour centered and selected on mount: Now, or the ride window's start. */
     openingIdx: number;
+    onSelectHour?: (hourlyIndex: number | null) => void;
   }>,
   thresholds: Thresholds,
 ) {
-  const { nowIdx, openingIdx } = hours;
+  const { nowIdx, openingIdx, onSelectHour } = hours;
   const {
     scrollRef,
     scrollX,
@@ -47,7 +51,16 @@ export function useHourlyForecastChart(
     onScrollBeginDrag,
     onScrollEndDrag,
     onMomentumScrollEnd,
-  } = useHourlyScrollPicker(openingIdx, data.length);
+  } = useHourlyScrollPicker(
+    openingIdx,
+    data.length,
+    onSelectHour
+      ? (nextIdx) => {
+          const clamped = Math.max(nowIdx, nextIdx);
+          onSelectHour(clamped === openingIdx ? null : clamped - nowIdx);
+        }
+      : undefined,
+  );
 
   const tempUnit = useResolvedTempUnit();
   const selected = data[selectedIdx] ?? data[openingIdx];
@@ -103,4 +116,62 @@ export function useHourlyForecastChart(
     onScrollEndDrag,
     onMomentumScrollEnd,
   };
+}
+
+export function useHourlyChipScroll({
+  data,
+  c,
+  bgColors,
+  scrollX,
+  liveScrollX,
+  viewportWidth,
+  initialScrollX,
+  maxIndex,
+}: Readonly<{
+  data: ChartHour[];
+  c: ReturnType<typeof useWheelyColors>;
+  bgColors: readonly string[];
+  scrollX: SharedValue<number>;
+  liveScrollX: number;
+  viewportWidth: number;
+  initialScrollX: number;
+  maxIndex: number;
+}>) {
+  const [chipLayouts, setChipLayouts] = useState<ChipLayoutSize[] | null>(null);
+  const conditionLabels = useMemo(
+    () => data.map((hour) => CONDITION_DISPLAY[asCondition(hour.condition)]),
+    [data],
+  );
+  const handleChipLayouts = useCallback((layouts: ChipLayoutSize[]) => {
+    setChipLayouts(layouts);
+  }, []);
+
+  const chartScroll = useMemo(() => {
+    const conditions = data.map((hour) => hour.condition);
+    const inkColors = data.map((hour) => c.condition[asCondition(hour.condition)].ink);
+    return {
+      scrollX,
+      liveScrollX,
+      viewportWidth,
+      initialScrollX,
+      maxIndex,
+      conditions,
+      bgColors,
+      inkColors,
+      chipLayoutWidths: chipLayouts?.map((layout) => layout.width) ?? [],
+      chipLayoutHeights: chipLayouts?.map((layout) => layout.height) ?? [],
+    };
+  }, [
+    bgColors,
+    c,
+    chipLayouts,
+    data,
+    initialScrollX,
+    liveScrollX,
+    maxIndex,
+    scrollX,
+    viewportWidth,
+  ]);
+
+  return { conditionLabels, handleChipLayouts, chartScroll };
 }

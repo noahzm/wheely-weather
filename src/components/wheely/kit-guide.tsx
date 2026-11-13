@@ -291,8 +291,10 @@ function spanLabel(hours: KitPlanHour[], unit: TempUnit): string | null {
   const first = hours[0];
   const last = hours.at(-1);
   if (!first || !last) return null;
-  const span = formatHourSpan(first.hour, last.hour + 1);
-  return hours.length === 1 ? `${span} · ${formatTemperature(first.temperature, unit)}` : span;
+  if (hours.length === 1) {
+    return `${formatHourSpan(first.hour, (first.hour + 1) % 24)} · ${formatTemperature(first.temperature, unit)}`;
+  }
+  return formatHourSpan(first.hour, last.hour || 24);
 }
 
 function KitTimeline({

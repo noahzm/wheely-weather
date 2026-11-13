@@ -18,7 +18,7 @@ for (const appearance of appearances) {
       });
       await page.goto(`/?mock=${scenario}`);
       await expect(page.getByRole('heading', { name: 'Hour by hour' })).toBeVisible();
-      await expect(page.getByRole('button', { name: /Location: Mock:/ })).toBeVisible();
+      await expect(page.getByRole('heading', { name: /Location: Mock:/ })).toBeVisible();
       await page.evaluate(async () => {
         await document.fonts.ready;
       });

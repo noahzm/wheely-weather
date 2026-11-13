@@ -17,10 +17,17 @@ export {
   getDayGearSuggestion,
   getDaylightWarning,
   getGearSuggestion,
+  rideHoursFromIndex,
   type RideHours,
   getMessage,
   getOverallStatus,
   getRainTiming,
   getWeatherAlerts,
 } from './weather';
-export { getRideKitTitle, getRideVerdict, getRideVerdictLabel, type RideVerdict } from './verdict';
+export {
+  getCustomKitTitle,
+  getRideKitTitle,
+  getRideVerdict,
+  getRideVerdictLabel,
+  type RideVerdict,
+} from './verdict';

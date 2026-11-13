@@ -46,20 +46,18 @@ import {
   WebCompactTitleBar,
   useWebTitleCollapse,
 } from '@/components/wheely/web-screen-header';
-import { HapticPressable, PlatformIcon, SectionTitle } from '@/components/wheely/primitives';
+import { PlatformIcon, SectionTitle } from '@/components/wheely/primitives';
 import { ThemedText } from '@/components/themed-text';
-import {
-  getDaylightWarning,
-  getRainTiming,
-  getRideVerdict,
-  getWeatherAlerts,
-  getRideKitTitle,
-  getRideVerdictLabel,
-} from '@/domain';
 import { getVerdictSky } from '@/domain/weather-codes';
 import type { AcclimatizationContext } from '@/services/forecastSnapshot';
 import { useForecast } from '@/hooks/forecast-context';
 import { useGearMode, useResolvedTempUnit } from '@/hooks/settings-context';
+import {
+  deriveHomeState,
+  useSelectedHomeKit,
+  type HomeSectionsData,
+  type HomeState,
+} from '@/hooks/use-home-state';
 import { useLargeTitleScrollToTop } from '@/hooks/use-large-title-scroll-to-top';
 import { useMinimumRefreshing } from '@/hooks/use-minimum-refreshing';
 import { useColorSchemeName, useWheelyColors } from '@/hooks/use-theme';
@@ -67,8 +65,6 @@ import { GearStylePicker } from '@/components/wheely/gear-style-picker';
 import { HourlyNoteStickers } from '@/components/wheely/hourly-note-stickers';
 import { resolveHomeCity } from '@/utils/locationTitle';
 import { formatUpdatedAgo } from '@/utils/timeFormat';
-import type { TempUnit } from '@/utils/temperature';
-import type { RideDuration } from '@/types/settings';
 import type { Weather } from '@/types/weather';
 import { contentColumnStyle, screenGutterStyle } from '@/components/wheely/content-column';
 import { SceneColors, Spacing, TRANSPARENT, Type, type WheelyPalette } from '@/constants/theme';
@@ -109,52 +105,6 @@ const headingStyles = StyleSheet.create({
 // above the next title.
 const SECTION_GAP = 28;
 
-function deriveHomeState(
-  weather: Weather,
-  location: string,
-  acclimatization: AcclimatizationContext,
-  tempUnit: TempUnit,
-  rideDuration?: RideDuration,
-) {
-  const { thresholds } = acclimatization;
-  // Rates the day's best ride window (tomorrow's after dark), not this hour.
-  const verdict = getRideVerdict(weather, thresholds, tempUnit);
-  const windowWithDay = verdict.window
-    ? { ...verdict.window, tomorrow: verdict.when === 'tomorrow' }
-    : null;
-  // Shaded on the chart when it's a recommendation; the best of a no-go day isn't.
-  const rideWindow = verdict.status === 'no' ? null : windowWithDay;
-  return {
-    status: verdict.status,
-    condition: verdict.condition,
-    score: verdict.score,
-    message: verdict.message,
-    label: getRideVerdictLabel(verdict, location),
-    verdictWeatherCode: verdict.weatherCode,
-    waiting: verdict.when === 'wait',
-    rideWindow,
-    // Dress for the window the verdict rates, not the current hour.
-    kit: {
-      title: getRideKitTitle(verdict),
-      weather: verdict.rated,
-      rideHours: windowWithDay,
-      thresholds,
-      rideDuration,
-    },
-    rainTiming: getRainTiming(weather.hourly),
-    daylightWarning: getDaylightWarning(weather.hourly, weather.daylight, rideWindow),
-    alerts: getWeatherAlerts(weather, tempUnit),
-  };
-}
-
-type HomeState = ReturnType<typeof deriveHomeState>;
-
-interface HomeSectionsData {
-  weather: Weather;
-  thresholds: AcclimatizationContext['thresholds'];
-  derived: HomeState;
-}
-
 /**
  * Lines the home backdrop up with the page. `offset` is how far the web city
  * heading pushes the content column below where native starts it (native
@@ -184,7 +134,6 @@ function WebCityHeading({
   following,
   onScene = false,
 }: Readonly<{ city: string; following: boolean; onScene?: boolean }>) {
-  const router = useRouter();
   const c = useWheelyColors();
   if (!isWeb || city.length === 0) return null;
   const ink = onScene ? SceneColors.ink : c.ink;
@@ -194,21 +143,16 @@ function WebCityHeading({
         variant="title"
         withScreenGutter={false}
         title={
-          <HapticPressable
-            onPress={() => {
-              router.navigate('/location');
-            }}
-            accessibilityRole="button"
+          <View
+            accessibilityRole="header"
             accessibilityLabel={
-              following
-                ? `Location: ${city}, following your current location. Change location`
-                : `Location: ${city}. Change location`
+              following ? `Location: ${city}, following your current location` : `Location: ${city}`
             }
-            style={({ pressed }) => [headingStyles.cityRow, pressed && { opacity: 0.7 }]}
+            style={headingStyles.cityRow}
           >
             <WebScreenTitle color={ink}>{city}</WebScreenTitle>
             {following && <PlatformIcon icon={Navigation} size={20} color={ink} filled />}
-          </HapticPressable>
+          </View>
         }
       />
     </View>
@@ -306,6 +250,9 @@ function HomeSections({
     }
   }
 
+  const { activeKit, activeDaylightWarning, activeSpecs, setSelectedHourlyIdx } =
+    useSelectedHomeKit(weather, derived, placeKey);
+
   useEffect(() => {
     if (reduceMotion) {
       sectionsOpacity.value = 1;
@@ -355,7 +302,7 @@ function HomeSections({
                 weather.hourly.length > 0 ? (
                   <HourlyNoteStickers
                     rainTiming={derived.rainTiming}
-                    daylightWarning={derived.daylightWarning}
+                    daylightWarning={activeDaylightWarning}
                   />
                 ) : null
               }
@@ -366,18 +313,19 @@ function HomeSections({
             pastHourly={weather.pastHourly}
             thresholds={thresholds}
             rideWindow={derived.rideWindow}
+            onSelectHour={setSelectedHourlyIdx}
           />
         </View>
       </Stagger>
 
       <Stagger order={4}>
-        <KitSection kit={derived.kit} styles={styles} />
+        <KitSection kit={activeKit} styles={styles} />
       </Stagger>
 
       <Stagger order={5}>
         <View style={styles.section}>
-          <SectionTitle title="Right now" />
-          <RideSpecs weather={weather} thresholds={thresholds} />
+          <SectionTitle title={activeSpecs.title} />
+          <RideSpecs weather={activeSpecs.weather} thresholds={thresholds} />
         </View>
       </Stagger>
 

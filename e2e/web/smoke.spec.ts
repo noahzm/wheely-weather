@@ -18,14 +18,15 @@ test('the production export starts and keeps the preview across tab navigation',
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('/?mock=ride');
   await expect(page.getByRole('heading', { name: 'Hour by hour' })).toBeVisible();
-  await expect(page.getByRole('button', { name: /Location: Mock: Ride Day/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Location: Mock: Ride Day/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Location: Mock: Ride Day/ })).toHaveCount(0);
 
   await page.getByRole('tab', { name: 'Settings', exact: true }).click();
   await expect(page.getByRole('switch', { name: 'Night riding' })).toBeVisible();
   await page.getByRole('tab', { name: 'Search', exact: true }).click();
   await expect(page.getByRole('textbox', { name: 'Search for a location' })).toBeVisible();
   await page.getByRole('tab', { name: 'Weather', exact: true }).click();
-  await expect(page.getByRole('button', { name: /Location: Mock: Ride Day/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Location: Mock: Ride Day/ })).toBeVisible();
   expect(errors).toEqual([]);
 });
 
@@ -165,14 +166,21 @@ test('hourly shortcuts return to now and the recommended ride', async ({ page })
   const now = page.getByRole('button', { name: 'Now', exact: true });
   const best = page.getByRole('button', { name: 'Best ride', exact: true });
   await expect(best).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('heading', { name: 'Today’s kit' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'At 2 PM' })).toBeVisible();
   const bestValue = await chart.getAttribute('aria-valuetext');
   expect(bestValue).toBeTruthy();
   await now.click();
   await expect(now).toHaveAttribute('aria-selected', 'true');
   await expect(chart).toHaveAttribute('aria-valuetext', /^Now, Bad/);
+  await expect(page.getByRole('heading', { name: 'If you go at 11 AM' })).toBeVisible();
+  await expect(page.getByText('Rain jacket', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Right now' })).toBeVisible();
   await best.click();
   await expect(best).toHaveAttribute('aria-selected', 'true');
   await expect(chart).toHaveAttribute('aria-valuetext', bestValue ?? '');
+  await expect(page.getByRole('heading', { name: 'Today’s kit' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'At 2 PM' })).toBeVisible();
   await page.goto('/?mock=rest');
   await expect(page.getByRole('button', { name: 'Now', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Best ride', exact: true })).toHaveCount(0);
@@ -203,7 +211,7 @@ test('secondary current weather details expand accessibly and retain metric guid
 
 test('dry heat and heavy rain keep distinct verdict landscapes', async ({ page }) => {
   await page.goto('/?mock=heat');
-  await expect(page.getByRole('button', { name: /Location: Mock: Hot Day/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Location: Mock: Hot Day/ })).toBeVisible();
   await expect(page.getByTestId('verdict-scene-heat')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Best ride', exact: true })).toHaveCount(0);
   await page.goto('/?mock=rest');

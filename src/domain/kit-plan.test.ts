@@ -74,6 +74,7 @@ describe('getKitPlan', () => {
       { hour: 9, temperature: 46, change: false, labeled: true },
       { hour: 10, temperature: 54, change: false, labeled: true },
       { hour: 11, temperature: 61, change: true, labeled: true },
+      { hour: 12, temperature: 64, change: false, labeled: true },
     ]);
   });
 
@@ -95,7 +96,7 @@ describe('getKitPlan', () => {
     expect(item(plan, /^Long sleeves/)).toMatchObject({ reason: null, timing: null });
     expect(item(plan, /^Light gloves/)?.timing).toEqual({ kind: 'offBy', hour: 11 });
     expect(plan.pack.map((entry) => entry.label)).toEqual(['Quick-dry layer']);
-    expect(plan.hours.map((hour) => hour.change)).toEqual([false, true, true]);
+    expect(plan.hours.map((hour) => hour.change)).toEqual([false, true, true, false]);
   });
 
   it('takes layers off midday and back on at dusk on an all-day ride', () => {
@@ -113,9 +114,9 @@ describe('getKitPlan', () => {
     expect(zoneLabels(plan).head).toEqual(['Skull cap or headband']);
 
     expect(plan.hours.filter((hour) => hour.change).map((hour) => hour.hour)).toEqual([8, 10, 17]);
-    // Eleven hours label only the ends, the changes and the warmest, spaced apart.
+    // Eleven hours (12 points to finish) label only the ends, the changes and the warmest, spaced apart.
     expect(plan.hours.filter((hour) => hour.labeled).map((hour) => hour.hour)).toEqual([
-      7, 10, 14, 17,
+      7, 10, 14, 18,
     ]);
   });
 
@@ -201,14 +202,14 @@ describe('getKitPlan', () => {
       daylight: { sunriseHour: 6, sunsetHour: 19 },
     });
     const plan = getKitPlan(withDaylight, 'pro', null, undefined, ALL_DAY_RIDE_HOURS);
-    // Today's remaining daylight: 8 AM through 6 PM (11 hours), skipping the 28°F night.
-    expect(plan.hours.map((h) => h.hour)).toEqual([8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]);
+    // Today's remaining daylight: 8 AM through 7 PM boundary (11 buckets, 12 points), skipping the 28°F night.
+    expect(plan.hours.map((h) => h.hour)).toEqual([8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
     expect(item(plan, /insulated|balaclava/i)).toBeUndefined();
 
-    // Without daylight bounds, falls back to the standard 3-hour slice rather than 24 hours.
+    // Without daylight bounds, falls back to the standard 3-hour slice plus finish boundary (4 points).
     const withoutDaylight = makeWeather({ temperature: 65, hourly });
     const fallbackPlan = getKitPlan(withoutDaylight, 'pro', null, undefined, ALL_DAY_RIDE_HOURS);
-    expect(fallbackPlan.hours).toHaveLength(3);
+    expect(fallbackPlan.hours).toHaveLength(4);
   });
 });
 

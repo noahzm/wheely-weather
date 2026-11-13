@@ -4,7 +4,7 @@ import { resolveThresholds } from './acclimatization';
 import { THRESHOLDS } from './constants';
 import { getDailyCondition, getOverallStatus } from './scoring';
 import { formatVerdictDetail } from './copy';
-import { getRideKitTitle, getRideVerdict, getRideVerdictLabel } from './verdict';
+import { getCustomKitTitle, getRideKitTitle, getRideVerdict, getRideVerdictLabel } from './verdict';
 
 import type { Condition, DailyWeather, HourlyWeather, Weather } from '@/types/weather';
 
@@ -312,5 +312,44 @@ describe('getRideKitTitle', () => {
     expect(getRideKitTitle({ status: 'yes', when: 'wait' })).toBe('Today’s kit');
     expect(getRideKitTitle({ status: 'maybe', when: 'tomorrow' })).toBe('Tomorrow’s kit');
     expect(getRideKitTitle({ status: 'no', when: 'now' })).toBe('If you go anyway');
+  });
+});
+
+describe('getCustomKitTitle', () => {
+  it('names the selected start hour or warns on no-go slices', () => {
+    const weather: Weather = {
+      temperature: 65,
+      feelsLike: 65,
+      windSpeed: 5,
+      windGust: null,
+      rainChance: 0,
+      dewpoint: 48,
+      weatherCode: 1,
+      condition: 'good',
+      hasThunderstorms: false,
+      aqi: null,
+      pastHourly: [],
+      hourly: [
+        hour(11, 'bad'),
+        hour(12, 'bad'),
+        hour(13, 'good'),
+        hour(14, 'good'),
+        hour(15, 'good'),
+        hour(16, 'fair'),
+        hour(0, 'good'),
+        hour(1, 'good'),
+        hour(2, 'good'),
+      ],
+      daily: [day({ high: 70, low: 55 })],
+    };
+    expect(getCustomKitTitle(weather, { startHour: 11, endHour: 14, startIndex: 0 }, 3)).toBe(
+      'If you go at 11 AM',
+    );
+    expect(getCustomKitTitle(weather, { startHour: 13, endHour: 16, startIndex: 2 }, 3)).toBe(
+      'Kit for 1 PM',
+    );
+    expect(
+      getCustomKitTitle(weather, { startHour: 0, endHour: 3, tomorrow: true, startIndex: 6 }, 3),
+    ).toBe('Kit for 12 AM');
   });
 });

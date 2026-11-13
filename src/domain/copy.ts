@@ -269,6 +269,8 @@ export const STATUS_MESSAGES = {
   KIT_TODAY: 'Today’s kit',
   KIT_TOMORROW: 'Tomorrow’s kit',
   KIT_ANYWAY: 'If you go anyway',
+  KIT_FOR_HOUR: (time: string) => `Kit for ${time}`,
+  KIT_ANYWAY_AT: (time: string) => `If you go at ${time}`,
   TOMORROW_WINDOW: (range: string) => `Tomorrow ${range}`,
 };
 

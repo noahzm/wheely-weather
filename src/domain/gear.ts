@@ -76,6 +76,44 @@ export interface RideHours {
   endHour: number;
   /** True when the window is tomorrow, so overlapping evening hours today are skipped. */
   tomorrow?: boolean;
+  /** Explicit index in `weather.hourly` when selected directly from the chart. */
+  startIndex?: number;
+}
+
+/**
+ * Build a `RideHours` window starting at `startIndex` in `weather.hourly` for
+ * `defaultWindowHours`, clamping past/trailing bounds. Returns `null` for all-day
+ * rides or an empty forecast.
+ */
+export function rideHoursFromIndex(
+  hourly: HourlyWeather[],
+  startIndex: number,
+  defaultWindowHours: number = RIDE_WINDOW_HOURS,
+): RideHours | null {
+  if (defaultWindowHours >= ALL_DAY_RIDE_HOURS || hourly.length === 0) return null;
+  const span = Math.max(1, defaultWindowHours);
+  const clampedStart = Math.max(0, Math.min(startIndex, hourly.length - 1));
+  const slice = hourly.slice(clampedStart, clampedStart + span);
+  const first = slice[0];
+  const last = slice.at(-1);
+  if (!first || !last) return null;
+
+  let prevHour: number | null = null;
+  let tomorrow = false;
+  for (const h of hourly.slice(0, clampedStart + 1)) {
+    if (prevHour !== null && h.hour < prevHour) {
+      tomorrow = true;
+      break;
+    }
+    prevHour = h.hour;
+  }
+
+  return {
+    startHour: first.hour,
+    endHour: (last.hour + 1) % 24 || 24,
+    ...(tomorrow ? { tomorrow: true } : {}),
+    startIndex: clampedStart,
+  };
 }
 
 function findRideWindowIndices(hourly: HourlyWeather[], rideHours: RideHours): number[] {
@@ -110,6 +148,10 @@ function daylightRideHours(weather: Weather): RideHours | null {
   return { startHour: daylight.sunriseHour, endHour: daylight.sunsetHour };
 }
 
+function resolveStartIndex(hourlyLength: number, startIndex: number): number {
+  return Math.max(0, Math.min(startIndex, Math.max(0, hourlyLength - 1)));
+}
+
 /**
  * The hours the kit dresses for: the verdict's window when there is one (so a
  * wet 9 AM doesn't dress a dry noon ride), else the daylight hours for an
@@ -121,6 +163,10 @@ export function selectRideHours(
   rideHours: RideHours | null,
   defaultWindowHours: number = RIDE_WINDOW_HOURS,
 ): HourlyWeather[] {
+  if (rideHours?.startIndex != null && defaultWindowHours < ALL_DAY_RIDE_HOURS) {
+    const start = resolveStartIndex(weather.hourly.length, rideHours.startIndex);
+    return weather.hourly.slice(start, start + Math.max(1, defaultWindowHours));
+  }
   const effectiveHours =
     rideHours ?? (defaultWindowHours >= ALL_DAY_RIDE_HOURS ? daylightRideHours(weather) : null);
   if (!effectiveHours) {
@@ -142,8 +188,13 @@ export interface BeforeRide {
 
 /** The hours just before the ride: past hours, then any forecast hours before a later window. */
 export function selectHoursBeforeRide(weather: Weather, rideHours: RideHours | null): BeforeRide {
-  const indices = rideHours ? findRideWindowIndices(weather.hourly, rideHours) : [];
-  const startIndex = indices[0] ?? 0;
+  let startIndex = 0;
+  if (rideHours) {
+    startIndex =
+      rideHours.startIndex == null
+        ? (findRideWindowIndices(weather.hourly, rideHours)[0] ?? 0)
+        : resolveStartIndex(weather.hourly.length, rideHours.startIndex);
+  }
   const hoursUntilRide = Math.max(startIndex, 0);
   const hours = [...weather.pastHourly, ...weather.hourly.slice(0, hoursUntilRide)].slice(
     -WET_ROADS_THRESHOLD.RECENT_HOURS,

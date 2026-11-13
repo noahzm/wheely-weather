@@ -249,6 +249,7 @@ describe('getDaylightWarning', () => {
     expect(getDaylightWarning(hourly, daylight, { startHour: 17, endHour: 20 })).toContain(
       'lights',
     );
+    expect(getDaylightWarning(hourly, daylight, { startHour: 23, endHour: 2 })).toContain('lights');
     expect(getDaylightWarning(hourly, daylight, { startHour: 6, endHour: 18 })).toBeNull();
   });
 });

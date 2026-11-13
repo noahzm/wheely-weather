@@ -1,5 +1,6 @@
 import { THRESHOLDS, type Thresholds } from './constants';
 import { getVerdictLabel, STATUS_MESSAGES as MSG } from './copy';
+import { selectRideHours, type RideHours } from './gear';
 import { describeNow, getMessage } from './ride-factors';
 import {
   calculateRideScore,
@@ -225,4 +226,21 @@ export function getRideKitTitle(verdict: Pick<RideVerdict, 'status' | 'when'>): 
   if (verdict.status === 'no') return MSG.KIT_ANYWAY;
   if (verdict.when === 'tomorrow') return MSG.KIT_TOMORROW;
   return MSG.KIT_TODAY;
+}
+
+/**
+ * Heading for a rider-selected window in the hourly chart: names the chosen
+ * start hour so scrubbing the chart visibly updates the kit heading.
+ */
+export function getCustomKitTitle(
+  weather: Weather,
+  rideHours: RideHours,
+  defaultWindowHours?: number,
+): string {
+  const hours = selectRideHours(weather, rideHours, defaultWindowHours);
+  const startLabel = fullHourLabel(rideHours.startHour);
+  if (hours.some((h) => conditionToStatus(h.condition) === 'no')) {
+    return MSG.KIT_ANYWAY_AT(startLabel);
+  }
+  return MSG.KIT_FOR_HOUR(startLabel);
 }

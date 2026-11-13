@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
+import { ALL_DAY_RIDE_HOURS } from './ride-window';
 import { THRESHOLDS } from './constants';
-import { getDayGearSuggestion, getGearSuggestion } from './weather';
+import {
+  getDayGearSuggestion,
+  getGearSuggestion,
+  rideHoursFromIndex,
+  selectHoursBeforeRide,
+  selectRideHours,
+} from './gear';
 import { makeDay, makeHour, makeWeather } from '@/test-utils/weather';
 
 describe('Gear Suggestions', () => {
@@ -656,5 +663,72 @@ describe('Gear Suggestions', () => {
     const gear = getDayGearSuggestion(day, 'pro');
     expect(gear.wear.some((item) => /short-sleeve jersey/i.test(item.label))).toBe(true);
     expect(gear.bring.some((item) => /wind vest/i.test(item.label))).toBe(true);
+  });
+});
+
+describe('rideHoursFromIndex and explicit startIndex selection', () => {
+  const wrapHourly = [
+    makeHour({ hour: 21, temperature: 58 }),
+    makeHour({ hour: 22, temperature: 56 }),
+    makeHour({ hour: 23, temperature: 54 }),
+    makeHour({ hour: 0, temperature: 52 }),
+    makeHour({ hour: 1, temperature: 50 }),
+    makeHour({ hour: 2, temperature: 48 }),
+  ];
+
+  it('returns null for empty hourly arrays or all-day rides', () => {
+    expect(rideHoursFromIndex([], 0, 3)).toBeNull();
+    expect(rideHoursFromIndex(wrapHourly, 1, ALL_DAY_RIDE_HOURS)).toBeNull();
+  });
+
+  it('builds windows across midnight with endHour clamped to 24 or wrapped past 0', () => {
+    // 21, 22, 23 -> [21, 24)
+    expect(rideHoursFromIndex(wrapHourly, 0, 3)).toEqual({
+      startHour: 21,
+      endHour: 24,
+      startIndex: 0,
+    });
+    // 23, 0, 1 -> [23, 2)
+    expect(rideHoursFromIndex(wrapHourly, 2, 3)).toEqual({
+      startHour: 23,
+      endHour: 2,
+      startIndex: 2,
+    });
+    // After midnight marks tomorrow: true -> [0, 3)
+    expect(rideHoursFromIndex(wrapHourly, 3, 3)).toEqual({
+      startHour: 0,
+      endHour: 3,
+      tomorrow: true,
+      startIndex: 3,
+    });
+  });
+
+  it('clamps out-of-range start indexes at both ends and keeps tail start indexes aligned', () => {
+    expect(rideHoursFromIndex(wrapHourly, -2, 3)).toEqual({
+      startHour: 21,
+      endHour: 24,
+      startIndex: 0,
+    });
+    expect(rideHoursFromIndex(wrapHourly, 4, 3)).toEqual({
+      startHour: 1,
+      endHour: 3,
+      tomorrow: true,
+      startIndex: 4,
+    });
+    expect(rideHoursFromIndex(wrapHourly, 10, 3)).toEqual({
+      startHour: 2,
+      endHour: 3,
+      tomorrow: true,
+      startIndex: 5,
+    });
+  });
+
+  it('slices exact hours and preceding hours when RideHours carries startIndex', () => {
+    const weather = makeWeather({ hourly: wrapHourly, pastHourly: [makeHour({ hour: 20 })] });
+    const window = rideHoursFromIndex(wrapHourly, 2, 3);
+    expect(selectRideHours(weather, window, 3).map((h) => h.hour)).toEqual([23, 0, 1]);
+    const before = selectHoursBeforeRide(weather, window);
+    expect(before.hoursUntilRide).toBe(2);
+    expect(before.hours.map((h) => h.hour)).toEqual([20, 21, 22]);
   });
 });

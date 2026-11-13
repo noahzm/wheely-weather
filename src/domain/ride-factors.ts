@@ -386,7 +386,12 @@ export const getDaylightWarning = (
 ): string | null => {
   if (!hourly || !daylight) return null;
   const { sunriseHour, sunsetHour } = daylight;
-  if (rideWindow && (rideWindow.startHour < sunriseHour || rideWindow.endHour > sunsetHour)) {
+  if (
+    rideWindow &&
+    (rideWindow.startHour < sunriseHour ||
+      rideWindow.endHour > sunsetHour ||
+      rideWindow.endHour < rideWindow.startHour)
+  ) {
     return DAYLIGHT_MESSAGES.DARK_WARNING;
   }
   const goodHours = hourly.filter((h) => h.condition === 'good' || h.condition === 'fair');

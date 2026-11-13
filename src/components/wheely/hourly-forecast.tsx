@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type RefObject } from 'react';
+import { useCallback, useMemo, type RefObject } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn, type SharedValue } from 'react-native-reanimated';
 
@@ -18,11 +18,7 @@ import {
 } from '@/constants/theme';
 import type { HourlyWeather } from '@/types/weather';
 import type { Thresholds } from '@/domain/constants';
-import {
-  AnimatedConditionChip,
-  ConditionChipWidthProbe,
-  type ChipLayoutSize,
-} from './animated-condition-chip';
+import { AnimatedConditionChip, ConditionChipWidthProbe } from './animated-condition-chip';
 import { BrutalCard, HapticPressable, asCondition } from './primitives';
 import {
   HourlyChartEdgeFades,
@@ -44,7 +40,11 @@ import {
 } from '@/utils/hourlyChart';
 import { withAlpha } from '@/utils/colors';
 import { fullHourLabel } from '@/utils/timeFormat';
-import { useHourlyForecastChart, type ChartHour } from './use-hourly-forecast-chart';
+import {
+  useHourlyChipScroll,
+  useHourlyForecastChart,
+  type ChartHour,
+} from './use-hourly-forecast-chart';
 
 /** How far web may shrink the hour's reason line before it ellipsizes. */
 const HOUR_REASON_MIN_FONT_SCALE = 0.85;
@@ -269,64 +269,6 @@ function HourlyReasonFooter({
   );
 }
 
-function useHourlyChipScroll({
-  data,
-  c,
-  bgColors,
-  scrollX,
-  liveScrollX,
-  viewportWidth,
-  initialScrollX,
-  maxIndex,
-}: Readonly<{
-  data: ChartHour[];
-  c: ReturnType<typeof useWheelyColors>;
-  bgColors: readonly string[];
-  scrollX: SharedValue<number>;
-  liveScrollX: number;
-  viewportWidth: number;
-  initialScrollX: number;
-  maxIndex: number;
-}>) {
-  const [chipLayouts, setChipLayouts] = useState<ChipLayoutSize[] | null>(null);
-  const conditionLabels = useMemo(
-    () => data.map((hour) => CONDITION_DISPLAY[asCondition(hour.condition)]),
-    [data],
-  );
-  const handleChipLayouts = useCallback((layouts: ChipLayoutSize[]) => {
-    setChipLayouts(layouts);
-  }, []);
-
-  const chartScroll = useMemo(() => {
-    const conditions = data.map((hour) => hour.condition);
-    const inkColors = data.map((hour) => c.condition[asCondition(hour.condition)].ink);
-    return {
-      scrollX,
-      liveScrollX,
-      viewportWidth,
-      initialScrollX,
-      maxIndex,
-      conditions,
-      bgColors,
-      inkColors,
-      chipLayoutWidths: chipLayouts?.map((layout) => layout.width) ?? [],
-      chipLayoutHeights: chipLayouts?.map((layout) => layout.height) ?? [],
-    };
-  }, [
-    bgColors,
-    c,
-    chipLayouts,
-    data,
-    initialScrollX,
-    liveScrollX,
-    maxIndex,
-    scrollX,
-    viewportWidth,
-  ]);
-
-  return { conditionLabels, handleChipLayouts, chartScroll };
-}
-
 type WindowBand = ReturnType<typeof chartWindowBand>;
 
 function HourlyForecastBody({
@@ -336,6 +278,7 @@ function HourlyForecastBody({
   bestRideIdx,
   thresholds,
   windowBand,
+  onSelectHour,
 }: Readonly<{
   data: ChartHour[];
   nowIdx: number;
@@ -344,10 +287,11 @@ function HourlyForecastBody({
   bestRideIdx: number | null;
   thresholds: Thresholds;
   windowBand: WindowBand;
+  onSelectHour?: (hourlyIndex: number | null) => void;
 }>) {
   const { styles } = useStyles();
   const c = useWheelyColors();
-  const chart = useHourlyForecastChart(data, { nowIdx, openingIdx }, thresholds);
+  const chart = useHourlyForecastChart(data, { nowIdx, openingIdx, onSelectHour }, thresholds);
   const maxIndex = Math.max(0, data.length - 1);
 
   // Shared by the sticker chip and the chart's selection marker so both blend
@@ -692,12 +636,15 @@ export function HourlyForecast({
   pastHourly,
   thresholds,
   rideWindow = null,
+  onSelectHour,
 }: Readonly<{
   hourly: HourlyWeather[];
   pastHourly: HourlyWeather[];
   thresholds: Thresholds;
   /** The verdict's recommended window, shaded on the chart. */
   rideWindow?: { startHour: number; endHour: number; tomorrow?: boolean } | null;
+  /** Called with an index in `hourly` when scrubbed away from opening, or `null` at opening. */
+  onSelectHour?: (hourlyIndex: number | null) => void;
 }>) {
   const { styles } = useStyles();
   const data = useMemo(() => {
@@ -733,6 +680,7 @@ export function HourlyForecast({
           bestRideIdx={windowIndexes?.first ?? null}
           thresholds={thresholds}
           windowBand={windowBand}
+          onSelectHour={onSelectHour}
         />
       </BrutalCard>
     </View>

@@ -16,5 +16,10 @@ export {
   getRainTiming,
   getRideFactors,
 } from './ride-factors';
-export { getDayGearSuggestion, getGearSuggestion, type RideHours } from './gear';
+export {
+  getDayGearSuggestion,
+  getGearSuggestion,
+  rideHoursFromIndex,
+  type RideHours,
+} from './gear';
 export { getWeatherAlerts } from './alerts';
