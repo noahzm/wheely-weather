@@ -34,6 +34,7 @@ function makeStyles(c: WheelyPalette) {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
+      minHeight: 36,
       backgroundColor: c.paper,
       borderWidth: 1.5,
       borderColor: c.border,
@@ -112,6 +113,7 @@ export function PinnedLocationsBar({
           accessibilityRole="tab"
           accessibilityLabel="Current location"
           accessibilityState={{ selected: followingDevice }}
+          hitSlop={{ top: 4, bottom: 4 }}
           style={({ pressed }) => [
             styles.pill,
             followingDevice && styles.pillActive,
@@ -151,6 +153,7 @@ export function PinnedLocationsBar({
               accessibilityRole="tab"
               accessibilityLabel={`Location: ${name}`}
               accessibilityState={{ selected: active }}
+              hitSlop={{ top: 4, bottom: 4 }}
               style={({ pressed }) => [
                 styles.pill,
                 active && styles.pillActive,

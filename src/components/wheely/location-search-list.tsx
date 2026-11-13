@@ -36,6 +36,7 @@ function PinButton({ pinned, onPress }: Readonly<{ pinned: boolean; onPress: () 
       ]}
       accessibilityRole="button"
       accessibilityLabel={pinAccessibilityLabel(pinned)}
+      accessibilityState={{ selected: pinned }}
       hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
     >
       <PlatformIcon
@@ -61,6 +62,7 @@ function HomeButton({ home, onPress }: Readonly<{ home: boolean; onPress: () => 
       ]}
       accessibilityRole="button"
       accessibilityLabel={homeAccessibilityLabel(home)}
+      accessibilityState={{ selected: home }}
       hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
     >
       <PlatformIcon

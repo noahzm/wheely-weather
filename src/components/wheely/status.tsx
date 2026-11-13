@@ -1,19 +1,14 @@
 import { useMemo } from 'react';
 import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
-import { AlertTriangle, CloudOff, MapPin, RefreshCw, Search } from './icons';
+import { AlertTriangle, CloudOff, MapPin } from './icons';
 import { SymbolView, type SFSymbol } from 'expo-symbols';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { useWheelyColors } from '@/hooks/use-theme';
 import { MaxContentWidth, Spacing, TRANSPARENT, Type, type WheelyPalette } from '@/constants/theme';
-import {
-  BrutalCard,
-  HapticPressable,
-  makeButtonStyles,
-  PlatformIcon,
-  SectionHeading,
-} from './primitives';
+import { BrutalCard, PlatformIcon, SectionHeading } from './primitives';
+import { LocationPromptButtons, RefreshForecastButton, StaleRetryButton } from './status-buttons';
 import { webBottomInset } from './bottom-nav-chrome';
 
 function makeStyles(c: WheelyPalette, webPaddingBottom?: number) {
@@ -66,8 +61,7 @@ function useStylesFor(c: WheelyPalette) {
   const webPaddingBottom =
     Platform.OS === 'web' ? webBottomInset(insets.bottom) + Spacing.four : undefined;
   const styles = useMemo(() => makeStyles(c, webPaddingBottom), [c, webPaddingBottom]);
-  const buttonStyles = useMemo(() => makeButtonStyles(c), [c]);
-  return { c, styles, buttonStyles };
+  return { c, styles };
 }
 
 /** Page-level states (no card) style with the page palette. */
@@ -87,7 +81,7 @@ export function ErrorState({
   kind: 'network' | 'default';
   onRetry: () => void;
 }>) {
-  const { c, styles, buttonStyles } = useCardStyles();
+  const { c, styles } = useCardStyles();
   const network = kind === 'network';
   const Icon = network ? CloudOff : AlertTriangle;
   const sfIcon = network ? 'cloud.slash.fill' : 'exclamationmark.triangle.fill';
@@ -112,23 +106,7 @@ export function ErrorState({
             ? 'Check your connection and try again.'
             : 'The forecast could not be loaded right now.'}
         </ThemedText>
-        <HapticPressable
-          onPress={onRetry}
-          accessibilityRole="button"
-          accessibilityLabel="Refresh forecast"
-          style={({ pressed }) => [
-            buttonStyles.base,
-            buttonStyles.primary,
-            pressed && buttonStyles.pressed,
-          ]}
-        >
-          {Platform.OS === 'ios' ? (
-            <SymbolView name="arrow.clockwise" size={14} tintColor={c.primaryInk} />
-          ) : (
-            <PlatformIcon icon={RefreshCw} size={14} color={c.primaryInk} strokeWidth={2.5} />
-          )}
-          <ThemedText style={[buttonStyles.label, buttonStyles.primaryLabel]}>Refresh</ThemedText>
-        </HapticPressable>
+        <RefreshForecastButton onRetry={onRetry} />
       </BrutalCard>
     </View>
   );
@@ -163,17 +141,7 @@ export function StaleDataNotice({
       <ThemedText style={styles.staleNoticeText} accessibilityLiveRegion="polite">
         {message}
       </ThemedText>
-      <HapticPressable
-        onPress={onRetry}
-        accessibilityRole="button"
-        accessibilityLabel="Retry refresh"
-      >
-        {Platform.OS === 'ios' ? (
-          <SymbolView name="arrow.clockwise" size={16} tintColor={c.ink} />
-        ) : (
-          <PlatformIcon icon={RefreshCw} size={16} color={c.ink} strokeWidth={2} />
-        )}
-      </HapticPressable>
+      <StaleRetryButton onRetry={onRetry} />
     </BrutalCard>
   );
 }
@@ -188,16 +156,6 @@ export function LoadingState() {
   );
 }
 
-function UseLocationButtonIcon({ busy, ink }: Readonly<{ busy: boolean; ink: string }>) {
-  if (busy) {
-    return <ActivityIndicator size="small" color={ink} />;
-  }
-  if (Platform.OS === 'ios') {
-    return <SymbolView name="location.fill" size={14} tintColor={ink} />;
-  }
-  return <PlatformIcon icon={MapPin} size={14} color={ink} filled />;
-}
-
 export function LocationPromptState({
   onChooseLocation,
   onUseDeviceLocation,
@@ -209,7 +167,7 @@ export function LocationPromptState({
   busy?: boolean;
   statusMessage?: string;
 }>) {
-  const { c, styles, buttonStyles } = useCardStyles();
+  const { c, styles } = useCardStyles();
   return (
     <BrutalCard style={styles.centerCard}>
       {Platform.OS === 'ios' ? (
@@ -221,40 +179,11 @@ export function LocationPromptState({
       <ThemedText style={styles.muted}>
         Use your current location or search for a city to see the forecast.
       </ThemedText>
-      <HapticPressable
-        onPress={onUseDeviceLocation}
-        disabled={busy}
-        accessibilityRole="button"
-        accessibilityLabel="Use current location"
-        accessibilityState={{ disabled: busy, busy }}
-        style={({ pressed }) => [
-          buttonStyles.base,
-          buttonStyles.primary,
-          (pressed || busy) && buttonStyles.pressed,
-        ]}
-      >
-        <UseLocationButtonIcon busy={busy} ink={c.primaryInk} />
-        <ThemedText style={[buttonStyles.label, buttonStyles.primaryLabel]}>
-          Use current location
-        </ThemedText>
-      </HapticPressable>
-      <HapticPressable
-        onPress={onChooseLocation}
-        accessibilityRole="button"
-        accessibilityLabel="Search for a city"
-        style={({ pressed }) => [
-          buttonStyles.base,
-          buttonStyles.surface,
-          pressed && buttonStyles.pressed,
-        ]}
-      >
-        {Platform.OS === 'ios' ? (
-          <SymbolView name="magnifyingglass" size={14} tintColor={c.ink} />
-        ) : (
-          <PlatformIcon icon={Search} size={14} color={c.ink} strokeWidth={2.5} />
-        )}
-        <ThemedText style={buttonStyles.label}>Search for a city</ThemedText>
-      </HapticPressable>
+      <LocationPromptButtons
+        busy={busy}
+        onUseDeviceLocation={onUseDeviceLocation}
+        onChooseLocation={onChooseLocation}
+      />
       {statusMessage.length > 0 && (
         <ThemedText style={styles.statusMessage} accessibilityLiveRegion="polite">
           {statusMessage}

@@ -9,7 +9,6 @@ import { useTemperatureDisplay } from '@/hooks/use-temperature-display';
 import {
   Fonts,
   PosterText,
-  Radius,
   Spacing,
   Type,
   type WheelyPalette,
@@ -19,6 +18,7 @@ import {
 import type { HourlyWeather } from '@/types/weather';
 import type { Thresholds } from '@/domain/constants';
 import { AnimatedConditionChip, ConditionChipWidthProbe } from './animated-condition-chip';
+import { HourlyShortcutButtons } from './hourly-shortcut-buttons';
 import { BrutalCard, HapticPressable, asCondition } from './primitives';
 import {
   HourlyChartEdgeFades,
@@ -39,7 +39,6 @@ import {
   chartY,
 } from '@/utils/hourlyChart';
 import { withAlpha } from '@/utils/colors';
-import { fullHourLabel } from '@/utils/timeFormat';
 import {
   useHourlyChipScroll,
   useHourlyForecastChart,
@@ -71,18 +70,6 @@ function makeStyles(c: WheelyPalette) {
       marginBottom: Spacing.two,
       paddingHorizontal: Spacing.one,
     },
-    shortcutButtons: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
-    shortcut: {
-      justifyContent: 'center',
-      paddingHorizontal: Spacing.two + Spacing.half,
-      paddingVertical: Spacing.half,
-      borderWidth: 1,
-      borderColor: c.border,
-      borderRadius: Radius.pill,
-    },
-    shortcutSelected: { backgroundColor: c.accent },
-    shortcutText: { color: c.ink, ...Type.micro },
-    shortcutSelectedText: { color: c.accentInk },
     hourlyBody: {
       position: 'relative',
       overflow: 'visible',
@@ -316,38 +303,12 @@ function HourlyForecastBody({
     <View style={styles.hourlyBody}>
       <View style={styles.shortcutRow}>
         <ThemedText style={[styles.muted, { ...Type.micro }]}>Swipe or tap to explore</ThemedText>
-        <View style={styles.shortcutButtons}>
-          {[
-            { label: 'Now', index: nowIdx },
-            ...(bestRideIdx == null ? [] : [{ label: 'Best ride', index: bestRideIdx }]),
-          ].map(({ label, index }) => (
-            <HapticPressable
-              key={label}
-              accessibilityRole="button"
-              accessibilityLabel={label}
-              accessibilityState={{ selected: chart.selectedIdx === index }}
-              accessibilityHint="Center this hour on the riding conditions chart"
-              hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
-              onPress={() => {
-                chart.scrollToIndex(index);
-              }}
-              style={({ pressed }) => [
-                styles.shortcut,
-                chart.selectedIdx === index && styles.shortcutSelected,
-                pressed && { opacity: 0.85 },
-              ]}
-            >
-              <ThemedText
-                style={[
-                  styles.shortcutText,
-                  chart.selectedIdx === index && styles.shortcutSelectedText,
-                ]}
-              >
-                {label}
-              </ThemedText>
-            </HapticPressable>
-          ))}
-        </View>
+        <HourlyShortcutButtons
+          nowIdx={nowIdx}
+          bestRideIdx={bestRideIdx}
+          selectedIdx={chart.selectedIdx}
+          onSelectIndex={chart.scrollToIndex}
+        />
       </View>
       <ConditionChipWidthProbe labels={conditionLabels} large onLayouts={handleChipLayouts} />
       <HourlyChartShell
@@ -405,25 +366,31 @@ function chartAccessibilityText(
 
 function HourlyChartTapOverlay({
   data,
-  nowIdx,
   scrollToIndex,
   tapTargetStyle,
 }: Readonly<{
   data: ChartHour[];
-  nowIdx: number;
   scrollToIndex: (idx: number) => void;
   tapTargetStyle: object;
 }>) {
+  // Screen readers scrub the parent ScrollView via accessibilityRole="adjustable";
+  // exposing 24+ narrow tap targets would force VoiceOver through every hour.
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+    <View
+      style={StyleSheet.absoluteFill}
+      pointerEvents="box-none"
+      accessible={false}
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      aria-hidden
+    >
       {data.map((d) => (
         <HapticPressable
           key={`tap-hour-${d.idx}`}
           onPress={() => {
             scrollToIndex(d.idx);
           }}
-          accessibilityRole="button"
-          accessibilityLabel={`Select ${d.idx === nowIdx ? 'Now' : fullHourLabel(d.hour)}, ${d.condition}`}
+          accessible={false}
           style={[
             tapTargetStyle,
             {
@@ -542,7 +509,6 @@ function HourlyChartScroller({
           />
           <HourlyChartTapOverlay
             data={data}
-            nowIdx={nowIdx}
             scrollToIndex={scrollToIndex}
             tapTargetStyle={styles.hourTapTarget}
           />

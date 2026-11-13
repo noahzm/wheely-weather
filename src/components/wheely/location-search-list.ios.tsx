@@ -14,6 +14,8 @@ import {
   VStack,
 } from '@expo/ui/swift-ui';
 import {
+  accessibilityAddTraits,
+  accessibilityHidden,
   Animation,
   animation,
   bold,
@@ -94,7 +96,11 @@ function PlaceVerdictBadge({ verdict }: Readonly<{ verdict: PlaceVerdict | null 
   const dot = verdict.waiting ? c.accent : c.condition[verdict.condition].bg;
   return (
     <HStack spacing={5}>
-      <Image systemName="circle.fill" size={9} modifiers={[foregroundStyle(dot)]} />
+      <Image
+        systemName="circle.fill"
+        size={9}
+        modifiers={[foregroundStyle(dot), accessibilityHidden(true)]}
+      />
       <Text
         modifiers={[foregroundStyle({ type: 'hierarchical', style: 'secondary' }), lineLimit(1)]}
       >
@@ -142,7 +148,14 @@ function PinnableRow({
 
   return (
     <HStack alignment="center">
-      <Button modifiers={[buttonStyle('plain'), disabled(busy)]} onPress={onSelect}>
+      <Button
+        modifiers={[
+          buttonStyle('plain'),
+          disabled(busy),
+          ...(active ? [accessibilityAddTraits(['isSelected'])] : []),
+        ]}
+        onPress={onSelect}
+      >
         <HStack alignment="center" modifiers={[contentShape(shapes.rectangle())]}>
           <LocationRowTexts item={item} active={active} />
           <Spacer />
@@ -154,7 +167,10 @@ function PinnableRow({
           <Image
             systemName="checkmark"
             size={15}
-            modifiers={[foregroundStyle(active ? activeGlyphColor : TRANSPARENT)]}
+            modifiers={[
+              foregroundStyle(active ? activeGlyphColor : TRANSPARENT),
+              accessibilityHidden(true),
+            ]}
           />
         </HStack>
       </Button>
@@ -173,6 +189,7 @@ function PinnableRow({
               ? activeGlyphColor
               : { type: 'hierarchical' as const, style: 'secondary' as const },
           ),
+          ...(home ? [accessibilityAddTraits(['isSelected'])] : []),
         ]}
         onPress={onToggleHome}
       />
@@ -188,6 +205,7 @@ function PinnableRow({
               ? activeGlyphColor
               : { type: 'hierarchical' as const, style: 'secondary' as const },
           ),
+          ...(pinned ? [accessibilityAddTraits(['isSelected'])] : []),
         ]}
         onPress={onTogglePin}
       />

@@ -1,21 +1,50 @@
 import { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Type, Radius, type WheelyPalette } from '@/constants/theme';
-import { CONDITION_DISPLAY, getRideVerdict } from '@/domain';
-import { useForecast } from '@/hooks/forecast-context';
-import { useResolvedTempUnit, useRideDuration } from '@/hooks/settings-context';
+import { Fonts, Spacing, Type, Radius, type WheelyPalette } from '@/constants/theme';
+import { useRideDuration } from '@/hooks/settings-context';
 import { useWheelyColors } from '@/hooks/use-theme';
-import { previewRideLength } from '@/services/rideLengthPreview';
 import { RIDE_DURATION_LABELS, RIDE_DURATION_VALUES, type RideDuration } from '@/types/settings';
 import { withAlpha } from '@/utils/colors';
-import { formatHourSpan } from '@/utils/timeFormat';
-import { CardBorderWidth, HapticPressable, makeButtonStyles, SectionHeading } from './primitives';
+import { ChevronRight } from './icons';
+import {
+  CardBorderWidth,
+  HapticPressable,
+  makeButtonStyles,
+  PlatformIcon,
+  SectionHeading,
+} from './primitives';
+import { useRideLengthPreview } from './use-ride-length-preview';
 
 function makeStyles(c: WheelyPalette) {
   return StyleSheet.create({
+    chip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.half,
+      marginLeft: 'auto',
+      minHeight: 32,
+      paddingLeft: Spacing.two + Spacing.half,
+      paddingRight: Spacing.one + Spacing.half,
+      paddingVertical: Spacing.half,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: Radius.pill,
+      ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as object) : null),
+    },
+    chipStacked: { marginLeft: 0, maxWidth: '100%' },
+    chipPressed: {
+      backgroundColor: withAlpha(c.ink, 0.08),
+    },
+    chipText: {
+      flexShrink: 1,
+      color: c.ink,
+      fontFamily: Fonts.body,
+      fontWeight: '400',
+      ...Type.micro,
+    },
     backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: withAlpha(c.shadow, 0.5) },
     sheet: {
       width: '100%',
@@ -60,15 +89,7 @@ function RideLengthSheet({ onClose }: Readonly<{ onClose: () => void }>) {
   const insets = useSafeAreaInsets();
   const [duration, setDuration] = useRideDuration();
   const [draft, setDraft] = useState<RideDuration>(duration);
-  const { snapshot } = useForecast();
-  const unit = useResolvedTempUnit();
-  const weather = snapshot ? previewRideLength(snapshot, draft) : null;
-  const verdict =
-    weather && snapshot ? getRideVerdict(weather, snapshot.acclimatization.thresholds, unit) : null;
-  const window = verdict?.window;
-  const day = verdict?.when === 'tomorrow' ? 'Tomorrow' : 'Today';
-  const warning = verdict?.status === 'no' ? ' · Riding not recommended' : '';
-  const timing = window ? `${day} · ${formatHourSpan(window.startHour, window.endHour)}` : null;
+  const preview = useRideLengthPreview(draft);
 
   return (
     <View style={styles.backdrop}>
@@ -93,7 +114,7 @@ function RideLengthSheet({ onClose }: Readonly<{ onClose: () => void }>) {
                   setDraft(value);
                 }}
                 accessibilityRole="radio"
-                accessibilityState={{ checked: draft === value }}
+                accessibilityState={{ checked: draft === value, selected: draft === value }}
                 style={({ pressed }) => [
                   buttons.base,
                   styles.option,
@@ -108,19 +129,13 @@ function RideLengthSheet({ onClose }: Readonly<{ onClose: () => void }>) {
             ))}
           </View>
           <View style={styles.preview} accessibilityLiveRegion="polite">
-            {timing ? (
+            {preview.timing ? (
               <>
-                <ThemedText style={styles.text}>{timing}</ThemedText>
-                <ThemedText style={styles.muted}>
-                  {verdict ? `${CONDITION_DISPLAY[verdict.condition]} conditions${warning}` : ''}
-                </ThemedText>
+                <ThemedText style={styles.text}>{preview.timing}</ThemedText>
+                <ThemedText style={styles.muted}>{preview.conditionText}</ThemedText>
               </>
             ) : (
-              <ThemedText style={styles.muted}>
-                {weather
-                  ? 'No ride window available in this forecast.'
-                  : 'Apply this length to refresh your ride window.'}
-              </ThemedText>
+              <ThemedText style={styles.muted}>{preview.fallbackText}</ThemedText>
             )}
           </View>
           <HapticPressable
@@ -149,5 +164,45 @@ export function RideLengthPicker({
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       {visible && <RideLengthSheet onClose={onClose} />}
     </Modal>
+  );
+}
+
+/** Ride-length pill trigger paired with its bottom sheet picker. */
+export function RideLengthControl({ chip, stacked }: Readonly<{ chip: string; stacked: boolean }>) {
+  const c = useWheelyColors();
+  const styles = makeStyles(c);
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  return (
+    <>
+      <HapticPressable
+        onPress={() => {
+          setPickerOpen(true);
+        }}
+        accessibilityRole="button"
+        accessibilityLabel={`${chip}. Change ride length`}
+        hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+        style={({ pressed }) => [
+          styles.chip,
+          stacked && styles.chipStacked,
+          pressed && styles.chipPressed,
+        ]}
+      >
+        <ThemedText style={styles.chipText}>{chip}</ThemedText>
+        <PlatformIcon
+          icon={ChevronRight}
+          sf="chevron.right"
+          size={11}
+          color={c.ink}
+          strokeWidth={2.5}
+        />
+      </HapticPressable>
+      <RideLengthPicker
+        visible={pickerOpen}
+        onClose={() => {
+          setPickerOpen(false);
+        }}
+      />
+    </>
   );
 }

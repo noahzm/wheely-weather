@@ -1,73 +1,32 @@
-import { useMemo } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { SymbolView } from 'expo-symbols';
-
-import { ThemedText } from '@/components/themed-text';
-import { useWheelyColors } from '@/hooks/use-theme';
-import { resolveLocationChipName } from '@/utils/locationTitle';
-import { sameCoords } from '@/utils/locationRows';
+import { StyleSheet, View } from 'react-native';
+import { Button, Host, HStack, ScrollView } from '@expo/ui/swift-ui';
 import {
-  Fonts,
-  Radius,
-  Spacing,
-  Type,
-  type WheelyPalette,
-  FontWeightSemibold,
-} from '@/constants/theme';
-import type { RecentLocation, SavedLocation } from '@/services/locationStorage';
-import { brutalShadow, HapticPressable } from './primitives';
+  accessibilityAddTraits,
+  accessibilityLabel,
+  buttonBorderShape,
+  buttonStyle,
+  controlSize,
+  foregroundStyle,
+  padding,
+  scrollIndicators,
+  tint,
+} from '@expo/ui/swift-ui/modifiers';
 
-function makeStyles(c: WheelyPalette) {
-  return StyleSheet.create({
-    container: {
-      marginBottom: Spacing.two,
-    },
-    scrollContent: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: Spacing.two,
-      paddingVertical: 4,
-      paddingRight: Spacing.two,
-    },
-    pill: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      backgroundColor: c.paper,
-      borderWidth: 1.5,
-      borderColor: c.border,
-      borderRadius: Radius.pill,
-      paddingHorizontal: Spacing.two,
-      paddingVertical: 6,
-    },
-    pillActive: {
-      backgroundColor: c.primary,
-      borderColor: c.border,
-      ...brutalShadow(c.shadow, 2),
-    },
-    pillPressed: {
-      opacity: 0.85,
-      transform: [{ scale: 0.97 }],
-    },
-    pillText: {
-      color: c.ink,
-      fontFamily: Fonts.body,
-      ...Type.small,
-      fontWeight: '400',
-    },
-    pillTextActive: {
-      color: c.primaryInk,
-      fontFamily: Fonts.bold,
-      fontWeight: FontWeightSemibold,
-    },
-    iconWrap: {
-      width: 14,
-      height: 14,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-  });
-}
+import { Spacing } from '@/constants/theme';
+import { useColorSchemeName, useWheelyColors } from '@/hooks/use-theme';
+import type { RecentLocation, SavedLocation } from '@/services/locationStorage';
+import { selectionFeedback } from '@/utils/haptics';
+import { sameCoords } from '@/utils/locationRows';
+import { resolveLocationChipName } from '@/utils/locationTitle';
+
+const styles = StyleSheet.create({
+  container: {
+    marginBottom: Spacing.two,
+  },
+  host: {
+    width: '100%',
+  },
+});
 
 export function PinnedLocationsBar({
   pinnedLocations,
@@ -83,78 +42,70 @@ export function PinnedLocationsBar({
   onSelectPinnedLocation: (place: RecentLocation) => void;
 }>) {
   const c = useWheelyColors();
-  const styles = useMemo(() => makeStyles(c), [c]);
+  const scheme = useColorSchemeName();
 
   if (pinnedLocations.length === 0) {
     return null;
   }
 
   return (
-    <View style={styles.container}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-        accessibilityRole="tablist"
-        accessibilityLabel="Pinned locations"
-      >
-        <HapticPressable
-          onPress={() => {
-            onSelectCurrentLocation();
-          }}
-          accessibilityRole="tab"
-          accessibilityLabel="Current location"
-          accessibilityState={{ selected: followingDevice }}
-          style={({ pressed }) => [
-            styles.pill,
-            followingDevice && styles.pillActive,
-            pressed && styles.pillPressed,
-          ]}
+    <View
+      style={styles.container}
+      accessibilityRole="tablist"
+      accessibilityLabel="Pinned locations"
+    >
+      <Host matchContents={{ vertical: true }} colorScheme={scheme} style={styles.host}>
+        <ScrollView
+          axes="horizontal"
+          showsIndicators={false}
+          modifiers={[scrollIndicators('never', 'horizontal')]}
         >
-          <View style={styles.iconWrap}>
-            <SymbolView
-              name="location.fill"
-              size={12}
-              tintColor={followingDevice ? c.primaryInk : c.ink}
-            />
-          </View>
-          <ThemedText style={[styles.pillText, followingDevice && styles.pillTextActive]}>
-            Current
-          </ThemedText>
-        </HapticPressable>
-
-        {pinnedLocations.map((place) => {
-          const active = !followingDevice && sameCoords(place, savedLocation);
-          const name = resolveLocationChipName(place);
-          return (
-            <HapticPressable
-              key={`${place.lat}-${place.lon}`}
+          <HStack spacing={8} modifiers={[padding({ vertical: 2, trailing: 8 })]}>
+            <Button
+              label="Current"
+              systemImage="location.fill"
               onPress={() => {
-                onSelectPinnedLocation(place);
+                selectionFeedback();
+                onSelectCurrentLocation();
               }}
-              accessibilityRole="tab"
-              accessibilityLabel={`Location: ${name}`}
-              accessibilityState={{ selected: active }}
-              style={({ pressed }) => [
-                styles.pill,
-                active && styles.pillActive,
-                pressed && styles.pillPressed,
+              modifiers={[
+                buttonStyle(followingDevice ? 'borderedProminent' : 'bordered'),
+                buttonBorderShape('capsule'),
+                controlSize('small'),
+                tint(followingDevice ? c.primary : c.ink),
+                foregroundStyle(followingDevice ? c.primaryInk : c.ink),
+                accessibilityLabel('Current location'),
+                ...(followingDevice ? [accessibilityAddTraits(['isSelected'])] : []),
               ]}
-            >
-              <View style={styles.iconWrap}>
-                <SymbolView
-                  name="pin.fill"
-                  size={12}
-                  tintColor={active ? c.primaryInk : c.mutedInk}
+            />
+
+            {pinnedLocations.map((place) => {
+              const active = !followingDevice && sameCoords(place, savedLocation);
+              const name = resolveLocationChipName(place);
+              return (
+                <Button
+                  key={`${place.lat}-${place.lon}`}
+                  label={name}
+                  systemImage="pin.fill"
+                  onPress={() => {
+                    selectionFeedback();
+                    onSelectPinnedLocation(place);
+                  }}
+                  modifiers={[
+                    buttonStyle(active ? 'borderedProminent' : 'bordered'),
+                    buttonBorderShape('capsule'),
+                    controlSize('small'),
+                    tint(active ? c.primary : c.ink),
+                    foregroundStyle(active ? c.primaryInk : c.ink),
+                    accessibilityLabel(`Location: ${name}`),
+                    ...(active ? [accessibilityAddTraits(['isSelected'])] : []),
+                  ]}
                 />
-              </View>
-              <ThemedText style={[styles.pillText, active && styles.pillTextActive]}>
-                {name}
-              </ThemedText>
-            </HapticPressable>
-          );
-        })}
-      </ScrollView>
+              );
+            })}
+          </HStack>
+        </ScrollView>
+      </Host>
     </View>
   );
 }

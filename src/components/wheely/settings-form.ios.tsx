@@ -15,6 +15,8 @@ import {
   VStack,
 } from '@expo/ui/swift-ui';
 import {
+  accessibilityAddTraits,
+  accessibilityHidden,
   buttonStyle,
   contentShape,
   disabled,
@@ -94,7 +96,7 @@ function ExternalLinkRow({
 }>) {
   return (
     <Button
-      modifiers={[buttonStyle('plain')]}
+      modifiers={[buttonStyle('plain'), accessibilityAddTraits(['isLink'])]}
       onPress={() => {
         Linking.openURL(url).catch(() => {
           /* row is a courtesy link; ignore failures */
@@ -107,7 +109,10 @@ function ExternalLinkRow({
         <Image
           systemName="arrow.up.right"
           size={13}
-          modifiers={[foregroundStyle({ type: 'hierarchical', style: 'secondary' })]}
+          modifiers={[
+            foregroundStyle({ type: 'hierarchical', style: 'secondary' }),
+            accessibilityHidden(true),
+          ]}
         />
       </HStack>
     </Button>
@@ -164,7 +169,10 @@ function HomeClimateSectionIOS({
             <Image
               systemName="chevron.right"
               size={13}
-              modifiers={[foregroundStyle({ type: 'hierarchical', style: 'tertiary' })]}
+              modifiers={[
+                foregroundStyle({ type: 'hierarchical', style: 'tertiary' }),
+                accessibilityHidden(true),
+              ]}
             />
           </HStack>
         </Button>
@@ -182,6 +190,7 @@ function HomeClimateSectionIOS({
             {CLIMATE_MESSAGES.QUESTION}
           </Text>
           <Picker
+            label={CLIMATE_MESSAGES.QUESTION}
             selection={exposureLevel}
             onSelectionChange={(value) => {
               onExposureChange(value);
@@ -291,6 +300,7 @@ export function SettingsForm({
         <List modifiers={[listStyle('insetGrouped')]}>
           <Section title="Appearance">
             <Picker
+              label="Appearance"
               selection={appearance}
               onSelectionChange={(value) => {
                 onAppearanceChange(value);
@@ -307,6 +317,7 @@ export function SettingsForm({
 
           <Section title="Units">
             <Picker
+              label="Temperature unit"
               selection={tempUnit}
               onSelectionChange={(value) => {
                 onTempUnitChange(value);

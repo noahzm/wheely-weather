@@ -306,7 +306,7 @@ export function makeButtonStyles(c: WheelyPalette) {
       borderColor: c.border,
       paddingHorizontal: Spacing.three,
       paddingVertical: Spacing.two,
-      minHeight: 40,
+      minHeight: 44,
     },
     primary: {
       backgroundColor: c.primary,

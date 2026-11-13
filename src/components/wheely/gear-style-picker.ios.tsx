@@ -27,6 +27,7 @@ export function GearStylePicker({
     <View style={styles.container}>
       <Host style={styles.host}>
         <Picker
+          label="Rider style"
           selection={mode}
           onSelectionChange={(val) => {
             onModeChange(val);

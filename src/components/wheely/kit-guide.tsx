@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import Svg, { Line } from 'react-native-svg';
-import { RideLengthPicker } from './ride-length-picker';
+import { RideLengthControl } from './ride-length-picker';
 import type { SFSymbol } from 'expo-symbols';
 
 import { ThemedText } from '@/components/themed-text';
@@ -39,23 +39,8 @@ import type { Weather } from '@/types/weather';
 import { withAlpha } from '@/utils/colors';
 import { formatTemperature, type TempUnit } from '@/utils/temperature';
 import { formatHourSpan, fullHourLabel } from '@/utils/timeFormat';
-import {
-  ChevronRight,
-  Droplet,
-  Sun,
-  Thermometer,
-  Umbrella,
-  Wind,
-  type IconComponent,
-} from './icons';
-import {
-  BrutalCard,
-  CardInnerRadius,
-  HapticPressable,
-  KitGearIcon,
-  PlatformIcon,
-  StickerTag,
-} from './primitives';
+import { Droplet, Sun, Thermometer, Umbrella, Wind, type IconComponent } from './icons';
+import { BrutalCard, CardInnerRadius, KitGearIcon, PlatformIcon, StickerTag } from './primitives';
 
 // The timeline's time and temperature labels are wider than an hour's column
 // on long rides; only spaced-out hours are labeled, so they may overhang.
@@ -103,35 +88,12 @@ function makeHeaderStyles(c: WheelyPalette) {
       gap: Spacing.two,
     },
     headerStacked: { flexDirection: 'column', alignItems: 'flex-start' },
-    chipStacked: { marginLeft: 0, maxWidth: '100%' },
     spanText: {
       flexShrink: 1,
       color: c.ink,
       fontFamily: Fonts.bold,
       fontWeight: FontWeightSemibold,
       ...Type.small,
-    },
-    chip: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: Spacing.half,
-      marginLeft: 'auto',
-      paddingLeft: Spacing.two + Spacing.half,
-      paddingRight: Spacing.one + Spacing.half,
-      paddingVertical: Spacing.half,
-      borderWidth: 1,
-      borderColor: c.border,
-      borderRadius: Radius.pill,
-    },
-    chipPressed: {
-      backgroundColor: withAlpha(c.ink, 0.08),
-    },
-    chipText: {
-      flexShrink: 1,
-      color: c.ink,
-      fontFamily: Fonts.body,
-      fontWeight: '400',
-      ...Type.micro,
     },
     timeline: {
       flexDirection: 'row',
@@ -379,42 +341,14 @@ function KitHeader({
 }>) {
   const { width, fontScale } = useWindowDimensions();
   const stacked = width < 380 || fontScale > 1.15;
-  const [pickerOpen, setPickerOpen] = useState(false);
   const span = spanLabel(hours, unit);
   const chip = rideLengthChip(rideDuration);
   return (
     <View style={styles.header}>
       <View style={[styles.headerRow, stacked && styles.headerStacked]}>
         {span && <ThemedText style={styles.spanText}>{span}</ThemedText>}
-        <HapticPressable
-          onPress={() => {
-            setPickerOpen(true);
-          }}
-          accessibilityRole="button"
-          accessibilityLabel={`${chip}. Change ride length`}
-          hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
-          style={({ pressed }) => [
-            styles.chip,
-            stacked && styles.chipStacked,
-            pressed && styles.chipPressed,
-          ]}
-        >
-          <ThemedText style={styles.chipText}>{chip}</ThemedText>
-          <PlatformIcon
-            icon={ChevronRight}
-            sf="chevron.right"
-            size={11}
-            color={c.ink}
-            strokeWidth={2.5}
-          />
-        </HapticPressable>
+        <RideLengthControl chip={chip} stacked={stacked} />
       </View>
-      <RideLengthPicker
-        visible={pickerOpen}
-        onClose={() => {
-          setPickerOpen(false);
-        }}
-      />
       {hours.length > 1 && <KitTimeline hours={hours} unit={unit} c={c} styles={styles} />}
     </View>
   );
