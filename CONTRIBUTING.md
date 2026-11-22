@@ -8,7 +8,7 @@ iOS comes first, the web app is the fallback, and Android is kept working but la
 
 ## Development setup
 
-Requires Node 24+. iOS development needs Xcode: the app uses native WeatherKit and MapKit modules, so it runs in a development build, not Expo Go.
+Requires Node 26+. iOS development needs Xcode: the app uses native WeatherKit and MapKit modules, so it runs in a development build, not Expo Go.
 
 ```bash
 npm ci

@@ -8,7 +8,7 @@ This is the single source of truth for AI assistants working in this repo. No ot
 
 ## Commands
 
-CI (`.github/workflows/ci.yml`, Node 24) runs these in order — match this order when validating:
+CI (`.github/workflows/ci.yml`, Node 26) runs these in order — match this order when validating:
 
 ```bash
 npm run format:check   # Prettier check
@@ -109,7 +109,7 @@ Every push to `main` deploys the web app, so treat each push as a release.
 - **Never run `npm audit fix --force`.** Its proposed fixes include incompatible Expo/toolchain downgrades. Accepted build-tool exceptions are `uuid@8` under `@bacons/xcode` (declared but not imported), `deepmerge` under `@expo/config` (local config merging), and `glob`/`minimatch` under Expo CLI/fingerprinting, Apple-target/Sentry config plugins and ESLint. See `SECURITY.md` for advisories and applicability. The SDK 58 patch alignment removed the vulnerable Zod path and the `glob` dependency from `expo-updates`. Retrace paths after each upgrade; dismiss new alerts as `not_used` only after confirming they remain build-time-only.
 - **Keep the `overrides` in `package.json` across upgrades.** Each one is deliberate: `typescript: "$typescript"` keeps one TypeScript for every tool (expo-doctor flags a mismatch otherwise); `xcode` → `uuid ^11.1.1` clears GHSA-w5hq-g745-h8pq (xcode only calls `uuid.v4()`); `@bacons/xcode` → `@xmldom/xmldom ^0.8.15` keeps its old `@expo/plist` off the vulnerable xmldom 0.7. An SDK bump or `npx expo install --fix` can drop them, so after one, check they're still there and that `npm audit` shows only the accepted findings above. Remove an override only once `npm ls` shows the upstream range no longer needs it.
 - **Leave the npm install-script warnings alone.** The blocked scripts (`@sentry/cli`, `fsevents`, `unrs-resolver`, and wrangler's `esbuild` and `workerd`) are fallbacks for binaries that already arrive via optional dependencies, so don't approve them. `@sentry/cli` shows up twice (3.x under `@sentry/react-native`, 2.x under `@sentry/bundler-plugins`); both come from Sentry's own dependencies and each gets its platform binary, so leave the duplicate alone. Never install with `--omit=optional`: that removes those binaries and breaks Sentry uploads in EAS builds.
-- `@types/node` tracks the Node major CI runs (24); bump it together with `ci.yml` and `engines`.
+- `@types/node` tracks the Node major CI runs (26). GitHub Actions and Cloudflare Workers Builds read `.nvmrc`. Update it along with `package.json` engines and the EAS base profile in `eas.json` when changing the Node major.
 - `dependabot.yml` also holds back major versions of `@babel/core`, `eslint` and `eslint-plugin-unicorn` until the Expo toolchain supports them; don't bump those majors by hand either.
 
 ## Task playbooks

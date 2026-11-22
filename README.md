@@ -45,7 +45,7 @@ Built with Expo SDK 58, Expo Router, React Native 0.88, and React 19 (React Comp
 
 ## Getting started
 
-Requires Node 24+. iOS needs Xcode, since WeatherKit and MapKit don't run in Expo Go.
+Requires Node 26+. iOS needs Xcode, since WeatherKit and MapKit don't run in Expo Go.
 
 ```bash
 npm install

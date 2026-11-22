@@ -4,7 +4,11 @@
     "appVersionSource": "remote"
   },
   "build": {
+    "base": {
+      "node": "26.13.1"
+    },
     "development": {
+      "extends": "base",
       "developmentClient": true,
       "distribution": "internal",
       "env": {
@@ -13,6 +17,7 @@
       "channel": "development"
     },
     "production": {
+      "extends": "base",
       "autoIncrement": true,
       "env": {
         "SHARP_IGNORE_GLOBAL_LIBVIPS": "1"
@@ -23,6 +28,7 @@
       "channel": "production"
     },
     "screenshots": {
+      "extends": "base",
       "distribution": "internal",
       "env": {
         "SHARP_IGNORE_GLOBAL_LIBVIPS": "1",
@@ -35,6 +41,7 @@
       "channel": "screenshots"
     },
     "e2e": {
+      "extends": "base",
       "distribution": "internal",
       "env": {
         "SHARP_IGNORE_GLOBAL_LIBVIPS": "1",
