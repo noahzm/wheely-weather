@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import type { HourlyWeather } from '@/types/weather';
 import {
   CHART_HEIGHT,
   CHART_HOUR_LABEL_Y,
@@ -29,6 +30,7 @@ import {
   chartSmoothYAtSegments,
   chartSmoothPath,
   buildChartSpline,
+  buildHourlyChart,
   type ChartSplineSegment,
 } from './hourlyChart';
 
@@ -342,6 +344,41 @@ describe('chartOpeningIndex', () => {
 
   it('opens on the window’s first hour when it starts later', () => {
     expect(chartOpeningIndex(3, { first: 6, last: 8 })).toBe(6);
+  });
+});
+
+describe('buildHourlyChart', () => {
+  const forecastHour = (hour: number): HourlyWeather => ({
+    hour,
+    temperature: 65,
+    feelsLike: 65,
+    windSpeed: 5,
+    windGust: null,
+    rainChance: 0,
+    dewpoint: 48,
+    weatherCode: 0,
+    condition: 'good',
+  });
+
+  it('keeps the same ride hour selected as its forecast index changes', () => {
+    const window = { startHour: 14, endHour: 16 };
+    const before = buildHourlyChart(
+      [11, 12, 13, 14, 15].map((hour) => forecastHour(hour)),
+      [forecastHour(10)],
+      window,
+    );
+    const after = buildHourlyChart(
+      [12, 13, 14, 15, 16].map((hour) => forecastHour(hour)),
+      [forecastHour(11)],
+      window,
+    );
+
+    expect(before.openingIdx - before.nowIdx).toBe(3);
+    expect(after.openingIdx - after.nowIdx).toBe(2);
+    expect(before.data[before.openingIdx]?.hour).toBe(14);
+    expect(after.data[after.openingIdx]?.hour).toBe(14);
+    expect(after.data[0]).toMatchObject({ hour: 11, idx: 0, isPast: true });
+    expect(after.bestRideIdx).toBe(after.openingIdx);
   });
 });
 

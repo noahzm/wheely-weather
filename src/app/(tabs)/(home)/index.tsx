@@ -250,8 +250,14 @@ function HomeSections({
     }
   }
 
-  const { activeKit, activeDaylightWarning, activeSpecs, setSelectedHourlyIdx } =
-    useSelectedHomeKit(weather, derived, placeKey);
+  const {
+    activeKit,
+    activeDaylightWarning,
+    activeSpecs,
+    hourlyChart,
+    selectionKey,
+    setSelectedHourlyIdx,
+  } = useSelectedHomeKit(weather, derived, placeKey);
 
   useEffect(() => {
     if (reduceMotion) {
@@ -309,10 +315,9 @@ function HomeSections({
             />
           </View>
           <HourlyForecast
-            hourly={weather.hourly}
-            pastHourly={weather.pastHourly}
+            chart={hourlyChart}
             thresholds={thresholds}
-            rideWindow={derived.rideWindow}
+            selectionKey={selectionKey}
             onSelectHour={setSelectedHourlyIdx}
           />
         </View>

@@ -15,7 +15,7 @@ import { useRideDuration } from '@/hooks/settings-context';
 import type { AcclimatizationContext } from '@/services/forecastSnapshot';
 import { RIDE_DURATION_HOURS, type RideDuration } from '@/types/settings';
 import type { HourlyWeather, Weather } from '@/types/weather';
-import { chartWindowIndexes } from '@/utils/hourlyChart';
+import { buildHourlyChart } from '@/utils/hourlyChart';
 import type { TempUnit } from '@/utils/temperature';
 import { fullHourLabel } from '@/utils/timeFormat';
 
@@ -101,11 +101,25 @@ export function weatherAtHour(
 export function useSelectedHomeKit(weather: Weather, derived: HomeState, placeKey: string) {
   const [settingRideDuration] = useRideDuration();
   const activeRideDuration = derived.kit.rideDuration ?? settingRideDuration;
-  const kitResetKey = `${placeKey}|${derived.rideWindow?.startHour ?? ''}|${derived.rideWindow?.endHour ?? ''}|${activeRideDuration}`;
+  const { rideWindow } = derived;
+  const hourlyChart = buildHourlyChart(weather.hourly, weather.pastHourly, rideWindow);
+  const { nowIdx, openingIdx, data } = hourlyChart;
+  const selectionKey = [
+    placeKey,
+    weather.daily[0]?.date,
+    weather.hourly[0]?.hour,
+    nowIdx,
+    openingIdx,
+    data.length,
+    rideWindow?.startHour,
+    rideWindow?.endHour,
+    rideWindow?.tomorrow,
+    activeRideDuration,
+  ].join('|');
   const [selectedHourlyIdx, setSelectedHourlyIdx] = useState<number | null>(null);
-  const [shownKitKey, setShownKitKey] = useState(kitResetKey);
-  if (shownKitKey !== kitResetKey) {
-    setShownKitKey(kitResetKey);
+  const [shownSelectionKey, setShownSelectionKey] = useState(selectionKey);
+  if (shownSelectionKey !== selectionKey) {
+    setShownSelectionKey(selectionKey);
     setSelectedHourlyIdx(null);
   }
 
@@ -126,12 +140,7 @@ export function useSelectedHomeKit(weather: Weather, derived: HomeState, placeKe
     ? getDaylightWarning(weather.hourly, weather.daylight, customRideHours)
     : derived.daylightWarning;
 
-  const openingHourlyIdx =
-    chartWindowIndexes(
-      weather.hourly.slice(0, 24).map((h, idx) => ({ idx, hour: h.hour, isPast: false })),
-      derived.rideWindow,
-    )?.first ?? 0;
-  const activeHourlyIdx = selectedHourlyIdx ?? openingHourlyIdx;
+  const activeHourlyIdx = selectedHourlyIdx ?? openingIdx - nowIdx;
   const selectedHour = activeHourlyIdx > 0 ? weather.hourly[activeHourlyIdx] : undefined;
   const activeSpecs = {
     title: selectedHour ? `At ${fullHourLabel(selectedHour.hour)}` : 'Right now',
@@ -142,5 +151,12 @@ export function useSelectedHomeKit(weather: Weather, derived: HomeState, placeKe
     ),
   };
 
-  return { activeKit, activeDaylightWarning, activeSpecs, setSelectedHourlyIdx };
+  return {
+    activeKit,
+    activeDaylightWarning,
+    activeSpecs,
+    hourlyChart,
+    selectionKey,
+    setSelectedHourlyIdx,
+  };
 }

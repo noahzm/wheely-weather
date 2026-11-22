@@ -33,13 +33,13 @@ import {
   chartSmoothYAtSegments,
   chartX,
   chartY,
+  type ChartHour,
   type ChartSplineSegment,
 } from '@/utils/hourlyChart';
 import { fullHourLabel } from '@/utils/timeFormat';
 import { withAlpha } from '@/utils/colors';
 
 import { HourlyChartDot } from './hourly-chart-dot';
-import type { ChartHour } from './use-hourly-forecast-chart';
 
 const SELECTION_RING_SIZE = 32;
 const SELECTION_RING_RADIUS = SELECTION_RING_SIZE / 2;

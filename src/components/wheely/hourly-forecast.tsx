@@ -15,7 +15,6 @@ import {
   FontWeightSemibold,
   TabularNumbers,
 } from '@/constants/theme';
-import type { HourlyWeather } from '@/types/weather';
 import type { Thresholds } from '@/domain/constants';
 import { AnimatedConditionChip, ConditionChipWidthProbe } from './animated-condition-chip';
 import { HourlyShortcutButtons } from './hourly-shortcut-buttons';
@@ -30,20 +29,16 @@ import {
   CHART_HEIGHT,
   CHART_WINDOW_LABEL_BOTTOM,
   CHART_X_STEP,
-  chartOpeningIndex,
+  type buildHourlyChart,
+  type ChartHour,
   chartScrollOffsetForIndex,
   chartWindowBand,
-  chartWindowIndexes,
   chartWindowLabel,
   chartX,
   chartY,
 } from '@/utils/hourlyChart';
 import { withAlpha } from '@/utils/colors';
-import {
-  useHourlyChipScroll,
-  useHourlyForecastChart,
-  type ChartHour,
-} from './use-hourly-forecast-chart';
+import { useHourlyChipScroll, useHourlyForecastChart } from './use-hourly-forecast-chart';
 
 /** How far web may shrink the hour's reason line before it ellipsizes. */
 const HOUR_REASON_MIN_FONT_SCALE = 0.85;
@@ -598,33 +593,21 @@ function HourlyChartShell({
 }
 
 export function HourlyForecast({
-  hourly,
-  pastHourly,
+  chart,
   thresholds,
-  rideWindow = null,
+  selectionKey,
   onSelectHour,
 }: Readonly<{
-  hourly: HourlyWeather[];
-  pastHourly: HourlyWeather[];
+  chart: ReturnType<typeof buildHourlyChart>;
   thresholds: Thresholds;
-  /** The verdict's recommended window, shaded on the chart. */
-  rideWindow?: { startHour: number; endHour: number; tomorrow?: boolean } | null;
+  selectionKey: string;
   /** Called with an index in `hourly` when scrubbed away from opening, or `null` at opening. */
   onSelectHour?: (hourlyIndex: number | null) => void;
 }>) {
   const { styles } = useStyles();
-  const data = useMemo(() => {
-    const past = pastHourly.map((h) => ({ ...h, isPast: true }));
-    const future = hourly.slice(0, 24).map((h) => ({ ...h, isPast: false }));
-    return [...past, ...future].map((d, i) => ({ ...d, idx: i }));
-  }, [hourly, pastHourly]);
+  const { data, nowIdx, openingIdx, bestRideIdx, windowBand } = chart;
 
-  const nowIdx = pastHourly.length;
-  const windowBand = chartWindowBand(data, rideWindow);
-  const windowIndexes = chartWindowIndexes(data, rideWindow);
-  const openingIdx = chartOpeningIndex(nowIdx, windowIndexes);
-
-  if (hourly.length === 0) {
+  if (data.length === nowIdx) {
     return (
       <BrutalCard style={styles.emptyCard}>
         <ThemedText style={styles.alertTitle}>Hourly forecast unavailable.</ThemedText>
@@ -636,14 +619,13 @@ export function HourlyForecast({
   return (
     <View style={styles.hourlyWrap}>
       <BrutalCard style={styles.hourlyCard}>
-        {/* Remounts when the opening hour moves (a new hour, or a new ride
-            window), so the chart re-centers instead of keeping a stale spot. */}
+        {/* Use the same reset key as the kit and specs so they recenter together. */}
         <HourlyForecastBody
-          key={`${nowIdx}-${openingIdx}-${data.length}`}
+          key={selectionKey}
           data={data}
           nowIdx={nowIdx}
           openingIdx={openingIdx}
-          bestRideIdx={windowIndexes?.first ?? null}
+          bestRideIdx={bestRideIdx}
           thresholds={thresholds}
           windowBand={windowBand}
           onSelectHour={onSelectHour}

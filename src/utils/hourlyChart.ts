@@ -3,7 +3,7 @@
  * Keeping these out of the render component lets them be unit-tested and
  * prevents the component from holding domain knowledge (condition → score).
  */
-import type { Condition } from '@/types/weather';
+import type { Condition, HourlyWeather } from '@/types/weather';
 
 /** Numeric score for each ride condition (higher = better). */
 const CONDITION_SCORE: Record<Condition, number> = {
@@ -366,6 +366,8 @@ interface ChartWindowHour {
   isPast: boolean;
 }
 
+export type ChartHour = HourlyWeather & ChartWindowHour;
+
 interface ChartRideWindow {
   startHour: number;
   endHour: number;
@@ -438,6 +440,27 @@ export function chartOpeningIndex(
   windowRange: { first: number; last: number } | null,
 ): number {
   return windowRange != null && windowRange.first > nowIdx ? windowRange.first : nowIdx;
+}
+
+export function buildHourlyChart(
+  hourly: HourlyWeather[],
+  pastHourly: HourlyWeather[],
+  rideWindow: ChartRideWindow | null,
+) {
+  const nowIdx = pastHourly.length;
+  const data: ChartHour[] = [...pastHourly, ...hourly.slice(0, 24)].map((hour, idx) => ({
+    ...hour,
+    idx,
+    isPast: idx < nowIdx,
+  }));
+  const windowIndexes = chartWindowIndexes(data, rideWindow);
+  return {
+    data,
+    nowIdx,
+    openingIdx: chartOpeningIndex(nowIdx, windowIndexes),
+    bestRideIdx: windowIndexes?.first ?? null,
+    windowBand: chartWindowBand(data, rideWindow),
+  };
 }
 
 /** The ride window band's label: spelled out when it fits (three hours at 13pt), else "Ride". */

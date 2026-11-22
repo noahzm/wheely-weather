@@ -12,16 +12,14 @@ import {
   chartScrollOffsetForIndex,
   chartSmoothPath,
   chartX,
+  type ChartHour,
 } from '@/utils/hourlyChart';
 import { CONDITION_DISPLAY } from '@/domain';
-import type { HourlyWeather } from '@/types/weather';
 
 import type { ChipLayoutSize } from './animated-condition-chip';
 import { useExpandAnimation } from './animated-expand';
 import { asCondition } from './primitives';
 import { useHourlyScrollPicker } from './use-hourly-scroll-picker';
-
-export type ChartHour = HourlyWeather & { isPast: boolean; idx: number };
 
 export function useHourlyForecastChart(
   data: ChartHour[],

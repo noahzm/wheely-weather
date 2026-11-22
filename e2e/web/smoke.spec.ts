@@ -186,6 +186,23 @@ test('hourly shortcuts return to now and the recommended ride', async ({ page })
   await expect(page.getByRole('button', { name: 'Best ride', exact: true })).toHaveCount(0);
 });
 
+test('an hourly refresh resets the chart, kit and weather details together', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-07-15T11:00:00') });
+  await page.goto('/?mock=ride');
+  const chart = page.getByRole('slider', { name: 'Hourly ride-condition chart' });
+  await expect(chart).toHaveAttribute('aria-valuetext', /^Now,/);
+  await expect.poll(() => chart.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
+  const selectedHourX = await chart.evaluate((element) => element.clientWidth / 2 + 88);
+  await chart.click({ position: { x: selectedHourX, y: 40 } });
+  await expect(page.getByRole('heading', { name: 'Kit for 1 PM' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'At 1 PM' })).toBeVisible();
+
+  await page.clock.fastForward('01:00:00');
+  await expect(chart).toHaveAttribute('aria-valuetext', /^Now,/);
+  await expect(page.getByRole('heading', { name: 'Today’s kit' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Right now' })).toBeVisible();
+});
+
 test('secondary current weather details expand accessibly and retain metric guidance', async ({
   page,
 }) => {
