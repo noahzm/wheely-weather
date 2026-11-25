@@ -47,6 +47,31 @@ describe('telemetry — disabled in dev or without a DSN', () => {
     expect(sentryEnabled).toBe(false);
     expect(sentry.init).not.toHaveBeenCalled();
   });
+
+  it.each(['localhost', '127.0.0.1', '[::1]'])(
+    'stays disabled on a local web preview at %s',
+    async (hostname) => {
+      process.env.EXPO_PUBLIC_SENTRY_DSN = 'https://example@sentry.io/123';
+      vi.stubGlobal('__DEV__', false);
+      vi.stubGlobal('location', { hostname });
+
+      const { initSentry, sentryEnabled } = await import('./telemetry');
+      initSentry();
+
+      expect(sentryEnabled).toBe(false);
+      expect(sentry.init).not.toHaveBeenCalled();
+    },
+  );
+
+  it('reports from the deployed site', async () => {
+    process.env.EXPO_PUBLIC_SENTRY_DSN = 'https://example@sentry.io/123';
+    vi.stubGlobal('__DEV__', false);
+    vi.stubGlobal('location', { hostname: 'wheelyweather.app' });
+
+    const { sentryEnabled } = await import('./telemetry');
+
+    expect(sentryEnabled).toBe(true);
+  });
 });
 
 describe('telemetry — production initialization and helpers', () => {

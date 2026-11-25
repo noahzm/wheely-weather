@@ -181,6 +181,17 @@ describe('getForecastErrorKind', () => {
     expect(getForecastErrorKind(new Error(REQUEST_TIMEOUT_ERROR))).toBe('network');
   });
 
+  it("classifies WeatherKit's offline networkError as a network error", () => {
+    const offline = new Error(
+      'WeatherKitException: networkError: A server with the specified hostname could not be found. (WeatherDaemon.WDSClientErrors 0)',
+    );
+    expect(getForecastErrorKind(offline)).toBe('network');
+    // responseFailed (code 1) is a real failure, not a lost connection.
+    expect(
+      getForecastErrorKind(new Error('responseFailed: 400 (WeatherDaemon.WDSClientErrors 1)')),
+    ).toBe('default');
+  });
+
   it('classifies other errors and non-errors as default', () => {
     expect(getForecastErrorKind(new Error('Weather API error: 500'))).toBe('default');
     expect(getForecastErrorKind('unexpected')).toBe('default');

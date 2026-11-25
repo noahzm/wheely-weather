@@ -18,7 +18,19 @@ const dsn: string | undefined =
  * app-start profiler with nothing to report to, which logs a spurious
  * "Sentry.wrap was called before Sentry.init" warning on every launch.
  */
-export const sentryEnabled = Boolean(dsn) && !__DEV__;
+export const sentryEnabled = Boolean(dsn) && !__DEV__ && !isLocalWebPreview();
+
+/**
+ * A production web export served on this machine (`npm run test:web`, the
+ * reference screenshots, a manual preview of `dist/`) carries the real DSN but
+ * isn't a rider: its errors (WHEELY-WEATHER-J, from localhost:4173) landed in
+ * production as noise.
+ */
+function isLocalWebPreview(): boolean {
+  const hostname: unknown = (globalThis as { location?: { hostname?: unknown } }).location
+    ?.hostname;
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
+}
 
 // Precise coordinates ride in request URLs (Open-Meteo latitude/longitude,
 // Nominatim lat/lon, NWS /points/{lat},{lon}), and Sentry's default fetch/XHR
