@@ -183,12 +183,21 @@ export async function getForecastSnapshot({
   };
 }
 
+// WeatherKit's `networkError` (WDSClientErrors code 0, e.g. "A server with the
+// specified hostname could not be found"), as the native module words it: the
+// device is offline, like a fetch TypeError (WHEELY-WEATHER-H).
+const WEATHERKIT_NETWORK_ERROR = '(WeatherDaemon.WDSClientErrors 0)';
+
 /**
  * Classifies an error into a user-facing error kind ('network' or 'default')
  * so the error state card can present appropriate recovery actions.
  */
 export function getForecastErrorKind(err: unknown) {
-  const maybeError = err as { message?: string } | undefined;
-  const isNetworkError = err instanceof TypeError || maybeError?.message === REQUEST_TIMEOUT_ERROR;
+  const maybeError = err as { message?: unknown } | undefined;
+  const message = typeof maybeError?.message === 'string' ? maybeError.message : '';
+  const isNetworkError =
+    err instanceof TypeError ||
+    message === REQUEST_TIMEOUT_ERROR ||
+    message.includes(WEATHERKIT_NETWORK_ERROR);
   return isNetworkError ? 'network' : 'default';
 }
