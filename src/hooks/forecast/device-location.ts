@@ -44,6 +44,19 @@ export function deviceLocationErrorMessage(kind: 'denied' | 'unavailable'): stri
 // simulator) with no position leaves the caller waiting forever with no message.
 const DEVICE_FIX_TIMEOUT_MS = 10_000;
 
+// A position iOS already has (from any app, or our own watch) is as good as a
+// new fix for a 2 km follow threshold, and it's instant — no GPS spin-up.
+const RECENT_FIX_MAX_AGE_MS = 5 * 60 * 1000;
+const RECENT_FIX_MIN_ACCURACY_M = 1000;
+
+async function readRecentPosition(): Promise<Coords | null> {
+  const position = await Location.getLastKnownPositionAsync({
+    maxAge: RECENT_FIX_MAX_AGE_MS,
+    requiredAccuracy: RECENT_FIX_MIN_ACCURACY_M,
+  }).catch(() => null);
+  return position ? { lat: position.coords.latitude, lon: position.coords.longitude } : null;
+}
+
 async function locateDevice(requestIfUndetermined: boolean): Promise<DeviceLocationResult> {
   try {
     let permission = await Location.getForegroundPermissionsAsync();
@@ -53,23 +66,21 @@ async function locateDevice(requestIfUndetermined: boolean): Promise<DeviceLocat
     if (permission.status !== Location.PermissionStatus.GRANTED) {
       return { kind: 'denied' };
     }
-    let lat: number;
-    let lon: number;
-    const lastKnown = await Location.getLastKnownPositionAsync().catch(() => null);
-    if (lastKnown) {
-      lat = lastKnown.coords.latitude;
-      lon = lastKnown.coords.longitude;
-    } else {
+    // Only a recent, reasonably accurate system position stands in for a fresh
+    // fix. An unbounded last-known position can be hours old or from another
+    // town (a cold launch after travel), which put the forecast in the wrong
+    // place until the watch noticed and fetched again.
+    let coords = await readRecentPosition();
+    if (!coords) {
       const position = await withTimeout(
         Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
         DEVICE_FIX_TIMEOUT_MS,
       );
-      lat = position.coords.latitude;
-      lon = position.coords.longitude;
+      coords = { lat: position.coords.latitude, lon: position.coords.longitude };
     }
     const saved = await saveLocation({
-      lat,
-      lon,
+      lat: coords.lat,
+      lon: coords.lon,
       name: null,
       source: 'device',
     });
@@ -112,19 +123,6 @@ export function adoptDeviceFix(coords: Coords): Promise<SavedLocation> {
     lastKnownDeviceFix = saved;
   });
   return promise;
-}
-
-// A position iOS already has (from any app, or our own watch) is as good as a
-// new fix for a 2 km follow threshold, and it's instant — no GPS spin-up.
-const RECENT_FIX_MAX_AGE_MS = 5 * 60 * 1000;
-const RECENT_FIX_MIN_ACCURACY_M = 1000;
-
-async function readRecentPosition(): Promise<Coords | null> {
-  const position = await Location.getLastKnownPositionAsync({
-    maxAge: RECENT_FIX_MAX_AGE_MS,
-    requiredAccuracy: RECENT_FIX_MIN_ACCURACY_M,
-  }).catch(() => null);
-  return position ? { lat: position.coords.latitude, lon: position.coords.longitude } : null;
 }
 
 /**

@@ -77,6 +77,26 @@ describe('requestDeviceLocation', () => {
     expect(mocks.getCurrentPositionAsync).not.toHaveBeenCalled();
   });
 
+  it('only reuses a recent, accurate system position', async () => {
+    mocks.getLastKnownPositionAsync.mockResolvedValue(position(RALEIGH));
+    await requestDeviceLocation();
+    expect(mocks.getLastKnownPositionAsync).toHaveBeenCalledWith({
+      maxAge: 5 * 60 * 1000,
+      requiredAccuracy: 1000,
+    });
+  });
+
+  it('takes a fresh fix when the system has no recent position', async () => {
+    // getLastKnownPositionAsync resolves null when its cached fix is too old.
+    mocks.getCurrentPositionAsync.mockResolvedValue(position(DURHAM_EDGE));
+    const result = await requestDeviceLocation();
+    expect(result).toEqual({
+      kind: 'located',
+      location: { ...DURHAM_EDGE, name: null, source: 'device' },
+    });
+    expect(mocks.getCurrentPositionAsync).toHaveBeenCalledTimes(1);
+  });
+
   it('gives up as unavailable when no fix arrives in time', async () => {
     vi.useFakeTimers();
     // A fix that never arrives, like a simulator with no location set.
